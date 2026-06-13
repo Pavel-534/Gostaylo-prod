@@ -1,7 +1,6 @@
-import { cookies } from 'next/headers'
 import { getPublicSiteUrl } from '@/lib/site-url'
-import { getUIText, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
-import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
+import { getUIText } from '@/lib/translations'
+import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
 import { resolveReferrerByVanityCode } from '@/lib/services/marketing/referral-vanity.service.js'
 
 export async function generateMetadata({ params }) {
@@ -14,11 +13,12 @@ export async function generateMetadata({ params }) {
   }
 
   const uid = String(resolved.data.referrerProfile.id).trim()
-  const jar = cookies()
-  const lang = normalizeUiLocaleCode(jar.get('gostaylo_language')?.value || DEFAULT_UI_LANGUAGE)
-
+  const lang = await resolveOgLocale()
   let displayName = ''
-  let description = getUIText('stage74_4_uMetaDescription', lang)
+  let description = getUIText('stage1322_uMetaDescription', lang).replace(
+    '{name}',
+    getUIText('stage74_4_uMetaNameFallback', lang),
+  )
   try {
     const base = getPublicSiteUrl()
     const res = await fetch(`${base}/api/v2/referral/landing-meta/${encodeURIComponent(uid)}`, {
@@ -34,6 +34,8 @@ export async function generateMetadata({ params }) {
           description = getUIText('stage1143_uMetaDescriptionEarned', lang)
             .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
             .replace('{earned}', earnedLabel)
+        } else if (displayName) {
+          description = getUIText('stage1322_uMetaDescription', lang).replace('{name}', displayName)
         }
       }
     }

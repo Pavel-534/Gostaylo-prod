@@ -7,10 +7,13 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Facebook, FileText, Loader2, Lock, MessageCircle, Share2, Smartphone } from 'lucide-react'
+import { Download, Facebook, FileText, Home, Loader2, Lock, MessageCircle, Plane, Share2, Smartphone } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { downloadAmbassadorCardPdf } from '@/lib/referral/ambassador-card-pdf'
 import { isUuidLike } from '@/lib/referral/uuid-like'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { getUIText } from '@/lib/translations'
+import { useI18n } from '@/contexts/i18n-context'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
 import { toast } from 'sonner'
 
@@ -72,12 +75,21 @@ export function ReferralMarketingKit({
   storiesTeamLockedHint = '',
   /** Welcome bonus THB из `GET /api/v2/wallet/me` → `policy.welcomeBonusAmount` (fallback в шаблонах). */
   welcomeBonusThb = 0,
+  /** Stage 132.2 — RUB @ mid для RU-питчей (`referral/me.sharePitchFx.welcomeBonusRub`). */
+  welcomeBonusRub = 0,
+  /** Stage 132.2 — guest vs host share pitch tabs. */
+  sharePitchTabGuestLabel = 'Guests',
+  sharePitchTabHostLabel = 'Hosts',
+  shareBodyHost = '',
+  postTextShortHostTemplate = '',
+  postTextMediumHostTemplate = '',
   /** Публичный лендинг лояльности — для аудитории без реф-ссылки (Stage 91.4). */
   loyaltyExplainerHref = '',
   loyaltyExplainerLabel = '',
   /** Web Share API (мобильный нативный шаринг), Stage 91.5 */
   shareNativeLabel = '',
 }) {
+  const { language } = useI18n()
   const link = String(referralLink || '').trim()
   const landing = String(landingShareUrl || '').trim()
   /** Основная ссылка для QR, PNG, TG/FB: короткая визитка, иначе длинный ref. */
@@ -91,12 +103,13 @@ export function ReferralMarketingKit({
 
   const storiesHeadlineResolved = useMemo(() => {
     const raw = String(storiesCardHeadline || '').trim()
-    if (raw) return raw.replace(/\{brand\}/g, getSiteDisplayName())
     const site = getSiteDisplayName()
-    return site ? `Travel and earn with ${site}` : 'Travel and earn'
-  }, [storiesCardHeadline])
+    if (raw) return raw.replace(/\{brand\}/g, site)
+    return getUIText('stage73_storiesCardHeadline', language).replace(/\{brand\}/g, site)
+  }, [storiesCardHeadline, language])
 
   const [nativeShareOk, setNativeShareOk] = useState(false)
+  const [pitchMode, setPitchMode] = useState('guest')
   const [downloading, setDownloading] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [storiesBusy, setStoriesBusy] = useState(false)
@@ -126,14 +139,46 @@ export function ReferralMarketingKit({
     return String(Number.isFinite(n) && n > 0 ? n : 500)
   }, [welcomeBonusThb])
 
-  const defaultPitch = useMemo(() => {
+  const welcomeRubStr = useMemo(() => {
+    const n = Math.round(Number(welcomeBonusRub))
+    return String(Number.isFinite(n) && n > 0 ? n : '')
+  }, [welcomeBonusRub])
+
+  const applyPitchTokens = useMemo(
+    () => (template) =>
+      String(template || '')
+        .replace(/\{brand\}/g, brandChip)
+        .replace(/\{link\}/g, qrLink)
+        .replace(/\{welcomeThb\}/g, welcomeThbStr)
+        .replace(/\{welcomeRub\}/g, welcomeRubStr || welcomeThbStr),
+    [brandChip, qrLink, welcomeThbStr, welcomeRubStr],
+  )
+
+  const guestPitchBody = useMemo(() => {
     const fromI18n = String(shareBody || '').trim()
-    if (fromI18n) return fromI18n.replace(/\{welcomeThb\}/g, welcomeThbStr)
+    if (fromI18n) return applyPitchTokens(fromI18n)
     const legacy = String(shareMessage || '').trim()
     if (legacy) return legacy
-    const b = String(brandName || '').trim() || getSiteDisplayName()
-    return `Travel and earn with ${b}! Your bonus link: ${qrLink}`.trim()
-  }, [shareBody, shareMessage, brandName, qrLink, welcomeThbStr])
+    return applyPitchTokens(getUIText('stage73_shareBodyDefault', language))
+  }, [shareBody, shareMessage, applyPitchTokens, language])
+
+  const hostPitchBody = useMemo(() => {
+    const fromI18n = String(shareBodyHost || '').trim()
+    if (fromI18n) return applyPitchTokens(fromI18n)
+    return guestPitchBody
+  }, [shareBodyHost, guestPitchBody, applyPitchTokens])
+
+  const defaultPitch = pitchMode === 'host' ? hostPitchBody : guestPitchBody
+
+  function stripLinkFromPitch(text, link) {
+    const l = String(link || '').trim()
+    if (!l) return String(text || '').trim()
+    return String(text || '')
+      .replace(l, '')
+      .replace(/\s*:\s*$/, '')
+      .replace(/\s+$/, '')
+      .trim()
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -248,7 +293,7 @@ export function ReferralMarketingKit({
   }
 
   function openTg() {
-    const text = encodeURIComponent(defaultPitch)
+    const text = encodeURIComponent(stripLinkFromPitch(defaultPitch, qrLink))
     const url = encodeURIComponent(qrLink)
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'noopener,noreferrer')
   }
@@ -277,45 +322,31 @@ export function ReferralMarketingKit({
     }
   }
 
-  const readyTexts = useMemo(
-    () => [
-      {
-        id: 'short',
-        label: postTextShortLabel,
-        value: String(postTextShortTemplate || '')
-          .replace(/\{brand\}/g, brandChip)
-          .replace(/\{link\}/g, qrLink)
-          .replace(/\{welcomeThb\}/g, welcomeThbStr),
-      },
-      {
-        id: 'medium',
-        label: postTextMediumLabel,
-        value: String(postTextMediumTemplate || '')
-          .replace(/\{brand\}/g, brandChip)
-          .replace(/\{link\}/g, qrLink)
-          .replace(/\{welcomeThb\}/g, welcomeThbStr),
-      },
-      {
-        id: 'long',
-        label: postTextLongLabel,
-        value: String(postTextLongTemplate || '')
-          .replace(/\{brand\}/g, brandChip)
-          .replace(/\{link\}/g, qrLink)
-          .replace(/\{welcomeThb\}/g, welcomeThbStr),
-      },
-    ],
-    [
-      postTextLongLabel,
-      postTextLongTemplate,
-      postTextMediumLabel,
-      postTextMediumTemplate,
-      postTextShortLabel,
-      postTextShortTemplate,
-      brandChip,
-      qrLink,
-      welcomeThbStr,
-    ],
-  )
+  const readyTexts = useMemo(() => {
+    const isHost = pitchMode === 'host'
+    const rows = isHost
+      ? [
+          { id: 'short', label: postTextShortLabel, value: applyPitchTokens(postTextShortHostTemplate) },
+          { id: 'medium', label: postTextMediumLabel, value: applyPitchTokens(postTextMediumHostTemplate) },
+        ]
+      : [
+          { id: 'short', label: postTextShortLabel, value: applyPitchTokens(postTextShortTemplate) },
+          { id: 'medium', label: postTextMediumLabel, value: applyPitchTokens(postTextMediumTemplate) },
+          { id: 'long', label: postTextLongLabel, value: applyPitchTokens(postTextLongTemplate) },
+        ]
+    return rows.filter((r) => String(r.value || '').trim())
+  }, [
+    pitchMode,
+    postTextLongLabel,
+    postTextLongTemplate,
+    postTextMediumHostTemplate,
+    postTextMediumLabel,
+    postTextMediumTemplate,
+    postTextShortHostTemplate,
+    postTextShortLabel,
+    postTextShortTemplate,
+    applyPitchTokens,
+  ])
 
   async function handleCopyPostText(text) {
     const value = String(text || '').trim()
@@ -488,6 +519,39 @@ export function ReferralMarketingKit({
                   </span>
                 </p>
               ) : null}
+              <div className="w-full space-y-2 pt-1">
+                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 gap-1">
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs sm:text-sm font-medium transition-colors',
+                      pitchMode === 'guest'
+                        ? 'bg-white text-brand shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900',
+                    )}
+                    onClick={() => setPitchMode('guest')}
+                  >
+                    <Plane className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {sharePitchTabGuestLabel}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs sm:text-sm font-medium transition-colors',
+                      pitchMode === 'host'
+                        ? 'bg-white text-emerald-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900',
+                    )}
+                    onClick={() => setPitchMode('host')}
+                  >
+                    <Home className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {sharePitchTabHostLabel}
+                  </button>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-500 border border-slate-100 rounded-lg bg-white px-3 py-2">
+                  {defaultPitch}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full pt-1">
                 {nativeShareOk && String(shareNativeLabel || '').trim() ? (
                   <Button

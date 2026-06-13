@@ -15,5 +15,15 @@ export async function GET() {
   }
 
   const data = await resolvePartnerReferralContext(userId)
-  return NextResponse.json({ success: true, data })
+  return NextResponse.json({
+    success: true,
+    data: {
+      ...data,
+      /** Stage 132.2 A3 — documented contract alias */
+      partnerSupplyStatus: {
+        referredBy: data.referredBy,
+        hostActivationCompleted: data.hostActivationCompleted,
+      },
+    },
+  })
 }

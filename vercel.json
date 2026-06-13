@@ -71,6 +71,14 @@
     {
       "path": "/api/cron/owner-marketing-digest",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/referral-team-weekly-digest",
+      "schedule": "30 7 * * 1"
+    },
+    {
+      "path": "/api/cron/partner-host-retention",
+      "schedule": "0 9 * * *"
     }
   ]
 }

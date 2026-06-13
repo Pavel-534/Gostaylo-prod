@@ -24,10 +24,10 @@ function formatWhen(iso, locale) {
 function rowStatusLabel(row, t) {
   const s = String(row.status || '').toLowerCase()
   if (row.kind === 'request' && s === 'withdrawable_referral') {
-    return { label: t?.('stage1146_withdrawStatusPending') || 'В обработке', tone: 'amber' }
+    return { label: t('stage1146_withdrawStatusPending'), tone: 'amber' }
   }
-  if (s.includes('paid')) return { label: t?.('stage1146_withdrawStatusPaid') || 'Выплачено', tone: 'teal' }
-  if (row.kind === 'debit') return { label: t?.('stage1146_withdrawStatusDebited') || 'Списание', tone: 'slate' }
+  if (s.includes('paid')) return { label: t('stage1146_withdrawStatusPaid'), tone: 'teal' }
+  if (row.kind === 'debit') return { label: t('stage1146_withdrawStatusDebited'), tone: 'slate' }
   return { label: row.status || '—', tone: 'slate' }
 }
 
@@ -73,18 +73,16 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <History className="h-4 w-4 text-brand" />
-          {t('stage1145_withdrawHistoryTitle') || 'История выводов'}
+          {t('stage1145_withdrawHistoryTitle')}
         </CardTitle>
-        <CardDescription>
-          {t('stage1145_withdrawHistorySubtitle') || 'Заявки и списания withdrawable. Полуавтоматическая обработка.'}
-        </CardDescription>
+        <CardDescription>{t('stage1145_withdrawHistorySubtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
         {withdrawalRows.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500 space-y-3">
-            <p>{t('stage1146_withdrawHistoryEmpty') || 'Пока не было заявок на вывод реферального баланса.'}</p>
+            <p>{t('stage1146_withdrawHistoryEmpty')}</p>
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/profile/wallet">{t('stage1143_tabNavWallet') || 'Открыть кошелёк'}</Link>
+              <Link href="/profile/wallet">{t('stage1143_tabNavWallet')}</Link>
             </Button>
           </div>
         ) : (

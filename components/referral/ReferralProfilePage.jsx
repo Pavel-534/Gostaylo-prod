@@ -19,6 +19,7 @@ import { ReferralPageSkeleton } from '@/components/referral/ReferralPageSkeleton
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
+import { ReferralMentorStrip } from '@/components/referral/ReferralMentorStrip'
 
 const TAB_ACTIVE =
   'rounded-lg shrink-0 snap-start data-[state=active]:bg-brand data-[state=active]:text-white'
@@ -38,6 +39,8 @@ export function ReferralProfilePage() {
   const { data, isLoading: referralLoading, isError: referralError } = useReferralMeQuery({
     enabled: !authLoading && isAuthenticated,
     includeTeam: true,
+    includeTeamAnalytics: true,
+    analyticsPeriod: 'month',
     teamLimit: 100,
   })
 
@@ -62,6 +65,11 @@ export function ReferralProfilePage() {
       <ProfileHubNav t={t} />
 
       <PageSectionHeader title={t('stage91_inviteHeroTitle')} subtitle={t('stage91_inviteHeroSubtitle')} />
+
+      <ReferralMentorStrip
+        referredBy={data?.inviteNetwork?.referredBy}
+        brandName={data?.brandName}
+      />
 
       <ReferralBalanceBreakdown
         walletData={walletData}
@@ -97,7 +105,7 @@ export function ReferralProfilePage() {
           <ReferralProfileTabEarnings data={data} walletData={walletData} t={t} locale={locale} />
         </TabsContent>
         <TabsContent value="team">
-          <ReferralProfileTabTeam data={data} t={t} locale={locale} />
+          <ReferralProfileTabTeam data={data} t={t} locale={locale} language={language} />
         </TabsContent>
         <TabsContent value="history">
           <ReferralProfileTabHistory data={data} walletData={walletData} t={t} locale={locale} />

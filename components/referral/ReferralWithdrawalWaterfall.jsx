@@ -13,6 +13,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import { ReferralRuPayoutProfileForm } from '@/components/referral/ReferralRuPayoutProfileForm'
 import { ReferralPayoutBlockers } from '@/components/referral/ReferralPayoutBlockers'
 
@@ -52,7 +54,7 @@ function WaterfallStep({ label, amount, sublabel, tone = 'neutral', icon: Icon }
 }
 
 /**
- * Stage 131.5 — RUB-only withdrawal waterfall (Value Lock THB → Net RUB @ mid).
+ * Stage 131.5 / 132.2 — RUB-only withdrawal waterfall (Value Lock THB → Net RUB @ mid).
  */
 export function ReferralWithdrawalWaterfall({
   maxWithdrawableThb = 0,
@@ -65,12 +67,20 @@ export function ReferralWithdrawalWaterfall({
   locale = 'ru-RU',
   className = '',
 }) {
+  const { language } = useI18n()
+  const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const maxGross = Math.max(0, Number(maxWithdrawableThb) || 0)
   const [amountInput, setAmountInput] = useState('')
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [ruProfileReady, setRuProfileReady] = useState(false)
+
+  const fmtMin = useMemo(
+    () =>
+      Number(minPayoutThb).toLocaleString(locale, { maximumFractionDigits: 0 }),
+    [minPayoutThb, locale],
+  )
 
   useEffect(() => {
     if (maxGross > 0 && !amountInput) {
@@ -102,22 +112,22 @@ export function ReferralWithdrawalWaterfall({
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) {
-        setError(json?.error || 'Не удалось рассчитать preview')
+        setError(json?.error || t('stage1322_waterfallPreviewErr'))
         setPreview(null)
       } else {
         setPreview(json.data)
       }
     } catch (e) {
-      setError(e?.message || 'Ошибка сети')
+      setError(e?.message || t('stage1322_waterfallNetworkErr'))
       setPreview(null)
     } finally {
       setLoading(false)
     }
-  }, [payoutEligible, ruProfileReady, referralWithdrawRequested, grossThb])
+  }, [payoutEligible, ruProfileReady, referralWithdrawRequested, grossThb, t])
 
   useEffect(() => {
-    const t = setTimeout(() => void fetchPreview(), 280)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => void fetchPreview(), 280)
+    return () => clearTimeout(timer)
   }, [fetchPreview])
 
   const belowMin = grossThb > 0 && grossThb < minPayoutThb
@@ -131,6 +141,8 @@ export function ReferralWithdrawalWaterfall({
 
   if (maxGross <= 0 && !referralWithdrawRequested) return null
 
+  const feePercent = preview?.withdrawalFeePercent ?? 1.5
+
   return (
     <div
       className={`rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/40 to-white p-5 sm:p-6 shadow-sm space-y-5 ${className}`}
@@ -140,10 +152,8 @@ export function ReferralWithdrawalWaterfall({
           <ShieldCheck className="h-5 w-5 text-brand" aria-hidden />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Водопад вывода</h3>
-          <p className="text-sm text-slate-600 mt-0.5">
-            Баланс в THB (Value Lock) → выплата на карту РФ в рублях по mid-курсу.
-          </p>
+          <h3 className="text-lg font-semibold text-slate-900 tracking-tight">{t('stage1322_waterfallTitle')}</h3>
+          <p className="text-sm text-slate-600 mt-0.5">{t('stage1322_waterfallSubtitle')}</p>
         </div>
       </div>
 
@@ -154,7 +164,7 @@ export function ReferralWithdrawalWaterfall({
       <ReferralRuPayoutProfileForm onReady={setRuProfileReady} />
 
       <div className="space-y-2">
-        <Label htmlFor="withdraw-gross-thb">Сумма к снятию, THB</Label>
+        <Label htmlFor="withdraw-gross-thb">{t('stage1322_waterfallAmountLabel')}</Label>
         <div className="flex gap-2">
           <Input
             id="withdraw-gross-thb"
@@ -175,26 +185,24 @@ export function ReferralWithdrawalWaterfall({
             disabled={!payoutEligible || referralWithdrawRequested || !ruProfileReady}
             onClick={() => setAmountInput(String(Math.floor(maxGross)))}
           >
-            Макс
+            {t('stage1322_waterfallMaxBtn')}
           </Button>
         </div>
         <p className="text-xs text-slate-500">
-          Доступно: <span className="font-medium tabular-nums">{fmtThb(maxGross, locale)}</span> THB
-          {minPayoutThb > 0 ? (
-            <> · минимум {fmtThb(minPayoutThb, locale)} THB</>
-          ) : null}
+          {t('stage1322_waterfallAvailable', { amount: fmtThb(maxGross, locale) })}
+          {minPayoutThb > 0 ? t('stage1322_waterfallMinNote', { minThb: fmtMin }) : null}
         </p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Пересчитываем…
+          {t('stage1322_waterfallRecalc')}
         </div>
       ) : preview ? (
         <div className="space-y-2">
           <WaterfallStep
-            label="Gross · сумма к снятию"
+            label={t('stage1322_waterfallGrossLabel')}
             amount={`${fmtThb(preview.grossThb, locale)} THB`}
             tone="brand"
             icon={Sparkles}
@@ -203,9 +211,9 @@ export function ReferralWithdrawalWaterfall({
             <ArrowDown className="h-4 w-4" />
           </div>
           <WaterfallStep
-            label={`Комиссия на вывод ${preview.withdrawalFeePercent}%`}
+            label={t('stage1322_waterfallFeeLabel', { feePercent })}
             amount={`−${fmtThb(preview.withdrawalFeeThb, locale)} THB`}
-            sublabel="Удерживается с получателя при переводе на карту РФ."
+            sublabel={t('stage1322_waterfallFeeSublabel')}
             tone="fee"
             icon={Minus}
           />
@@ -213,23 +221,20 @@ export function ReferralWithdrawalWaterfall({
             <ArrowDown className="h-4 w-4" />
           </div>
           <WaterfallStep
-            label="Net · к получению на карту РФ"
+            label={t('stage1322_waterfallNetLabel')}
             amount={
               preview.netInPayoutCurrency != null
                 ? `≈ ${fmtRub(preview.netInPayoutCurrency, locale)} ₽`
                 : `${fmtThb(preview.netThb, locale)} THB`
             }
-            sublabel={`Эквивалент ${fmtThb(preview.netThb, locale)} THB после комиссии · конвертация по mid-курсу`}
+            sublabel={t('stage1322_waterfallNetSublabel', { netThb: fmtThb(preview.netThb, locale) })}
             tone="net"
             icon={Banknote}
           />
           <div className="rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-brand-hover leading-relaxed">
-            <p className="font-semibold text-brand">
-              Выплата только в рублях на карты РФ · спред платформы = 0%
-            </p>
+            <p className="font-semibold text-brand">{t('stage1322_waterfallRubOnlyTitle')}</p>
             <p className="mt-1 text-brand/80">
-              Курс — рыночный mid без наценки. Комиссия {preview.withdrawalFeePercent}% — только на
-              вывод.
+              {t('stage1322_waterfallRubOnlyBody', { feePercent })}
             </p>
           </div>
         </div>
@@ -238,7 +243,7 @@ export function ReferralWithdrawalWaterfall({
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       {belowMin ? (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-lg px-3 py-2">
-          Сумма ниже минимального порога вывода ({fmtThb(minPayoutThb, locale)} THB).
+          {t('stage1322_waterfallBelowMin', { minThb: fmtMin })}
         </p>
       ) : null}
 
@@ -258,12 +263,12 @@ export function ReferralWithdrawalWaterfall({
           onClick={() => onRequestWithdraw()}
         >
           {referralWithdrawRequested
-            ? 'Заявка на вывод отправлена'
+            ? t('stage1322_waterfallSubmitRequested')
             : withdrawRequesting
-              ? 'Отправка…'
+              ? t('stage1322_waterfallSubmitSending')
               : !ruProfileReady
-                ? 'Сначала укажите реквизиты РФ'
-                : 'Подтвердить заявку на вывод в ₽'}
+                ? t('stage1322_waterfallSubmitNeedProfile')
+                : t('stage1322_waterfallSubmitConfirm')}
         </Button>
       ) : null}
     </div>

@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 export function ReferralTeamMetricsStrip({
   friendsInvited = 0,
   directPartnersInvited = 0,
+  teamEarningsThb = null,
+  retentionRatePercent = null,
   variant = 'light',
   t,
   className = '',
@@ -35,9 +37,12 @@ export function ReferralTeamMetricsStrip({
     t?.('stage1315_metricPartnersTooltip') ||
     'Активированные хосты в вашей прямой команде. Именно они повышают уровень (Beginner → Pro → Ambassador) и долю к выводу.'
 
+  const showExtended = teamEarningsThb != null || retentionRatePercent != null
+  const gridCols = showExtended ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'
+
   return (
     <TooltipProvider delayDuration={200}>
-      <div className={`grid grid-cols-2 gap-3 ${className}`}>
+      <div className={`grid ${gridCols} gap-3 ${className}`}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div className={cardCn}>
@@ -66,6 +71,37 @@ export function ReferralTeamMetricsStrip({
             {partnersTip}
           </TooltipContent>
         </Tooltip>
+        {teamEarningsThb != null ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cardCn}>
+                <p className={labelCn}>{t?.('stage133_teamEarningsLabel') || 'Доход команды'}</p>
+                <p className={`${valueCn} flex items-center gap-1.5 mt-0.5 tabular-nums`}>
+                  {Math.round(Number(teamEarningsThb) * 100) / 100}
+                </p>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              {t?.('stage133_teamEarningsTooltip') || 'За текущий период (L1 + L2), THB'}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
+        {retentionRatePercent != null ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cardCn}>
+                <p className={labelCn}>{t?.('stage133_retentionLabel') || 'Retention хостов'}</p>
+                <p className={`${valueCn} flex items-center gap-1.5 mt-0.5 tabular-nums`}>
+                  {Number(retentionRatePercent).toFixed(1)}%
+                </p>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              {t?.('stage133_retentionTooltip') ||
+                'Доля прямых партнёров-хостов с хотя бы одной завершённой бронью'}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
       </div>
     </TooltipProvider>
   )

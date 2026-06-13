@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og'
-import { getPublicSiteUrl } from '@/lib/site-url'
+import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url'
+import { getUIText } from '@/lib/translations'
+import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
 
 export const runtime = 'nodejs'
 
@@ -13,6 +15,9 @@ export default async function Image({ params }) {
   const id = params?.id != null ? String(params.id).trim() : ''
   let displayName = 'Partner'
   const base = getPublicSiteUrl()
+  const lang = await resolveOgLocale()
+  const brand = getSiteDisplayName()
+  const subtitle = getUIText('stage1322_ogSubtitle', lang).replace(/\{brand\}/g, brand)
 
   if (id && base) {
     try {
@@ -21,12 +26,16 @@ export default async function Image({ params }) {
       })
       if (res.ok) {
         const j = await res.json().catch(() => ({}))
-        if (j?.success && j?.data?.displayName) displayName = String(j.data.displayName).trim()
+        if (j?.success && j?.data?.displayName) {
+          displayName = String(j.data.displayName).trim()
+        }
       }
     } catch {
       /* ignore */
     }
   }
+
+  const inviteResolved = getUIText('stage1322_ogInviteLine', lang).replace(/\{name\}/g, displayName)
 
   return new ImageResponse(
     (
@@ -45,6 +54,17 @@ export default async function Image({ params }) {
       >
         <div
           style={{
+            fontSize: 22,
+            fontWeight: 600,
+            opacity: 0.88,
+            marginBottom: 16,
+            letterSpacing: 1,
+          }}
+        >
+          {brand}
+        </div>
+        <div
+          style={{
             fontSize: 52,
             fontWeight: 800,
             padding: '0 56px',
@@ -55,8 +75,11 @@ export default async function Image({ params }) {
         >
           {displayName}
         </div>
+        <div style={{ fontSize: 24, marginTop: 20, opacity: 0.92, fontWeight: 600, padding: '0 48px', textAlign: 'center' }}>
+          {inviteResolved}
+        </div>
         <div style={{ fontSize: 26, marginTop: 28, opacity: 0.92, fontWeight: 600 }}>
-          Сдавай жильё · Бронируй · Получай бонусы
+          {subtitle}
         </div>
       </div>
     ),

@@ -25,6 +25,8 @@ import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceB
 import { ReferralPayoutBlockers } from '@/components/referral/ReferralPayoutBlockers'
 import { ReferralWithdrawalWaterfall } from '@/components/referral/ReferralWithdrawalWaterfall'
 import { ReferralWithdrawalHistory } from '@/components/referral/ReferralWithdrawalHistory'
+import { ReferralWithdrawalStatusBanner } from '@/components/referral/ReferralWithdrawalStatusBanner'
+import { ReferralWalletStickyWithdraw } from '@/components/referral/ReferralWalletStickyWithdraw'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -123,10 +125,30 @@ export default function ProfileWalletPage() {
     ? t('stage1321_walletPayoutEligible')
     : referralWithdrawRequested
       ? t('stage1321_walletPayoutRequested')
-      : blockerDetails[0]?.messageRu?.slice(0, 80) || t('stage1321_walletPayoutBlocked')
+      : blockerDetails[0]?.messageKey
+        ? t(blockerDetails[0].messageKey, blockerDetails[0].messageCtx || {})
+        : t('stage1321_walletPayoutBlocked')
+
+  const withdrawableThb = Number(balance.withdrawable_balance_thb ?? 0)
+  const minPayoutThb = Number(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000)
+  const stickyVisible =
+    payout?.payoutEligible === true ||
+    referralWithdrawRequested ||
+    withdrawableThb >= minPayoutThb
+  const stickyAmountLabel =
+    withdrawableThb > 0
+      ? `${formatThb(withdrawableThb, locale)} THB`
+      : ''
+  const stickyDisabled =
+    !payout?.payoutEligible ||
+    referralWithdrawRequested ||
+    withdrawRequesting ||
+    blockerDetails.some((b) =>
+      String(b?.code || '').startsWith('REFERRAL_RU_PAYOUT_PROFILE'),
+    )
 
   return (
-    <ProductPageShell containerClassName="space-y-8 sm:space-y-10">
+    <ProductPageShell containerClassName="space-y-8 sm:space-y-10 pb-24 md:pb-0">
       <ProfileHubNav t={t} />
       <PageSectionHeader
         title={t('stage1143_tabNavWallet')}
@@ -140,7 +162,9 @@ export default function ProfileWalletPage() {
         variant="full"
       />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ReferralWithdrawalStatusBanner walletData={walletData} locale={locale} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className={`lg:col-span-2 ${GSL_CARD} gsl-card-hover`}>
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -203,7 +227,7 @@ export default function ProfileWalletPage() {
                 onRequestWithdraw={requestReferralWithdrawal}
                 blockerDetails={blockerDetails}
                 locale={locale}
-                className="w-full"
+                className="w-full max-w-full overflow-hidden"
               />
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" onClick={() => router.push('/partner/finances')}>
@@ -269,6 +293,14 @@ export default function ProfileWalletPage() {
             )}
           </CardContent>
         </Card>
+      <ReferralWalletStickyWithdraw
+        visible={stickyVisible}
+        disabled={stickyDisabled}
+        loading={withdrawRequesting}
+        requested={referralWithdrawRequested}
+        amountLabel={stickyAmountLabel}
+        onWithdraw={requestReferralWithdrawal}
+      />
     </ProductPageShell>
   )
 }

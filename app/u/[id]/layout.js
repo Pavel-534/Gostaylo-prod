@@ -1,17 +1,18 @@
-import { cookies } from 'next/headers'
 import { getPublicSiteUrl } from '@/lib/site-url'
-import { getUIText, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
-import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
+import { getUIText } from '@/lib/translations'
+import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
 
 export async function generateMetadata({ params }) {
   const { id: userId } = await params
   const uid = userId != null ? String(userId).trim() : ''
-  const jar = cookies()
-  const lang = normalizeUiLocaleCode(jar.get('gostaylo_language')?.value || DEFAULT_UI_LANGUAGE)
+  const lang = await resolveOgLocale()
 
   let displayName = ''
   let notFound = false
-  let description = getUIText('stage74_4_uMetaDescription', lang)
+  let description = getUIText('stage1322_uMetaDescription', lang).replace(
+    '{name}',
+    getUIText('stage74_4_uMetaNameFallback', lang),
+  )
   if (uid) {
     try {
       const base = getPublicSiteUrl()
@@ -29,6 +30,8 @@ export async function generateMetadata({ params }) {
             description = getUIText('stage1143_uMetaDescriptionEarned', lang)
               .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
               .replace('{earned}', earnedLabel)
+          } else if (displayName) {
+            description = getUIText('stage1322_uMetaDescription', lang).replace('{name}', displayName)
           }
         }
       }

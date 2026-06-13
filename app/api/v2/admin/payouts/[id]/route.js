@@ -10,6 +10,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 import LedgerService from '@/lib/services/ledger.service';
 import { generatePayoutRequestDocuments } from '@/lib/services/payout-document.service.js';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { notifyReferralWithdrawalStatus } from '@/lib/services/marketing/referral-withdrawal-status-notify.service.js';
+import { isReferralWithdrawalPayout } from '@/lib/referral/referral-payout-row.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,6 +111,18 @@ export async function PATCH(request, { params }) {
       documents = await generatePayoutRequestDocuments(updated || row);
     } catch (docErr) {
       console.error('[admin/payouts PAID] PDF', id, docErr);
+    }
+
+    if (isReferralWithdrawalPayout(updated || row)) {
+      const meta = (updated || row).metadata && typeof (updated || row).metadata === 'object'
+        ? (updated || row).metadata
+        : {};
+      void notifyReferralWithdrawalStatus((updated || row).partner_id, 'paid', {
+        payoutId: id,
+        grossThb: meta.gross_thb,
+        netThb: meta.net_thb,
+        netRub: (updated || row).amount_in_payout_currency ?? meta.net_rub,
+      });
     }
 
     return NextResponse.json({

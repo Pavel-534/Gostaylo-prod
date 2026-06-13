@@ -15,6 +15,15 @@ import { cn } from '@/lib/utils'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 
+function formatDisplayAmount(value, locale = 'ru-RU', currency = 'THB') {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '0'
+  if (currency === 'RUB') {
+    return n.toLocaleString(locale, { maximumFractionDigits: 0 })
+  }
+  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
+}
+
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
   if (!Number.isFinite(n)) return '0'
@@ -68,9 +77,17 @@ export function ReferralBalanceBreakdown({
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
+  const display = walletData?.displayBalances || null
+  const displayCurrency = String(display?.currency || 'THB').toUpperCase()
+  const useDisplayFx = displayCurrency !== 'THB' && display != null
+
   const amounts = useMemo(() => {
     const balances = walletData?.balances || {}
     const wallet = walletData?.wallet || {}
+    const disp = walletData?.displayBalances || null
+    const cur = String(disp?.currency || 'THB').toUpperCase()
+    const showFx = cur !== 'THB' && disp != null
+
     const totalBalanceThb = Number(balances.totalBalanceThb ?? wallet.balance_thb ?? 0)
     const withdrawableBalanceThb = Number(
       balances.withdrawableBalanceThb ?? wallet.withdrawable_balance_thb ?? 0,
@@ -84,16 +101,38 @@ export function ReferralBalanceBreakdown({
     )
     const securityHeldReferralBalanceThb = Number(balances.securityHeldReferralBalanceThb ?? 0)
     const nearestUnlockAt = referralData?.stats?.nearestUnlockAt || null
+
+    const pick = (dispKey, thbVal) =>
+      showFx && disp?.[dispKey] != null ? Number(disp[dispKey]) : Number(thbVal)
+
     return {
       totalBalanceThb,
       withdrawableBalanceThb,
       internalCreditsThb,
       heldReferralBalanceThb,
       securityHeldReferralBalanceThb,
+      total: pick('total', totalBalanceThb),
+      withdrawable: pick('withdrawable', withdrawableBalanceThb),
+      internalCredits: pick('internalCredits', internalCreditsThb),
+      heldReferral: pick('heldReferral', heldReferralBalanceThb),
+      securityHeldReferral: pick('securityHeldReferral', securityHeldReferralBalanceThb),
+      displayCurrency: cur,
+      showDisplayFx: showFx,
       nearestUnlockAt,
       unlockLabel: formatUnlockDate(nearestUnlockAt, locale),
     }
   }, [walletData, referralData, locale])
+
+  const currencySuffix = useDisplayFx
+    ? displayCurrency === 'RUB'
+      ? ' ₽'
+      : ` ${displayCurrency}`
+    : ' ฿'
+
+  const formatAmount = (value) =>
+    useDisplayFx
+      ? formatDisplayAmount(value, locale, displayCurrency)
+      : formatThb(value, locale)
 
   const rows = useMemo(() => {
     /** @type {Array<{ id: string, label: string, amount: number, sublabel?: string, icon: typeof Wallet, tone: string, tooltip: string, always?: boolean }>} */
@@ -101,7 +140,7 @@ export function ReferralBalanceBreakdown({
       {
         id: 'total',
         label: t('stage1321_balanceTotal'),
-        amount: amounts.totalBalanceThb,
+        amount: amounts.total,
         icon: Wallet,
         tone: 'brand',
         tooltip: t('stage1321_balanceTotalTooltip'),
@@ -110,7 +149,7 @@ export function ReferralBalanceBreakdown({
       {
         id: 'withdrawable',
         label: t('stage1321_balanceWithdrawable'),
-        amount: amounts.withdrawableBalanceThb,
+        amount: amounts.withdrawable,
         icon: Banknote,
         tone: 'emerald',
         tooltip: t('stage1321_balanceWithdrawableTooltip'),
@@ -119,7 +158,7 @@ export function ReferralBalanceBreakdown({
       {
         id: 'internal',
         label: t('stage1321_balanceInternal'),
-        amount: amounts.internalCreditsThb,
+        amount: amounts.internalCredits,
         icon: PiggyBank,
         tone: 'slate',
         tooltip: t('stage1321_balanceInternalTooltip'),
@@ -133,7 +172,7 @@ export function ReferralBalanceBreakdown({
         label: amounts.unlockLabel
           ? t('stage1321_balanceUnlocksOn', { date: amounts.unlockLabel })
           : t('stage1321_balancePendingUnlock'),
-        amount: amounts.heldReferralBalanceThb,
+        amount: amounts.heldReferral,
         sublabel: t('stage1321_balancePeriodHoldSublabel'),
         icon: Lock,
         tone: 'amber',
@@ -145,7 +184,7 @@ export function ReferralBalanceBreakdown({
       list.push({
         id: 'security-hold',
         label: t('stage1321_balanceSecurityHold'),
-        amount: amounts.securityHeldReferralBalanceThb,
+        amount: amounts.securityHeldReferral,
         sublabel: t('stage1321_balanceSecurityHoldSublabel'),
         icon: ShieldAlert,
         tone: 'rose',
@@ -167,7 +206,10 @@ export function ReferralBalanceBreakdown({
               <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
               {t('stage1321_balanceHeldShort')}
             </span>
-            <span className="tabular-nums font-medium">฿{formatThb(amounts.heldReferralBalanceThb, locale)}</span>
+            <span className="tabular-nums font-medium">
+              {formatAmount(amounts.heldReferral)}
+              {currencySuffix}
+            </span>
           </div>
         ) : null}
         {amounts.securityHeldReferralBalanceThb > 0 ? (
@@ -177,7 +219,8 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceSecurityShort')}
             </span>
             <span className="tabular-nums font-medium">
-              ฿{formatThb(amounts.securityHeldReferralBalanceThb, locale)}
+              {formatAmount(amounts.securityHeldReferral)}
+              {currencySuffix}
             </span>
           </div>
         ) : null}
@@ -228,7 +271,8 @@ export function ReferralBalanceBreakdown({
                   <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
                 </div>
                 <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
-                  {formatThb(row.amount, locale)} ฿
+                  {formatAmount(row.amount)}
+                  {currencySuffix}
                 </p>
               </div>
             )
@@ -262,8 +306,8 @@ export function ReferralBalanceBreakdown({
                 <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
               </div>
               <p className={cn('mt-2 text-2xl sm:text-3xl font-black tabular-nums tracking-tight', textTone[row.tone])}>
-                {formatThb(row.amount, locale)}{' '}
-                <span className="text-sm font-semibold opacity-80">฿</span>
+                {formatAmount(row.amount)}
+                <span className="text-sm font-semibold opacity-80">{currencySuffix}</span>
               </p>
               {row.sublabel ? (
                 <p className="mt-1.5 text-[11px] text-slate-600 leading-snug flex items-center gap-1">

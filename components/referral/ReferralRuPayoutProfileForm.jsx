@@ -7,27 +7,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import {
   validateRuInnField,
-  validateRuBik,
-  validateRuAccountNumber,
+  validateRuBikField,
+  validateRuAccountField,
   digitsOnly,
 } from '@/lib/referral/validate-ru-inn.js'
 
-const MODERATION_NOTICE =
-  'После сохранения реквизиты проверяет модератор. ФИО, БИК, ИНН и номер счёта должны совпадать с банковскими данными — иначе выплата задержится.'
-
-function fieldErrors(form) {
+function fieldErrors(form, t) {
   const recipient = String(form.recipientName || '').trim()
-  const innErr = validateRuInnField(form.inn)
-  const bik = digitsOnly(form.bik)
-  const account = digitsOnly(form.accountNumber)
-  const bikErr = bik && !validateRuBik(bik) ? 'БИК — 9 цифр' : null
-  const accountErr =
-    account && !validateRuAccountNumber(account)
-      ? 'Номер счёта — 20 цифр (или 16–20 для карты)'
-      : null
-  const recipientErr = recipient && recipient.length < 3 ? 'Укажите ФИО как в банке' : null
+  const innErrKey = validateRuInnField(form.inn)
+  const innErr = innErrKey ? t(innErrKey) : null
+  const bikErrKey = validateRuBikField(form.bik)
+  const bikErr = bikErrKey ? t(bikErrKey) : null
+  const accountErrKey = validateRuAccountField(form.accountNumber)
+  const accountErr = accountErrKey ? t(accountErrKey) : null
+  const recipientErr = recipient && recipient.length < 3 ? t('stage1322_ruProfileErrRecipient') : null
   return {
     recipientName: recipientErr,
     inn: innErr,
@@ -37,9 +34,11 @@ function fieldErrors(form) {
 }
 
 /**
- * Stage 131.5 / 132.0 — gate: RU bank profile before referral withdrawal request.
+ * Stage 131.5 / 132.2 — gate: RU bank profile before referral withdrawal request.
  */
 export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
+  const { language } = useI18n()
+  const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [ready, setReady] = useState(false)
@@ -52,7 +51,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
     accountNumber: '',
   })
 
-  const errors = useMemo(() => fieldErrors(form), [form])
+  const errors = useMemo(() => fieldErrors(form, t), [form, t])
   const hasBlockingErrors = useMemo(() => {
     const recipient = String(form.recipientName || '').trim()
     const inn = digitsOnly(form.inn)
@@ -98,7 +97,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
     e.preventDefault()
     setTouched({ recipientName: true, inn: true, bik: true, accountNumber: true })
     if (hasBlockingErrors) {
-      toast.error('Исправьте ошибки в реквизитах')
+      toast.error(t('stage1322_ruProfileFixErrors'))
       return
     }
     setSaving(true)
@@ -111,13 +110,13 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || 'Не удалось сохранить реквизиты')
+        throw new Error(json?.error || t('stage1322_ruProfileSaveErr'))
       }
-      toast.success('Реквизиты сохранены — можно отправить заявку на вывод')
+      toast.success(t('stage1322_ruProfileSaveOk'))
       setReady(true)
       onReady?.(true)
     } catch (err) {
-      toast.error(err?.message || 'Ошибка сохранения')
+      toast.error(err?.message || t('stage1322_ruProfileSaveErr'))
     } finally {
       setSaving(false)
     }
@@ -127,7 +126,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
     return (
       <div className={`flex items-center gap-2 text-sm text-slate-500 py-4 ${className}`}>
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-        Проверяем реквизиты…
+        {t('stage1322_ruProfileLoading')}
       </div>
     )
   }
@@ -140,11 +139,9 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
       >
         <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
         <div>
-          <p className="font-medium">Карта / счёт РФ привязаны</p>
+          <p className="font-medium">{t('stage1322_ruProfileReadyTitle')}</p>
           <p className="text-emerald-900/80 mt-0.5 text-xs leading-relaxed">
-            {verified
-              ? 'Реквизиты подтверждены модератором — выплата пойдёт в единый реестр Т-Банка.'
-              : 'Реквизиты на проверке. Вывод в рублях — только на карты РФ по mid-курсу (спред 0%).'}
+            {verified ? t('stage1322_ruProfileReadyVerified') : t('stage1322_ruProfileReadyPending')}
           </p>
         </div>
       </div>
@@ -156,26 +153,23 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Landmark className="h-5 w-5 text-brand" aria-hidden />
-          Реквизиты для вывода в рублях
+          {t('stage1322_ruProfileTitle')}
         </CardTitle>
-        <CardDescription>
-          Вывод амбассадорских бонусов — только на карты и счета РФ. Баланс хранится в THB; при
-          выплате конвертируем по mid-курсу без спреда платформы.
-        </CardDescription>
+        <CardDescription>{t('stage1322_ruProfileDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSave} className="space-y-4">
-          <p className="text-xs text-slate-500 leading-relaxed">{MODERATION_NOTICE}</p>
+          <p className="text-xs text-slate-500 leading-relaxed">{t('stage1322_ruProfileModeration')}</p>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2 space-y-1.5">
-              <Label htmlFor="ref-recipient">ФИО получателя (как в банке)</Label>
+              <Label htmlFor="ref-recipient">{t('stage1322_ruProfileRecipientLabel')}</Label>
               <Input
                 id="ref-recipient"
                 required
                 value={form.recipientName}
                 onChange={(e) => setForm((p) => ({ ...p, recipientName: e.target.value }))}
                 onBlur={() => markTouched('recipientName')}
-                placeholder="Иванов Иван Иванович"
+                placeholder={t('stage1322_ruProfileRecipientPlaceholder')}
                 aria-invalid={touched.recipientName && !!errors.recipientName}
               />
               {touched.recipientName && errors.recipientName ? (
@@ -183,7 +177,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
               ) : null}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ref-inn">ИНН</Label>
+              <Label htmlFor="ref-inn">{t('stage1322_ruProfileInnLabel')}</Label>
               <Input
                 id="ref-inn"
                 required
@@ -191,13 +185,13 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
                 value={form.inn}
                 onChange={(e) => setForm((p) => ({ ...p, inn: e.target.value }))}
                 onBlur={() => markTouched('inn')}
-                placeholder="10 или 12 цифр"
+                placeholder={t('stage1322_ruProfileInnPlaceholder')}
                 aria-invalid={touched.inn && !!errors.inn}
               />
               {touched.inn && errors.inn ? <p className="text-xs text-rose-600">{errors.inn}</p> : null}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ref-bik">БИК</Label>
+              <Label htmlFor="ref-bik">{t('stage1322_ruProfileBikLabel')}</Label>
               <Input
                 id="ref-bik"
                 required
@@ -205,13 +199,13 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
                 value={form.bik}
                 onChange={(e) => setForm((p) => ({ ...p, bik: e.target.value }))}
                 onBlur={() => markTouched('bik')}
-                placeholder="9 цифр"
+                placeholder={t('stage1322_ruProfileBikPlaceholder')}
                 aria-invalid={touched.bik && !!errors.bik}
               />
               {touched.bik && errors.bik ? <p className="text-xs text-rose-600">{errors.bik}</p> : null}
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label htmlFor="ref-account">Расчётный счёт или номер карты</Label>
+              <Label htmlFor="ref-account">{t('stage1322_ruProfileAccountLabel')}</Label>
               <Input
                 id="ref-account"
                 required
@@ -219,7 +213,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
                 value={form.accountNumber}
                 onChange={(e) => setForm((p) => ({ ...p, accountNumber: e.target.value }))}
                 onBlur={() => markTouched('accountNumber')}
-                placeholder="20 цифр счёта"
+                placeholder={t('stage1322_ruProfileAccountPlaceholder')}
                 aria-invalid={touched.accountNumber && !!errors.accountNumber}
               />
               {touched.accountNumber && errors.accountNumber ? (
@@ -231,10 +225,10 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden />
-                Сохраняем…
+                {t('stage1322_ruProfileSaving')}
               </>
             ) : (
-              'Сохранить реквизиты'
+              t('stage1322_ruProfileSaveBtn')
             )}
           </Button>
         </form>

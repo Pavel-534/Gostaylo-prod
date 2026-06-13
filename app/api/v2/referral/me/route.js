@@ -5,6 +5,7 @@ import { PricingService } from '@/lib/services/pricing.service';
 import { SystemConfigService } from '@/lib/services/finance/system-config.service.js';
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service';
 import { buildReferralTeamMembers } from '@/lib/referral/build-referral-team';
+import { buildReferralTeamAnalytics, resolveReferralAnalyticsPeriodBounds } from '@/lib/referral/build-referral-team-analytics';
 import { yearMonthKeyInTimeZone, currentYearMonthKeyInTimeZone } from '@/lib/referral/tz-year-month';
 import { resolveReferralStatsTimeZone } from '@/lib/referral/resolve-referral-stats-timezone';
 import { buildReferralEarningsSparklineThb } from '@/lib/referral/sparkline-earnings';
@@ -20,6 +21,8 @@ import {
 import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { getUserHeldReferralSummary } from '@/lib/services/marketing/referral-hold.service.js';
+import { resolveDirectReferrerForUser } from '@/lib/referral/resolve-direct-referrer';
+import { buildReferralSharePitchFx } from '@/lib/finance/referral-share-pitch-fx.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,21 +128,20 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url)
   const includeTeam = searchParams.get('includeTeam') !== '0'
+  const includeTeamAnalytics = searchParams.get('includeTeamAnalytics') !== '0'
+  const analyticsPeriodRaw = String(searchParams.get('analyticsPeriod') || 'month').toLowerCase()
+  const analyticsPeriod =
+    analyticsPeriodRaw === 'year' || analyticsPeriodRaw === 'lifetime' ? analyticsPeriodRaw : 'month'
   const teamLimit = Math.min(200, Math.max(1, Number(searchParams.get('teamLimit')) || 80))
   const teamOffset = Math.max(0, Number(searchParams.get('teamOffset')) || 0)
 
   const [
-    { data: ledger },
     { count: invitedCount },
     { data: myInviteEdge },
     tiers,
     directPartnersInvited,
     teamMembers,
   ] = await Promise.all([
-    supabaseAdmin
-      .from('referral_ledger')
-      .select('status,amount_thb,referee_id')
-      .eq('referrer_id', profile.id),
     supabaseAdmin
       .from('referral_relations')
       .select('id', { head: true, count: 'exact' })
@@ -156,15 +158,7 @@ export async function GET(request) {
       : Promise.resolve([]),
   ]);
   const general = await PricingService.getGeneralPricingSettings();
-
-  let pendingThb = 0;
-  let earnedThb = 0;
-  for (const row of ledger || []) {
-    const amount = Number(row?.amount_thb) || 0;
-    const status = String(row?.status || '').toLowerCase();
-    if (status === 'pending') pendingThb += amount;
-    if (status === 'earned') earnedThb += amount;
-  }
+  const fintechCfgEarly = await SystemConfigService.getFintechConfig();
 
   const heldSummary = await getUserHeldReferralSummary(profile.id);
   const heldThb = Number(heldSummary.heldReferralBalanceThb) || 0;
@@ -180,44 +174,126 @@ export async function GET(request) {
   const currentYm = currentYearMonthKeyInTimeZone(statsTz);
   const calendarYearPrefix = `${currentYm.slice(0, 4)}-`;
 
-  /** Доход за календарный месяц и год в TZ статистики реферера (по earned_at / updated_at). */
   let monthlyEarnedThb = 0;
-  /** Earned в текущем месяце по ledger_depth: 1 = прямые (L1), ≥2 = сеть (L2+). */
+  /** Stage 133 — L1/L2 «от меня» (ADR-133), не ledger_depth. */
   let monthlyL1EarnedThb = 0;
   let monthlyNetworkEarnedThb = 0;
   let yearlyEarnedThb = 0;
+  let pendingThb = 0;
+  let earnedThb = 0;
   let sparklineEarningsThb = [];
   let sparkMonthlyYtdThb = [];
+  let teamAnalytics = null;
+
+  const friendsInvitedEarly = Number(invitedCount || 0);
+  const directPartnersCountEarly = Number(directPartnersInvited || 0);
+  const tierStateEarly = ReferralPnlService.resolveTierForPartnerCount(tiers, directPartnersCountEarly);
+  const currentTierEarly = tierStateEarly.currentTier;
+  const nextTierEarly = tierStateEarly.nextTier;
+  const remainingToNextTierEarly = Math.max(
+    0,
+    Number(nextTierEarly?.minPartnersInvited || 0) - Number(directPartnersCountEarly || 0),
+  );
+  const currentTierFloorEarly = Number(currentTierEarly?.minPartnersInvited || 0);
+  const tierSpanEarly = Math.max(
+    1,
+    Number(nextTierEarly?.minPartnersInvited || currentTierFloorEarly + 1) - currentTierFloorEarly,
+  );
+  const tierProgressPercentEarly = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(((directPartnersCountEarly - currentTierFloorEarly) / tierSpanEarly) * 100),
+    ),
+  );
+
+  if (supabaseAdmin && includeTeamAnalytics) {
+    const analyticsRaw = await buildReferralTeamAnalytics(supabaseAdmin, profile, {
+      analyticsPeriod,
+      friendsInvited: friendsInvitedEarly,
+      directPartnersInvited: directPartnersCountEarly,
+      guestL2Enabled: fintechCfgEarly?.ambassadorGuestL2Enabled === true,
+      ambassador: {
+        currentTier: {
+          id: profile?.referral_tier_id || currentTierEarly?.id || null,
+          name: profile?.referral_tier_name || currentTierEarly?.name || 'Beginner',
+        },
+        nextTier: nextTierEarly,
+        directPartnersInvited: directPartnersCountEarly,
+        remainingToNextTier: remainingToNextTierEarly,
+        tierProgressPercent: tierProgressPercentEarly,
+      },
+    });
+    const { _monthRpc, _yearRpc, _lifetimeRpc, ...publicAnalytics } = analyticsRaw;
+    teamAnalytics = publicAnalytics;
+
+    if (_monthRpc) {
+      monthlyL1EarnedThb = _monthRpc.l1DirectThb;
+      monthlyNetworkEarnedThb = _monthRpc.l2NetworkThb;
+      monthlyEarnedThb = Math.round((monthlyL1EarnedThb + monthlyNetworkEarnedThb) * 100) / 100;
+      pendingThb = _monthRpc.pendingThb;
+    }
+    if (_yearRpc) {
+      yearlyEarnedThb = Math.round((_yearRpc.l1DirectThb + _yearRpc.l2NetworkThb) * 100) / 100;
+    }
+    if (_lifetimeRpc) {
+      earnedThb = _lifetimeRpc.lifetimeEarnedOnlyThb;
+      if (!pendingThb) pendingThb = _lifetimeRpc.pendingThb;
+    }
+  }
+
   if (supabaseAdmin) {
     const sparkFromIso = new Date(Date.now() - 20 * 86400000).toISOString();
     const { data: earnedRows } = await supabaseAdmin
       .from('referral_ledger')
-      .select('amount_thb, earned_at, updated_at, ledger_depth')
+      .select('amount_thb, earned_at, updated_at')
       .eq('referrer_id', profile.id)
-      .eq('status', 'earned');
+      .eq('status', 'earned')
+      .gte('earned_at', sparkFromIso);
+
+    if (!includeTeamAnalytics || !teamAnalytics) {
+      const monthBounds = resolveReferralAnalyticsPeriodBounds(statsTz, 'month');
+      const yearBounds = resolveReferralAnalyticsPeriodBounds(statsTz, 'year');
+      const [{ data: monthRpcRows }, { data: yearRpcRows }, { data: lifeRpcRows }] = await Promise.all([
+        supabaseAdmin.rpc('referral_team_analytics_for_referrer', {
+          p_referrer_id: profile.id,
+          p_period_start: monthBounds.startIso,
+          p_period_end_exclusive: monthBounds.endExclusiveIso,
+        }),
+        supabaseAdmin.rpc('referral_team_analytics_for_referrer', {
+          p_referrer_id: profile.id,
+          p_period_start: yearBounds.startIso,
+          p_period_end_exclusive: yearBounds.endExclusiveIso,
+        }),
+        supabaseAdmin.rpc('referral_team_analytics_for_referrer', {
+          p_referrer_id: profile.id,
+          p_period_start: '1970-01-01T00:00:00.000Z',
+          p_period_end_exclusive: '2100-01-01T00:00:00.000Z',
+        }),
+      ]);
+      const mRow = Array.isArray(monthRpcRows) ? monthRpcRows[0] : monthRpcRows;
+      const yRow = Array.isArray(yearRpcRows) ? yearRpcRows[0] : yearRpcRows;
+      const lRow = Array.isArray(lifeRpcRows) ? lifeRpcRows[0] : lifeRpcRows;
+      monthlyL1EarnedThb = Math.round(Number(mRow?.l1_direct_thb || 0) * 100) / 100;
+      monthlyNetworkEarnedThb = Math.round(Number(mRow?.l2_network_thb || 0) * 100) / 100;
+      monthlyEarnedThb = Math.round((monthlyL1EarnedThb + monthlyNetworkEarnedThb) * 100) / 100;
+      yearlyEarnedThb =
+        Math.round((Number(yRow?.l1_direct_thb || 0) + Number(yRow?.l2_network_thb || 0)) * 100) / 100;
+      pendingThb = Math.round(Number(lRow?.pending_thb || 0) * 100) / 100;
+      earnedThb = Math.round(Number(lRow?.lifetime_earned_only_thb || 0) * 100) / 100;
+    }
 
     const monthlyBuckets = {};
     for (const row of earnedRows || []) {
       const iso = row?.earned_at || row?.updated_at;
       if (!iso) continue;
       const amt = Number(row?.amount_thb) || 0;
-      const depth = Math.min(32, Math.max(1, Math.floor(Number(row?.ledger_depth) || 1)));
       const ymKey = yearMonthKeyInTimeZone(iso, statsTz);
       if (!ymKey) continue;
-      if (ymKey === currentYm) {
-        monthlyEarnedThb += amt;
-        if (depth <= 1) monthlyL1EarnedThb += amt;
-        else monthlyNetworkEarnedThb += amt;
-      }
       if (ymKey.startsWith(calendarYearPrefix)) {
-        yearlyEarnedThb += amt;
         monthlyBuckets[ymKey] = (monthlyBuckets[ymKey] || 0) + amt;
       }
     }
-    monthlyEarnedThb = Math.round(monthlyEarnedThb * 100) / 100;
-    monthlyL1EarnedThb = Math.round(monthlyL1EarnedThb * 100) / 100;
-    monthlyNetworkEarnedThb = Math.round(monthlyNetworkEarnedThb * 100) / 100;
-    yearlyEarnedThb = Math.round(yearlyEarnedThb * 100) / 100;
 
     const monthNow = Number.parseInt(currentYm.slice(5, 7), 10);
     const yStr = currentYm.slice(0, 4);
@@ -226,12 +302,7 @@ export async function GET(request) {
       sparkMonthlyYtdThb.push(Math.round((monthlyBuckets[key] || 0) * 100) / 100);
     }
 
-    const forSpark = (earnedRows || []).filter((row) => {
-      const iso = row?.earned_at || row?.updated_at;
-      if (!iso) return false;
-      return Date.parse(iso) >= Date.parse(sparkFromIso);
-    });
-    sparklineEarningsThb = buildReferralEarningsSparklineThb(forSpark, statsTz, 14);
+    sparklineEarningsThb = buildReferralEarningsSparklineThb(earnedRows || [], statsTz, 14);
   }
 
   const profileGoalRaw = profile?.referral_monthly_goal_thb;
@@ -259,21 +330,13 @@ export async function GET(request) {
   /** Короткая визитка `/u/[id]` — QR/PDF/Stories (Stage 74.3). */
   const referralLandingUrl = buildAmbassadorLandingUrl(profile.id);
   const referralLandingShortDisplay = ambassadorLandingShortLabel(profile.id);
-  const friendsInvited = Number(invitedCount || 0);
-  const directPartnersCount = Number(directPartnersInvited || 0);
-  const tierState = ReferralPnlService.resolveTierForPartnerCount(tiers, directPartnersCount);
-  const currentTier = tierState.currentTier;
-  const nextTier = tierState.nextTier;
-  const remainingToNextTier = Math.max(
-    0,
-    Number(nextTier?.minPartnersInvited || 0) - Number(directPartnersCount || 0),
-  );
-  const currentTierFloor = Number(currentTier?.minPartnersInvited || 0);
-  const tierSpan = Math.max(1, Number(nextTier?.minPartnersInvited || currentTierFloor + 1) - currentTierFloor);
-  const tierProgressPercent = Math.min(
-    100,
-    Math.max(0, Math.round(((directPartnersCount - currentTierFloor) / tierSpan) * 100)),
-  );
+  const friendsInvited = friendsInvitedEarly;
+  const directPartnersCount = directPartnersCountEarly;
+  const tierState = tierStateEarly;
+  const currentTier = currentTierEarly;
+  const nextTier = nextTierEarly;
+  const remainingToNextTier = remainingToNextTierEarly;
+  const tierProgressPercent = tierProgressPercentEarly;
   const referralDisplayCurrency = normalizeReferralDisplayCurrency(profile?.referral_display_currency);
 
   const payoutRatioFromTier = Number(
@@ -329,7 +392,12 @@ export async function GET(request) {
   });
 
   if (supabaseAdmin) {
-    const gam = await buildReferralGamificationForUser(supabaseAdmin, profile, { monthlyNetworkEarnedThb });
+    const gam = await buildReferralGamificationForUser(supabaseAdmin, profile, {
+      monthlyNetworkEarnedThb,
+      friendsInvited,
+      totalLifetimeEarnedThb: earnedThb,
+      directPartnersInvited: directPartnersCount,
+    });
     const langNorm = normalizeStoriesLang(profile?.preferred_language || profile?.language);
     const primaryLabel = gam.primaryBadge ? badgeLabelForLang(gam.primaryBadge, langNorm) : '';
     referralGamification = {
@@ -368,7 +436,7 @@ export async function GET(request) {
         Math.max(0, Number(general?.welcome_bonus_amount ?? general?.welcomeBonusAmount ?? 500)),
       ) * 100,
     ) / 100;
-  const fintechCfg = await SystemConfigService.getFintechConfig();
+  const fintechCfg = fintechCfgEarly;
   const referralReinvestmentPercentForEstimator = Math.min(
     95,
     Math.max(0, Number(fintechCfg?.referralReinvestmentPercent ?? 45)),
@@ -377,6 +445,10 @@ export async function GET(request) {
     100,
     Math.max(0, Number(fintechCfg?.ambassadorGuestPoolL1Percent ?? 45)),
   );
+
+  const { directReferrerId, referredBy } = await resolveDirectReferrerForUser(profile.id);
+
+  const { welcomeBonusRub, midRateRubToThb } = await buildReferralSharePitchFx(welcomeBonusFromGeneral);
 
   return NextResponse.json({
     success: true,
@@ -453,11 +525,13 @@ export async function GET(request) {
         sparkMonthlyYtdThb,
         /** Ожидаемый доход = сумма pending по реферальному ledger (как stats.pendingThb) */
         expectedPendingThb: Math.round(pendingThb * 100) / 100,
-        /** За текущий календарный месяц (TZ статистики): прямые рефералы (ledger_depth = 1). */
+        /** Stage 133 — прямые приглашённые (L1 direct), ADR-133. */
         monthlyL1EarnedThb,
-        /** За текущий месяц: доход с глубины сети ≥2 (L2+). */
+        /** Stage 133 — сеть (L2+ от меня), ADR-133. */
         monthlyNetworkEarnedThb,
       },
+      /** Stage 133 — team analytics (tab «Команда»). */
+      teamAnalytics,
       referralReport: {
         /** Значение из профиля (может быть пустым — клиент трактует как UTC). */
         ianaTimezone: String(profile?.iana_timezone || '').trim(),
@@ -471,12 +545,25 @@ export async function GET(request) {
       inviteNetwork: myInviteEdge
         ? {
             depth: Number(myInviteEdge.network_depth || 1),
-            directReferrerId: myInviteEdge.referrer_id || null,
+            directReferrerId: directReferrerId || myInviteEdge.referrer_id || null,
             ancestorChainLength: Array.isArray(myInviteEdge.ancestor_path)
               ? myInviteEdge.ancestor_path.length
               : 0,
+            referredBy,
           }
-        : null,
+        : referredBy
+          ? {
+              depth: 1,
+              directReferrerId,
+              ancestorChainLength: 0,
+              referredBy,
+            }
+          : null,
+      /** Stage 132.2 — RUB teaser for RU share pitches (@ mid, 0% spread). */
+      sharePitchFx: {
+        welcomeBonusRub,
+        midRateRubToThb,
+      },
       /** Stage 72.6 / 114.5 — прямые приглашённые (пагинация: teamLimit, teamOffset, includeTeam=0) */
       teamMembers,
       teamPaging: includeTeam

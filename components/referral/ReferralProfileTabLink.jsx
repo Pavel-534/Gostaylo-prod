@@ -24,9 +24,19 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
     .replace(/\{brand\}/g, brand)
     .replace(/\{tier\}/g, tierName || '—')
     .replace(/\{badge\}/g, badgeFromStories || '—')
-  const inviteShareBody = String(t('stage91_shareBodyInvitee'))
-    .replace(/\{welcomeThb\}/g, String(welcomeBonusThb))
-    .replace(/\{link\}/g, inviteLink)
+  const welcomeBonusRub = Number(data?.sharePitchFx?.welcomeBonusRub ?? 0)
+  const welcomeRubStr = Number.isFinite(welcomeBonusRub) && welcomeBonusRub > 0 ? String(Math.round(welcomeBonusRub)) : ''
+  const pitchTokens = { welcomeThb: String(welcomeBonusThb), welcomeRub: welcomeRubStr, link: inviteLink, brand }
+  const inviteShareBody = String(t('stage1322_shareBodyGuest'))
+    .replace(/\{welcomeThb\}/g, pitchTokens.welcomeThb)
+    .replace(/\{welcomeRub\}/g, pitchTokens.welcomeRub || pitchTokens.welcomeThb)
+    .replace(/\{link\}/g, pitchTokens.link)
+    .replace(/\{brand\}/g, pitchTokens.brand)
+  const hostShareBody = String(t('stage1322_shareBodyHost'))
+    .replace(/\{welcomeThb\}/g, pitchTokens.welcomeThb)
+    .replace(/\{welcomeRub\}/g, pitchTokens.welcomeRub || pitchTokens.welcomeThb)
+    .replace(/\{link\}/g, pitchTokens.link)
+    .replace(/\{brand\}/g, pitchTokens.brand)
 
   async function copyText(value) {
     const v = String(value || '').trim()
@@ -116,7 +126,13 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         loyaltyExplainerLabel={t('stage91_shareColdAudienceLoyaltyLink')}
         shareNativeLabel={t('stage91_shareNative')}
         welcomeBonusThb={welcomeBonusThb}
+        welcomeBonusRub={welcomeBonusRub}
+        sharePitchTabGuestLabel={t('stage1322_shareTabGuests')}
+        sharePitchTabHostLabel={t('stage1322_shareTabHosts')}
         shareBody={inviteShareBody}
+        shareBodyHost={hostShareBody}
+        postTextShortHostTemplate={t('stage1322_postShortHost')}
+        postTextMediumHostTemplate={t('stage1322_postMediumHost')}
         shareMessage={data?.shareMessage || ''}
         code={welcomeCode}
         brandName={brand}

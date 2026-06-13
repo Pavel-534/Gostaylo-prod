@@ -8,13 +8,21 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, MessageCircle, Loader2, UserPlus } from 'lucide-react'
 import { ReferralEmptyState } from '@/components/referral/ReferralEmptyState'
+import { ReferralDualThbAmount } from '@/components/referral/ReferralDualThbAmount'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { postChatConversationFromProfile } from '@/lib/chat/conversation-api-client'
 
-export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
+export function ReferralTeamSection({
+  members = [],
+  displayCurrency = 'THB',
+  midRateRubToThb = null,
+  t,
+  language = 'ru',
+  locale = 'ru-RU',
+}) {
   const router = useRouter()
   const [busyId, setBusyId] = useState(null)
 
@@ -75,10 +83,16 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
             description={t('stage1147_teamEmptyDesc')}
           />
         ) : (
-          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden">
+          <div className="rounded-xl border border-slate-100 overflow-hidden">
+            <div className="hidden sm:grid sm:grid-cols-[1fr_minmax(7rem,auto)_auto] gap-3 px-3 py-2 bg-slate-100/80 text-[10px] uppercase tracking-wide text-slate-500">
+              <span className="truncate">{t('referralStage726_teamTitle')}</span>
+              <span className="text-right truncate">{t('stage133_memberEarnedPlatform')}</span>
+              <span className="sr-only">{t('referralStage726_write')}</span>
+            </div>
+            <ul className="divide-y divide-slate-100">
             {members.map((m) => (
-              <li key={m.refereeId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-50/50 hover:bg-brand/10">
-                <div className="min-w-0 space-y-1">
+              <li key={m.refereeId} className="flex flex-col sm:grid sm:grid-cols-[1fr_minmax(7rem,auto)_auto] sm:items-center gap-3 p-3 bg-slate-50/50 hover:bg-brand/10">
+                <div className="min-w-0 flex-1 space-y-1">
                   <p className="font-medium text-slate-900 truncate">{m.displayName}</p>
                   <div className="flex flex-wrap gap-2 items-center">
                     <Badge variant="secondary" className="font-normal">
@@ -95,8 +109,29 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
                       {statusLabel(m.activityStatus)}
                     </Badge>
                   </div>
+                  <p className="text-xs text-slate-500 sm:hidden truncate">
+                    {t('stage133_memberEarnedPlatform')}:{' '}
+                    <ReferralDualThbAmount
+                      thb={m.earnedForReferrerThb}
+                      displayCurrency={displayCurrency}
+                      midRateRubToThb={midRateRubToThb}
+                      locale={locale}
+                      className="inline"
+                    />
+                  </p>
                 </div>
-                <Button
+                <div className="hidden sm:flex items-center justify-end min-w-0">
+                  <ReferralDualThbAmount
+                    thb={m.earnedForReferrerThb}
+                    displayCurrency={displayCurrency}
+                    midRateRubToThb={midRateRubToThb}
+                    locale={locale}
+                    className="text-sm font-semibold text-brand text-right truncate max-w-full"
+                    primaryClassName="font-semibold"
+                  />
+                </div>
+                <div className="flex items-center gap-3 shrink-0 sm:justify-end">
+                  <Button
                   type="button"
                   variant="outline"
                   size="sm"
@@ -118,9 +153,11 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
                   )}
                   {t('referralStage726_write')}
                 </Button>
+                </div>
               </li>
             ))}
-          </ul>
+            </ul>
+          </div>
         )}
       </CardContent>
     </Card>
