@@ -1,23 +1,4 @@
 {
-  "components\\listing\\ListingMap.jsx -> react-leaflet": {
-    "id": "components\\listing\\ListingMap.jsx -> react-leaflet",
-    "files": [
-      "static/chunks/_app-pages-browser_node_modules_react-leaflet_lib_index_js.js"
-    ]
-  },
-  "components\\listing\\pdp\\ListingMap.jsx -> @/components/listing/ListingMap": {
-    "id": "components\\listing\\pdp\\ListingMap.jsx -> @/components/listing/ListingMap",
-    "files": [
-      "static/css/_app-pages-browser_components_listing_ListingMap_jsx.css",
-      "static/chunks/_app-pages-browser_components_listing_ListingMap_jsx.js"
-    ]
-  },
-  "components\\listing\\pdp\\ListingReviews.jsx -> @/components/listing/ReviewsSection": {
-    "id": "components\\listing\\pdp\\ListingReviews.jsx -> @/components/listing/ReviewsSection",
-    "files": [
-      "static/chunks/_app-pages-browser_components_listing_ReviewsSection_jsx.js"
-    ]
-  },
   "components\\push-client-init.jsx -> firebase/messaging": {
     "id": "components\\push-client-init.jsx -> firebase/messaging",
     "files": [

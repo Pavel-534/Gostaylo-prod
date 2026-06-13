@@ -56,6 +56,7 @@ const productionSmokeProjects =
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
  * Stage 72.4 referral cashflow: `tests/e2e/stage72-referral-cashflow.spec.ts` — проект `stage72-referral-cashflow` (Supabase + E2E_FIXTURE_SECRET).
+ * Stage 133 referral dashboard visual: `tests/e2e/referral-dashboard-visual.spec.js` — проект `referral-dashboard-visual` (fixture + snapshots).
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
  * Stage 9 API Guard: `tests/e2e/stage9-api-guard.spec.ts` — проект `stage9-api-guard` (depends on setup).
  * Stage 12 Escrow Regression: `tests/e2e/stage12-escrow-regression.spec.ts` — проект `stage12-escrow-regression`.
@@ -80,6 +81,8 @@ export default defineConfig({
     ['json', { outputFile: 'playwright-report/results.json' }],
   ],
   timeout: 90_000,
+  /** Stage 133 visual — единый baseline без суффикса OS (только referral-dashboard-visual). */
+  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
   use: {
     /** По умолчанию локальный dev-сервер; переопределение: PLAYWRIGHT_BASE_URL или BASE_URL */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:3000',
@@ -264,6 +267,22 @@ export default defineConfig({
       timeout: 180_000,
       use: {
         ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'referral-dashboard-visual',
+      testDir: './tests/e2e',
+      testMatch: '**/referral-dashboard-visual.spec.js',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+      },
+      expect: {
+        toHaveScreenshot: {
+          animations: 'disabled',
+          maxDiffPixelRatio: 0.025,
+        },
       },
     },
     ...productionSmokeProjects,

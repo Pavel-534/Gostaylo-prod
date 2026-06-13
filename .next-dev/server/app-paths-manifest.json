@@ -1,12 +1,13 @@
 {
   "/api/v2/geo/whoami/route": "app/api/v2/geo/whoami/route.js",
-  "/api/v2/auth/realtime-token/route": "app/api/v2/auth/realtime-token/route.js",
   "/page": "app/page.js",
-  "/api/v2/push/route": "app/api/v2/push/route.js",
+  "/api/v2/internal/e2e/referral-dashboard-visual/route": "app/api/v2/internal/e2e/referral-dashboard-visual/route.js",
+  "/api/v2/auth/login/route": "app/api/v2/auth/login/route.js",
+  "/api/v2/auth/me/route": "app/api/v2/auth/me/route.js",
   "/profile/referral/page": "app/profile/referral/page.js",
   "/api/v2/wallet/me/route": "app/api/v2/wallet/me/route.js",
+  "/api/v2/auth/realtime-token/route": "app/api/v2/auth/realtime-token/route.js",
+  "/api/v2/referral/me/route": "app/api/v2/referral/me/route.js",
   "/api/v2/chat/conversations/route": "app/api/v2/chat/conversations/route.js",
-  "/messages/page": "app/messages/page.js",
-  "/listings/[id]/page": "app/listings/[id]/page.js",
-  "/renter/favorites/page": "app/renter/favorites/page.js"
+  "/api/v2/auth/realtime-claims/route": "app/api/v2/auth/realtime-claims/route.js"
 }

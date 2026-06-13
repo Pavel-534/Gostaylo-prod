@@ -36,7 +36,7 @@ export function ReferralProfileTabTeam({ data: fallbackData, t, locale = 'ru-RU'
   const midRateRubToThb = data?.sharePitchFx?.midRateRubToThb ?? null
 
   return (
-    <div className="space-y-6 pb-2">
+    <div className="space-y-6 pb-2" data-testid="referral-team-tab-ready">
       <ReferralTeamAnalyticsCard
         teamAnalytics={data?.teamAnalytics}
         ambassador={data?.ambassador}

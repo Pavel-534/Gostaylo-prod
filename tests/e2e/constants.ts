@@ -29,6 +29,8 @@ export const E2E_ROUTES = {
   performanceLowAlert: '/api/v2/internal/e2e/performance-low-alert',
   /** Stage 72.4 — симуляция реферальных сумм / wallet buckets (см. lib/e2e/stage72-referral-cashflow-fixture.js). */
   stage72ReferralCashflow: '/api/v2/internal/e2e/stage72-referral-cashflow',
+  /** Stage 133 — ambassador team dashboard visual snapshots. */
+  referralDashboardVisualFixture: '/api/v2/internal/e2e/referral-dashboard-visual',
   authMe: '/api/v2/auth/me',
   authLogin: '/api/v2/auth/login',
   chatConversations: '/api/v2/chat/conversations',
