@@ -1,54 +1,27 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, FileSpreadsheet, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { fmtAdminPayoutAmount, fmtThbAdmin } from '@/lib/admin/format-payout-display';
-import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
-
-function fmtThb(n) {
-  return fmtThbAdmin(n);
-}
-
-function fmtPayoutAmount(p) {
-  return fmtAdminPayoutAmount(p);
-}
+import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, AlertTriangle, ExternalLink } from 'lucide-react';
 
 export default function AdminFinancialHealthPage() {
   const [data, setData] = useState(null);
   const [recon, setRecon] = useState(null);
-  const [processingPayouts, setProcessingPayouts] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [registryLoading, setRegistryLoading] = useState(false);
-  const [payoutActionId, setPayoutActionId] = useState(null);
-  /** @type {{ payoutId: string, status: 'PAID' | 'FAILED', note: string } | null} */
-  const [payoutConfirm, setPayoutConfirm] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [balRes, reconRes, procRes] = await Promise.all([
+      const [balRes, reconRes] = await Promise.all([
         fetch('/api/v2/admin/ledger-balances', { credentials: 'include' }),
         fetch('/api/v2/admin/ledger-reconciliation', { credentials: 'include' }),
-        fetch('/api/v2/admin/payouts?status=PROCESSING&limit=100', { credentials: 'include' }),
       ]);
       const balJson = await balRes.json().catch(() => ({}));
       const reconJson = await reconRes.json().catch(() => ({}));
-      const procJson = await procRes.json().catch(() => ({}));
 
       if (!balRes.ok || !balJson.success) {
         setData(null);
@@ -60,11 +33,6 @@ export default function AdminFinancialHealthPage() {
         setRecon(reconJson.data);
       } else {
         setRecon(null);
-      }
-      if (procRes.ok && procJson.success && Array.isArray(procJson.data)) {
-        setProcessingPayouts(procJson.data);
-      } else {
-        setProcessingPayouts([]);
       }
     } catch (e) {
       setData(null);
@@ -83,134 +51,14 @@ export default function AdminFinancialHealthPage() {
   const potThb = lr?.roundingPotLedgerThb ?? sys?.processingPotRoundingThb;
   const fundThb = lr?.insuranceFundLedgerThb ?? sys?.insuranceFundReserveThb;
 
-  async function handleTbankRegistry() {
-    setRegistryLoading(true);
-    try {
-      const res = await fetch('/api/v2/admin/payouts/tbank-registry', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ encoding: 'utf-8' }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось сформировать реестр');
-        return;
-      }
-      const d = json.data || {};
-      const { filename, exportedCount, skippedUnverified, csv, csvBase64, encoding } = d;
-      const skipped = Array.isArray(skippedUnverified) ? skippedUnverified.length : 0;
-      if (!exportedCount) {
-        toast.message('Нет выплат для выгрузки (PENDING, RU bank, верифицированный профиль).');
-      } else {
-        toast.success(`В реестр включено выплат: ${exportedCount}. Пропущено: ${skipped}.`);
-      }
-      if (skipped > 0) {
-        toast.info('Пропуски: неверифицированный профиль, неполные реквизиты или не тот метод.');
-      }
-      if (encoding === 'windows-1251' && csvBase64 && filename) {
-        const bin = Uint8Array.from(atob(csvBase64), (c) => c.charCodeAt(0));
-        const blob = new Blob([bin], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else if (csv && filename) {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    } catch (e) {
-      toast.error(e?.message || 'Ошибка сети');
-    } finally {
-      setRegistryLoading(false);
-    }
-  }
-
-  async function markPayoutStatus(payoutId, status, adminNote) {
-    setPayoutActionId(payoutId);
-    try {
-      const payload = { status };
-      if (typeof adminNote === 'string' && adminNote.trim().length > 0) {
-        payload.adminNote = adminNote.trim();
-      }
-      const res = await fetch(`/api/v2/admin/payouts/${encodeURIComponent(payoutId)}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось обновить выплату');
-        return;
-      }
-      toast.success(status === 'PAID' ? 'Выплата отмечена как PAID (проводка в ledger).' : 'Выплата отмечена как FAILED.');
-      await load();
-    } catch (e) {
-      toast.error(e?.message || 'Сеть');
-    } finally {
-      setPayoutActionId(null);
-    }
+  function fmtThb(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '0';
+    return v.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
   }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <AlertDialog
-        open={payoutConfirm !== null}
-        onOpenChange={(open) => {
-          if (!open) setPayoutConfirm(null);
-        }}
-      >
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {payoutConfirm?.status === 'PAID' ? 'Подтвердить PAID' : 'Подтвердить FAILED'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {payoutConfirm?.status === 'PAID'
-                ? 'В ledger будет проведена запись списания с PARTNER_EARNINGS. Отменить автоматически нельзя — проверьте банк.'
-                : 'Выплата будет помечена как ошибка банка. Убедитесь, что реестр/платёж не прошёл.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Комментарий админа (опционально)</label>
-            <Textarea
-              value={payoutConfirm?.note ?? ''}
-              onChange={(e) =>
-                setPayoutConfirm((prev) => (prev ? { ...prev, note: e.target.value } : prev))
-              }
-              placeholder="Внутренняя пометка (metadata)"
-              rows={3}
-              className="resize-none min-h-0"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!payoutActionId}>Отмена</AlertDialogCancel>
-            <Button
-              variant={payoutConfirm?.status === 'FAILED' ? 'destructive' : 'default'}
-              className={payoutConfirm?.status === 'PAID' ? 'bg-emerald-700 hover:bg-emerald-800' : ''}
-              disabled={!!payoutActionId || !payoutConfirm}
-              onClick={() => {
-                if (!payoutConfirm) return;
-                void (async () => {
-                  await markPayoutStatus(payoutConfirm.payoutId, payoutConfirm.status, payoutConfirm.note);
-                  setPayoutConfirm(null);
-                })();
-              }}
-            >
-              Подтвердить
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Финансовое здоровье (Ledger)</h1>
@@ -223,83 +71,17 @@ export default function AdminFinancialHealthPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2">Обновить</span>
           </Button>
-          <Button
-            size="sm"
-            className="bg-slate-900 text-white hover:bg-slate-800"
-            onClick={() => void handleTbankRegistry()}
-            disabled={registryLoading}
-            data-testid="tbank-registry-export"
-          >
-            {registryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-            <span className="ml-2">Сформировать реестр для Т-Банка</span>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href="/admin/marketing/referral-payouts?tab=registry">
+              <ExternalLink className="h-4 w-4" />
+              <span className="ml-2">Referral Payout Ops →</span>
+            </Link>
           </Button>
         </div>
       </div>
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>
-      )}
-
-      {!loading && processingPayouts.length > 0 && (
-        <Card className="rounded-2xl border-slate-200 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Выплаты в обработке (PROCESSING)</CardTitle>
-            <CardDescription>
-              После выгрузки реестра Т-Банка отметьте факт банка: <strong>PAID</strong> (с проводкой в ledger) или{' '}
-              <strong>FAILED</strong>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="overflow-x-auto rounded-lg border border-slate-100 -mx-1">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead className="bg-slate-50 text-slate-600 text-left">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">ID</th>
-                    <th className="px-3 py-2 font-medium">Партнёр</th>
-                    <th className="px-3 py-2 font-medium text-right">Сумма (THB / payout)</th>
-                    <th className="px-3 py-2 font-medium">Метод</th>
-                    <th className="px-3 py-2 font-medium">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {processingPayouts.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{p.id}</td>
-                      <td className="px-3 py-2 text-slate-700">{p.partnerId}</td>
-                      <td className="px-3 py-2 text-right">
-                        <AdminTableAmount value={p.grossAmount ?? p.finalAmount ?? p.amount} showPlus={false} />
-                        {p.amountInPayoutCurrency != null && String(p.payoutCurrency || '').toUpperCase() !== 'THB' ? (
-                          <div className="text-xs text-slate-500">{fmtPayoutAmount(p)}</div>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600">{p.payoutMethod?.name || '—'}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-emerald-700 text-white hover:bg-emerald-800"
-                            disabled={!!payoutActionId}
-                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'PAID', note: '' })}
-                          >
-                            {payoutActionId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PAID'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={!!payoutActionId}
-                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'FAILED', note: '' })}
-                          >
-                            FAILED
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {loading && !data ? (

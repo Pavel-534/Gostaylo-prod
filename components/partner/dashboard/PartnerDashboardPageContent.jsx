@@ -23,6 +23,7 @@ import { PartnerReputationSection } from '@/components/partner/PartnerReputation
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
 import { PartnerOnboardingChecklist } from '@/components/partner/PartnerOnboardingChecklist'
 import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
+import { PartnerReferralWelcomeStrip } from '@/components/partner/PartnerReferralWelcomeStrip'
 import {
   WelcomePartnerModal,
   RevenueSparkline,
@@ -74,6 +75,7 @@ export default function PartnerDashboardPageContent() {
   return (
     <div className="space-y-6">
       <PartnerDashboardWalletOverview />
+      <PartnerReferralWelcomeStrip />
       <PartnerOnboardingChecklist language={language} />
 
       <PageSectionHeader

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { ReferralRuPayoutProfileForm } from '@/components/referral/ReferralRuPayoutProfileForm'
+import { ReferralPayoutBlockers } from '@/components/referral/ReferralPayoutBlockers'
 
 function fmtThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -60,6 +61,7 @@ export function ReferralWithdrawalWaterfall({
   referralWithdrawRequested = false,
   withdrawRequesting = false,
   onRequestWithdraw,
+  blockerDetails = [],
   locale = 'ru-RU',
   className = '',
 }) {
@@ -144,6 +146,10 @@ export function ReferralWithdrawalWaterfall({
           </p>
         </div>
       </div>
+
+      {!payoutEligible && !referralWithdrawRequested && blockerDetails?.length ? (
+        <ReferralPayoutBlockers blockerDetails={blockerDetails} compact />
+      ) : null}
 
       <ReferralRuPayoutProfileForm onReady={setRuProfileReady} />
 

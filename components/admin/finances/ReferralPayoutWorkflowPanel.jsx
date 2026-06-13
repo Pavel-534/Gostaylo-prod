@@ -130,7 +130,7 @@ export function ReferralPayoutWorkflowPanel({ payoutQueue = [], toast, onRefresh
     return (
       <p className="text-sm text-slate-500 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center">
         Нет заявок <code className="text-xs">withdrawable_referral</code>.{' '}
-        <Link href="/admin/marketing/payouts?referralOnly=1" className="text-brand underline">
+        <Link href="/admin/marketing/referral-payouts?tab=queue" className="text-brand underline">
           Полный список кошельков
         </Link>
       </p>
@@ -219,7 +219,7 @@ export function ReferralPayoutWorkflowPanel({ payoutQueue = [], toast, onRefresh
           Reject filtered ({filtered.length})
         </Button>
         <Button type="button" variant="ghost" size="sm" asChild>
-          <Link href="/admin/marketing/payouts?referralOnly=1">Открыть payouts →</Link>
+          <Link href="/admin/marketing/referral-payouts?tab=queue">Открыть payouts →</Link>
         </Button>
       </div>
 

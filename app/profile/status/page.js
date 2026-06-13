@@ -22,7 +22,7 @@ import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatus
 import { ReferralActivityFeed } from '@/components/referral/ReferralActivityFeed'
 import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
-import { ReferralWithdrawableStrip } from '@/components/referral/ReferralWithdrawableStrip'
+import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 
 function formatThb(value, locale = 'ru-RU') {
@@ -49,7 +49,7 @@ export default function ProfileStatusPage() {
     includeTeam: true,
     teamLimit: 40,
   })
-  const { data: walletData, isLoading: walletLoading } = useWalletMeQuery({
+  const { data: walletData } = useWalletMeQuery({
     enabled: !authLoading && isAuthenticated,
   })
   const [monthlyGoal, setMonthlyGoal] = useState('10000')
@@ -121,7 +121,7 @@ export default function ProfileStatusPage() {
       <ProfileHubNav t={t} />
       <PageSectionHeader title={t('stage1143_tabNavStatus')} subtitle={t('stage1143_settingsSubtitle')} />
 
-      <ReferralWithdrawableStrip walletData={walletData} t={t} locale={locale} loading={walletLoading} />
+      <ReferralBalanceBreakdown walletData={walletData} referralData={data} locale={locale} variant="compact" />
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-8">

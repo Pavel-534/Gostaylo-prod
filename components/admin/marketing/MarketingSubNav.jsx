@@ -28,7 +28,7 @@ const BUDGET_HUB_PREFIXES = [
   '/admin/marketing/budget',
   '/admin/marketing/wallet-audit',
   '/admin/marketing/audit',
-  '/admin/marketing/payouts',
+  '/admin/marketing/referral-payouts',
   '/admin/marketing/analytics',
   '/admin/marketing/promos',
 ];

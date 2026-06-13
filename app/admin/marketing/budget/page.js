@@ -24,7 +24,7 @@ const HUB_ITEMS = [
     icon: Layers,
   },
   {
-    href: '/admin/marketing/payouts',
+    href: '/admin/marketing/referral-payouts',
     title: 'Referral Payouts',
     description: 'Очередь выплат и verified_for_payout.',
     icon: Ticket,

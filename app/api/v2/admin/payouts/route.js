@@ -50,6 +50,7 @@ export async function GET(request) {
 
     const transformed = (payouts || []).map((p) => {
       const st = String(p.status || '').toUpperCase();
+      const meta = p.metadata && typeof p.metadata === 'object' ? p.metadata : null;
       return {
       id: p.id,
       partnerId: p.partner_id,
@@ -67,6 +68,8 @@ export async function GET(request) {
       rejectionReason: p.rejection_reason || null,
       payoutMethod: p.payout_method || null,
       payoutProfile: p.payout_profile || null,
+      payoutRail: p.payout_rail || null,
+      metadata: meta,
       createdAt: p.created_at,
       processedAt: p.processed_at,
     };

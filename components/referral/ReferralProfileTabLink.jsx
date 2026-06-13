@@ -16,6 +16,14 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
   const inviteLink = String(data?.referralLandingUrl || data?.referralLink || '').trim()
   const welcomeCode = String(data?.code || '').trim() || 'AIR-XXXXXX'
   const directPartnersInvited = Number(data?.stats?.directPartnersInvited ?? data?.ambassador?.directPartnersInvited ?? 0)
+  const stories = data?.referralStoriesCopy || {}
+  const storiesCardHeadline = String(t('stage73_storiesCardHeadline')).replace(/\{brand\}/g, brand)
+  const tierName = String(stories.tierName || data?.ambassador?.currentTier?.name || '').trim()
+  const badgeFromStories = String(stories.ambassadorBadgeLine || '').replace(/^🏆\s*/, '').trim()
+  const storiesTierStatusLine = String(t('stage74_storiesTierLine'))
+    .replace(/\{brand\}/g, brand)
+    .replace(/\{tier\}/g, tierName || '—')
+    .replace(/\{badge\}/g, badgeFromStories || '—')
   const inviteShareBody = String(t('stage91_shareBodyInvitee'))
     .replace(/\{welcomeThb\}/g, String(welcomeBonusThb))
     .replace(/\{link\}/g, inviteLink)
@@ -132,6 +140,12 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         shareFbLabel={t('stage73_shareFb')}
         shareTgLabel={t('referralStage726_shareTg')}
         shareWaLabel={t('referralStage726_shareWa')}
+        storiesCardHeadline={storiesCardHeadline}
+        storiesTierStatusLine={storiesTierStatusLine}
+        storiesAmbassadorBadgeLine={stories.ambassadorBadgeLine || ''}
+        storiesTeamHeadline={stories.teamHeadline || ''}
+        storiesTeamAmountLine={stories.teamAmountLine || ''}
+        storiesTeamCtaLine={stories.teamCtaLine || ''}
       />
 
       <Card className="rounded-xl border border-slate-200 bg-white">

@@ -20,10 +20,11 @@ import { getUIText } from '@/lib/translations'
 import { toast } from 'sonner'
 import { useWalletMeQuery, invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
-import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
-import { REFERRAL_DISPLAY_CURRENCY_CODES } from '@/lib/finance/referral-display-currency'
-import { ReferralHeldBalanceStrip } from '@/components/referral/ReferralHeldBalanceStrip'
+import { normalizeReferralDisplayCurrency, REFERRAL_DISPLAY_CURRENCY_CODES } from '@/lib/finance/referral-display-currency'
+import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
+import { ReferralPayoutBlockers } from '@/components/referral/ReferralPayoutBlockers'
 import { ReferralWithdrawalWaterfall } from '@/components/referral/ReferralWithdrawalWaterfall'
+import { ReferralWithdrawalHistory } from '@/components/referral/ReferralWithdrawalHistory'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -73,18 +74,18 @@ export default function ProfileWalletPage() {
     setDisplayCurrency(safe)
     try {
       await patchProfile({ referral_display_currency: safe })
-      toast.success('Валюта статистики обновлена')
+      toast.success(t('stage1321_walletCurrencySaved'))
     } catch (e) {
-      toast.error(e?.message || 'Не удалось сохранить валюту')
+      toast.error(e?.message || t('stage1321_walletCurrencySaveErr'))
     }
   }
 
   function txTypeLabel(v) {
     const x = String(v || '').toLowerCase()
-    if (x === 'referral_bonus') return 'Бонус за друга'
-    if (x === 'referral_cashback') return 'Ваш кешбэк'
-    if (x === 'welcome_bonus') return 'Приветственный бонус'
-    return 'Операция'
+    if (x === 'referral_bonus') return t('stage1321_walletTxReferralBonus')
+    if (x === 'referral_cashback') return t('stage1321_walletTxCashback')
+    if (x === 'welcome_bonus') return t('stage1321_walletTxWelcome')
+    return t('stage1321_walletTxOther')
   }
 
   async function requestReferralWithdrawal() {
@@ -103,7 +104,7 @@ export default function ProfileWalletPage() {
       await invalidateWalletMeQuery(queryClient)
       await refetchWallet()
     } catch (e) {
-      toast.error(e?.message || 'Не удалось отправить заявку')
+      toast.error(e?.message || t('stage1321_walletWithdrawErr'))
     } finally {
       setWithdrawRequesting(false)
     }
@@ -117,18 +118,12 @@ export default function ProfileWalletPage() {
   const balance = walletData?.wallet || {}
   const recentTransactions = Array.isArray(walletData?.recentTransactions) ? walletData.recentTransactions : []
   const referralWithdrawRequested = payout?.referralWithdrawalStatus === 'withdrawable_referral'
-  const blockers = Array.isArray(payout?.blockers) ? payout.blockers : []
-  const payoutReason =
-    blockers.includes('REFERRAL_RU_PAYOUT_PROFILE_REQUIRED') ||
-    blockers.includes('REFERRAL_RU_PAYOUT_PROFILE_INCOMPLETE')
-      ? 'Укажите реквизиты карты / счёта РФ ниже'
-      : blockers.includes('BELOW_MIN_PAYOUT')
-        ? `Минимальный порог ${formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB`
-        : blockers.includes('PROFILE_NOT_VERIFIED')
-          ? 'Требуется KYC (верификация профиля)'
-          : blockers.includes('WALLET_NOT_CLEARED_FOR_PAYOUT')
-            ? 'Нужен админ-допуск: «Доступен вывод»'
-            : 'Готов к выводу в ₽'
+  const blockerDetails = Array.isArray(payout?.blockerDetails) ? payout.blockerDetails : []
+  const payoutStatusLabel = payout?.payoutEligible
+    ? t('stage1321_walletPayoutEligible')
+    : referralWithdrawRequested
+      ? t('stage1321_walletPayoutRequested')
+      : blockerDetails[0]?.messageRu?.slice(0, 80) || t('stage1321_walletPayoutBlocked')
 
   return (
     <ProductPageShell containerClassName="space-y-8 sm:space-y-10">
@@ -138,11 +133,11 @@ export default function ProfileWalletPage() {
         subtitle={t('referralStage726_unifiedBalanceSubtitle')}
       />
 
-      <ReferralHeldBalanceStrip
-        data={referralData}
+      <ReferralBalanceBreakdown
         walletData={walletData}
-        t={t}
+        referralData={referralData}
         locale={locale}
+        variant="full"
       />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -150,11 +145,14 @@ export default function ProfileWalletPage() {
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-brand" />Ваш баланс</CardTitle>
-                  <CardDescription>Кошелек и контроль выплат в одном экране.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-brand" />
+                    {t('stage1321_walletPayoutTitle')}
+                  </CardTitle>
+                  <CardDescription>{t('stage1321_walletPayoutSubtitle')}</CardDescription>
                 </div>
                 <div className="w-full sm:w-[220px] space-y-1">
-                  <Label htmlFor="referral-display-currency">Валюта статистики</Label>
+                  <Label htmlFor="referral-display-currency">{t('stage1321_walletDisplayCurrency')}</Label>
                   <Select value={displayCurrency} onValueChange={(v) => void saveDisplayCurrency(v)}>
                     <SelectTrigger id="referral-display-currency"><SelectValue placeholder="THB" /></SelectTrigger>
                     <SelectContent>
@@ -167,21 +165,34 @@ export default function ProfileWalletPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Всего</p><p className="text-3xl font-black text-brand">{formatThb(balance.balance_thb, locale)} ฿</p></div>
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Доступно к выводу</p><p className="text-3xl font-black text-brand">{formatThb(balance.withdrawable_balance_thb, locale)} ฿</p></div>
-                <div className="rounded-xl border border-amber-200/80 p-4 bg-amber-50/50">
-                  <p className="text-xs text-amber-900/70 uppercase">{t('stage121_heldTitle')}</p>
-                  <p className="text-3xl font-black text-amber-950 tabular-nums">
-                    {formatThb(walletData?.balances?.heldReferralBalanceThb ?? referralData?.stats?.heldReferralBalanceThb ?? 0, locale)} ฿
-                  </p>
-                  <p className="text-[11px] text-amber-900/65 mt-1">{t('stage121_heldWalletHint')}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Статус выплат</p><p className={`text-sm font-medium ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>{payout?.payoutEligible ? 'Доступен вывод' : payoutReason}</p></div>
+              <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/80">
+                <p className="text-xs text-slate-500 uppercase">{t('stage1321_walletPayoutStatusLabel')}</p>
+                <p className={`text-sm font-medium mt-1 ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>
+                  {payoutStatusLabel}
+                </p>
               </div>
+
+              {!payout?.payoutEligible && !referralWithdrawRequested ? (
+                <ReferralPayoutBlockers blockerDetails={blockerDetails} />
+              ) : null}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><TrendingUp className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Финансовая аналитика</p></div><p className="text-xs text-slate-500 mt-2">Вывод из доступного баланса после всех проверок.</p></div>
-                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><Clock3 className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Порог вывода</p></div><p className="text-xs text-slate-500 mt-2">{formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB</p></div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex gap-2 items-center">
+                    <TrendingUp className="h-4 w-4 text-brand" />
+                    <p className="font-medium text-sm">{t('stage1321_walletAnalyticsTitle')}</p>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">{t('stage1321_walletAnalyticsHint')}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex gap-2 items-center">
+                    <Clock3 className="h-4 w-4 text-brand" />
+                    <p className="font-medium text-sm">{t('stage1321_walletMinPayoutTitle')}</p>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB
+                  </p>
+                </div>
               </div>
               <ReferralWithdrawalWaterfall
                 maxWithdrawableThb={Number(balance.withdrawable_balance_thb ?? 0)}
@@ -190,26 +201,25 @@ export default function ProfileWalletPage() {
                 referralWithdrawRequested={referralWithdrawRequested}
                 withdrawRequesting={withdrawRequesting}
                 onRequestWithdraw={requestReferralWithdrawal}
+                blockerDetails={blockerDetails}
                 locale={locale}
                 className="w-full"
               />
               <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" onClick={() => router.push('/partner/finances')}>
-                  Партнёрский вывод
+                  {t('stage1321_walletPartnerPayoutCta')}
                 </Button>
               </div>
               {referralWithdrawRequested ? (
-                <p className="text-xs text-emerald-700">
-                  Статус: withdrawable_referral — оператор обработает выплату в админ-пульте.
-                </p>
+                <p className="text-xs text-emerald-700">{t('stage1321_walletReferralQueued')}</p>
               ) : null}
               <Accordion type="single" collapsible className="w-full border rounded-xl px-3 bg-white">
                 <AccordionItem value="rules" className="border-b-0">
-                  <AccordionTrigger>Подробнее о начислениях</AccordionTrigger>
+                  <AccordionTrigger>{t('stage1321_walletAccrualRules')}</AccordionTrigger>
                   <AccordionContent className="text-sm text-slate-700 space-y-2">
-                    <p>«Бонус за друга» делится по правилу <code>payout_to_internal_ratio</code>.</p>
-                    <p>«Ваш кешбэк» и welcome бонусы идут во внутренний баланс.</p>
-                    <p>Вывод открывается при выполнении порога, KYC и админ-допуска.</p>
+                    <p>{t('stage1321_walletAccrualRule1')}</p>
+                    <p>{t('stage1321_walletAccrualRule2')}</p>
+                    <p>{t('stage1321_walletAccrualRule3')}</p>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -217,27 +227,29 @@ export default function ProfileWalletPage() {
           </Card>
 
           <Card className={`${GSL_CARD} gsl-card-hover`}>
-            <CardHeader><CardTitle className="text-base">Сводка</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('stage1321_walletSummaryTitle')}</CardTitle></CardHeader>
             <CardContent className="text-sm text-slate-600 space-y-2">
-              <p>Визуал и метрики оформлены в wallet-first стиле из макета 2code.</p>
-              <p>Логика выплат и ограничений сохранена без изменений.</p>
+              <p>{t('stage1321_walletSummaryLine1')}</p>
+              <p>{t('stage1321_walletSummaryLine2')}</p>
             </CardContent>
           </Card>
         </div>
 
+        <ReferralWithdrawalHistory walletData={walletData} t={t} locale={locale} />
+
         <Card className={`${GSL_CARD} gsl-card-hover`}>
-          <CardHeader><CardTitle className="text-base">Последние операции</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('stage1321_walletRecentOpsTitle')}</CardTitle></CardHeader>
           <CardContent>
             {!recentTransactions.length ? (
-              <p className="text-sm text-slate-600">Пока нет операций.</p>
+              <p className="text-sm text-slate-600">{t('stage1321_walletRecentOpsEmpty')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-slate-500">
-                      <th className="py-2 pr-3 font-medium">Тип</th>
-                      <th className="py-2 pr-3 font-medium">Сумма</th>
-                      <th className="py-2 font-medium">Дата</th>
+                      <th className="py-2 pr-3 font-medium">{t('stage1321_walletTxTypeCol')}</th>
+                      <th className="py-2 pr-3 font-medium">{t('stage1321_walletTxAmountCol')}</th>
+                      <th className="py-2 font-medium">{t('stage1321_walletTxDateCol')}</th>
                     </tr>
                   </thead>
                   <tbody>

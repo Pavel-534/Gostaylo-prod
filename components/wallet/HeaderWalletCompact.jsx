@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useMemo } from 'react'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
@@ -112,6 +113,7 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
               <span className="tabular-nums font-medium">฿{formatCompactThb(summary?.escrowTotal ?? 0, locale)}</span>
             </div>
           ) : null}
+          <ReferralBalanceBreakdown walletData={data} variant="header" />
         </div>
         <DropdownMenuSeparator />
         <div className="px-2 pb-2">

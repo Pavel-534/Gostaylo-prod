@@ -14,8 +14,7 @@ import { ReferralProfileTabEarnings } from '@/components/referral/ReferralProfil
 import { ReferralProfileTabTeam } from '@/components/referral/ReferralProfileTabTeam'
 import { ReferralProfileTabHistory } from '@/components/referral/ReferralProfileTabHistory'
 import { ReferralProfileTabSettings } from '@/components/referral/ReferralProfileTabSettings'
-import { ReferralWithdrawableStrip } from '@/components/referral/ReferralWithdrawableStrip'
-import { ReferralHeldBalanceStrip } from '@/components/referral/ReferralHeldBalanceStrip'
+import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { ReferralPageSkeleton } from '@/components/referral/ReferralPageSkeleton'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
@@ -64,14 +63,12 @@ export function ReferralProfilePage() {
 
       <PageSectionHeader title={t('stage91_inviteHeroTitle')} subtitle={t('stage91_inviteHeroSubtitle')} />
 
-      <ReferralWithdrawableStrip walletData={walletData} t={t} locale={locale} loading={walletLoading} />
-
-      <ReferralHeldBalanceStrip
-        data={data}
+      <ReferralBalanceBreakdown
         walletData={walletData}
-        t={t}
+        referralData={data}
         locale={locale}
-        className="mt-3"
+        variant="compact"
+        className="mt-2"
       />
 
       <Tabs defaultValue="link" className="space-y-6 mt-6">

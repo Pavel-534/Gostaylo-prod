@@ -56,7 +56,7 @@ export default async function Image({ params }) {
           {displayName}
         </div>
         <div style={{ fontSize: 26, marginTop: 28, opacity: 0.92, fontWeight: 600 }}>
-          Referral · Travel · Earn
+          Сдавай жильё · Бронируй · Получай бонусы
         </div>
       </div>
     ),

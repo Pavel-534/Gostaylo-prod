@@ -213,7 +213,7 @@ export function ReferralLiabilityPanel({ toast }) {
               </a>
             </Button>
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/admin/marketing/payouts?referralOnly=1">Кошельки к выплате</Link>
+              <Link href="/admin/marketing/referral-payouts?tab=queue">Кошельки к выплате</Link>
             </Button>
           </div>
         </div>

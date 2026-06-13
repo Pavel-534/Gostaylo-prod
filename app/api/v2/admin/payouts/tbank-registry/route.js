@@ -1,5 +1,6 @@
 /**
- * POST /api/v2/admin/payouts/tbank-registry — CSV для Т-Банка + статус PROCESSING для включённых выплат.
+ * GET  /api/v2/admin/payouts/tbank-registry — preview (без смены статуса).
+ * POST /api/v2/admin/payouts/tbank-registry — CSV для Т-Банка + PROCESSING для включённых выплат.
  */
 
 import { NextResponse } from 'next/server';
@@ -16,6 +17,23 @@ async function requireAdmin(request) {
   return { userId: access.profile?.id || null };
 }
 
+export async function GET(request) {
+  const auth = await requireAdmin(request);
+  if (auth.error) {
+    return auth.error;
+  }
+
+  const { searchParams } = new URL(request.url);
+  const referralOnly = searchParams.get('referralOnly') !== '0';
+
+  try {
+    const data = await TbankPayoutRegistryService.buildRegistryPreview({ referralOnly });
+    return NextResponse.json({ success: true, data });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   const auth = await requireAdmin(request);
   if (auth.error) {
@@ -30,10 +48,12 @@ export async function POST(request) {
   }
   const encoding =
     body?.encoding === 'windows-1251' || body?.encoding === 'cp1251' ? 'windows-1251' : 'utf-8';
+  const referralOnly = body?.referralOnly !== false;
 
   try {
-    const { csv, exportedIds, skippedUnverified } = await TbankPayoutRegistryService.exportRegistryAndMarkProcessing();
-    const filename = `tbank-payout-registry-${new Date().toISOString().slice(0, 10)}.csv`;
+    const { csv, exportedIds, skippedUnverified } =
+      await TbankPayoutRegistryService.exportRegistryAndMarkProcessing({ referralOnly });
+    const filename = `tbank-referral-registry-${new Date().toISOString().slice(0, 10)}.csv`;
     if (encoding === 'windows-1251') {
       const buf = encodeTbankCsvForDownload(csv, 'windows-1251');
       return NextResponse.json({

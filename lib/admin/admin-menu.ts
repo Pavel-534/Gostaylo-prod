@@ -438,8 +438,8 @@ export function resolveAdminBreadcrumb(pathname, groups = ADMIN_MENU_GROUPS) {
   if (p.startsWith('/admin/marketing/analytics')) {
     return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'ROI & когорты' }
   }
-  if (p.startsWith('/admin/marketing/payouts')) {
-    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Referral Payouts' }
+  if (p.startsWith('/admin/marketing/referral-payouts') || p.startsWith('/admin/marketing/payouts')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Referral Payout Ops' }
   }
   if (p.startsWith('/admin/marketing/wallet-audit')) {
     return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Wallet Audit' }

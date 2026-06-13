@@ -13,6 +13,7 @@ import { ReferralMonthlyGoalCard } from '@/components/referral/ReferralMonthlyGo
 import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatusCard'
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
+import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -29,10 +30,6 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
   const l2Monthly = Number(data?.stats?.monthlyNetworkEarnedThb || 0)
   const directPartnersInvited = Number(data?.stats?.directPartnersInvited ?? data?.ambassador?.directPartnersInvited ?? 0)
   const withdrawableThb = Number(walletData?.wallet?.withdrawable_balance_thb || 0)
-  const heldThb = Math.max(
-    Number(data?.stats?.heldReferralBalanceThb ?? 0),
-    Number(walletData?.balances?.heldReferralBalanceThb ?? 0),
-  )
   const payoutEligible = walletData?.payout?.payoutEligible === true
   const tierProgress = Number(data?.ambassador?.tierProgressPercent || 0)
 
@@ -67,6 +64,13 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
         friendsInvited={totalReferrals}
         directPartnersInvited={directPartnersInvited}
         t={t}
+      />
+
+      <ReferralBalanceBreakdown
+        walletData={walletData}
+        referralData={data}
+        locale={locale}
+        variant="compact"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -112,14 +116,6 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
                 <p className="text-xs text-slate-400">{t('stage1143_earnedLifetime')}</p>
                 <p className="text-2xl font-semibold text-brand">{formatThb(data?.stats?.earnedThb, locale)} THB</p>
               </div>
-              {heldThb > 0 ? (
-                <div>
-                  <p className="text-xs text-amber-700/80">{t('stage121_heldTitle')}</p>
-                  <p className="text-2xl font-semibold text-amber-900 tabular-nums">
-                    {formatThb(heldThb, locale)} THB
-                  </p>
-                </div>
-              ) : null}
             </div>
             {Array.isArray(data?.stats?.sparklineEarningsThb) && data.stats.sparklineEarningsThb.length > 1 ? (
               <div className="mt-6">

@@ -7,16 +7,57 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const STATUS_OPTIONS = ['open', 'approved', 'blocked', 'flagged', 'all'];
 
+function formatResolveSummary(action, data) {
+  const approved = Array.isArray(data?.approvedRows) ? data.approvedRows.length : 0;
+  const rejected = Array.isArray(data?.rejectedRows) ? data.rejectedRows.length : 0;
+  const credited = Number(data?.creditedAmountThb ?? 0);
+  const payoutBlockedCleared = data?.payoutBlockedCleared;
+
+  if (action === 'approved') {
+    return {
+      title: 'Одобрено — начисление разблокировано',
+      lines: [
+        `Строк ledger: ${approved}`,
+        credited > 0 ? `Зачислено на кошелёк: ${credited.toLocaleString('ru-RU')} THB` : 'Зачисление на кошелёк: без изменений',
+        payoutBlockedCleared === true
+          ? 'referral_payout_blocked: снят'
+          : payoutBlockedCleared === false
+            ? 'referral_payout_blocked: остаётся (есть другие проверки)'
+            : 'referral_payout_blocked: без изменений',
+      ],
+    };
+  }
+  if (action === 'blocked') {
+    return {
+      title: 'Заблокировано',
+      lines: [`Строк ledger отклонено: ${rejected}`, 'referral_payout_blocked: установлен'],
+    };
+  }
+  return {
+    title: `Статус: ${action}`,
+    lines: ['Изменён только статус очереди (без ledger side-effects).'],
+  };
+}
+
 export default function ReferralFraudQueuePage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState('open');
+  const [resolveDialog, setResolveDialog] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,7 +92,10 @@ export default function ReferralFraudQueuePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) throw new Error(json?.error || 'FRAUD_QUEUE_ACTION_FAILED');
-      toast.success(`Статус: ${action}`);
+
+      const summary = formatResolveSummary(action, json.data || {});
+      setResolveDialog({ action, id, ...summary });
+      toast.success(summary.title);
       await load();
     } catch (error) {
       toast.error(error?.message || 'Не удалось изменить статус');
@@ -60,6 +104,25 @@ export default function ReferralFraudQueuePage() {
 
   return (
     <div className="mx-auto max-w-[1260px] space-y-6 p-4 md:p-6">
+      <Dialog open={!!resolveDialog} onOpenChange={(open) => !open && setResolveDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{resolveDialog?.title || 'Результат проверки'}</DialogTitle>
+            <DialogDescription>Stage 131.8 — ledger, кошелёк и payout block синхронизированы.</DialogDescription>
+          </DialogHeader>
+          <ul className="text-sm text-slate-700 space-y-2 list-disc pl-5">
+            {(resolveDialog?.lines || []).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setResolveDialog(null)}>
+              Закрыть
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-950">Fraud Queue</h1>
@@ -135,9 +198,9 @@ export default function ReferralFraudQueuePage() {
                       >
                         attribution
                       </Link>
-                      {row?.metadata?.attribution_id ? (
+                      {row?.metadata?.ledger_id ? (
                         <Link
-                          href={`/admin/marketing/attribution?attributionId=${encodeURIComponent(String(row.metadata.attribution_id))}`}
+                          href={`/admin/marketing/attribution?ledgerId=${encodeURIComponent(String(row.metadata.ledger_id))}`}
                           className="text-brand hover:underline"
                         >
                           ledger
