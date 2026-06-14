@@ -6,11 +6,13 @@ import { toast } from 'sonner'
 import { useUpdateBookingStatus, partnerBookingsKeys } from '@/lib/hooks/use-partner-bookings'
 import { partnerStatsKeys } from '@/lib/hooks/use-partner-stats'
 import { partnerCalendarKeys } from '@/lib/hooks/use-partner-calendar'
+import { getUIText } from '@/lib/translations'
 
 /**
  * Stage 110.8 — approve/decline pending bookings на дашборде партнёра.
+ * Stage 139 — локализованные тосты (`language`).
  */
-export function usePartnerDashboardBookingActions(partnerId) {
+export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
   const queryClient = useQueryClient()
   const updateStatusMutation = useUpdateBookingStatus()
 
@@ -29,12 +31,12 @@ export function usePartnerDashboardBookingActions(partnerId) {
           partnerId,
         })
         invalidatePartnerQueries()
-        toast.success('Бронирование подтверждено!')
+        toast.success(getUIText('partnerDashboard_approveSuccess', language))
       } catch {
-        toast.error('Ошибка при подтверждении')
+        toast.error(getUIText('partnerDashboard_approveError', language))
       }
     },
-    [updateStatusMutation, partnerId, invalidatePartnerQueries],
+    [updateStatusMutation, partnerId, invalidatePartnerQueries, language],
   )
 
   const handleDecline = useCallback(
@@ -43,17 +45,22 @@ export function usePartnerDashboardBookingActions(partnerId) {
         await updateStatusMutation.mutateAsync({
           bookingId,
           status: 'CANCELLED',
-          reason: 'Отклонено партнёром',
+          reason: getUIText('partnerDashboard_declineReason', language),
           partnerId,
         })
         invalidatePartnerQueries()
-        toast.success('Бронирование отклонено')
+        toast.success(getUIText('partnerDashboard_declineSuccess', language))
       } catch {
-        toast.error('Ошибка при отклонении')
+        toast.error(getUIText('partnerDashboard_declineError', language))
       }
     },
-    [updateStatusMutation, partnerId, invalidatePartnerQueries],
+    [updateStatusMutation, partnerId, invalidatePartnerQueries, language],
   )
 
-  return { handleApprove, handleDecline, updateStatusMutation }
+  return {
+    handleApprove,
+    handleDecline,
+    updateStatusMutation,
+    isUpdatingBooking: updateStatusMutation.isPending,
+  }
 }

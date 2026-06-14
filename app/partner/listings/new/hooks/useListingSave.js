@@ -21,6 +21,7 @@ import {
   formatListingQualityChecklistLabel,
   listingQualityInputFromWizardForm,
 } from '@/lib/partner/listing-quality-gates.js'
+import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 
 async function resolvePartnerUserId() {
   let userId = localStorage.getItem('gostaylo_user_id')
@@ -239,6 +240,7 @@ export function useListingSave() {
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
           await patchPartnerListingCoverImage(editId, newCover)
         }
+        clearWizardDraft()
         toast.success(t('partnerEdit_listingPublished'))
         router.push('/partner/listings')
       } else {
@@ -323,6 +325,7 @@ export function useListingSave() {
             const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
+          clearWizardDraft()
           toast.success(t('draftSaved'))
           router.push('/partner/listings')
         } else {
@@ -356,6 +359,7 @@ export function useListingSave() {
             const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
+          clearWizardDraft()
           toast.success(t('draftSaved'))
           if (lid) {
             router.replace(`/partner/listings/new?edit=${encodeURIComponent(lid)}`)
@@ -490,6 +494,7 @@ export function useListingSave() {
             }
           }
         }
+        clearWizardDraft()
         toast.success(isEditMode ? t('listingUpdated') : t('listingPublished'))
         if (listingId && !isEditMode) {
           router.push(`/partner/listings/${listingId}?highlight=calendar`)

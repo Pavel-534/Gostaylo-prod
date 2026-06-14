@@ -14,12 +14,15 @@ import { useCheckoutPricing } from './hooks/useCheckoutPricing'
 import { CheckoutSummary } from './components/CheckoutSummary'
 import { PaymentMethods } from './components/PaymentMethods'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import {
   CheckoutFullPageSpinner,
   CheckoutCommissionSpinner,
   CheckoutAccessDeniedView,
   CheckoutUnavailableView,
   CheckoutSuccessView,
+  CheckoutPaymentFailedView,
+  CheckoutPaymentReturnVerifyingView,
   CheckoutSuspenseFallback,
 } from './components/CheckoutStateViews'
 
@@ -89,6 +92,23 @@ function CheckoutPageInner({ params: paramsProp }) {
     const chatHref = p.chatConversationId ? `/messages/${encodeURIComponent(p.chatConversationId)}` : null
     return <CheckoutSuccessView language={c.language} chatHref={chatHref} />
   }
+  if (p.paymentReturnVerifying) {
+    return <CheckoutPaymentReturnVerifyingView language={c.language} />
+  }
+  if (p.paymentFailed) {
+    const chatHref = p.chatConversationId ? `/messages/${encodeURIComponent(p.chatConversationId)}` : null
+    return (
+      <CheckoutPaymentFailedView
+        language={c.language}
+        chatHref={chatHref}
+        retrying={p.processing}
+        onRetry={() => {
+          p.clearPaymentFailed()
+          void p.handleInitiatePayment()
+        }}
+      />
+    )
+  }
   if (c.commissionLoading) {
     return <CheckoutCommissionSpinner />
   }
@@ -120,7 +140,7 @@ function CheckoutPageInner({ params: paramsProp }) {
           </div>
         </div>
 
-        {p.booking?.status === 'CONFIRMED' && (
+        {isBookingPayable(p.booking?.status) && (
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <div>

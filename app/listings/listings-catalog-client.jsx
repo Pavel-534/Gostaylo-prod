@@ -34,6 +34,7 @@ import {
   defaultExtraFilters,
 } from '@/lib/search/listings-page-url'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
 
 const ITEMS_PER_PAGE = 12
 
@@ -536,6 +537,10 @@ function ListingsContent() {
         semanticSearchFeatureEnabled={semanticSiteEnabled}
         onSearchSubmit={handleCatalogSearchSubmit}
       />
+
+      <div className="container mx-auto px-4 pt-4">
+        <ReferralBonusSavedBanner language={language} autoFromPendingRef ctaHref="/listings" />
+      </div>
 
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">

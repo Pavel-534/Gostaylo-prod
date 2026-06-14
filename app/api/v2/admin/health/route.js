@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify'
-import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { resolveAdminHealthProfile } from '@/lib/admin-health-access.js'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 import { loadReferralUnlockHealth } from '@/lib/admin/referral-unlock-health.js'
 import { loadReferralSystemHealth } from '@/lib/admin/referral-system-health.js'
@@ -120,8 +120,14 @@ function aggregateJob(rows, jobName) {
 }
 
 export async function GET(request) {
-  const access = await requireAdminStaff(request)
-  if (access.error) return access.error
+  const health = await resolveAdminHealthProfile()
+  if (health.error) {
+    return NextResponse.json(
+      { success: false, error: health.error.message },
+      { status: health.error.status || 403 },
+    )
+  }
+  void request
 
   if (!supabaseAdmin) {
     return NextResponse.json(

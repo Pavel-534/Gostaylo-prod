@@ -7,7 +7,7 @@
 
 import { format, parseISO, isToday } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
-import { Home, Anchor, Bike, Car, Lock } from 'lucide-react'
+import { Home, Anchor, Bike, Car, Lock, CalendarSync } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
@@ -40,8 +40,17 @@ const STATUS_COLORS = {
   CONFIRMED: 'bg-brand/100 text-white',
   PENDING: 'bg-amber-400 text-amber-900',
   PAID: 'bg-emerald-500 text-white',
-  BLOCKED: 'bg-slate-300 text-slate-600',
+  BLOCKED_MANUAL: 'bg-slate-300 text-slate-700',
+  BLOCKED_ICAL: 'bg-brand/15 text-brand border border-dashed border-brand/40',
+  BLOCKED_INVENTORY: 'bg-slate-200 text-slate-500',
   AVAILABLE: 'bg-white hover:bg-slate-50'
+}
+
+function blockedCellClass(cellData) {
+  const kind = cellData.blockKind || (cellData.blockSource === 'manual' ? 'manual' : null)
+  if (kind === 'ical') return STATUS_COLORS.BLOCKED_ICAL
+  if (kind === 'inventory') return STATUS_COLORS.BLOCKED_INVENTORY
+  return STATUS_COLORS.BLOCKED_MANUAL
 }
 
 export function CalendarGrid({
@@ -188,10 +197,19 @@ export function CalendarGrid({
                         )
                       }
                     } else if (cellData.status === 'BLOCKED') {
-                      cellClass = STATUS_COLORS.BLOCKED
+                      cellClass = blockedCellClass(cellData)
                       if (viewMode === 'wide') {
+                        const isIcal = cellData.blockKind === 'ical'
+                        content = isIcal ? (
+                          <CalendarSync className="h-4 w-4 text-brand" aria-hidden />
+                        ) : (
+                          <Lock className="h-4 w-4 text-slate-600" aria-hidden />
+                        )
+                      } else if (cellData.blockKind === 'ical') {
                         content = (
-                          <Lock className="h-4 w-4 text-slate-600" />
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-brand">
+                            {t('partnerCal_chipIcal')}
+                          </span>
                         )
                       }
                     } else if (cellData.status === 'AVAILABLE') {
@@ -274,7 +292,15 @@ export function CalendarGrid({
                                 status: cellData.bookingStatus || '',
                               })
                             : cellData.status === 'BLOCKED'
-                              ? String(cellData.reason || t('partnerCal_cellTitleBlocked'))
+                              ? cellData.blockKind === 'ical'
+                                ? trTpl(t('partnerCal_cellTitleIcalBlocked'), {
+                                    reason: cellData.reason || t('partnerCal_cellTitleBlocked'),
+                                  })
+                                : cellData.blockKind === 'manual'
+                                  ? trTpl(t('partnerCal_cellTitleManualBlocked'), {
+                                      reason: cellData.reason || t('partnerCal_cellTitleBlocked'),
+                                    })
+                                  : String(cellData.reason || t('partnerCal_cellTitleBlocked'))
                               : cellData.previousGuestName
                                 ? trTpl(t('partnerCal_cellTitleCheckout'), {
                                     name: cellData.previousGuestName,

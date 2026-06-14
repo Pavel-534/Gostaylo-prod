@@ -38,7 +38,7 @@ export default function DashboardRouter() {
           router.push('/admin');
           break;
         case 'PARTNER':
-          router.push('/dashboard/partner');
+          router.push('/partner/dashboard');
           break;
         case 'RENTER':
         default:

@@ -13,6 +13,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
+import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
 
@@ -219,6 +220,7 @@ export async function GET(request) {
     }))
     transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
     transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
+    transformed = await attachDisputeToBookings(supabaseAdmin, transformed)
     transformed = await attachPartnerTrustToBookings(transformed)
 
     console.log(`[PARTNER BOOKINGS] Found ${transformed.length} bookings for partner ${userId}`)

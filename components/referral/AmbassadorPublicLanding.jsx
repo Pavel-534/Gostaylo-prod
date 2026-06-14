@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
@@ -25,6 +25,8 @@ import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarning
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
 import { ReferralAmbassadorLevels } from '@/components/referral/ReferralAmbassadorLevels'
 import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
+import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
+import { useAuthModalState } from '@/hooks/useAuthModalState'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { toast } from 'sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -49,8 +51,29 @@ export function AmbassadorPublicLanding({
   const { language } = useI18n()
   const { user: currentUser, openLoginModal } = useAuth()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
+  const [showFollowupBanner, setShowFollowupBanner] = useState(false)
+  const promptedAuthRef = useRef(false)
   const locale =
     language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
+
+  useAuthModalState({
+    onClose: (outcome) => {
+      if (outcome === 'dismiss' && promptedAuthRef.current) {
+        setShowFollowupBanner(true)
+      }
+      if (outcome === 'success') {
+        promptedAuthRef.current = false
+        setShowFollowupBanner(false)
+      }
+    },
+  })
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      setShowFollowupBanner(false)
+      promptedAuthRef.current = false
+    }
+  }, [currentUser?.id])
 
   const code = String(landing?.referralCode || '').trim()
   const joinUrl = String(landing?.joinUrl || landing?.landingUrl || '').trim()
@@ -60,6 +83,17 @@ export function AmbassadorPublicLanding({
   useEffect(() => {
     if (code) persistPendingReferralFromLanding(code)
   }, [code])
+
+  /** Клик по «Присоединиться»: залогиненный — в каталог по ссылке; гость — модалка регистрации. */
+  function handleJoinClick() {
+    if (currentUser?.id) {
+      router.push(joinUrl || '/')
+      return
+    }
+    promptedAuthRef.current = true
+    setShowFollowupBanner(false)
+    openLoginModal('register')
+  }
 
   async function copyJoinLink() {
     if (!joinUrl) return
@@ -215,7 +249,7 @@ export function AmbassadorPublicLanding({
               <Button
                 variant="brand"
                 className="flex-1 sm:flex-none min-h-11"
-                onClick={() => (currentUser?.id ? router.push(joinUrl || '/') : openLoginModal('register'))}
+                onClick={handleJoinClick}
               >
                 {t('stage1143_joinCtaButton')}
               </Button>
@@ -236,6 +270,12 @@ export function AmbassadorPublicLanding({
             <CardContent className="py-4 text-sm text-brand">{t('stage1143_publicSelfHint')}</CardContent>
           </Card>
         )}
+
+        <ReferralBonusSavedBanner
+          language={language}
+          visible={showFollowupBanner}
+          ambassadorUserId={landing?.userId}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -285,7 +325,7 @@ export function AmbassadorPublicLanding({
             <Button
               variant="brand"
               className="flex-1 min-h-11"
-              onClick={() => (currentUser?.id ? router.push(joinUrl || '/') : openLoginModal('register'))}
+              onClick={handleJoinClick}
             >
               {t('stage1143_joinCtaButton')}
             </Button>

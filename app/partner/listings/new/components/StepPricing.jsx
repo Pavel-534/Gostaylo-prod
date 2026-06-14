@@ -77,7 +77,7 @@ function StepPricingInner() {
         </div>
         <div className="flex flex-col justify-end rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
           <p className="text-sm font-medium text-slate-700">{t('systemCommission')}</p>
-          <p className="mt-1 text-lg font-semibold text-teal-600">
+          <p className="mt-1 text-lg font-semibold text-brand">
             {Number.isFinite(Number(partnerCommissionRate)) ? `${partnerCommissionRate}%` : '—'}
           </p>
           <p className="mt-0.5 text-xs leading-relaxed text-slate-500">

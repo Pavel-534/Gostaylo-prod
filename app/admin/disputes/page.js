@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import AdminDisputeChatPeek from '@/components/admin/AdminDisputeChatPeek'
 import AdminDisputeTimeline from '@/components/admin/AdminDisputeTimeline'
+import AdminDisputeLedgerTimeline from '@/components/admin/AdminDisputeLedgerTimeline'
 import { Button } from '@/components/ui/button'
 import { AdminStatusPill } from '@/components/admin/AdminStatusPill'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,6 +65,7 @@ function mergeDetailDispute(detail, snap) {
       forceRefundRequested: snap.forceRefundRequested ?? detail.dispute.forceRefundRequested,
       penaltyRequested: snap.penaltyRequested ?? detail.dispute.penaltyRequested,
       resolvedAt: snap.resolvedAt !== undefined ? snap.resolvedAt : detail.dispute.resolvedAt,
+      rejectedAt: snap.rejectedAt !== undefined ? snap.rejectedAt : detail.dispute.rejectedAt,
       closedBy: snap.closedBy !== undefined ? snap.closedBy : detail.dispute.closedBy,
       resolutionReason:
         snap.resolutionReason !== undefined ? snap.resolutionReason : detail.dispute.resolutionReason,
@@ -102,6 +104,8 @@ export default function AdminDisputesPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [verdict, setVerdict] = useState('')
   const [guiltyParty, setGuiltyParty] = useState('none')
+  const [resolutionStrategy, setResolutionStrategy] = useState('DISMISS')
+  const [guestSplitPercent, setGuestSplitPercent] = useState(50)
   const [actionBusy, setActionBusy] = useState(false)
 
   useEffect(() => {
@@ -161,6 +165,8 @@ export default function AdminDisputesPage() {
       setDetail(json.data)
       setVerdict('')
       setGuiltyParty('none')
+      setResolutionStrategy('DISMISS')
+      setGuestSplitPercent(50)
     } catch {
       toast.error('Ошибка сети')
       setDetail(null)
@@ -181,13 +187,20 @@ export default function AdminDisputesPage() {
     setDetail((d) => mergeDetailDispute(d, snap))
   }, [])
 
-  const postAction = async (action) => {
+  const postAction = async (action, extra = {}) => {
     if (!selectedId) return
     setActionBusy(true)
     try {
-      const body = { action, reason: verdict.trim() }
+      const body = { action, reason: verdict.trim(), ...extra }
       if (action === 'close_dispute') {
         body.guiltyParty = guiltyParty
+        body.resolutionStrategy = resolutionStrategy
+        if (resolutionStrategy === 'SPLIT') {
+          body.guestPercent = guestSplitPercent
+        }
+      }
+      if (action === 'split') {
+        body.guestPercent = guestSplitPercent
       }
       const res = await fetch(`/api/v2/admin/disputes/${encodeURIComponent(selectedId)}/action`, {
         method: 'POST',
@@ -200,7 +213,7 @@ export default function AdminDisputesPage() {
         toast.error(json.error || 'Действие не выполнено')
         return
       }
-      toast.success('Сохранено')
+      toast.success(action === 'split' ? 'Split применён' : 'Сохранено')
       if (json.data?.dispute) applySnapshot(json.data.dispute)
       else void loadList()
       if (selectedId) void loadDetail(selectedId)
@@ -213,6 +226,24 @@ export default function AdminDisputesPage() {
       setActionBusy(false)
     }
   }
+
+  const splitPreview = useMemo(() => {
+    const base = detail?.splitPreview
+    const pct = guestSplitPercent
+    if (base?.guestTotalThb != null && base?.partnerNetThb != null) {
+      const guestTotalThb = base.guestTotalThb
+      const partnerNetThb = base.partnerNetThb
+      const refundGuestThb = Math.round(((guestTotalThb * pct) / 100) * 100) / 100
+      const partnerReleaseThb = Math.round(((partnerNetThb * (100 - pct)) / 100) * 100) / 100
+      return { guestPercent: pct, guestTotalThb, partnerNetThb, refundGuestThb, partnerReleaseThb }
+    }
+    const guestTotalThb = Number(detail?.booking?.price_thb) || 0
+    const partnerNetThb = Number(detail?.booking?.partner_earnings_thb) || 0
+    if (!guestTotalThb && !partnerNetThb) return null
+    const refundGuestThb = Math.round(((guestTotalThb * pct) / 100) * 100) / 100
+    const partnerReleaseThb = Math.round(((partnerNetThb * (100 - pct)) / 100) * 100) / 100
+    return { guestPercent: pct, guestTotalThb, partnerNetThb, refundGuestThb, partnerReleaseThb }
+  }, [detail?.splitPreview, detail?.booking, guestSplitPercent])
 
   const terminal = useMemo(() => {
     const s = String(detail?.dispute?.status || '').toUpperCase()
@@ -370,6 +401,51 @@ export default function AdminDisputesPage() {
             </div>
           ) : detail?.booking ? (
             <div className="space-y-6 mt-4 pb-8">
+              {detail.financialSummary ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Эскроу (гость)</p>
+                    <p className="text-lg font-semibold text-slate-900 tabular-nums">
+                      ฿{detail.financialSummary.guestTotalThb ?? '—'}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Партнёру (нетто): ฿{detail.financialSummary.partnerNetThb ?? '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Статусы</p>
+                    <p className="text-sm text-slate-900">
+                      Бронь: <span className="font-mono">{detail.financialSummary.bookingStatus || '—'}</span>
+                    </p>
+                    <p className="text-sm text-slate-900">
+                      Спор: <span className="font-mono">{detail.financialSummary.disputeStatus || '—'}</span>
+                      {detail.financialSummary.freezePayment ? (
+                        <span className="ml-2 text-amber-800 text-xs font-medium">· freeze</span>
+                      ) : null}
+                    </p>
+                    {detail.financialSummary.holdActive ? (
+                      <p className="text-xs text-amber-900 mt-1">
+                        Холд: ฿{detail.financialSummary.holdAmountThb ?? '?'}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="sm:col-span-2 flex flex-wrap gap-3 text-xs text-slate-600">
+                    {detail.dispute?.createdAt ? (
+                      <span>Открыт: {new Date(detail.dispute.createdAt).toLocaleString('ru-RU')}</span>
+                    ) : null}
+                    {detail.dispute?.resolvedAt ? (
+                      <span>Решён: {new Date(detail.dispute.resolvedAt).toLocaleString('ru-RU')}</span>
+                    ) : null}
+                    {detail.dispute?.rejectedAt ? (
+                      <span>Отклонён: {new Date(detail.dispute.rejectedAt).toLocaleString('ru-RU')}</span>
+                    ) : null}
+                    {detail.financialSummary.evidenceCount > 0 ? (
+                      <span>Доказательств: {detail.financialSummary.evidenceCount}</span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
               <UnifiedOrderCard booking={detail.booking} unifiedOrder={detail.unifiedOrder} role="admin" language="ru" />
 
               {detail.booking?.id ? (
@@ -387,6 +463,11 @@ export default function AdminDisputesPage() {
                 evidenceItems={disputeEvidenceItems}
                 disputeCreatedAt={detail.dispute?.createdAt}
                 conversationId={conversationId}
+              />
+
+              <AdminDisputeLedgerTimeline
+                items={Array.isArray(detail.ledgerTimeline) ? detail.ledgerTimeline : []}
+                holdStatus={detail.holdStatus}
               />
 
               <AdminDisputeChatPeek conversationId={conversationId} adminUserId={me?.id} />
@@ -423,7 +504,28 @@ export default function AdminDisputesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Виновная сторона (при закрытии)</Label>
+                  <Label>Финансовая стратегия (при закрытии)</Label>
+                  <Select
+                    value={resolutionStrategy}
+                    onValueChange={setResolutionStrategy}
+                    disabled={terminal}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DISMISS">Без возврата · снять холд (DISMISS)</SelectItem>
+                      <SelectItem value="PAYOUT_PARTNER">В пользу партнёра (PAYOUT_PARTNER)</SelectItem>
+                      <SelectItem value="REFUND_GUEST">Возврат гостю (REFUND_GUEST)</SelectItem>
+                      <SelectItem value="SPLIT">Split при закрытии (SPLIT)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-amber-900/80">
+                    Исполняется через DisputeResolutionEngine при «Закрыть дело».
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Виновная сторона (штраф, опционально)</Label>
                   <Select value={guiltyParty} onValueChange={setGuiltyParty} disabled={terminal}>
                     <SelectTrigger>
                       <SelectValue placeholder="Не назначать штраф" />
@@ -435,6 +537,49 @@ export default function AdminDisputesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {!terminal && splitPreview ? (
+                  <div className="space-y-3 rounded-lg border border-brand/25 bg-white p-3">
+                    <p className="text-sm font-semibold text-slate-900">Split (разделение суммы)</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="guestSplitPercent">
+                        Доля гостю: {guestSplitPercent}% · партнёру: {100 - guestSplitPercent}%
+                      </Label>
+                      <input
+                        id="guestSplitPercent"
+                        type="range"
+                        min={1}
+                        max={99}
+                        value={guestSplitPercent}
+                        disabled={actionBusy}
+                        onChange={(e) => setGuestSplitPercent(Number(e.target.value))}
+                        className="w-full accent-brand"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <p className="text-xs text-slate-500">Возврат гостю</p>
+                        <p className="font-semibold text-slate-900">฿{splitPreview.refundGuestThb}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <p className="text-xs text-slate-500">Партнёру (из hold)</p>
+                        <p className="font-semibold text-slate-900">฿{splitPreview.partnerReleaseThb}</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="brand"
+                      disabled={actionBusy}
+                      onClick={() => void postAction('split')}
+                    >
+                      Применить Split (без закрытия)
+                    </Button>
+                  </div>
+                ) : null}
+                {!terminal && splitPreview && resolutionStrategy === 'SPLIT' ? (
+                  <p className="text-xs text-slate-600">
+                    При «Закрыть дело» будет применён тот же split ({guestSplitPercent}% гостю).
+                  </p>
+                ) : null}
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button
                     type="button"

@@ -230,6 +230,16 @@ export async function POST(request) {
 
     const status = String(booking.status || '').toUpperCase();
 
+    if (!['COMPLETED', 'FINISHED'].includes(status)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Review is available only after the booking is completed',
+        },
+        { status: 403 },
+      );
+    }
+
     if (!shouldAllowReviewByLifecycle(status, booking.check_out)) {
       return NextResponse.json(
         {

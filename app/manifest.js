@@ -26,7 +26,7 @@ export default function manifest() {
     categories: ['travel', 'lifestyle', 'business'],
     shortcuts: [
       { name: 'Search Listings', short_name: 'Search', description: 'Search for properties', url: '/listings' },
-      { name: 'My Bookings', short_name: 'Bookings', description: 'View your bookings', url: '/renter/bookings' },
+      { name: 'My Bookings', short_name: 'Bookings', description: 'View your bookings', url: '/my-bookings' },
       { name: 'Messages', short_name: 'Chat', description: 'View your messages', url: '/messages/' },
     ],
   }

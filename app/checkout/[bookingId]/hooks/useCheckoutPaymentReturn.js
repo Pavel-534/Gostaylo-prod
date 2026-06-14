@@ -4,19 +4,26 @@ import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import {
+  isCheckoutIntentPaymentFailed,
+  isCheckoutIntentPaymentPaid,
+} from './checkout-payment-intent-status.js'
 
 const POLL_MS = 2500
 const MAX_POLLS = 12
 
 /**
- * Stage 130.3 — return from YooKassa redirect (?payment=return&intent=pi-*).
+ * Stage 130.3 / 138.2 — return from YooKassa redirect (?payment=return&intent=pi-*).
  */
 export function useCheckoutPaymentReturn({
   bookingId,
+  invoiceIdParam,
   language,
   loadPaymentStatus,
   loadPaymentIntent,
   setPaymentSuccess,
+  setPaymentFailed,
+  setPaymentReturnVerifying,
 }) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -26,10 +33,9 @@ export function useCheckoutPaymentReturn({
     if (handledRef.current) return
     if (searchParams.get('payment') !== 'return') return
 
-    const intentParam = searchParams.get('intent')
     handledRef.current = true
-
-    toast.info(getUIText('checkout_toast_paymentReturnPending', language))
+    setPaymentReturnVerifying(true)
+    setPaymentFailed(false)
 
     let polls = 0
     let cancelled = false
@@ -45,6 +51,40 @@ export function useCheckoutPaymentReturn({
       }
     }
 
+    const finishSuccess = () => {
+      if (cancelled) return
+      setPaymentReturnVerifying(false)
+      setPaymentSuccess(true)
+      toast.success(getUIText('checkout_toast_paymentOk', language))
+      stripReturnQuery()
+    }
+
+    const finishFailed = () => {
+      if (cancelled) return
+      setPaymentReturnVerifying(false)
+      setPaymentFailed(true)
+      stripReturnQuery()
+    }
+
+    const resolveIntentStatus = async (resolvedInvoice) => {
+      try {
+        const intentUrl = new URL(
+          `/api/v2/bookings/${encodeURIComponent(bookingId)}/payment-intent`,
+          window.location.origin,
+        )
+        const resolvedInvoiceId = resolvedInvoice?.id || invoiceIdParam
+        if (resolvedInvoiceId) intentUrl.searchParams.set('invoiceId', resolvedInvoiceId)
+        const intentRes = await fetch(intentUrl.toString(), {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const intentJson = await intentRes.json()
+        return String(intentJson?.data?.status || '').toUpperCase()
+      } catch {
+        return ''
+      }
+    }
+
     const poll = async () => {
       if (cancelled) return
       polls += 1
@@ -52,9 +92,7 @@ export function useCheckoutPaymentReturn({
       if (result?.booking) {
         const st = String(result.booking.status || '').toUpperCase()
         if (st === 'PAID_ESCROW' || st === 'PAID' || st === 'COMPLETED') {
-          setPaymentSuccess(true)
-          toast.success(getUIText('checkout_toast_paymentOk', language))
-          stripReturnQuery()
+          finishSuccess()
           return
         }
       }
@@ -63,28 +101,18 @@ export function useCheckoutPaymentReturn({
         await loadPaymentIntent(result?.resolvedInvoice)
       }
 
-      if (intentParam) {
-        try {
-          const intentRes = await fetch(
-            `/api/v2/bookings/${encodeURIComponent(bookingId)}/payment-intent`,
-            { credentials: 'include', cache: 'no-store' },
-          )
-          const intentJson = await intentRes.json()
-          const intentStatus = String(intentJson?.data?.status || '').toUpperCase()
-          if (intentStatus === 'PAID') {
-            setPaymentSuccess(true)
-            toast.success(getUIText('checkout_toast_paymentOk', language))
-            stripReturnQuery()
-            return
-          }
-        } catch {
-          /* retry on next poll */
-        }
+      const intentStatus = await resolveIntentStatus(result?.resolvedInvoice)
+      if (isCheckoutIntentPaymentPaid(intentStatus)) {
+        finishSuccess()
+        return
+      }
+      if (isCheckoutIntentPaymentFailed(intentStatus)) {
+        finishFailed()
+        return
       }
 
       if (polls >= MAX_POLLS) {
-        toast.message(getUIText('checkout_toast_paymentReturnStillPending', language))
-        stripReturnQuery()
+        finishFailed()
         return
       }
       setTimeout(poll, POLL_MS)
@@ -94,14 +122,18 @@ export function useCheckoutPaymentReturn({
 
     return () => {
       cancelled = true
+      setPaymentReturnVerifying(false)
     }
   }, [
     bookingId,
+    invoiceIdParam,
     language,
     loadPaymentIntent,
     loadPaymentStatus,
     router,
     searchParams,
+    setPaymentFailed,
+    setPaymentReturnVerifying,
     setPaymentSuccess,
   ])
 }

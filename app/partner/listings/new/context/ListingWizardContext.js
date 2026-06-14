@@ -37,6 +37,8 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     isEditMode: state.isEditMode,
     currentStep: state.currentStep,
     setCurrentStep: state.setCurrentStep,
+    isDirty: state.isDirty,
+    draftRestored: state.draftRestored,
     loading: state.loading,
     setLoading: state.setLoading,
     savingDraft: state.savingDraft,

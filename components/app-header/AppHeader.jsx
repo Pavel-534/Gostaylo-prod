@@ -56,14 +56,14 @@ function detectVariant(pathname) {
 function getWorkspaceTitle(pathname, language) {
   if (!pathname) return null
   const t = (ru, en) => (language === 'ru' ? ru : en)
-  if (pathname.startsWith('/renter/bookings')) return t('Мои бронирования', 'My Bookings')
+  if (pathname.startsWith('/my-bookings') || pathname.startsWith('/renter/bookings')) return t('Мои бронирования', 'My Bookings')
   if (pathname.startsWith('/renter/favorites')) return t('Избранное', 'Favorites')
   if (pathname.startsWith('/renter/profile')) return t('Профиль', 'Profile')
   if (pathname.startsWith('/renter/dashboard')) return t('Панель арендатора', 'Renter Dashboard')
   if (pathname.startsWith('/renter/settings')) return t('Настройки', 'Settings')
   if (pathname.startsWith('/renter')) return t('Личный кабинет', 'My Account')
   if (pathname.startsWith('/partner/finances')) return t('Финансы', 'Finances')
-  if (pathname.startsWith('/partner/listings')) return t('Мои объекты', 'My Listings')
+  if (pathname.startsWith('/partner/listings')) return t('Мои объявления', 'My Listings')
   if (pathname.startsWith('/partner/calendar')) return t('Календарь', 'Calendar')
   if (pathname.startsWith('/partner')) return t('Панель партнёра', 'Partner Dashboard')
   if (pathname.startsWith('/admin')) return t('Админ-панель', 'Admin')

@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   ArrowRight,
@@ -49,7 +50,30 @@ export function ListingWizardPageInner() {
     goNext,
     goBack,
     pricingPreview,
+    isDirty,
+    draftRestored,
   } = w
+
+  /** Stage 140.1 — warn before losing an unsaved new-listing draft. */
+  useEffect(() => {
+    if (!isDirty) return undefined
+    const onBeforeUnload = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+      return ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [isDirty])
+
+  /** Stage 140.1 — let the host know their progress was recovered (once). */
+  const restoreToastShownRef = useRef(false)
+  useEffect(() => {
+    if (draftRestored && !restoreToastShownRef.current) {
+      restoreToastShownRef.current = true
+      toast.success(t('wizardDraftRestored'))
+    }
+  }, [draftRestored, t])
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
@@ -151,7 +175,8 @@ export function ListingWizardPageInner() {
                 <Button
                   onClick={publishListing}
                   disabled={!canProceed || lastStepBusy}
-                  className="hidden gap-2 bg-teal-600 hover:bg-teal-700 sm:inline-flex"
+                  variant="brand"
+                  className="hidden gap-2 sm:inline-flex"
                   type="button"
                 >
                   {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -172,15 +197,15 @@ export function ListingWizardPageInner() {
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
                         isComplete
-                          ? 'border-teal-600 bg-teal-600 text-white'
+                          ? 'border-brand bg-brand text-white'
                           : isActive
-                            ? 'border-teal-600 bg-white text-teal-600'
+                            ? 'border-brand bg-white text-brand'
                             : 'border-slate-300 bg-white text-slate-400'
                       }`}
                     >
                       {isComplete ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                     </div>
-                    <span className={`mt-1 text-xs font-medium ${isActive ? 'text-teal-600' : 'text-slate-500'}`}>
+                    <span className={`mt-1 text-xs font-medium ${isActive ? 'text-brand' : 'text-slate-500'}`}>
                       {step.label}
                     </span>
                   </div>
@@ -207,7 +232,8 @@ export function ListingWizardPageInner() {
                     <Button
                       onClick={goNext}
                       disabled={!canProceed}
-                      className="gap-2 bg-teal-600 hover:bg-teal-700"
+                      variant="brand"
+                      className="gap-2"
                       type="button"
                     >
                       {t('next')}
@@ -217,7 +243,8 @@ export function ListingWizardPageInner() {
                     <Button
                       onClick={publishListing}
                       disabled={!canProceed || lastStepBusy}
-                      className="gap-2 bg-teal-600 hover:bg-teal-700"
+                      variant="brand"
+                      className="gap-2"
                       type="button"
                     >
                       {lastStepBusy ? (

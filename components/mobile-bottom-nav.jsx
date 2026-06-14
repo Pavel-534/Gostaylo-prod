@@ -42,7 +42,7 @@ const NAV_ITEMS = [
     href: '/renter/profile', 
     icon: User, 
     labelKey: 'mobileNavProfile',
-    activeMatches: ['/renter/profile', '/renter/bookings', '/renter/favorites', '/profile', '/settings'],
+    activeMatches: ['/renter/profile', '/my-bookings', '/renter/bookings', '/renter/favorites', '/profile', '/settings'],
     requiresAuth: true
   },
 ];

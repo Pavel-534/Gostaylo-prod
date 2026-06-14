@@ -37,7 +37,7 @@ const NAV_ITEMS = [
     descriptionKey: 'dashboardDesc'
   },
   { 
-    href: '/renter/bookings', 
+    href: '/my-bookings', 
     labelKey: 'bookings', 
     icon: Calendar,
     descriptionKey: 'bookingsDesc'

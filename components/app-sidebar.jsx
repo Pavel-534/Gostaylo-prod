@@ -131,7 +131,7 @@ const PARTNER_NAV = [
 const RENTER_NAV = [
   { 
     label: 'My Bookings', 
-    href: '/renter/bookings', 
+    href: '/my-bookings', 
     icon: Calendar,
     description: 'Your reservations'
   },

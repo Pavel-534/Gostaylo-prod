@@ -42,7 +42,10 @@ export function usePartnerDashboardPage() {
     return !rows.some((m) => Number(m?.amountThb) > 0)
   }, [incomeByMonthRows])
 
-  const { handleApprove, handleDecline } = usePartnerDashboardBookingActions(partnerId)
+  const { handleApprove, handleDecline, isUpdatingBooking } = usePartnerDashboardBookingActions(
+    partnerId,
+    language,
+  )
 
   return {
     language,
@@ -54,6 +57,7 @@ export function usePartnerDashboardPage() {
     incomeChartEmpty,
     handleApprove,
     handleDecline,
+    isUpdatingBooking,
     showWelcomeModal,
     setShowWelcomeModal,
     userName,

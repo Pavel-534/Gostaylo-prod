@@ -13,21 +13,7 @@ import { OrderCardPartnerActions } from '@/components/orders/card-parts/OrderCar
 import { OrderCardAdminActions } from '@/components/orders/card-parts/OrderCardAdminActions'
 import { OrderCardHelpDialogs } from '@/components/orders/card-parts/OrderCardHelpDialogs'
 import { OrderCardLightboxPortal } from '@/components/orders/card-parts/OrderCardLightboxPortal'
-
-/** Визуальный «светофор» для SLA спора на карточке заказа. */
-function disputeSlaStripClass(tier) {
-  switch (tier) {
-    case 'calm':
-      return 'rounded-xl border border-emerald-200/90 bg-emerald-50/80 px-3 py-2 text-sm font-medium text-emerald-900'
-    case 'warning':
-      return 'rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-950'
-    case 'critical':
-      return 'rounded-xl border border-red-400 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900 shadow-sm animate-pulse'
-    case 'expired':
-    default:
-      return 'rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700'
-  }
-}
+import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget'
 
 export default function UnifiedOrderCard({
   booking,
@@ -120,16 +106,14 @@ export default function UnifiedOrderCard({
             />
           ) : null}
 
-          {u.normalizedRole !== 'admin' && u.hasActiveDispute && u.disputeSlaCountdown ? (
-            <div
-              className={disputeSlaStripClass(u.disputeSlaCountdown.tier)}
-              role="status"
-              aria-live="polite"
-            >
-              {u.disputeSlaCountdown.expired
-                ? getUIText('booking.sla_awaiting_admin', language)
-                : getUIText('booking.sla_remaining', language).replace('{time}', u.disputeSlaCountdown.timeLabel)}
-            </div>
+          {u.normalizedRole !== 'admin' && u.hasDispute ? (
+            <DisputeStatusWidget
+              dispute={u.disputeSnapshot}
+              language={language}
+              conversationId={u.conversationId}
+              slaCountdown={u.disputeSlaCountdown}
+              mediationCountdown={u.mediationCountdown}
+            />
           ) : null}
 
           {u.normalizedRole === 'admin' ? (

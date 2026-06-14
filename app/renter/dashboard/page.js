@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const ACTIONS = [
-  { href: '/renter/bookings', icon: Calendar, key: 'bookings' },
+  { href: '/my-bookings', icon: Calendar, key: 'bookings' },
   { href: '/messages', icon: MessageSquare, key: 'messages' },
   { href: '/renter/favorites', icon: Heart, key: 'favorites' },
   { href: '/renter/profile', icon: User, key: 'profile' },

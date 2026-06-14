@@ -9,7 +9,7 @@ const STEPS = [
   { id: 'browse', href: '/listings', match: (p) => p.startsWith('/listings') },
   { id: 'chat', href: '/messages', match: (p) => p.startsWith('/messages') },
   { id: 'pay', href: null, match: (p) => p.startsWith('/checkout') },
-  { id: 'trips', href: '/renter/bookings', match: (p) => p.startsWith('/renter/bookings') || p.startsWith('/my-bookings') },
+  { id: 'trips', href: '/my-bookings', match: (p) => p.startsWith('/my-bookings') || p.startsWith('/renter/bookings') },
 ]
 
 /**

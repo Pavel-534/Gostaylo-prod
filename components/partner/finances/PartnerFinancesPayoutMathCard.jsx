@@ -54,7 +54,8 @@ export function PartnerFinancesPayoutMathCard({
         <div className="pt-4">
           <Button
             type="button"
-            className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
+            variant="brand"
+            className="w-full gap-2 sm:w-auto"
             onClick={() => onOpenWithdraw(true)}
             disabled={
               summaryLoading ||

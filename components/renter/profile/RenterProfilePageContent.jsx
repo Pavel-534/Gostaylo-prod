@@ -413,7 +413,7 @@ export default function RenterProfilePageContent() {
               variant="outline"
               className="flex flex-col h-auto py-4"
             >
-              <Link href="/renter/bookings">
+              <Link href="/my-bookings">
                 <Home className="h-6 w-6 mb-2" />
                 <span className="text-sm">{getUIText('bookings', language)}</span>
               </Link>

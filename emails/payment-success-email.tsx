@@ -45,7 +45,7 @@ export default function PaymentSuccessEmail({
   partnerPhone = '+66 12 345 6789',
   address = 'Rawai, Phuket, Thailand',
   pdfReceiptUrl = '',
-  bookingDetailsUrl = 'https://funnyrent.com/renter/bookings',
+  bookingDetailsUrl = 'https://funnyrent.com/my-bookings',
 }: PaymentSuccessEmailProps) {
   const brand = getSiteDisplayName()
   return (

@@ -8,6 +8,12 @@ import { getUIText } from '@/lib/translations'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { WIZARD_DISTRICTS, getDefaultWizardFormData } from '../wizard-constants'
+import {
+  readWizardDraft,
+  saveWizardDraft,
+  isWizardFormDirty,
+  wizardCompareKey,
+} from '@/lib/partner/wizard-draft-storage'
 import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 
 /**
@@ -39,7 +45,15 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
   )
   const dayPickerLocale = { ru, en: enUS, zh: zhCN, th: thDateLocale }[language] || ru
 
-  const [currentStep, setCurrentStep] = useState(1)
+  /** Stage 140.1 — restore an autosaved draft once (create mode only). */
+  const initialDraftRef = useRef(undefined)
+  if (initialDraftRef.current === undefined) {
+    initialDraftRef.current = !isEditMode ? readWizardDraft() : null
+  }
+  const initialDraft = initialDraftRef.current
+
+  const [currentStep, setCurrentStep] = useState(() => initialDraft?.currentStep || 1)
+  const [draftRestored, setDraftRestored] = useState(false)
   const [loading, setLoading] = useState(false)
   const [serverListing, setServerListing] = useState(null)
   const [listingNotFound, setListingNotFound] = useState(false)
@@ -67,7 +81,9 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.025,
   })
-  const [formData, setFormData] = useState(getDefaultWizardFormData)
+  const [formData, setFormData] = useState(() => initialDraft?.formData || getDefaultWizardFormData())
+  /** Stage 140.2 — server baseline signature for edit-mode dirty detection. */
+  const [editBaseline, setEditBaseline] = useState(null)
   /** Stage 110.4 — retail FX rateMap (как на витрине) для preview в baseCurrency листинга. */
   const [storefrontExchangeRates, setStorefrontExchangeRates] = useState(null)
 
@@ -137,6 +153,43 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     loadInitialData()
   }, [])
 
+  /**
+   * Stage 140.2 — capture the server baseline once the listing has loaded so
+   * edit-mode "dirty" reflects divergence from saved data (not background
+   * hydration like commission). Auto-managed fields are excluded by compareKey.
+   */
+  useEffect(() => {
+    if (!isEditMode || !serverListing || editBaseline != null) return
+    setEditBaseline(wizardCompareKey(formData))
+  }, [isEditMode, serverListing, editBaseline, formData])
+
+  /**
+   * Stage 140.1 / 140.2 — content-aware dirty flag.
+   * Create mode: any meaningful content. Edit mode: differs from server baseline.
+   */
+  const isDirty = useMemo(() => {
+    if (isEditMode) {
+      if (editBaseline == null) return false
+      return wizardCompareKey(formData) !== editBaseline
+    }
+    return isWizardFormDirty(formData)
+  }, [isEditMode, formData, editBaseline])
+
+  /** Stage 140.1 — debounced autosave to localStorage (create mode only). */
+  useEffect(() => {
+    if (isEditMode || typeof window === 'undefined') return undefined
+    const id = window.setTimeout(() => {
+      saveWizardDraft(formData, currentStep)
+    }, 600)
+    return () => window.clearTimeout(id)
+  }, [isEditMode, formData, currentStep])
+
+  /** Stage 140.1 — surface a one-time "draft restored" signal to the UI. */
+  useEffect(() => {
+    if (draftRestored) return
+    if (initialDraftRef.current) setDraftRestored(true)
+  }, [draftRestored])
+
   return {
     editId,
     isEditMode,
@@ -150,6 +203,8 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     dayPickerLocale,
     currentStep,
     setCurrentStep,
+    isDirty,
+    draftRestored,
     loading,
     setLoading,
     serverListing,

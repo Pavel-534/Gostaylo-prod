@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/finances/partner-finances-shared'
+import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
 import { PartnerBookingPayoutPreviewLine } from '@/components/partner/finances/PartnerBookingPayoutPreviewLine'
 
@@ -98,17 +99,18 @@ export function PartnerFinancesTransactionHistory({
                       />
                       {(() => {
                         const st = resolveBookingStatusBadge(booking, { t })
+                        const moneyStage = getHostMoneyStage(st.uiStatus, language)
                         return (
                           <>
                             <Badge
                               className={`text-xs ${st.badgeClass}`}
-                              title={st.ownerHintRu || st.dbStatus}
+                              title={moneyStage?.eta || st.dbStatus}
                             >
                               {st.label}
                             </Badge>
-                            {st.ownerHintRu ? (
-                              <p className="w-full text-xs text-sky-800/90 mt-1 leading-snug">
-                                {st.ownerHintRu}
+                            {moneyStage?.eta ? (
+                              <p className="w-full text-xs text-slate-600 mt-1 leading-snug">
+                                {moneyStage.eta}
                               </p>
                             ) : null}
                           </>

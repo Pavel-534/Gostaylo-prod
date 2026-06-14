@@ -103,6 +103,8 @@ export function AuthProvider({ children }) {
     setGoogleOAuthBusy,
     openLoginModal,
     closeLoginModal,
+    registerAuthModalOnClose,
+    handleLoginModalOpenChange,
   } = useAuthModalLogic({
     readPendingRefFromCookie,
     pendingRefLsKey: PENDING_REF_LS,
@@ -191,13 +193,12 @@ export function AuthProvider({ children }) {
   /** После accept-legal на `/auth/complete-legal/` — закрыть модалку входа, если она была открыта. */
   useEffect(() => {
     const onCloseAuthModal = () => {
-      setLoginModalOpen(false);
-      setError('');
+      closeLoginModal('success');
       void refreshUserFromServer();
     };
     window.addEventListener('gostaylo-close-auth-modal', onCloseAuthModal);
     return () => window.removeEventListener('gostaylo-close-auth-modal', onCloseAuthModal);
-  }, [refreshUserFromServer]);
+  }, [refreshUserFromServer, closeLoginModal]);
 
 
   /** Автофокус первого поля при открытии модалки / смене вкладки (язык — только `useI18n().language`). */
@@ -245,8 +246,10 @@ export function AuthProvider({ children }) {
     isRenter: user?.role === 'RENTER' || !user?.role,
     // Helper: can user access partner features?
     canAccessPartner: user?.role === 'PARTNER' || user?.role === 'ADMIN' || user?.role === 'MODERATOR',
+    loginModalOpen,
     openLoginModal,
     closeLoginModal,
+    registerAuthModalOnClose,
     logout,
     updateUser,
     refreshUserFromServer,
@@ -260,7 +263,7 @@ export function AuthProvider({ children }) {
       <AuthModalShell
         language={language}
         loginModalOpen={loginModalOpen}
-        setLoginModalOpen={setLoginModalOpen}
+        onLoginModalOpenChange={handleLoginModalOpenChange}
         authMode={authMode}
         setAuthMode={setAuthMode}
         verificationEmail={verificationEmail}

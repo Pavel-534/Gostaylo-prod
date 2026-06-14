@@ -37,7 +37,7 @@
       "name": "My Bookings",
       "short_name": "Bookings",
       "description": "View your bookings",
-      "url": "/renter/bookings"
+      "url": "/my-bookings"
     },
     {
       "name": "Messages",

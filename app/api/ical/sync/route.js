@@ -18,6 +18,7 @@ import { readSystemSettingsByKeys, upsertSystemSetting } from '@/lib/admin/syste
  * Routes:
  * - POST action=parse — разбор URL без записи в БД
  * - POST action=sync — синк одного листинга (владелец или ADMIN)
+ * - POST action=sync-partner-all — синк iCal всех объектов текущего партнёра (Stage 140.4)
  * - POST action=sync-all — глобальный синк (ADMIN)
  * - GET — статус из system_settings
  */
@@ -177,6 +178,101 @@ export async function POST(request) {
         .eq('id', listingId)
 
       return NextResponse.json({ success: true, listingId, results, eventsProcessed: totalEventsProcessed })
+    }
+
+    if (action === 'sync-partner-all') {
+      const auth = await verifyAuth()
+      if (auth?.misconfigured) {
+        return NextResponse.json(
+          { success: false, error: 'Server misconfigured: JWT_SECRET is missing' },
+          { status: 500 },
+        )
+      }
+      if (!auth) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+      const role = String(auth.role || '').toUpperCase()
+      if (!['PARTNER', 'ADMIN', 'MODERATOR'].includes(role)) {
+        return NextResponse.json({ success: false, error: 'Partner access required' }, { status: 403 })
+      }
+
+      const supabase = getSupabase()
+      let listingsQuery = supabase
+        .from('listings')
+        .select('id, owner_id, sync_settings, metadata')
+        .neq('status', 'DELETED')
+
+      if (role !== 'ADMIN' && role !== 'MODERATOR') {
+        listingsQuery = listingsQuery.eq('owner_id', auth.userId)
+      }
+
+      const { data: listings, error: listingsError } = await listingsQuery
+      if (listingsError) {
+        return NextResponse.json({ success: false, error: listingsError.message })
+      }
+
+      const listingsWithICal = (listings || []).filter(
+        (l) =>
+          (l.sync_settings?.sources?.length > 0) ||
+          l.sync_settings?.auto_sync ||
+          (l.metadata?.sync_settings?.length > 0) ||
+          l.metadata?.icalUrl,
+      )
+
+      let successCount = 0
+      let errorCount = 0
+      let totalEvents = 0
+      const results = []
+
+      for (const listing of listingsWithICal) {
+        try {
+          let syncSources = listing.sync_settings?.sources || listing.metadata?.sync_settings || []
+          const legacyUrl = listing.metadata?.icalUrl
+          if (legacyUrl && !syncSources.find((s) => s.url === legacyUrl)) {
+            syncSources.push({ id: 'legacy', url: legacyUrl, source: detectSource(legacyUrl), enabled: true })
+          }
+
+          const listingResults = []
+          for (const source of syncSources) {
+            if (isIcalSyncSourceEnabled(source)) {
+              const result = await syncSourceWithLog(listing.id, source)
+              listingResults.push({
+                sourceId: source.id,
+                source: source.source || source.platform,
+                ...result,
+              })
+              if (result.eventsProcessed) totalEvents += result.eventsProcessed
+            }
+          }
+
+          const currentSyncSettings = listing.sync_settings || { sources: syncSources }
+          currentSyncSettings.last_sync = new Date().toISOString()
+
+          await supabase
+            .from('listings')
+            .update({
+              sync_settings: currentSyncSettings,
+              metadata: { ...listing.metadata, last_ical_sync: new Date().toISOString() },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', listing.id)
+
+          successCount++
+          results.push({ listingId: listing.id, results: listingResults })
+        } catch (e) {
+          errorCount++
+          results.push({ listingId: listing.id, error: e?.message || 'sync_failed' })
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        listingsSynced: listingsWithICal.length,
+        successCount,
+        errorCount,
+        eventsProcessed: totalEvents,
+        results,
+      })
     }
 
     if (action === 'sync-all') {

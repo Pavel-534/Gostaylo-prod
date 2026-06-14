@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+
+/** @typedef {'success' | 'dismiss'} AuthModalCloseOutcome */
 
 export function useAuthModalLogic({
   readPendingRefFromCookie,
@@ -8,6 +10,7 @@ export function useAuthModalLogic({
   persistOAuthLegalCookie,
 }) {
   const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const closeListenersRef = useRef(new Set())
   const [authMode, setAuthMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,6 +25,24 @@ export function useAuthModalLogic({
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false)
   const [registerLegalConsent, setRegisterLegalConsent] = useState(false)
   const [googleOAuthBusy, setGoogleOAuthBusy] = useState(false)
+
+  const emitAuthModalClose = useCallback((outcome) => {
+    for (const listener of closeListenersRef.current) {
+      try {
+        listener(outcome)
+      } catch {
+        /* ignore subscriber errors */
+      }
+    }
+  }, [])
+
+  const registerAuthModalOnClose = useCallback((listener) => {
+    if (typeof listener !== 'function') return () => {}
+    closeListenersRef.current.add(listener)
+    return () => {
+      closeListenersRef.current.delete(listener)
+    }
+  }, [])
 
   const openLoginModal = useCallback(
     (mode) => {
@@ -54,15 +75,33 @@ export function useAuthModalLogic({
     [persistOAuthLegalCookie, readPendingRefFromCookie, pendingRefLsKey],
   )
 
-  const closeLoginModal = useCallback(() => {
-    setLoginModalOpen(false)
-    setError('')
-    setAuthMode('login')
-  }, [])
+  const closeLoginModal = useCallback(
+    (outcome = 'dismiss') => {
+      setLoginModalOpen(false)
+      setError('')
+      setAuthMode('login')
+      emitAuthModalClose(outcome)
+    },
+    [emitAuthModalClose],
+  )
+
+  /** Radix Dialog `onOpenChange` — only handles user dismiss (overlay / Esc). */
+  const handleLoginModalOpenChange = useCallback(
+    (open) => {
+      if (open) {
+        setLoginModalOpen(true)
+        return
+      }
+      if (loginModalOpen) closeLoginModal('dismiss')
+    },
+    [loginModalOpen, closeLoginModal],
+  )
 
   return {
     loginModalOpen,
     setLoginModalOpen,
+    handleLoginModalOpenChange,
+    registerAuthModalOnClose,
     authMode,
     setAuthMode,
     email,

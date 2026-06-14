@@ -742,6 +742,9 @@ video {
 .-left-3 {
   left: -0.75rem;
 }
+.-right-0\.5 {
+  right: -0.125rem;
+}
 .-right-1 {
   right: -0.25rem;
 }
@@ -1066,6 +1069,10 @@ video {
 .mx-2 {
   margin-left: 0.5rem;
   margin-right: 0.5rem;
+}
+.mx-3 {
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
 }
 .mx-3\.5 {
   margin-left: 0.875rem;
@@ -1950,6 +1957,9 @@ video {
 }
 .w-\[min\(100vw-1\.5rem\2c 20rem\)\] {
   width: min(100vw - 1.5rem, 20rem);
+}
+.w-\[min\(100vw-2rem\2c 22rem\)\] {
+  width: min(100vw - 2rem, 22rem);
 }
 .w-\[min\(100vw-2rem\2c 28rem\)\] {
   width: min(100vw - 2rem, 28rem);
@@ -3537,14 +3547,6 @@ video {
 .border-teal-300 {
   --tw-border-opacity: 1;
   border-color: rgb(94 234 212 / var(--tw-border-opacity, 1));
-}
-.border-teal-500 {
-  --tw-border-opacity: 1;
-  border-color: rgb(20 184 166 / var(--tw-border-opacity, 1));
-}
-.border-teal-600 {
-  --tw-border-opacity: 1;
-  border-color: rgb(13 148 136 / var(--tw-border-opacity, 1));
 }
 .border-transparent {
   border-color: transparent;
@@ -5938,10 +5940,6 @@ video {
 .text-cyan-800\/90 {
   color: rgb(21 94 117 / 0.9);
 }
-.text-cyan-900 {
-  --tw-text-opacity: 1;
-  color: rgb(22 78 99 / var(--tw-text-opacity, 1));
-}
 .text-cyan-950 {
   --tw-text-opacity: 1;
   color: rgb(8 51 68 / var(--tw-text-opacity, 1));
@@ -6242,6 +6240,13 @@ video {
   --tw-text-opacity: 1;
   color: rgb(251 113 133 / var(--tw-text-opacity, 1));
 }
+.text-rose-500 {
+  --tw-text-opacity: 1;
+  color: rgb(244 63 94 / var(--tw-text-opacity, 1));
+}
+.text-rose-500\/90 {
+  color: rgb(244 63 94 / 0.9);
+}
 .text-rose-600 {
   --tw-text-opacity: 1;
   color: rgb(225 29 72 / var(--tw-text-opacity, 1));
@@ -6291,9 +6296,6 @@ video {
 .text-sky-800 {
   --tw-text-opacity: 1;
   color: rgb(7 89 133 / var(--tw-text-opacity, 1));
-}
-.text-sky-800\/90 {
-  color: rgb(7 89 133 / 0.9);
 }
 .text-sky-900 {
   --tw-text-opacity: 1;
@@ -6374,10 +6376,6 @@ video {
 .text-teal-300 {
   --tw-text-opacity: 1;
   color: rgb(94 234 212 / var(--tw-text-opacity, 1));
-}
-.text-teal-500 {
-  --tw-text-opacity: 1;
-  color: rgb(20 184 166 / var(--tw-text-opacity, 1));
 }
 .text-teal-600 {
   --tw-text-opacity: 1;
@@ -6879,6 +6877,10 @@ video {
 }
 .ring-amber-400\/80 {
   --tw-ring-color: rgb(251 191 36 / 0.8);
+}
+.ring-brand {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(0 102 102 / var(--tw-ring-opacity, 1));
 }
 .ring-brand\/20 {
   --tw-ring-color: rgb(0 102 102 / 0.2);
@@ -7695,17 +7697,9 @@ code {
 .hover\:border-slate-300\/80:hover {
   border-color: rgb(203 213 225 / 0.8);
 }
-.hover\:border-teal-300:hover {
-  --tw-border-opacity: 1;
-  border-color: rgb(94 234 212 / var(--tw-border-opacity, 1));
-}
 .hover\:border-teal-400:hover {
   --tw-border-opacity: 1;
   border-color: rgb(45 212 191 / var(--tw-border-opacity, 1));
-}
-.hover\:border-teal-500:hover {
-  --tw-border-opacity: 1;
-  border-color: rgb(20 184 166 / var(--tw-border-opacity, 1));
 }
 .hover\:border-violet-200:hover {
   --tw-border-opacity: 1;
@@ -8001,10 +7995,6 @@ code {
   --tw-bg-opacity: 1;
   background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
 }
-.hover\:bg-teal-50:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(240 253 250 / var(--tw-bg-opacity, 1));
-}
 .hover\:bg-teal-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(15 118 110 / var(--tw-bg-opacity, 1));
@@ -8140,6 +8130,9 @@ code {
 .hover\:text-brand\/80:hover {
   color: rgb(0 102 102 / 0.8);
 }
+.hover\:text-brand\/90:hover {
+  color: rgb(0 102 102 / 0.9);
+}
 .hover\:text-emerald-900:hover {
   --tw-text-opacity: 1;
   color: rgb(6 78 59 / var(--tw-text-opacity, 1));
@@ -8197,17 +8190,9 @@ code {
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
 }
-.hover\:text-teal-600:hover {
-  --tw-text-opacity: 1;
-  color: rgb(13 148 136 / var(--tw-text-opacity, 1));
-}
 .hover\:text-teal-700:hover {
   --tw-text-opacity: 1;
   color: rgb(15 118 110 / var(--tw-text-opacity, 1));
-}
-.hover\:text-teal-800:hover {
-  --tw-text-opacity: 1;
-  color: rgb(17 94 89 / var(--tw-text-opacity, 1));
 }
 .hover\:text-violet-900:hover {
   --tw-text-opacity: 1;
@@ -9628,10 +9613,6 @@ code {
 
   .sm\:w-44 {
     width: 11rem;
-  }
-
-  .sm\:w-48 {
-    width: 12rem;
   }
 
   .sm\:w-5 {

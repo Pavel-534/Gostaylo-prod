@@ -38,7 +38,7 @@ export function AuthModalShell(props) {
   const {
     language,
     loginModalOpen,
-    setLoginModalOpen,
+    onLoginModalOpenChange,
     authMode,
     setAuthMode,
     verificationEmail,
@@ -57,7 +57,7 @@ export function AuthModalShell(props) {
   const showGoogleOAuth = !isRussia
 
   return (
-    <Dialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
+    <Dialog open={loginModalOpen} onOpenChange={onLoginModalOpenChange}>
       <DialogContent className='sm:max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col'>
         {authMode === 'verification_pending' ? (
           <>

@@ -152,21 +152,64 @@ export function useUnifiedOrderCard({
   const activeDisputeDeadlineAt =
     booking?.active_dispute_current_deadline_at ||
     booking?.active_dispute?.current_deadline_at ||
+    booking?.activeDisputeCurrentDeadlineAt ||
+    booking?.activeDispute?.currentDeadlineAt ||
+    booking?.dispute_snapshot?.currentDeadlineAt ||
+    booking?.disputeSnapshot?.currentDeadlineAt ||
     null
+
+  const disputeSnapshot =
+    booking?.dispute_snapshot ||
+    booking?.disputeSnapshot ||
+    (booking?.active_dispute_id || booking?.activeDisputeId
+      ? {
+          id: booking.active_dispute_id || booking.activeDisputeId,
+          status: String(
+            booking.active_dispute_status || booking.activeDisputeStatus || booking.active_dispute?.status || '',
+          ).toUpperCase(),
+          currentDeadlineAt: activeDisputeDeadlineAt,
+          mediationUnlockAt:
+            booking?.dispute_snapshot?.mediationUnlockAt || booking?.disputeSnapshot?.mediationUnlockAt || null,
+          amountThb: booking?.dispute_snapshot?.amountThb ?? booking?.disputeSnapshot?.amountThb ?? null,
+          freezePayment:
+            booking?.dispute_snapshot?.freezePayment ?? booking?.disputeSnapshot?.freezePayment ?? false,
+          description: booking?.dispute_snapshot?.description ?? booking?.disputeSnapshot?.description ?? null,
+          resolutionReason:
+            booking?.dispute_snapshot?.resolutionReason ?? booking?.disputeSnapshot?.resolutionReason ?? null,
+          reasonCode: booking?.dispute_snapshot?.reasonCode ?? booking?.disputeSnapshot?.reasonCode ?? null,
+        }
+      : null)
+
+  const hasDispute = Boolean(disputeSnapshot?.id)
   const hasActiveDispute = Boolean(
-    booking?.active_dispute_id ||
-      booking?.active_dispute?.id ||
-      ['OPEN', 'IN_REVIEW'].includes(String(booking?.active_dispute_status || booking?.active_dispute?.status || '').toUpperCase()),
+    hasDispute &&
+      (disputeSnapshot.isActive ||
+        ['OPEN', 'IN_REVIEW', 'PENDING_MEDIATION'].includes(String(disputeSnapshot.status || '').toUpperCase())),
   )
 
-  /** Живой SLA-таймер: тик раз в секунду, пока есть дедлайн активного спора. */
+  const disputeStatusUpper = String(disputeSnapshot?.status || '').toUpperCase()
+  const showDisputeSla = hasDispute && ['OPEN', 'IN_REVIEW'].includes(disputeStatusUpper)
+  const showMediationTimer = hasDispute && disputeStatusUpper === 'PENDING_MEDIATION'
+
+  const mediationUnlockIso =
+    disputeSnapshot?.mediationUnlockAt || mediationUnlockAt || null
+
+  /** Живой SLA-таймер: OPEN / IN_REVIEW. */
   useEffect(() => {
-    if (!hasActiveDispute || !activeDisputeDeadlineAt) return undefined
+    if (!showDisputeSla || !activeDisputeDeadlineAt) return undefined
     const deadline = new Date(activeDisputeDeadlineAt)
     if (Number.isNaN(deadline.getTime())) return undefined
     const id = setInterval(() => setSlaTick((n) => n + 1), 1000)
     return () => clearInterval(id)
-  }, [hasActiveDispute, activeDisputeDeadlineAt])
+  }, [showDisputeSla, activeDisputeDeadlineAt])
+
+  useEffect(() => {
+    if (!showMediationTimer || !mediationUnlockIso) return undefined
+    const deadline = new Date(mediationUnlockIso)
+    if (Number.isNaN(deadline.getTime())) return undefined
+    const id = setInterval(() => setMediationTick((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [showMediationTimer, mediationUnlockIso])
 
   const mediationLockActive =
     normalizedRole === 'renter' && mediationUnlockAt && Date.now() < new Date(mediationUnlockAt).getTime()
@@ -177,7 +220,7 @@ export function useUnifiedOrderCard({
   const MS_2H = 2 * 60 * 60 * 1000
 
   const disputeSlaCountdown = (() => {
-    if (!hasActiveDispute) return null
+    if (!showDisputeSla) return null
     if (!activeDisputeDeadlineAt) {
       return {
         expired: true,
@@ -214,6 +257,22 @@ export function useUnifiedOrderCard({
     if (remainingMs < MS_2H) tier = 'critical'
     else if (remainingMs <= MS_24H) tier = 'warning'
     return { expired: false, timeLabel, tier, remainingMs }
+  })()
+
+  const mediationCountdown = (() => {
+    if (!showMediationTimer || !mediationUnlockIso) return null
+    const deadline = new Date(mediationUnlockIso)
+    if (Number.isNaN(deadline.getTime())) return null
+    const remainingMs = deadline.getTime() - Date.now()
+    if (remainingMs <= 0) {
+      return { expired: true, timeLabel: null, tier: 'mediation', remainingMs: 0 }
+    }
+    const totalSec = Math.floor(remainingMs / 1000)
+    const h = Math.floor(totalSec / 3600)
+    const m = Math.floor((totalSec % 3600) / 60)
+    const s = totalSec % 60
+    const timeLabel = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    return { expired: false, timeLabel, tier: 'mediation', remainingMs }
   })()
 
   useEffect(() => {
@@ -462,7 +521,10 @@ export function useUnifiedOrderCard({
     reviewed,
     mediationLockActive,
     hasActiveDispute,
+    hasDispute,
+    disputeSnapshot,
     disputeSlaCountdown,
+    mediationCountdown,
     disputeEligibility,
     supportChatHref,
     showRenterCancel,

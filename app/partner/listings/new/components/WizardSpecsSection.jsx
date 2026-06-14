@@ -25,7 +25,7 @@ function SpecsFields() {
     )
     return (
       <div className="space-y-4">
-        <p className="rounded-r-md border-l-[3px] border-teal-500 bg-teal-50/50 py-2 pl-3 text-sm leading-relaxed text-slate-600">
+        <p className="rounded-r-md border-l-[3px] border-brand bg-brand/5 py-2 pl-3 text-sm leading-relaxed text-slate-600">
           {t('wizardSpecsSearchHint')}
         </p>
         <WizardSchemaFields
@@ -91,7 +91,7 @@ function WizardSpecsSectionInner() {
               return (
                 <UiButton
                   key={slug}
-                  variant={selected ? 'default' : 'outline'}
+                  variant={selected ? 'brand' : 'outline'}
                   size="sm"
                   type="button"
                   onClick={() => {
@@ -99,9 +99,7 @@ function WizardSpecsSectionInner() {
                     const updated = selected ? current.filter((a) => a !== slug) : [...current, slug]
                     updateMetadata('amenities', updated)
                   }}
-                  className={`h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug ${
-                    selected ? 'bg-teal-600 hover:bg-teal-700' : ''
-                  }`}
+                  className="h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug"
                 >
                   {getAmenityName(slug, language, slug)}
                 </UiButton>

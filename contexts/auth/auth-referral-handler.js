@@ -21,6 +21,18 @@ export function readPendingRefFromCookie() {
   }
 }
 
+/** Client-side check: cookie or localStorage still holds a pending referral code. */
+export function hasPendingReferralClient() {
+  if (typeof window === 'undefined') return false
+  try {
+    const fromCookie = readPendingRefFromCookie()
+    const fromLs = localStorage.getItem(PENDING_REF_LS)?.trim()
+    return Boolean(fromCookie || fromLs)
+  } catch {
+    return false
+  }
+}
+
 export function persistPendingReferralCode(codeRaw) {
   const code = String(codeRaw || '').trim().toUpperCase()
   if (!code || typeof window === 'undefined') return

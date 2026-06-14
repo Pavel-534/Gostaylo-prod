@@ -87,6 +87,8 @@ export async function GET(request) {
       longitude: l.longitude,
       metadata: l.metadata || {},
       instantBooking: l.instant_booking === true,
+      rejectionReason: l.rejection_reason ?? null,
+      rejectedAt: l.rejected_at ?? null,
       createdAt: l.created_at,
       updatedAt: l.updated_at
     }));

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Loader2, LifeBuoy, Star } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 /** Renter-facing primary actions (pay / details / cancel / check-in / review / repeat / help). */
 export function OrderCardGuestActions({
@@ -22,7 +23,7 @@ export function OrderCardGuestActions({
   showReview,
   showRepeat,
 }) {
-  const showPayNow = Boolean(bookingId && status === 'AWAITING_PAYMENT')
+  const showPayNow = Boolean(bookingId && isBookingPayable(status))
 
   return (
     <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -10,6 +10,7 @@ import { resolveChatBookingBreakdown } from '@/lib/chat-booking-totals'
 import { getUIText } from '@/lib/translations'
 import { languageToNumberLocale } from '@/lib/currency'
 import { updatePartnerBookingStatus } from '@/lib/api/partner-bookings-client'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 function statusLabelKey(status) {
   const s = String(status || 'PENDING').toUpperCase()
@@ -175,7 +176,7 @@ export function BookingRequestCard({
           </div>
         )}
 
-        {userRole === 'RENTER' && currentStatus === 'CONFIRMED' && (
+        {userRole === 'RENTER' && isBookingPayable(currentStatus) && (
           <Link href={`/checkout/${message.bookingId}`} className="block w-full">
             <Button className="h-12 min-h-[48px] w-full rounded-2xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover">
               <CreditCard className="mr-2 h-5 w-5" />

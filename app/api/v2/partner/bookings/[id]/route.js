@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { BookingService } from '@/lib/services/booking.service'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
+import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
@@ -85,7 +86,15 @@ export async function GET(request, { params }) {
     const dc = await resolveDefaultCommissionPercent()
     const dto = transformPartnerBookingToClient(row, dc)
     const financial_snapshot = buildBookingFinancialSnapshotFromRow(row)
-    const [merged] = await attachPartnerTrustToBookings([{ ...dto, financial_snapshot }])
+    let [merged] = await attachDisputeToBookings(supabaseAdmin, [{ ...dto, financial_snapshot }])
+    ;[merged] = await attachPartnerTrustToBookings([merged])
+
+    const { data: conv } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('booking_id', id)
+      .maybeSingle()
+    if (conv?.id) merged = { ...merged, conversationId: conv.id }
 
     return NextResponse.json({ status: 'success', data: merged })
   } catch (error) {

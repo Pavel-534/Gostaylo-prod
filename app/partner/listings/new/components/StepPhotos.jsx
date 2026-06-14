@@ -36,7 +36,7 @@ function StepPhotosInner() {
         onChange={(e) => handleImageUpload(e.target.files)}
       />
       <div
-        className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 p-12 text-center transition-colors hover:border-teal-500"
+        className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 p-12 text-center transition-colors hover:border-brand"
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
         role="button"
@@ -63,7 +63,7 @@ function StepPhotosInner() {
               className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200"
             >
               <ProxiedImage src={img} alt="" fill className="object-cover" sizes="25vw" />
-              {idx === 0 && <Badge className="absolute left-2 top-2 bg-teal-600">{t('coverBadge')}</Badge>}
+              {idx === 0 && <Badge className="absolute left-2 top-2 bg-brand">{t('coverBadge')}</Badge>}
               <Button
                 variant="destructive"
                 size="icon"

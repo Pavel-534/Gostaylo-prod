@@ -93,7 +93,7 @@ export function UserMenuDropdown() {
             <User className="mr-3 h-4 w-4 text-slate-400" />
             <span>{language === 'ru' ? 'Профиль' : 'Profile'}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/renter/bookings')}>
+          <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/my-bookings')}>
             <CalendarDays className="mr-3 h-4 w-4 text-slate-400" />
             <span>{language === 'ru' ? 'Мои бронирования' : 'My Bookings'}</span>
           </DropdownMenuItem>

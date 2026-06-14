@@ -53,7 +53,7 @@ function NewReviewContent() {
     userId: me?.id ?? null,
     onSuccess: () => {
       if (listingId) router.push(`/listings/${encodeURIComponent(listingId)}`)
-      else router.push('/renter/bookings')
+      else router.push('/my-bookings')
     },
   })
 
@@ -146,7 +146,7 @@ function NewReviewContent() {
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/renter/bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
+            <Link href="/my-bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -162,7 +162,7 @@ function NewReviewContent() {
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/renter/bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
+            <Link href="/my-bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -192,7 +192,7 @@ function NewReviewContent() {
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-600">
-        <Link href="/renter/bookings">
+        <Link href="/my-bookings">
           <ArrowLeft className="mr-1 h-4 w-4" />
           {getUIText('renterReviewFlow_back', language)}
         </Link>
@@ -210,7 +210,7 @@ function NewReviewContent() {
 
       <ReviewModal
         isOpen
-        onClose={() => router.push('/renter/bookings')}
+        onClose={() => router.push('/my-bookings')}
         booking={booking}
         userId={me.id}
         language={language}

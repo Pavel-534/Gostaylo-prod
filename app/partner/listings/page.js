@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn, Calendar } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/contexts/i18n-context'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,7 @@ import { PartnerListingPublishQualityModal } from '@/components/partner/PartnerL
 
 export default function PartnerListings() {
   const { toast } = useToast()
+  const { language, t } = useI18n()
   const { user, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -105,6 +107,8 @@ export default function PartnerListings() {
           updated_at: l.updatedAt,
           metadata: l.metadata || {},
           description: l.description ?? '',
+          rejection_reason: l.rejectionReason ?? null,
+          rejected_at: l.rejectedAt ?? null,
         }))
         setListings(transformedListings)
       } else {
@@ -187,14 +191,14 @@ export default function PartnerListings() {
       ))
 
       toast({
-        title: 'Отправлено на модерацию',
-        description: 'Администратор проверит ваш листинг в ближайшее время',
+        title: t('partnerListings_toastPublishOkTitle'),
+        description: t('partnerListings_toastPublishOkBody'),
       })
     } catch (error) {
       console.error('Failed to publish:', error)
       toast({
-        title: 'Ошибка публикации',
-        description: 'Попробуйте ещё раз',
+        title: t('partnerListings_toastPublishErrTitle'),
+        description: t('partnerListings_toastPublishErrBody'),
         variant: 'destructive'
       })
     } finally {
@@ -216,24 +220,32 @@ export default function PartnerListings() {
       if (result.success) {
         setListings((prev) => prev.filter((l) => l.id !== id))
         setDeleteId(null)
-        toast({ title: 'Удалено', description: 'Листинг успешно удалён' })
+        toast({ title: t('partnerListings_toastDeletedTitle') })
       } else {
         throw new Error(result.error || 'Failed to delete')
       }
     } catch (error) {
       console.error('Failed to delete:', error)
-      toast({ title: 'Ошибка', description: 'Не удалось удалить', variant: 'destructive' })
+      toast({ title: t('partnerListings_toastDeleteErrTitle'), variant: 'destructive' })
     }
   }
 
   // Status config
   const statusConfig = {
-    ACTIVE: { label: 'Активный', color: 'bg-green-100 text-green-700 border-green-200' },
-    PENDING: { label: 'На модерации', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    INACTIVE: { label: 'Черновик', color: 'bg-slate-100 text-slate-600 border-slate-300 border-dashed' },
-    HIDDEN: { label: 'Скрыт', color: 'bg-slate-200 text-slate-800 border-slate-300' },
-    REJECTED: { label: 'Отклонён', color: 'bg-red-100 text-red-700 border-red-200' },
-    BOOKED: { label: 'Забронирован', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    ACTIVE: { label: t('partnerListings_statusActive'), color: 'bg-green-100 text-green-700 border-green-200' },
+    PENDING: { label: t('partnerListings_statusPending'), color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    INACTIVE: { label: t('partnerListings_statusDraft'), color: 'bg-slate-100 text-slate-600 border-slate-300 border-dashed' },
+    HIDDEN: { label: t('partnerListings_statusHidden'), color: 'bg-slate-200 text-slate-800 border-slate-300' },
+    REJECTED: { label: t('partnerListings_statusRejected'), color: 'bg-red-100 text-red-700 border-red-200' },
+    BOOKED: { label: t('partnerListings_statusBooked'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  }
+
+  const localeTag = { ru: 'ru-RU', en: 'en-US', zh: 'zh-CN', th: 'th-TH' }[language] || 'ru-RU'
+  function formatRejectedAt(value) {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleDateString(localeTag, { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   // Get effective status (handle metadata.is_draft, partner_hidden)
@@ -316,16 +328,15 @@ export default function PartnerListings() {
         )
       )
       toast({
-        title: onSite ? 'Снова на сайте' : 'Снято с публикации',
-        description: onSite
-          ? 'Объект снова виден гостям'
-          : 'Объект скрыт с витрины, данные сохранены',
+        title: onSite
+          ? t('partnerListings_toastRestoreOkTitle')
+          : t('partnerListings_toastHideOkTitle'),
       })
     } catch (e) {
       console.error(e)
       toast({
-        title: 'Ошибка',
-        description: e.message || 'Не удалось обновить',
+        title: t('partnerListings_toastUpdateErrTitle'),
+        description: e.message || undefined,
         variant: 'destructive',
       })
     } finally {
@@ -348,9 +359,9 @@ export default function PartnerListings() {
         <div className='w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4'>
           <LogIn className='h-8 w-8 text-slate-400' />
         </div>
-        <h2 className='text-xl font-semibold text-slate-900 mb-2'>Войдите в систему</h2>
+        <h2 className='text-xl font-semibold text-slate-900 mb-2'>{t('partnerListings_loginTitle')}</h2>
         <p className='text-slate-500 text-center mb-6'>
-          Для просмотра ваших листингов необходимо авторизоваться
+          {t('partnerListings_loginBody')}
         </p>
         <Button
           onClick={() => openLoginModal('login')}
@@ -358,7 +369,7 @@ export default function PartnerListings() {
           data-testid='login-prompt-btn'
         >
           <LogIn className='h-4 w-4 mr-2' />
-          Войти
+          {t('partnerListings_loginBtn')}
         </Button>
       </div>
     )
@@ -370,8 +381,8 @@ export default function PartnerListings() {
       <div className='px-4 py-4 bg-white border-b sticky top-0 z-10'>
         <div className='flex items-center justify-between'>
           <div>
-            <h1 className='text-lg font-bold text-slate-900'>Мои листинги</h1>
-            <p className='text-xs text-slate-500'>{stats.total} объектов</p>
+            <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>
+            <p className='text-xs text-slate-500'>{t('partnerListings_count').replace('{count}', stats.total)}</p>
           </div>
           <Button 
             asChild 
@@ -381,7 +392,7 @@ export default function PartnerListings() {
           >
             <Link href='/partner/listings/new'>
               <Plus className='h-4 w-4 mr-1' />
-              Добавить
+              {t('partnerListings_add')}
             </Link>
           </Button>
         </div>
@@ -391,11 +402,11 @@ export default function PartnerListings() {
       <div className='px-4 pt-2 pb-1'>
         <div className='flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1'>
           {[
-            { id: 'all', label: 'Все' },
-            { id: 'active', label: 'На сайте' },
-            { id: 'draft', label: 'Черновики' },
-            { id: 'pending', label: 'Модерация' },
-            { id: 'rejected', label: 'Отклонены' },
+            { id: 'all', label: t('partnerListings_filterAll') },
+            { id: 'active', label: t('partnerListings_filterActive') },
+            { id: 'draft', label: t('partnerListings_filterDraft') },
+            { id: 'pending', label: t('partnerListings_filterPending') },
+            { id: 'rejected', label: t('partnerListings_filterRejected') },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -413,7 +424,7 @@ export default function PartnerListings() {
           ))}
         </div>
         <p className='text-[11px] text-slate-500 pb-2'>
-          Черновики из Telegram-бота «ленивый риелтор» попадают сюда с пометкой — доработайте и отправьте на модерацию.
+          {t('partnerListings_telegramHint')}
         </p>
       </div>
 
@@ -421,19 +432,19 @@ export default function PartnerListings() {
       <div className='grid grid-cols-2 gap-2 p-4'>
         <div className='bg-white rounded-lg p-3 border'>
           <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
-          <div className='text-xs text-slate-500'>Всего</div>
+          <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
         </div>
         <div className='bg-white rounded-lg p-3 border'>
           <div className='text-xl font-bold text-green-600'>{stats.active}</div>
-          <div className='text-xs text-slate-500'>Активных</div>
+          <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
         </div>
         <div className='bg-white rounded-lg p-3 border'>
           <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
-          <div className='text-xs text-slate-500'>Просмотров</div>
+          <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
         </div>
         <div className='bg-white rounded-lg p-3 border'>
           <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
-          <div className='text-xs text-slate-500'>Бронирований</div>
+          <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
         </div>
       </div>
 
@@ -446,15 +457,15 @@ export default function PartnerListings() {
                 <Plus className='h-6 w-6 text-slate-400' />
               </div>
               <h3 className='text-base font-semibold text-slate-900 mb-1'>
-                Нет листингов
+                {t('partnerListings_emptyTitle')}
               </h3>
               <p className='text-sm text-slate-500 mb-4 text-center'>
-                Добавьте первое предложение
+                {t('partnerListings_emptyBody')}
               </p>
               <Button asChild variant='brand'>
                 <Link href='/partner/listings/new'>
                   <Plus className='h-4 w-4 mr-2' />
-                  Создать листинг
+                  {t('partnerListings_emptyCta')}
                 </Link>
               </Button>
             </CardContent>
@@ -462,7 +473,7 @@ export default function PartnerListings() {
         ) : filteredListings.length === 0 ? (
           <Card className='border-dashed'>
             <CardContent className='py-8 text-center text-sm text-slate-500'>
-              В этой категории пока нет объектов.
+              {t('partnerListings_emptyFilter')}
             </CardContent>
           </Card>
         ) : (
@@ -511,22 +522,22 @@ export default function PartnerListings() {
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-start justify-between gap-2'>
                         <h3 className='font-medium text-slate-900 text-sm line-clamp-1'>
-                          {listing.title || 'Без названия'}
+                          {listing.title || t('partnerListings_cardNoTitle')}
                         </h3>
                         <ChevronRight className='h-4 w-4 text-slate-400 flex-shrink-0' />
                       </div>
                       
                       <p className='text-xs text-slate-500 mt-0.5'>
-                        {listing.district || 'Район не указан'}
+                        {listing.district || t('partnerListings_cardDistrictUnknown')}
                       </p>
                       
                       <div className='flex items-center gap-2 mt-1.5'>
                         <span className='font-semibold text-sm text-slate-900'>
                           {listing.base_price_thb > 0 
                             ? `฿${listing.base_price_thb.toLocaleString()}` 
-                            : 'Цена не указана'}
+                            : t('partnerListings_cardPriceUnset')}
                         </span>
-                        <span className='text-xs text-slate-400'>/день</span>
+                        <span className='text-xs text-slate-400'>{t('partnerListings_perDay')}</span>
                       </div>
                       
                       <div className='flex items-center gap-3 mt-1.5 text-xs text-slate-500'>
@@ -546,7 +557,42 @@ export default function PartnerListings() {
                     </div>
                   </div>
                 </Link>
-                
+
+                {/* Причина отказа модерации — дружелюбный блок с путём к исправлению */}
+                {status === 'REJECTED' && (
+                  <div className='mx-3 mb-3 rounded-xl border border-rose-200 bg-rose-50 p-3'>
+                    <div className='flex items-start gap-2'>
+                      <AlertCircle className='h-4 w-4 text-rose-500 mt-0.5 flex-shrink-0' />
+                      <div className='min-w-0'>
+                        <p className='text-xs font-semibold text-rose-900'>
+                          {t('partnerListings_rejectedTitle')}
+                        </p>
+                        <p className='text-xs text-rose-700 mt-0.5 leading-relaxed'>
+                          {listing.rejection_reason?.trim()
+                            ? listing.rejection_reason
+                            : t('partnerListings_rejectedFallback')}
+                        </p>
+                        {listing.rejected_at ? (
+                          <p className='text-[11px] text-rose-500/90 mt-1'>
+                            {t('partnerListings_rejectedAt').replace('{date}', formatRejectedAt(listing.rejected_at))}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <Button
+                      asChild
+                      size='sm'
+                      variant='brand'
+                      className='mt-2.5 h-8 w-full text-xs'
+                    >
+                      <Link href={`/partner/listings/${listing.id}`}>
+                        <Edit className='h-3.5 w-3.5 mr-1.5' />
+                        {t('partnerListings_rejectedEditCta')}
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+
                 {/* Action buttons — редактирование, календарь/iCal, видимость на сайте */}
                 <div className='px-3 pb-3 flex flex-wrap gap-2'>
                   {/* Публикация / повторная отправка после отклонения */}
@@ -574,12 +620,12 @@ export default function PartnerListings() {
                       ) : !ready ? (
                         <>
                           <AlertCircle className='h-4 w-4 mr-1' />
-                          <span className='truncate'>Чек-лист</span>
+                          <span className='truncate'>{t('partnerListings_finishChecklist')}</span>
                         </>
                       ) : (
                         <>
                           <Send className='h-4 w-4 mr-1' />
-                          Опубликовать
+                          {t('partnerListings_publish')}
                         </>
                       )}
                     </Button>
@@ -604,9 +650,9 @@ export default function PartnerListings() {
                     className='h-9'
                     asChild
                   >
-                    <Link href={`/partner/listings/${listing.id}`} title='Редактировать'>
+                    <Link href={`/partner/listings/${listing.id}`} title={t('partnerListings_edit')}>
                       <Edit className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>Изменить</span>
+                      <span className='hidden sm:inline text-xs'>{t('partnerListings_edit')}</span>
                     </Link>
                   </Button>
 
@@ -614,10 +660,10 @@ export default function PartnerListings() {
                   <Button variant='outline' size='sm' className='h-9' asChild>
                     <Link
                       href={`/partner/calendar?listingId=${listing.id}`}
-                      title='Мастер-календарь: только этот объект'
+                      title={t('partnerListings_calendar')}
                     >
                       <Calendar className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>Календарь</span>
+                      <span className='hidden sm:inline text-xs'>{t('partnerListings_calendar')}</span>
                     </Link>
                   </Button>
 
@@ -635,7 +681,7 @@ export default function PartnerListings() {
                       {visibilityBusyId === listing.id ? (
                         <Loader2 className='h-4 w-4 animate-spin' />
                       ) : (
-                        <span className='text-xs'>Скрыть</span>
+                        <span className='text-xs'>{t('partnerListings_hide')}</span>
                       )}
                     </Button>
                   )}
@@ -654,7 +700,7 @@ export default function PartnerListings() {
                       {visibilityBusyId === listing.id ? (
                         <Loader2 className='h-4 w-4 animate-spin' />
                       ) : (
-                        'На сайт'
+                        t('partnerListings_restore')
                       )}
                     </Button>
                   )}
@@ -683,18 +729,18 @@ export default function PartnerListings() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className='mx-4 max-w-[calc(100vw-2rem)]'>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить листинг?</AlertDialogTitle>
+            <AlertDialogTitle>{t('partnerListings_deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие нельзя отменить.
+              {t('partnerListings_deleteBody')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className='flex-row gap-2'>
-            <AlertDialogCancel className='flex-1 m-0'>Отмена</AlertDialogCancel>
+            <AlertDialogCancel className='flex-1 m-0'>{t('partnerListings_cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteListing(deleteId)}
               className='flex-1 m-0 bg-red-600 hover:bg-red-700'
             >
-              Удалить
+              {t('partnerListings_delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

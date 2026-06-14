@@ -20,6 +20,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
   const [listing, setListing] = useState(null)
   const [invoice, setInvoice] = useState(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [paymentFailed, setPaymentFailed] = useState(false)
+  const [paymentReturnVerifying, setPaymentReturnVerifying] = useState(false)
   const [chatConversationId, setChatConversationId] = useState(null)
   const [paymentIntent, setPaymentIntent] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('CARD')
@@ -91,10 +93,13 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
 
   useCheckoutPaymentReturn({
     bookingId,
+    invoiceIdParam,
     language: loadState.language,
     loadPaymentStatus: loadState.loadPaymentStatus,
     loadPaymentIntent: intentFlow.loadPaymentIntent,
     setPaymentSuccess,
+    setPaymentFailed,
+    setPaymentReturnVerifying,
   })
 
   return {
@@ -124,6 +129,9 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     txId: confirmFlow.txId,
     setTxId: confirmFlow.setTxId,
     paymentSuccess,
+    paymentFailed,
+    paymentReturnVerifying,
+    clearPaymentFailed: () => setPaymentFailed(false),
     transactionVerificationStep: confirmFlow.transactionVerificationStep,
     confirmations: confirmFlow.confirmations,
     verifying: confirmFlow.verifying,

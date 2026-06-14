@@ -79,7 +79,7 @@ function StepGeneralInfoInner() {
           {(['stay', 'transport', 'service', 'tour']).map((value) => (
             <label
               key={value}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-teal-300"
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-brand/40"
             >
               <RadioGroupItem value={value} id={`svc-${value}`} />
               <span className="font-medium text-slate-800">{t(`wizardServiceType_${value}`)}</span>

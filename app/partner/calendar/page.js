@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/lib/hooks/use-partner-calendar'
 import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
@@ -28,6 +29,7 @@ import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-s
 import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sla-hints'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
+import { postIcalSyncPartnerAll } from '@/lib/api/ical-sync-client'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -121,6 +123,7 @@ function MasterCalendarContent() {
   })
   
   const [priceModal, setPriceModal] = useState({ open: false })
+  const [icalSyncing, setIcalSyncing] = useState(false)
   
   // Form state
   const [blockForm, setBlockForm] = useState({
@@ -200,6 +203,30 @@ function MasterCalendarContent() {
   const goForward = useCallback(() => {
     setStartDate(format(addDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
   }, [startDate])
+
+  const handleIcalSyncAll = useCallback(async () => {
+    setIcalSyncing(true)
+    try {
+      const { ok, json } = await postIcalSyncPartnerAll()
+      if (!ok) {
+        toast.error(getUIText('partnerCal_syncAllFail', language))
+        return
+      }
+      const count = json?.listingsSynced ?? 0
+      if (count === 0) {
+        toast.message(getUIText('partnerCal_syncAllEmpty', language))
+      } else {
+        toast.success(
+          getUIText('partnerCal_syncAllSuccess', language).replace('{{count}}', String(count)),
+        )
+      }
+      await refetch()
+    } catch {
+      toast.error(getUIText('partnerCal_syncAllFail', language))
+    } finally {
+      setIcalSyncing(false)
+    }
+  }, [language, refetch])
   
   // Cell click handler
   const handleCellClick = useCallback((listing, date, cellData) => {
@@ -388,11 +415,14 @@ function MasterCalendarContent() {
         endDate={endDate}
         viewMode={viewMode}
         summary={summary}
+        language={language}
         onToday={goToToday}
         onBack={goBack}
         onForward={goForward}
         onViewModeChange={setViewMode}
         onRefresh={refetch}
+        onIcalSyncAll={handleIcalSyncAll}
+        icalSyncing={icalSyncing}
         onPriceModalOpen={() => setPriceModal({ open: true })}
       />
       

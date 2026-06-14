@@ -6,6 +6,6 @@ import { redirect } from 'next/navigation'
  */
 export default async function BookingDeepLinkPage({ params }) {
   const { id } = await params
-  if (!id) redirect('/renter/bookings')
+  if (!id) redirect('/my-bookings')
   redirect(`/checkout/${encodeURIComponent(id)}`)
 }

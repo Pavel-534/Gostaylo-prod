@@ -19,6 +19,7 @@ import { useCommission } from '@/hooks/use-commission'
 import { useListingPricing } from '@/hooks/pricing/useListingPricing'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
 /**
@@ -417,10 +418,19 @@ export function useListingBookingFlow({
           setBookingModalOpen(false)
           setBookingModalIntent('book')
           const cid = data.conversationId
-          if (cid) {
+          const bookingId = data.booking?.id
+          const bookingStatus = data.booking?.status
+
+          if (data.inquiry) {
+            if (cid) {
+              router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
+            }
+          } else if (bookingId && isBookingPayable(bookingStatus)) {
+            router.push(`/checkout/${encodeURIComponent(bookingId)}`, { scroll: false })
+          } else if (cid) {
             router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
-          } else if (!data.inquiry) {
-            router.push('/renter/bookings', { scroll: false })
+          } else {
+            router.push('/my-bookings', { scroll: false })
           }
         } else {
           toast.error(getBookingApiUserMessage(data, language))

@@ -36,6 +36,9 @@ const STATUS_BADGE = {
   PENDING: 'bg-amber-400 text-amber-950',
   PAID: 'bg-emerald-600 text-white',
   BLOCKED: 'bg-slate-400 text-white',
+  BLOCKED_MANUAL: 'bg-slate-400 text-white',
+  BLOCKED_ICAL: 'bg-brand/20 text-brand border border-dashed border-brand/40',
+  BLOCKED_INVENTORY: 'bg-slate-300 text-slate-700',
   AVAILABLE: 'bg-slate-100 text-slate-800 border border-slate-200',
 }
 
@@ -348,8 +351,16 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
           : t('partnerCal_rowBooked')
     sub = cellData.guestName || t('partnerCal_guestShort')
   } else if (cellData.status === 'BLOCKED') {
-    badgeClass = STATUS_BADGE.BLOCKED
-    label = t('partnerCal_rowBlocked')
+    if (cellData.blockKind === 'ical') {
+      badgeClass = STATUS_BADGE.BLOCKED_ICAL
+      label = t('partnerCal_rowIcalBlocked')
+    } else if (cellData.blockKind === 'inventory') {
+      badgeClass = STATUS_BADGE.BLOCKED_INVENTORY
+      label = t('partnerCal_rowBlocked')
+    } else {
+      badgeClass = STATUS_BADGE.BLOCKED_MANUAL
+      label = t('partnerCal_rowManualBlocked')
+    }
     sub = cellData.reason ? String(cellData.reason).slice(0, 36) : null
   } else {
     const price = cellData.priceThb || item.listing.basePriceThb

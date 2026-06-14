@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
-import { UnifiedBalanceSummary } from '@/components/wallet/UnifiedBalanceSummary'
+import { UnifiedBalanceSummary, UnifiedBalanceSummarySkeleton } from '@/components/wallet/UnifiedBalanceSummary'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 
 export function PartnerDashboardWalletOverview() {
@@ -15,7 +15,8 @@ export function PartnerDashboardWalletOverview() {
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const { data: payload, isLoading } = useWalletMeQuery()
 
-  if (isLoading || !payload) return null
+  if (isLoading) return <UnifiedBalanceSummarySkeleton />
+  if (!payload) return null
 
   return <UnifiedBalanceSummary walletPayload={payload} t={t} />
 }

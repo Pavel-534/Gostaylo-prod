@@ -153,7 +153,7 @@ export function useAuthActions(params) {
         const normalizedLogin = normalizeAuthUser(result.user)
         setUser(normalizedLogin)
         localStorage.setItem('gostaylo_user', JSON.stringify(normalizedLogin))
-        closeLoginModal()
+        closeLoginModal('success')
 
         if (savedRedirect) sessionStorage.removeItem('gostaylo_redirect_after_login')
         window.dispatchEvent(new CustomEvent('auth-change', { detail: normalizedLogin }))

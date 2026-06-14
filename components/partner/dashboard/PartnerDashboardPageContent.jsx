@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns'
 import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import {
-  TrendingUp, TrendingDown, Calendar, DollarSign, Users,
+  TrendingDown, Calendar, DollarSign, Users,
   Home, Clock, Check, ArrowRight, Plus, Lock, Download, Tag,
   Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
   CalendarDays, BarChart3, RefreshCw, Bell, Banknote,
@@ -19,7 +19,10 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
+import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
+import { brandMintHex } from '@/lib/theme/tokens'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
+import { PartnerHostVerificationBanner } from '@/components/partner/PartnerHostVerificationBanner'
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
 import { PartnerOnboardingChecklist } from '@/components/partner/PartnerOnboardingChecklist'
 import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
@@ -49,10 +52,13 @@ export default function PartnerDashboardPageContent() {
     incomeChartEmpty,
     handleApprove,
     handleDecline,
+    isUpdatingBooking,
     showWelcomeModal,
     setShowWelcomeModal,
     userName,
   } = usePartnerDashboardPage()
+
+  const dashLocale = DASH_DATE_LOCALE[language] || ru
 
   if (isLoading || !partnerId) {
     return <PartnerDashboardLoadingSkeleton />
@@ -63,10 +69,10 @@ export default function PartnerDashboardPageContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-4">
         <AlertCircle className="h-12 w-12 text-red-400" />
-        <h2 className="text-xl font-semibold text-slate-900">Ошибка загрузки</h2>
-        <p className="text-sm text-slate-600 max-w-sm">Проверьте сеть и повторите запрос.</p>
+        <h2 className="text-xl font-semibold text-slate-900">{getUIText('partnerDashboard_errorTitle', language)}</h2>
+        <p className="text-sm text-slate-600 max-w-sm">{getUIText('partnerDashboard_errorBody', language)}</p>
         <Button onClick={() => refetch()} variant="brand">
-          Повторить
+          {getUIText('partnerDashboard_retry', language)}
         </Button>
       </div>
     )
@@ -79,15 +85,15 @@ export default function PartnerDashboardPageContent() {
       <PartnerOnboardingChecklist language={language} />
 
       <PageSectionHeader
-        title="Обзор бизнеса"
-        subtitle={format(new Date(), 'EEEE, d MMMM yyyy', { locale: ru })}
+        title={getUIText('partnerDashboard_overviewTitle', language)}
+        subtitle={format(new Date(), 'EEEE, d MMMM yyyy', { locale: dashLocale })}
         titleClassName="flex items-center gap-2"
         action={
           <div className="flex gap-2 flex-wrap">
           <Button asChild variant="brand">
             <Link href="/partner/listings/new">
               <Plus className="h-4 w-4 mr-2" />
-              Новый объект
+              {getUIText('partnerDashboard_newListing', language)}
             </Link>
           </Button>
           <Button 
@@ -96,7 +102,7 @@ export default function PartnerDashboardPageContent() {
           >
             <Link href="/partner/calendar">
               <Lock className="h-4 w-4 mr-2" />
-              Блокировать даты
+              {getUIText('partnerDashboard_blockDates', language)}
             </Link>
           </Button>
           <Button variant="outline" asChild>
@@ -109,7 +115,7 @@ export default function PartnerDashboardPageContent() {
             variant="ghost" 
             size="icon"
             onClick={() => refetch()}
-            title="Обновить"
+            title={getUIText('partnerDashboard_refresh', language)}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -117,6 +123,7 @@ export default function PartnerDashboardPageContent() {
         }
       />
 
+      <PartnerHostVerificationBanner language={language} />
       <PartnerVerifiedBadgePromo language={language} />
 
       <PartnerReputationSection language={language} />
@@ -129,21 +136,28 @@ export default function PartnerDashboardPageContent() {
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <UserCheck className="h-5 w-5" />
-                  <span className="font-medium">{stats.today.checkIns} заезд(ов)</span>
+                  <span className="font-medium">
+                    {getUIText('partnerDashboard_checkInsCount', language).replace('{count}', String(stats.today.checkIns))}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <UserMinus className="h-5 w-5" />
-                  <span className="font-medium">{stats.today.checkOuts} выезд(ов)</span>
+                  <span className="font-medium">
+                    {getUIText('partnerDashboard_checkOutsCount', language).replace('{count}', String(stats.today.checkOuts))}
+                  </span>
                 </div>
               </div>
               <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                Сегодня
+                {getUIText('partnerDashboard_today', language)}
               </Badge>
             </div>
             {stats.today.checkInsList?.length > 0 && (
               <div className="mt-3 pt-3 border-t border-white/20">
                 <p className="text-sm text-white/80">
-                  Заезды: {stats.today.checkInsList.map(c => c.guestName).join(', ')}
+                  {getUIText('partnerDashboard_checkInsList', language).replace(
+                    '{names}',
+                    stats.today.checkInsList.map(c => c.guestName).join(', '),
+                  )}
                 </p>
               </div>
             )}
@@ -157,7 +171,7 @@ export default function PartnerDashboardPageContent() {
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-500">Доход (ваш)</span>
+              <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_revenueLabel', language)}</span>
               <DollarSign className="h-4 w-4 text-brand" />
             </div>
             <div className="flex items-end justify-between">
@@ -166,14 +180,13 @@ export default function PartnerDashboardPageContent() {
                   {formatPrice(stats?.revenue?.confirmed || 0, 'THB')}
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  +{formatPrice(stats?.revenue?.pending || 0, 'THB')} ожидает
+                  {getUIText('partnerDashboard_revenuePending', language).replace(
+                    '{amount}',
+                    formatPrice(stats?.revenue?.pending || 0, 'THB'),
+                  )}
                 </p>
               </div>
-              <RevenueSparkline data={stats?.revenue?.trend} color="#0d9488" height={40} />
-            </div>
-            <div className="flex items-center gap-1 mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 text-green-500" />
-              <span className="text-green-600">+12% за неделю</span>
+              <RevenueSparkline data={stats?.revenue?.trend} color={brandMintHex} height={40} />
             </div>
           </CardContent>
         </Card>
@@ -182,7 +195,7 @@ export default function PartnerDashboardPageContent() {
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-500">Загрузка (месяц)</span>
+              <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_occupancyLabel', language)}</span>
               <Calendar className="h-4 w-4 text-brand" />
             </div>
             <div className="flex items-center justify-between">
@@ -191,7 +204,10 @@ export default function PartnerDashboardPageContent() {
                   {stats?.occupancy?.rate || 0}%
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {stats?.occupancy?.listingsCount || 0} объектов
+                  {getUIText('partnerDashboard_listingsCount', language).replace(
+                    '{count}',
+                    String(stats?.occupancy?.listingsCount || 0),
+                  )}
                 </p>
               </div>
               <OccupancyRadial rate={stats?.occupancy?.rate || 0} size={80} />
@@ -206,14 +222,14 @@ export default function PartnerDashboardPageContent() {
         )}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-500">Ожидают действия</span>
+              <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_pendingLabel', language)}</span>
               <Bell className={cn("h-4 w-4", stats?.pending?.count > 0 ? "text-amber-500 animate-pulse" : "text-slate-400")} />
             </div>
             <p className="text-2xl font-bold text-slate-900">
               {stats?.pending?.count || 0}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              новых запросов
+              {getUIText('partnerDashboard_pendingNewRequests', language)}
             </p>
             {stats?.pending?.count > 0 && (
               <Button 
@@ -223,7 +239,7 @@ export default function PartnerDashboardPageContent() {
                 asChild
               >
                 <Link href="/partner/bookings">
-                  Просмотреть
+                  {getUIText('partnerDashboard_pendingView', language)}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
               </Button>
@@ -235,7 +251,7 @@ export default function PartnerDashboardPageContent() {
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-500">Бронирования</span>
+              <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_bookingsLabel', language)}</span>
               <Users className="h-4 w-4 text-brand" />
             </div>
             <p className="text-2xl font-bold text-slate-900">
@@ -256,11 +272,10 @@ export default function PartnerDashboardPageContent() {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-brand" />
-              Доход по месяцам
+              {getUIText('partnerDashboard_incomeByMonthTitle', language)}
             </CardTitle>
             <CardDescription>
-              Суммы по завершённым выплатам за последние 6 месяцев (статусы «Оплачено» и «Завершено» в истории
-              выплат). Это уже согласованные переводы, без ожидающих броней.
+              {getUIText('partnerDashboard_incomeByMonthDesc', language)}
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[260px] pt-0">
@@ -268,10 +283,10 @@ export default function PartnerDashboardPageContent() {
               <div className="h-full min-h-[220px] flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white px-6 text-center">
                 <BarChart3 className="h-12 w-12 text-slate-300 mb-3" aria-hidden />
                 <p className="text-sm text-slate-600 max-w-md leading-relaxed">
-                  Ваша статистика доходов появится здесь после завершения первой брони
+                  {getUIText('partnerDashboard_incomeEmpty', language)}
                 </p>
                 <p className="text-xs text-slate-400 mt-2 max-w-sm">
-                  График строится по завершённым выплатам на ваши реквизиты.
+                  {getUIText('partnerDashboard_incomeEmptyHint', language)}
                 </p>
               </div>
             ) : (
@@ -290,7 +305,7 @@ export default function PartnerDashboardPageContent() {
                     tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
                   />
                   <Tooltip content={<IncomeChartTooltip />} cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }} />
-                  <Bar dataKey="amountThb" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                  <Bar dataKey="amountThb" fill={brandMintHex} radius={[4, 4, 0, 0]} maxBarSize={48} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -305,7 +320,7 @@ export default function PartnerDashboardPageContent() {
             <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-500">Будущий доход (в обработке)</span>
+                  <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_futureIncomeLabel', language)}</span>
                   <Banknote className="h-5 w-5 text-brand" />
                 </div>
                 <p className="text-3xl font-bold text-slate-900 tabular-nums">
@@ -313,11 +328,11 @@ export default function PartnerDashboardPageContent() {
                 </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Сумма вашего дохода по бронированиям со статусом «Оплачено, удержано» (деньги ещё не отправлены
-                выплатой на ваши реквизиты). После проверки и выплаты сумма появится в истории выплат.
+                {getHostMoneyStage('PAID_ESCROW', language)?.eta ||
+                  getUIText('partnerDashboard_futureIncomeDesc', language)}
               </p>
               <p className="text-xs font-medium text-brand-hover flex items-center gap-1">
-                Подробнее по броням
+                {getUIText('partnerDashboard_futureIncomeMore', language)}
                 <ChevronRight className="h-3.5 w-3.5" />
               </p>
             </CardContent>
@@ -334,9 +349,9 @@ export default function PartnerDashboardPageContent() {
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Clock className="h-5 w-5 text-amber-500" />
-                  Ожидают подтверждения
+                  {getUIText('partnerDashboard_pendingApprovalsTitle', language)}
                 </CardTitle>
-                <CardDescription>Подтвердите или отклоните запросы</CardDescription>
+                <CardDescription>{getUIText('partnerDashboard_pendingApprovalsDesc', language)}</CardDescription>
               </div>
               {stats?.pending?.count > 0 && (
                 <Badge className="bg-amber-100 text-amber-700 border-amber-200">
@@ -353,21 +368,21 @@ export default function PartnerDashboardPageContent() {
                   booking={booking}
                   onApprove={handleApprove}
                   onDecline={handleDecline}
-                  isLoading={updateStatusMutation.isPending}
+                  isLoading={isUpdatingBooking}
                   language={language}
                 />
               ))
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                <p>Все запросы обработаны!</p>
+                <p>{getUIText('partnerDashboard_allProcessed', language)}</p>
               </div>
             )}
             
             {stats?.pending?.count > 3 && (
               <Button variant="ghost" className="w-full mt-2" asChild>
                 <Link href="/partner/bookings">
-                  Показать все ({stats.pending.count})
+                  {getUIText('partnerDashboard_showAll', language).replace('{count}', String(stats.pending.count))}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
               </Button>
@@ -382,13 +397,13 @@ export default function PartnerDashboardPageContent() {
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <CalendarDays className="h-5 w-5 text-brand" />
-                  Ближайшие заезды
+                  {getUIText('partnerDashboard_upcomingArrivalsTitle', language)}
                 </CardTitle>
-                <CardDescription>Следующие 7 дней</CardDescription>
+                <CardDescription>{getUIText('partnerDashboard_upcomingArrivalsDesc', language)}</CardDescription>
               </div>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/partner/calendar">
-                  Календарь
+                  {getUIText('partnerDashboard_calendar', language)}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
               </Button>
@@ -441,7 +456,7 @@ export default function PartnerDashboardPageContent() {
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <Calendar className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                <p>Нет заездов на ближайшие дни</p>
+                <p>{getUIText('partnerDashboard_noArrivals', language)}</p>
               </div>
             )}
           </CardContent>
@@ -455,25 +470,25 @@ export default function PartnerDashboardPageContent() {
             <Button variant="outline" asChild>
               <Link href="/partner/listings">
                 <Home className="h-4 w-4 mr-2" />
-                Мои объекты
+                {getUIText('partnerNav_listings', language)}
               </Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/partner/calendar">
                 <CalendarDays className="h-4 w-4 mr-2" />
-                Мастер-Календарь
+                {getUIText('partnerDashboard_masterCalendar', language)}
               </Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/partner/bookings">
                 <Users className="h-4 w-4 mr-2" />
-                Все бронирования
+                {getUIText('partnerDashboard_allBookings', language)}
               </Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/partner/finances">
                 <DollarSign className="h-4 w-4 mr-2" />
-                Финансы
+                {getUIText('partnerDashboard_finances', language)}
               </Link>
             </Button>
           </div>

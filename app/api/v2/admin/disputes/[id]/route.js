@@ -4,10 +4,12 @@ import { toUnifiedOrder } from '@/lib/models/unified-order'
 import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import DisputeService from '@/lib/services/dispute.service'
+import { computeSplitAmounts } from '@/lib/services/dispute/dispute-resolution-engine.js'
+import { loadDisputeLedgerTimeline } from '@/lib/services/dispute/dispute-ledger-timeline.js'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
   try {
     const access = await requireAdminStaff(request)
     if (access.error) return access.error
@@ -112,6 +114,34 @@ export async function GET(_request, { params }) {
       : null
 
     const unifiedOrder = bookingForCard ? toUnifiedOrder(bookingForCard) : null
+    const splitPreview = bookingNorm ? computeSplitAmounts(bookingNorm, 50) : null
+
+    const ledgerBundle = bookingRow
+      ? await loadDisputeLedgerTimeline({
+          bookingId: String(row.booking_id || bookingRow.id || ''),
+          disputeId,
+          booking: bookingNorm || bookingRow,
+        })
+      : { items: [], holdStatus: { active: false }, summary: null }
+
+    const disputeStatus = String(row.status || '').toUpperCase()
+    const metaObj = row.metadata && typeof row.metadata === 'object' ? row.metadata : {}
+    const rejectedAt =
+      disputeStatus === 'REJECTED'
+        ? row.resolved_at || metaObj.rejected_at || row.updated_at || null
+        : null
+
+    const financialSummary = {
+      ...(ledgerBundle.summary || {}),
+      disputeStatus: row.status,
+      freezePayment: row.freeze_payment === true,
+      holdActive: ledgerBundle.holdStatus?.active === true,
+      holdAmountThb: ledgerBundle.holdStatus?.amountThb ?? null,
+      evidenceCount: Array.isArray(metaObj.evidence_urls) ? metaObj.evidence_urls.length : 0,
+      openedAt: row.created_at,
+      resolvedAt: row.resolved_at ?? null,
+      rejectedAt,
+    }
 
     const evidenceSigned = await DisputeService.getEvidenceSignedUrls(disputeId)
 
@@ -160,6 +190,7 @@ export async function GET(_request, { params }) {
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           resolvedAt: row.resolved_at,
+          rejectedAt,
           closedBy: row.closed_by,
           resolutionReason: row.resolution_reason ?? null,
           currentDeadlineAt: row.current_deadline_at ?? null,
@@ -167,6 +198,10 @@ export async function GET(_request, { params }) {
         opener: firstRel(row.opener),
         booking: bookingForCard,
         unifiedOrder,
+        splitPreview,
+        ledgerTimeline: ledgerBundle.items,
+        holdStatus: ledgerBundle.holdStatus,
+        financialSummary,
       },
     })
   } catch (e) {

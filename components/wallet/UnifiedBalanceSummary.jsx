@@ -16,6 +16,43 @@ function formatThb(value) {
   return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 })
 }
 
+/**
+ * Скелетон с той же структурой, что и UnifiedBalanceSummary, чтобы избежать
+ * layout shift (CLS) во время загрузки `wallet-me`.
+ */
+export function UnifiedBalanceSummarySkeleton() {
+  return (
+    <Card className="border-brand/25 bg-gradient-to-br from-brand/10 to-white" aria-hidden="true">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Wallet className="h-5 w-5 text-brand/40" />
+          <span className="h-5 w-40 rounded bg-brand/15 animate-pulse" />
+        </CardTitle>
+        <div className="h-4 w-56 max-w-full rounded bg-slate-200/80 animate-pulse mt-1" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-white/80 p-3 space-y-2">
+          <div className="h-3 w-32 rounded bg-slate-200/80 animate-pulse" />
+          <div className="flex flex-wrap gap-4">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-start gap-2">
+                <PiggyBank className="h-4 w-4 text-slate-300 mt-0.5 shrink-0" />
+                <div className="space-y-1.5">
+                  <div className="h-3 w-24 rounded bg-slate-200/80 animate-pulse" />
+                  <div className="h-6 w-20 rounded bg-slate-200 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="pt-1 border-t border-slate-100">
+            <div className="h-3 w-36 rounded bg-slate-200/80 animate-pulse" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function UnifiedBalanceSummary({ walletPayload, t }) {
   const w = walletPayload?.wallet
   const balances = walletPayload?.balances
