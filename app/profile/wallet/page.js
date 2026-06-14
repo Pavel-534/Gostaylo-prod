@@ -162,7 +162,12 @@ export default function ProfileWalletPage() {
         variant="full"
       />
 
-      <ReferralWithdrawalStatusBanner walletData={walletData} locale={locale} />
+      <ReferralWithdrawalStatusBanner
+        walletData={walletData}
+        locale={locale}
+        onRetry={requestReferralWithdrawal}
+        retryLoading={withdrawRequesting}
+      />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className={`lg:col-span-2 ${GSL_CARD} gsl-card-hover`}>

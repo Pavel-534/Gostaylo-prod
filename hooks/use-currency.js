@@ -11,6 +11,8 @@ import { detectLanguage } from '@/lib/translations'
 
 const CurrencyContext = createContext(null)
 
+import { normalizeThbPerUnitRate } from '@/lib/finance/thb-per-unit-rate.js'
+
 const CURRENCIES = {
   THB: { symbol: '฿', name: 'Thai Baht', flag: '🇹🇭' },
   USD: { symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
@@ -75,8 +77,8 @@ export function CurrencyProvider({ children }) {
   const convert = useCallback(
     (amountThb) => {
       if (rateMap == null || currency === 'THB') return amountThb
-      const r = rateMap[currency]
-      if (r == null || !Number.isFinite(r) || r <= 0) return amountThb
+      const r = normalizeThbPerUnitRate(currency, rateMap[currency])
+      if (r == null || r <= 0) return amountThb
       return amountThb / r
     },
     [rateMap, currency],

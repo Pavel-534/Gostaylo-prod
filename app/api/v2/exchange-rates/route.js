@@ -17,6 +17,10 @@ import {
   retailModeFromApplyFlag,
   resolveRetailMarkupMultiplier,
 } from '@/lib/pricing/fx-display.js'
+import {
+  validateExchangeRateSemantics,
+  logExchangeRateValidationFailure,
+} from '@/lib/finance/exchange-rates-write-guard.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,13 +108,24 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    const code = String(currency_code).toUpperCase().trim()
+    const rawRate = parseFloat(rate_to_thb)
+    const check = validateExchangeRateSemantics(code, rawRate)
+    if (!check.ok) {
+      logExchangeRateValidationFailure(code, rawRate, 'POST /api/v2/exchange-rates')
+      return NextResponse.json({
+        success: false,
+        error: check.error,
+      }, { status: check.status })
+    }
+
     const { data, error } = await supabaseAdmin
       .from('exchange_rates')
       .upsert(
         {
-          id: `rate-${currency_code.toLowerCase()}-${Date.now()}`,
-          currency_code: currency_code.toUpperCase(),
-          rate_to_thb: parseFloat(rate_to_thb),
+          id: `rate-${code.toLowerCase()}-${Date.now()}`,
+          currency_code: code,
+          rate_to_thb: check.normalizedRate,
           source: 'manual',
           updated_at: new Date().toISOString(),
         },

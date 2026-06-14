@@ -10,6 +10,7 @@ import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 import { loadReferralUnlockHealth } from '@/lib/admin/referral-unlock-health.js'
+import { loadReferralSystemHealth } from '@/lib/admin/referral-system-health.js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -189,9 +190,10 @@ export async function GET(request) {
     'referral-unlock',
   ]
   const jobs = Object.fromEntries(jobNames.map((name) => [name, aggregateJob(opsRows, name)]))
-  const [referralReconciliation, referralUnlock] = await Promise.all([
+  const [referralReconciliation, referralUnlock, referralSystemHealth] = await Promise.all([
     loadReferralReconciliationHealth(),
     loadReferralUnlockHealth(),
+    loadReferralSystemHealth(),
   ])
 
   let slaNudge = {
@@ -309,6 +311,7 @@ export async function GET(request) {
     },
     referralReconciliation,
     referralUnlock,
+    referralSystemHealth,
     meta: {
       opsError,
       opsTablePresent: !opsFetchError || !String(opsFetchError.message || '').includes(OPS_MISSING),

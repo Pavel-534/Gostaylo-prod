@@ -84,6 +84,8 @@ function QueueTab() {
   const [togglingId, setTogglingId] = useState('');
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectComment, setRejectComment] = useState('');
 
   const loadPayouts = useCallback(async (opts = {}) => {
     const nextReadyOnly = opts.readyOnly ?? readyOnly;
@@ -137,19 +139,36 @@ function QueueTab() {
     });
   }
 
-  async function bulkReferral(action) {
+  async function bulkReferral(action, adminComment = '') {
     const userIds = [...selectedIds];
     if (!userIds.length) return;
     setBulkBusy(true);
     try {
-      const data = await bulkReferralPayoutAction(action, userIds);
+      const data = await bulkReferralPayoutAction(action, userIds, { adminComment });
       toast.success(`${action}: ${data.processed ?? 0} wallet(s)`);
       await loadPayouts();
     } catch (error) {
       toast.error(error?.message || 'Bulk action failed');
     } finally {
       setBulkBusy(false);
+      setShowRejectDialog(false);
+      setRejectComment('');
     }
+  }
+
+  function openRejectDialog() {
+    if (selectedIds.size === 0) return;
+    setRejectComment('');
+    setShowRejectDialog(true);
+  }
+
+  async function confirmReject() {
+    const comment = String(rejectComment || '').trim();
+    if (comment.length < 3) {
+      toast.error('Укажите причину отклонения (минимум 3 символа)');
+      return;
+    }
+    await bulkReferral('reject', comment);
   }
 
   async function toggleVerify(row) {
@@ -242,7 +261,7 @@ function QueueTab() {
             type="button"
             variant="outline"
             disabled={bulkBusy || selectedIds.size === 0}
-            onClick={() => void bulkReferral('reject')}
+            onClick={openRejectDialog}
           >
             Reject selected
           </Button>
@@ -374,6 +393,33 @@ function QueueTab() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Отклонить заявки на вывод</AlertDialogTitle>
+            <AlertDialogDescription>
+              Укажите причину отклонения для {selectedIds.size} выбранных заявок. Текст будет виден амбассадору.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label htmlFor="reject-comment">Причина отклонения</Label>
+            <Textarea
+              id="reject-comment"
+              value={rejectComment}
+              onChange={(e) => setRejectComment(e.target.value)}
+              placeholder="Например: неверные реквизиты карты"
+              className="mt-2 min-h-[88px]"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Отмена</AlertDialogCancel>
+            <Button type="button" variant="destructive" disabled={bulkBusy} onClick={() => void confirmReject()}>
+              {bulkBusy ? 'Отклонение…' : 'Отклонить'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

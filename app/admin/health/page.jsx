@@ -139,6 +139,7 @@ export default function AdminHealthPage() {
   const trustSafety = data?.trustSafety
   const referralReconcile = data?.referralReconciliation
   const referralReconcileJob = data?.jobs?.['referral-reconciliation']
+  const referralSystemHealth = data?.referralSystemHealth
   const referralUnlock = data?.referralUnlock
   const referralUnlockJob = data?.jobs?.['referral-unlock']
   const adapterEntries = Object.entries(adapterHealth?.adapters || {})
@@ -255,6 +256,75 @@ export default function AdminHealthPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {data && referralSystemHealth ? (
+        <Card
+          className={`rounded-2xl border shadow-sm ${
+            (referralSystemHealth.relationCycleCount ?? 0) > 0
+              ? 'border-red-200 bg-red-50/40'
+              : 'border-sky-100 bg-sky-50/30'
+          }`}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-sky-950">
+              <Activity className="h-5 w-5 text-sky-700" />
+              Referral system health
+            </CardTitle>
+            <CardDescription className="text-sky-900/80">
+              Очередь выводов и целостность дерева <code className="text-xs bg-white/80 px-1 rounded">referral_relations</code>.
+              {' '}
+              <Link href="/admin/marketing/referral-payouts" className="text-brand hover:underline">
+                Payout Ops →
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {referralSystemHealth.error ? (
+              <p className="text-red-600 text-xs">{referralSystemHealth.error}</p>
+            ) : null}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="rounded-xl border border-sky-100 bg-white/70 px-3 py-2">
+                <p className="text-slate-500">Активных FX-локов</p>
+                <p className="text-xl font-bold tabular-nums text-sky-900 mt-1">
+                  {referralSystemHealth.activeWithdrawalLocks ?? 0}
+                </p>
+              </div>
+              <div className="rounded-xl border border-sky-100 bg-white/70 px-3 py-2">
+                <p className="text-slate-500">Заморожено в очереди</p>
+                <p className="text-xl font-bold tabular-nums text-sky-900 mt-1">
+                  {Number(referralSystemHealth.frozenWithdrawalThb ?? 0).toLocaleString('ru-RU')} ฿
+                </p>
+              </div>
+              <div
+                className={`rounded-xl border px-3 py-2 ${
+                  (referralSystemHealth.relationCycleCount ?? 0) > 0
+                    ? 'border-red-200 bg-red-50/80'
+                    : 'border-sky-100 bg-white/70'
+                }`}
+              >
+                <p className="text-slate-500">Петли в ancestor_path</p>
+                <p
+                  className={`text-xl font-bold tabular-nums mt-1 ${
+                    (referralSystemHealth.relationCycleCount ?? 0) > 0 ? 'text-red-800' : 'text-emerald-700'
+                  }`}
+                >
+                  {referralSystemHealth.relationCycleCount ?? 0}
+                </p>
+              </div>
+            </div>
+            {Array.isArray(referralSystemHealth.relationCycleSample) &&
+            referralSystemHealth.relationCycleSample.length > 0 ? (
+              <ul className="text-xs space-y-1 max-h-32 overflow-y-auto border border-red-100 rounded-lg bg-white/80 p-2">
+                {referralSystemHealth.relationCycleSample.map((row) => (
+                  <li key={row.id} className="font-mono text-red-800">
+                    relation {row.id} · referee {row.refereeId}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {data && referralUnlock ? (
         <Card className="rounded-2xl border border-amber-100 bg-amber-50/30 shadow-sm">
