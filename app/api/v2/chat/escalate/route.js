@@ -13,7 +13,7 @@ import {
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
 import { PushService } from '@/lib/services/push.service.js'
-import { sendMessage } from '@/lib/telegram'
+import { sendToSupportTopic } from '@/lib/services/notifications/telegram.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import {
   SUPPORT_REASONS,
@@ -162,12 +162,9 @@ export async function POST(request) {
         `<b>Conversation ID:</b> <code>${escHtml(conversationId)}</code>\n` +
         `<b>Renter:</b> ${escHtml(renterLabel)}\n` +
         `<a href="${adminLink}">Open in admin panel</a>`
-      const tg = await sendMessage(adminGroupId, text, {
-        message_thread_id: threadId,
-        disable_web_page_preview: true,
-      })
-      if (!tg?.ok) {
-        console.warn('[chat/escalate] Telegram support topic send failed:', tg?.description || tg?.error)
+      const tg = await sendToSupportTopic(text, { disable_web_page_preview: true })
+      if (!tg?.success) {
+        console.warn('[chat/escalate] Telegram support topic send failed:', tg?.error || tg?.reason)
       }
     }
   }

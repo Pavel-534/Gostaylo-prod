@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
@@ -26,7 +26,7 @@ import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetr
 import { ReferralAmbassadorLevels } from '@/components/referral/ReferralAmbassadorLevels'
 import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
 import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
-import { useAuthModalState } from '@/hooks/useAuthModalState'
+import { useReferralModalFollowup } from '@/hooks/useReferralModalFollowup'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { toast } from 'sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -49,32 +49,12 @@ export function AmbassadorPublicLanding({
 }) {
   const router = useRouter()
   const { language } = useI18n()
-  const { user: currentUser, openLoginModal } = useAuth()
+  const { user: currentUser } = useAuth()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const [showFollowupBanner, setShowFollowupBanner] = useState(false)
-  const promptedAuthRef = useRef(false)
+  const { showFollowupBanner, promptRegisterForReferral } = useReferralModalFollowup()
+
   const locale =
     language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
-
-  useAuthModalState({
-    onClose: (outcome) => {
-      if (outcome === 'dismiss' && promptedAuthRef.current) {
-        setShowFollowupBanner(true)
-      }
-      if (outcome === 'success') {
-        promptedAuthRef.current = false
-        setShowFollowupBanner(false)
-      }
-    },
-  })
-
-  useEffect(() => {
-    if (currentUser?.id) {
-      setShowFollowupBanner(false)
-      promptedAuthRef.current = false
-    }
-  }, [currentUser?.id])
-
   const code = String(landing?.referralCode || '').trim()
   const joinUrl = String(landing?.joinUrl || landing?.landingUrl || '').trim()
   const displayName = String(landing?.displayName || profile?.displayName || 'Ambassador').trim()
@@ -90,9 +70,7 @@ export function AmbassadorPublicLanding({
       router.push(joinUrl || '/')
       return
     }
-    promptedAuthRef.current = true
-    setShowFollowupBanner(false)
-    openLoginModal('register')
+    promptRegisterForReferral()
   }
 
   async function copyJoinLink() {

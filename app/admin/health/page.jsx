@@ -17,6 +17,9 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
+import { JobErrorDetails, OpsJobFailureRow } from '@/components/admin/health/JobErrorDetails'
+import { NotificationChannelsCard } from '@/components/admin/health/NotificationChannelsCard'
+import { CriticalSignalsPanel } from '@/components/admin/health/CriticalSignalsPanel'
 
 function formatDt(iso) {
   if (!iso) return '—'
@@ -136,6 +139,8 @@ export default function AdminHealthPage() {
   const slaNudgeJob = data?.jobs?.['partner-sla-telegram-nudge']
   const slaNudge = data?.slaNudge
   const security = data?.security
+  const jobFailures = data?.jobFailures
+  const notificationChannels = data?.notificationChannels
   const trustSafety = data?.trustSafety
   const referralReconcile = data?.referralReconciliation
   const referralReconcileJob = data?.jobs?.['referral-reconciliation']
@@ -208,6 +213,29 @@ export default function AdminHealthPage() {
           ops_job_runs: {data.meta.opsError}
         </p>
       ) : null}
+
+      {Array.isArray(jobFailures) && jobFailures.length > 0 ? (
+        <Card className="rounded-2xl border-amber-200 bg-amber-50/30 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-amber-950">
+              <AlertTriangle className="h-5 w-5 text-amber-700" />
+              Ошибки cron-джоб (ops_job_runs)
+            </CardTitle>
+            <CardDescription className="text-amber-900/80">
+              Последние сбои за окно {data?.windowDays ?? 7} дн. — полный текст в раскрывающемся блоке.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {jobFailures.map((failure) => (
+                <OpsJobFailureRow key={`${failure.jobName}-${failure.startedAt}`} failure={failure} />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {data ? <NotificationChannelsCard channels={notificationChannels} /> : null}
 
       <Card className={`rounded-2xl border shadow-sm ${hasAdapterProblems ? 'border-red-200' : 'border-emerald-200'}`}>
         <CardHeader className="pb-2">
@@ -381,7 +409,11 @@ export default function AdminHealthPage() {
               <p className="text-xs text-slate-500">Прогонов в окне 7д: {referralUnlockJob?.runCount ?? 0}</p>
             )}
             {referralUnlock.lastRun?.errorMessage ? (
-              <p className="text-xs text-red-600 line-clamp-3">{referralUnlock.lastRun.errorMessage}</p>
+              <JobErrorDetails
+                preview={referralUnlock.lastRun.errorMessage}
+                message={referralUnlock.lastRun.errorMessage}
+                label="Ошибка referral-unlock"
+              />
             ) : null}
           </CardContent>
         </Card>
@@ -476,7 +508,11 @@ export default function AdminHealthPage() {
               {reconcileMsg ? <span className="text-xs text-slate-600">{reconcileMsg}</span> : null}
             </div>
             {referralReconcile.lastRun?.errorMessage ? (
-              <p className="text-xs text-red-600 line-clamp-3">{referralReconcile.lastRun.errorMessage}</p>
+              <JobErrorDetails
+                preview={referralReconcile.lastRun.errorMessage}
+                message={referralReconcile.lastRun.errorMessage}
+                label="Ошибка referral-reconciliation"
+              />
             ) : null}
           </CardContent>
         </Card>
@@ -582,7 +618,11 @@ export default function AdminHealthPage() {
               {formatDt(slaNudgeJob?.lastStartedAt)}
             </p>
             {slaNudgeJob?.lastErrorMessage ? (
-              <p className="text-xs text-red-600 line-clamp-3">{slaNudgeJob.lastErrorMessage}</p>
+              <JobErrorDetails
+                preview={slaNudgeJob.lastErrorPreview || slaNudgeJob.lastErrorMessage}
+                message={slaNudgeJob.lastErrorMessage}
+                label="Ошибка SLA Telegram nudge"
+              />
             ) : null}
           </CardContent>
         </Card>
@@ -622,7 +662,11 @@ export default function AdminHealthPage() {
                 Последний старт: {formatDt(ical?.lastStartedAt)}
               </p>
               {ical?.lastErrorMessage ? (
-                <p className="text-xs text-red-600 line-clamp-3">{ical.lastErrorMessage}</p>
+                <JobErrorDetails
+                  preview={ical.lastErrorPreview || ical.lastErrorMessage}
+                  message={ical.lastErrorMessage}
+                  label="Ошибка iCal sync"
+                />
               ) : null}
             </CardContent>
           </Card>
@@ -659,7 +703,11 @@ export default function AdminHealthPage() {
                 Последний старт: {formatDt(sweeper?.lastStartedAt)}
               </p>
               {sweeper?.lastErrorMessage ? (
-                <p className="text-xs text-red-600 line-clamp-3">{sweeper.lastErrorMessage}</p>
+                <JobErrorDetails
+                  preview={sweeper.lastErrorPreview || sweeper.lastErrorMessage}
+                  message={sweeper.lastErrorMessage}
+                  label="Ошибка push-sweeper"
+                />
               ) : null}
             </CardContent>
           </Card>
@@ -696,7 +744,11 @@ export default function AdminHealthPage() {
                 Последний старт: {formatDt(hygiene?.lastStartedAt)}
               </p>
               {hygiene?.lastErrorMessage ? (
-                <p className="text-xs text-red-600 line-clamp-3">{hygiene.lastErrorMessage}</p>
+                <JobErrorDetails
+                  preview={hygiene.lastErrorPreview || hygiene.lastErrorMessage}
+                  message={hygiene.lastErrorMessage}
+                  label="Ошибка FCM hygiene"
+                />
               ) : null}
             </CardContent>
           </Card>
@@ -704,43 +756,10 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data ? (
-        <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-amber-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-amber-600" />
-              Security Alerts
-            </CardTitle>
-            <CardDescription>
-              Попытки подмены цены (PRICE_TAMPERING) за выбранное окно
-              {security?.error ? ` — ${security.error}` : ''}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-slate-900">{security?.priceTamperingCount ?? 0}</span>
-              <span className="text-sm text-slate-500">событий</span>
-              {(security?.priceTamperingCount ?? 0) === 0 ? (
-                <Badge className="rounded-lg bg-emerald-100 text-emerald-800 border-emerald-200">Норма</Badge>
-              ) : (
-                <Badge variant="destructive" className="rounded-lg">Требует внимания</Badge>
-              )}
-            </div>
-            {Array.isArray(security?.recent) && security.recent.length > 0 ? (
-              <ul className="space-y-2 text-sm border border-slate-100 rounded-xl p-3 bg-slate-50/80 max-h-56 overflow-y-auto">
-                {security.recent.map((row) => (
-                  <li key={row.id} className="flex flex-col gap-0.5 border-b border-slate-100 last:border-0 pb-2 last:pb-0">
-                    <span className="text-xs text-slate-400">{formatDt(row.created_at)}</span>
-                    <span className="text-slate-700 font-mono text-xs break-all">
-                      {typeof row.detail === 'object' ? JSON.stringify(row.detail) : String(row.detail || '—')}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500">Нет записей в ленте за период.</p>
-            )}
-          </CardContent>
-        </Card>
+        <CriticalSignalsPanel
+          signals={security?.criticalSignals}
+          windowDays={data.windowDays}
+        />
       ) : null}
     </div>
   )

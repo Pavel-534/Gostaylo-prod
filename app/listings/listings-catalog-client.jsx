@@ -34,7 +34,7 @@ import {
   defaultExtraFilters,
 } from '@/lib/search/listings-page-url'
 import { getSiteDisplayName } from '@/lib/site-url'
-import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
+import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 
 const ITEMS_PER_PAGE = 12
 
@@ -539,10 +539,10 @@ function ListingsContent() {
       />
 
       <div className="container mx-auto px-4 pt-4">
-        <ReferralBonusSavedBanner language={language} autoFromPendingRef ctaHref="/listings" />
+        <ReferralCatalogFunnelStrip language={language} />
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div id="listings-results" className="container mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
           <div className="w-full min-w-0 lg:w-[60%] lg:max-w-[60%] lg:flex-shrink-0">
             <ListingSidebar

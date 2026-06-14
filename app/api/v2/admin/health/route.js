@@ -1,6 +1,6 @@
 /**
  * GET /api/v2/admin/health
- * Aggregates ops_job_runs (7d) + critical_signal_events (PRICE_TAMPERING, 7d).
+ * Aggregates ops_job_runs (7d) + critical_signal_events + notification channel metrics (24h).
  * Access: ADMIN role or email in ADMIN_HEALTH_EMAILS (see lib/admin-health-access.js).
  */
 
@@ -11,112 +11,25 @@ import { resolveAdminHealthProfile } from '@/lib/admin-health-access.js'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 import { loadReferralUnlockHealth } from '@/lib/admin/referral-unlock-health.js'
 import { loadReferralSystemHealth } from '@/lib/admin/referral-system-health.js'
+import {
+  sanitizeOpsJobRows,
+  buildOpsJobsMap,
+  collectRecentJobFailures,
+} from '@/lib/admin/ops-job-health.js'
+import { loadNotificationChannelHealth } from '@/lib/admin/notification-channel-health.js'
+import { loadCriticalSignalsHealth } from '@/lib/admin/critical-signals-health.js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const WINDOW_DAYS = 7
 const OPS_MISSING = "Could not find the table 'public.ops_job_runs'"
-const CRITICAL_MISSING = "Could not find the table 'public.critical_signal_events'"
 const SLA_NUDGE_MISSING = "Could not find the table 'public.partner_sla_nudge_events'"
 
-function sinceIso() {
+function sinceIso(days = WINDOW_DAYS) {
   const d = new Date()
-  d.setUTCDate(d.getUTCDate() - WINDOW_DAYS)
+  d.setUTCDate(d.getUTCDate() - days)
   return d.toISOString()
-}
-
-function pickLatestRuns(rows, jobName) {
-  const list = (rows || []).filter((r) => r.job_name === jobName)
-  list.sort((a, b) => new Date(b.started_at || 0) - new Date(a.started_at || 0))
-  return list
-}
-
-function aggregateJob(rows, jobName) {
-  const runs = pickLatestRuns(rows, jobName)
-  const last = runs[0] || null
-  let successRuns = 0
-  let errorRuns = 0
-  let sumDelivered = 0
-  let sumStuckFound = 0
-  let sumRemoved = 0
-  let sumProbed = 0
-  let sumSynced = 0
-  let sumIcalErrors = 0
-  let sumTotal = 0
-
-  for (const r of runs) {
-    if (r.status === 'success') successRuns += 1
-    else if (r.status === 'error') errorRuns += 1
-    const s = r.stats && typeof r.stats === 'object' ? r.stats : {}
-    if (jobName === 'push-sweeper') {
-      sumDelivered += Number(s.delivered || 0)
-      sumStuckFound += Number(s.stuck_found || 0)
-    }
-    if (jobName === 'push-token-hygiene') {
-      sumRemoved += Number(s.removed || 0)
-      sumProbed += Number(s.probed || 0)
-    }
-    if (jobName === 'ical-sync') {
-      sumSynced += Number(s.synced || 0)
-      sumIcalErrors += Number(s.errors || 0)
-      sumTotal += Number(s.total || 0)
-    }
-    if (jobName === 'partner-sla-telegram-nudge') {
-      sumDelivered += Number(s.sent || 0)
-      sumStuckFound += Number(s.scanned || 0)
-      sumRemoved += Number(s.skipped || 0)
-      sumProbed += Number(s.errors || 0)
-    }
-    if (jobName === 'referral-reconciliation') {
-      sumDelivered += Number(s.mismatchBookingCount || 0)
-      sumStuckFound += Number(s.mismatchLedgerRows || 0)
-      sumRemoved += Number(s.revertedBookingCount || 0)
-    }
-    if (jobName === 'referral-unlock') {
-      sumDelivered += Number(s.unlockedCount || 0)
-      sumStuckFound += Number(s.bookingCount || 0)
-      sumRemoved += Number(s.unlockedAmountThb || 0)
-    }
-  }
-
-  return {
-    jobName,
-    runCount: runs.length,
-    successRuns,
-    errorRuns,
-    lastStatus: last?.status || null,
-    lastStartedAt: last?.started_at || null,
-    lastFinishedAt: last?.finished_at || null,
-    lastErrorMessage: last?.error_message || null,
-    totals:
-      jobName === 'push-sweeper'
-        ? { delivered: sumDelivered, stuck_found: sumStuckFound }
-        : jobName === 'push-token-hygiene'
-          ? { removed: sumRemoved, probed: sumProbed }
-          : jobName === 'ical-sync'
-            ? { synced: sumSynced, errors: sumIcalErrors, listings_considered: sumTotal }
-            : jobName === 'partner-sla-telegram-nudge'
-              ? {
-                  sent: sumDelivered,
-                  scanned: sumStuckFound,
-                  skipped: sumRemoved,
-                  errors: sumProbed,
-                }
-              : jobName === 'referral-reconciliation'
-                ? {
-                    mismatch_bookings: sumDelivered,
-                    mismatch_ledger_rows: sumStuckFound,
-                    reverted_bookings: sumRemoved,
-                  }
-                : jobName === 'referral-unlock'
-                  ? {
-                      unlocked_rows: sumDelivered,
-                      bookings_processed: sumStuckFound,
-                      unlocked_amount_thb: sumRemoved,
-                    }
-                  : {},
-  }
 }
 
 export async function GET(request) {
@@ -127,7 +40,6 @@ export async function GET(request) {
       { status: health.error.status || 403 },
     )
   }
-  void request
 
   if (!supabaseAdmin) {
     return NextResponse.json(
@@ -137,6 +49,8 @@ export async function GET(request) {
   }
 
   const since = sinceIso()
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
   let opsRows = []
   let opsError = null
   const { data: opsData, error: opsFetchError } = await supabaseAdmin
@@ -151,56 +65,29 @@ export async function GET(request) {
       opsError = opsFetchError.message
     }
   } else {
-    opsRows = Array.isArray(opsData) ? opsData : []
+    opsRows = sanitizeOpsJobRows(Array.isArray(opsData) ? opsData : [])
   }
 
-  let tamperCount = 0
-  let tamperRecent = []
-  let criticalError = null
-  const { count, error: countErr } = await supabaseAdmin
-    .from('critical_signal_events')
-    .select('*', { count: 'exact', head: true })
-    .eq('signal_key', 'PRICE_TAMPERING')
-    .gte('created_at', since)
+  const jobs = buildOpsJobsMap(opsRows)
+  const jobFailures = collectRecentJobFailures(opsRows, { sinceIso: since, limit: 24 })
 
-  if (countErr) {
-    if (!String(countErr.message || '').includes(CRITICAL_MISSING)) {
-      criticalError = countErr.message
-    }
-  } else {
-    tamperCount = Number(count || 0)
-  }
+  const url = new URL(request.url)
+  const signalsKey = url.searchParams.get('signalsKey')
+  const signalsQ = url.searchParams.get('signalsQ')
 
-  const { data: recentRows, error: recentErr } = await supabaseAdmin
-    .from('critical_signal_events')
-    .select('id, signal_key, created_at, detail')
-    .eq('signal_key', 'PRICE_TAMPERING')
-    .gte('created_at', since)
-    .order('created_at', { ascending: false })
-    .limit(12)
-
-  if (recentErr) {
-    if (!String(recentErr.message || '').includes(CRITICAL_MISSING) && !criticalError) {
-      criticalError = recentErr.message
-    }
-  } else {
-    tamperRecent = Array.isArray(recentRows) ? recentRows : []
-  }
-
-  const jobNames = [
-    'ical-sync',
-    'push-sweeper',
-    'push-token-hygiene',
-    'partner-sla-telegram-nudge',
-    'referral-reconciliation',
-    'referral-unlock',
-  ]
-  const jobs = Object.fromEntries(jobNames.map((name) => [name, aggregateJob(opsRows, name)]))
-  const [referralReconciliation, referralUnlock, referralSystemHealth] = await Promise.all([
-    loadReferralReconciliationHealth(),
-    loadReferralUnlockHealth(),
-    loadReferralSystemHealth(),
-  ])
+  const [referralReconciliation, referralUnlock, referralSystemHealth, notificationChannels, criticalSignals] =
+    await Promise.all([
+      loadReferralReconciliationHealth(),
+      loadReferralUnlockHealth(),
+      loadReferralSystemHealth(),
+      loadNotificationChannelHealth({ opsRows, since24hIso: since24h }),
+      loadCriticalSignalsHealth({
+        sinceIso: since,
+        signalKey: signalsKey,
+        search: signalsQ,
+        limit: 50,
+      }),
+    ])
 
   let slaNudge = {
     tablePresent: true,
@@ -253,7 +140,6 @@ export async function GET(request) {
   const coveragePct =
     slaNudge.events7d > 0 ? Math.min(100, Math.round((sent7d / slaNudge.events7d) * 1000) / 10) : null
 
-  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   let emergencyContacts24h = 0
   let emergencyScanError = null
   /** @type {{ bookingId: string, at: string, reasonsRu: string }[]} */
@@ -296,10 +182,13 @@ export async function GET(request) {
     windowDays: WINDOW_DAYS,
     since,
     jobs,
+    jobFailures,
+    notificationChannels,
     security: {
-      priceTamperingCount: tamperCount,
-      recent: tamperRecent,
-      error: criticalError,
+      priceTamperingCount: criticalSignals.priceTamperingCount ?? 0,
+      recent: (criticalSignals.events || []).filter((e) => e.signalKey === 'PRICE_TAMPERING').slice(0, 12),
+      error: criticalSignals.error,
+      criticalSignals,
     },
     slaNudge: {
       ...slaNudge,

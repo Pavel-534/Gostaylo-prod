@@ -138,7 +138,7 @@ export function ChatVoicePlayer({ url, durationSec = 0, isOwn = false, ownVarian
         >
           <div
             className={cn(
-              'h-full rounded-full transition-[width] duration-100',
+              'h-full rounded-full transition-[width] transition-duration-100',
               isOwn ? 'bg-white' : 'bg-brand',
             )}
             style={{ width: `${pct}%` }}

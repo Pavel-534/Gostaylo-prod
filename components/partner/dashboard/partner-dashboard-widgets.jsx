@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { BRAND_CHART_HEX } from '@/lib/theme/product-ui'
 
 export function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru' }) {
   if (!isOpen) return null
-  const t = (key) => getUIText(key, language)
+  const brand = getSiteDisplayName()
+  const t = (key) => getUIText(key, language, { brand })
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div

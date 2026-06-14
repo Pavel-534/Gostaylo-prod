@@ -38,9 +38,9 @@ const nextConfig = {
   distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
 
   /** pdfkit не должен попадать в webpack-chunk (иначе ENOENT Helvetica.afm на Vercel) */
-  serverExternalPackages: ['pdfkit'],
-
   experimental: {
+    /** Next 14: serverComponentsExternalPackages; Next 15+ — serverExternalPackages на верхнем уровне */
+    serverComponentsExternalPackages: ['pdfkit'],
     /** Vercel: Noto + pdfkit/data (AFM) в serverless bundle */
     outputFileTracingIncludes: {
       '/api/admin/settings/legal/test-full-package': PDF_TRACE_INCLUDES,

@@ -1,4 +1,3 @@
-import { MetadataRoute } from 'next'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 /** PWA manifest: имя сайта из SSOT (NEXT_PUBLIC_SITE_NAME / SITE_DISPLAY_NAME). */

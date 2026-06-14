@@ -15,6 +15,9 @@ import { NotificationService, NotificationEvents } from '@/lib/services/notifica
 import { supabaseAdmin } from '@/lib/supabase';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { createBookingSchema } from '@/lib/validations/booking';
+import { cookies } from 'next/headers';
+import { getLangFromRequest } from '@/lib/translations';
+import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { resolveBookingListScope } from '@/lib/api/api-guard';
 import { resolveBookingCreateSession } from '@/lib/api/booking-create-guard';
@@ -72,6 +75,10 @@ export async function POST(request) {
       return createScope.response;
     }
     const sessionRenterId = createScope.renterId;
+    const cookieStore = await cookies();
+    const uiLocale = normalizeUiLocaleCode(
+      parseResult.data.uiLocale || getLangFromRequest(cookieStore, request.headers),
+    );
     
     const {
       listingId,
@@ -215,6 +222,7 @@ export async function POST(request) {
         minRemainingSpots: minRem,
         clientQuotedSubtotalThb,
         clientQuotedGuestTotalThb,
+        uiLocale,
       });
 
       if (result.error) {
@@ -300,6 +308,7 @@ export async function POST(request) {
       clientQuotedSubtotalThb,
       clientQuotedGuestTotalThb,
       forceStatus: instantBookingEnforced ? 'CONFIRMED' : 'PENDING',
+      uiLocale,
     });
 
     if (result.error) {

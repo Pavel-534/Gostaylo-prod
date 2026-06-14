@@ -28,6 +28,7 @@ import { detectLanguage, getUIText } from '@/lib/translations'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sla-hints'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { WorkspaceEmptyState } from '@/components/empty-state'
 import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
 import { postIcalSyncPartnerAll } from '@/lib/api/ical-sync-client'
 
@@ -330,7 +331,7 @@ function MasterCalendarContent() {
   
   // Loading state
   if (authLoading || (isLoading && partnerId)) {
-    return <LoadingPageShell variant="inline" label="Загрузка календаря…" />
+    return <LoadingPageShell variant="inline" label={getUIText('partnerCal_pageLoading', language)} />
   }
   
   // Not authenticated
@@ -338,10 +339,10 @@ function MasterCalendarContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Требуется авторизация</h2>
-        <p className="text-slate-500 text-center mb-6">Войдите в систему для просмотра календаря</p>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">{getUIText('partnerLayout_signInBody', language)}</h2>
+        <p className="text-slate-500 text-center mb-6">{getUIText('partnerLayout_redirectAfterLogin', language)}</p>
         <Button asChild variant="brand">
-          <Link href="/profile?login=true">Войти</Link>
+          <Link href="/profile?login=true">{getUIText('partnerLayout_signInCta', language)}</Link>
         </Button>
       </div>
     )
@@ -351,10 +352,14 @@ function MasterCalendarContent() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Ошибка загрузки</h2>
+        <AlertCircle className="h-12 w-12 text-red-400 mb-4" aria-hidden />
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          {getUIText('partnerCalendar_loadError', language)}
+        </h2>
         <p className="text-slate-500 text-center mb-6">{error?.message}</p>
-        <Button onClick={() => refetch()} variant="outline">Попробовать снова</Button>
+        <Button onClick={() => refetch()} variant="outline">
+          {getUIText('partnerCalendar_retry', language)}
+        </Button>
       </div>
     )
   }
@@ -362,16 +367,14 @@ function MasterCalendarContent() {
   // No listings
   if (!calendarData?.listings?.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <Calendar className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Нет объектов</h2>
-        <p className="text-slate-500 text-center mb-6">Добавьте объекты для отображения в календаре</p>
-        <Button asChild variant="brand">
-          <Link href="/partner/listings/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Добавить объект
-          </Link>
-        </Button>
+      <div className="max-w-lg mx-auto px-4 py-8">
+        <WorkspaceEmptyState
+          icon={Calendar}
+          title={getUIText('partnerCalendar_emptyTitle', language)}
+          hint={getUIText('partnerCalendar_emptyHint', language)}
+          ctaLabel={getUIText('partnerCalendar_emptyCta', language)}
+          ctaHref="/partner/listings/new"
+        />
       </div>
     )
   }
@@ -388,25 +391,27 @@ function MasterCalendarContent() {
       </div>
       {openedFromChat ? (
         <div className="max-w-[1600px] mx-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          Вы перешли из чата — здесь можно заблокировать даты, создать ручную бронь или изменить цену по ячейке.
+          {getUIText('partnerCal_openedFromChatHint', language)}
         </div>
       ) : null}
       {filterListingId ? (
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-3 py-2.5 text-sm text-brand">
-          <span className="font-medium">Режим: один объект</span>
-          <span className="text-brand-hover/80">даты и цены только для выбранного листинга</span>
+          <span className="font-medium">{getUIText('partnerCal_singleListingMode', language)}</span>
+          <span className="text-brand-hover/80">{getUIText('partnerCal_singleListingHint', language)}</span>
           <Button asChild variant="outline" size="sm" className="h-8 text-xs border-brand/30 ml-auto">
-            <Link href="/partner/calendar">Все объекты</Link>
+            <Link href="/partner/calendar">{getUIText('partnerCal_allListings', language)}</Link>
           </Button>
         </div>
       ) : null}
       {calendarMeta?.isDemoFallback && (
         <Alert className="max-w-[1600px] mx-auto border-amber-500/50 bg-amber-50 text-amber-950 [&>svg]:text-amber-600">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Демо-режим</AlertTitle>
+          <AlertTitle>{getUIText('partnerCal_demoTitle', language)}</AlertTitle>
           <AlertDescription>
-            API календаря недоступен. Показаны демо-данные (NEXT_PUBLIC_PARTNER_CALENDAR_DEMO_FALLBACK=1).
-            {calendarMeta?.demoErrorMessage ? ` Причина: ${calendarMeta.demoErrorMessage}` : ''}
+            {getUIText('partnerCal_demoBody', language)}
+            {calendarMeta?.demoErrorMessage
+              ? ` ${getUIText('partnerCal_demoReason', language).replace('{{reason}}', calendarMeta.demoErrorMessage)}`
+              : ''}
           </AlertDescription>
         </Alert>
       )}

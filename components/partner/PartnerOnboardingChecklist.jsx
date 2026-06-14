@@ -78,7 +78,7 @@ export function PartnerOnboardingChecklist({ language = 'ru' }) {
   if (!loading && completed >= steps.length) return null
 
   return (
-    <Card className="border-brand/20 bg-brand/5 shadow-sm">
+    <Card className="border-brand/20 bg-brand/5 shadow-sm" data-testid="partner-onboarding-checklist">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-brand" aria-hidden />

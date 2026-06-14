@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
-import { generateLinkCode } from '@/lib/telegram';
+import { generateLinkCode } from '@/lib/services/notifications/telegram.service.js';
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public';
 
 // Temporary storage for link codes (in production use Redis)

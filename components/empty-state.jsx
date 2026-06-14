@@ -16,8 +16,9 @@
  */
 
 import Link from 'next/link'
-import { Search, MapPin, Calendar } from 'lucide-react'
+import { Search, MapPin, Calendar, Inbox } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { GSL_BRAND_SHADOW_ICON, GSL_BRAND_SHADOW_RING } from '@/lib/theme/product-ui'
 
@@ -131,6 +132,43 @@ export function EmptyState({
 
       {children && <div className="mt-4">{children}</div>}
     </div>
+  )
+}
+
+/**
+ * WorkspaceEmptyState — единый dashed-empty для кабинета партнёра (bookings, calendar, promo).
+ * @param {object} p
+ * @param {import('lucide-react').LucideIcon} [p.icon]
+ * @param {string} p.title
+ * @param {string} p.hint
+ * @param {string} [p.ctaLabel]
+ * @param {string} [p.ctaHref]
+ * @param {React.ReactNode} [p.children]
+ */
+export function WorkspaceEmptyState({
+  icon: Icon = Inbox,
+  title,
+  hint,
+  ctaLabel,
+  ctaHref,
+  children,
+  className,
+  testId = 'workspace-empty-state',
+}) {
+  return (
+    <Card className={cn('border-dashed', className)} data-testid={testId}>
+      <CardContent className="flex flex-col items-center justify-center py-12 px-4">
+        <Icon className="h-12 w-12 text-slate-300 mb-4" aria-hidden />
+        <h3 className="text-lg font-semibold text-slate-900 mb-2 text-center">{title}</h3>
+        <p className="text-slate-600 text-center max-w-md text-sm leading-relaxed">{hint}</p>
+        {ctaHref && ctaLabel ? (
+          <Button asChild variant="brand" className="mt-6">
+            <Link href={ctaHref}>{ctaLabel}</Link>
+          </Button>
+        ) : null}
+        {children ? <div className="mt-4">{children}</div> : null}
+      </CardContent>
+    </Card>
   )
 }
 

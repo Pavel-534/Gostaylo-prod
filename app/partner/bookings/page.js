@@ -14,7 +14,7 @@ import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
-  Calendar, Loader2, AlertCircle
+  Calendar, Loader2, AlertCircle, Inbox
 } from 'lucide-react'
 import {
   Select,
@@ -41,6 +41,7 @@ import { getUIText } from '@/lib/translations'
 import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
 import { OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
+import { WorkspaceEmptyState } from '@/components/empty-state'
 
 function toIsoOrNull(value) {
   const d = new Date(value)
@@ -310,25 +311,21 @@ export default function PartnerBookings() {
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">
-          Показано: {visibleBookings.length}
+          {getUIText('partnerBookings_shownCount', language, { count: visibleBookings.length })}
         </span>
       </div>
 
       {/* Bookings List */}
       {visibleBookings.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Нет бронирований
-            </h3>
-            <p className="text-slate-600 text-center max-w-md">
-              {filter !== 'all' 
-                ? 'Нет бронирований с выбранным статусом'
-                : 'Когда клиенты забронируют ваши объекты, они появятся здесь'}
-            </p>
-          </CardContent>
-        </Card>
+        <WorkspaceEmptyState
+          icon={Inbox}
+          title={getUIText('partnerBookings_emptyTitle', language)}
+          hint={
+            filter !== 'all'
+              ? getUIText('partnerBookings_emptyFiltered', language)
+              : getUIText('partnerBookings_emptyHint', language)
+          }
+        />
       ) : (
         <div className="space-y-3">
           {visibleBookings.map((booking) => (

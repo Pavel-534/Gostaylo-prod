@@ -8,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionPayload, getUserIdFromSession } from '@/lib/services/session-service'
 import { ensureBookingConversation } from '@/lib/services/booking.service'
 import { PushService } from '@/lib/services/push.service'
-import { sendMessage } from '@/lib/telegram'
+import { sendToSupportTopic } from '@/lib/services/notifications/telegram.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { effectiveRoleFromProfile } from '@/lib/services/chat/access'
@@ -55,12 +55,9 @@ async function notifySupportTelegramThread({ conversationId, bookingId, renterLa
     `<b>Бронь:</b> <code>${escHtml(bookingId)}</code>\n` +
     `<b>Гость:</b> ${escHtml(renterLabel)}\n` +
     `<a href="${adminMessages}">Чат в админке</a> · <a href="${audit}">Аудит брони</a>`
-  const tg = await sendMessage(adminGroupId, text, {
-    message_thread_id: threadId,
-    disable_web_page_preview: true,
-  })
-  if (!tg?.ok) {
-    console.warn('[emergency-support-ticket] Telegram failed:', tg?.description || tg?.error)
+  const tg = await sendToSupportTopic(text, { disable_web_page_preview: true })
+  if (!tg?.success) {
+    console.warn('[emergency-support-ticket] Telegram failed:', tg?.error || tg?.reason)
   }
 }
 

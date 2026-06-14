@@ -20,6 +20,7 @@ import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { ReferralMentorStrip } from '@/components/referral/ReferralMentorStrip'
+import { ReferralPartnerSupplyStrip } from '@/components/referral/ReferralPartnerSupplyStrip'
 
 const TAB_ACTIVE =
   'rounded-lg shrink-0 snap-start data-[state=active]:bg-brand data-[state=active]:text-white'
@@ -70,6 +71,8 @@ export function ReferralProfilePage() {
         referredBy={data?.inviteNetwork?.referredBy}
         brandName={data?.brandName}
       />
+
+      <ReferralPartnerSupplyStrip language={language} />
 
       <ReferralBalanceBreakdown
         walletData={walletData}

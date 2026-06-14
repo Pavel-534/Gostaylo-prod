@@ -32,7 +32,7 @@ const t = (key, lang) =>
 const barShell =
   'shrink-0 border-t border-slate-200 bg-white px-3 py-2 sm:px-5 sm:py-3 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
 
-const tactile = 'transition-[opacity,transform] duration-100 ease-out active:opacity-70 active:scale-[0.98]'
+const tactile = 'transition-[opacity,transform] transition-duration-100 ease-out active:opacity-70 active:scale-[0.98]'
 
 export function ChatActionBar({
   isHosting = false,

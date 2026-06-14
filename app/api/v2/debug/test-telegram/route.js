@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendToAdminGroup } from '@/lib/telegram'
+import { sendToAdminGroup } from '@/lib/services/notifications/telegram.service.js'
 import { PARTNER_KYC_E2E_RUNBOOK_LINES } from '@/lib/runbooks/partner-kyc-e2e-smoke'
 
 export const dynamic = 'force-dynamic'
@@ -51,11 +51,11 @@ export async function GET() {
   const telegram = await sendToAdminGroup('Test OK')
 
   const runbook = PARTNER_KYC_E2E_RUNBOOK_LINES.join('\n')
-  console.info(`[DEBUG/test-telegram] Admin ${auth.userId} triggered ping. Telegram ok=${telegram?.ok}\n${runbook}`)
+  console.info(`[DEBUG/test-telegram] Admin ${auth.userId} triggered ping. Telegram ok=${telegram?.success}\n${runbook}`)
 
   return NextResponse.json({
     success: true,
-    telegram: { ok: telegram?.ok, description: telegram?.description || telegram?.error },
+    telegram: { ok: telegram?.success, description: telegram?.error || telegram?.reason },
     runbook: PARTNER_KYC_E2E_RUNBOOK_LINES,
   })
 }

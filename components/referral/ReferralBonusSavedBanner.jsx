@@ -19,6 +19,7 @@ import { hasPendingReferralClient } from '@/contexts/auth/auth-referral-handler'
  *   ambassadorUserId?: string | null
  *   autoFromPendingRef?: boolean
  *   className?: string
+ *   resultsAnchorId?: string
  * }} props
  */
 export function ReferralBonusSavedBanner({
@@ -28,6 +29,7 @@ export function ReferralBonusSavedBanner({
   ambassadorUserId = null,
   autoFromPendingRef = false,
   className = '',
+  resultsAnchorId = 'listings-results',
 }) {
   const router = useRouter()
   const { user: currentUser } = useAuth()
@@ -61,7 +63,20 @@ export function ReferralBonusSavedBanner({
           variant="brand"
           size="lg"
           className="w-full shrink-0 sm:w-auto min-h-12 font-semibold"
-          onClick={() => router.push(ctaHref)}
+          onClick={() => {
+            const onListings =
+              typeof window !== 'undefined' &&
+              ctaHref.replace(/\/$/, '') === '/listings' &&
+              window.location.pathname.replace(/\/$/, '').startsWith('/listings')
+            if (onListings && resultsAnchorId) {
+              const el = document.getElementById(resultsAnchorId)
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                return
+              }
+            }
+            router.push(ctaHref)
+          }}
         >
           <Search className="h-4 w-4 mr-2" />
           {t('stage139_followupCta')}

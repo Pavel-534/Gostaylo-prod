@@ -22,9 +22,10 @@ import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { brandMintHex } from '@/lib/theme/tokens'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
-import { PartnerHostVerificationBanner } from '@/components/partner/PartnerHostVerificationBanner'
+import PartnerHostVerificationBanner from '@/components/partner/PartnerHostVerificationBanner'
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
 import { PartnerOnboardingChecklist } from '@/components/partner/PartnerOnboardingChecklist'
+import { PartnerHostNextStepsCard } from '@/components/partner/PartnerHostNextStepsCard'
 import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
 import { PartnerReferralWelcomeStrip } from '@/components/partner/PartnerReferralWelcomeStrip'
 import {
@@ -83,6 +84,7 @@ export default function PartnerDashboardPageContent() {
       <PartnerDashboardWalletOverview />
       <PartnerReferralWelcomeStrip />
       <PartnerOnboardingChecklist language={language} />
+      <PartnerHostNextStepsCard language={language} partnerId={partnerId} />
 
       <PageSectionHeader
         title={getUIText('partnerDashboard_overviewTitle', language)}

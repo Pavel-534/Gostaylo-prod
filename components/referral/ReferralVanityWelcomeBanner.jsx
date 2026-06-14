@@ -1,25 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Gift, Heart, Sparkles } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import { getUIText } from '@/lib/translations'
 import {
   persistVanityWelcomeSession,
   readVanityWelcomeSession,
 } from '@/lib/referral/vanity-welcome-session'
 
 /**
- * Stage 131.4 — warm welcome after `/go/{vanity}` (landing, home, register funnel).
+ * Stage 131.4 / 143 — warm welcome after `/go/{vanity}` (landing, home, catalog, PDP).
  */
 export function ReferralVanityWelcomeBanner({
   ambassadorName: ambassadorNameProp,
   welcomeBonusThb: welcomeBonusProp = 500,
   className = '',
   persistSession = true,
+  language = 'ru',
 }) {
   const searchParams = useSearchParams()
   const vanityFromUrl = searchParams?.get('vanity')
   const welcomeFromUrl = searchParams?.get('welcome') === '1'
+  const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
   const [resolved, setResolved] = useState(null)
 
@@ -85,7 +88,7 @@ export function ReferralVanityWelcomeBanner({
 
   if (!resolved?.vanity) return null
 
-  const name = String(resolved.ambassadorName || 'амбассадора').trim()
+  const name = String(resolved.ambassadorName || t('stage143_vanityAmbassadorFallback')).trim()
 
   return (
     <div
@@ -99,16 +102,12 @@ export function ReferralVanityWelcomeBanner({
         <div className="space-y-2 text-slate-700 min-w-0">
           <p className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
             <Sparkles className="inline h-4 w-4 text-brand mr-1.5 -mt-0.5" aria-hidden />
-            Привет! Вы перешли по рекомендации от{' '}
-            <span className="text-brand">{name}</span>.
+            {t('stage143_vanityWelcomeTitle', { name })}
           </p>
-          <p className="text-sm leading-relaxed">
-            Вам начислен приветственный бонус на первую поездку. Бронируйте честно — без скрытых
-            комиссий и с прозрачными выплатами.
-          </p>
+          <p className="text-sm leading-relaxed">{t('stage143_vanityWelcomeBody')}</p>
           <p className="text-xs text-slate-500 flex items-center gap-1.5">
             <Heart className="h-3.5 w-3.5 text-rose-400 shrink-0" aria-hidden />
-            Мы берём на себя сложности трансграничных платежей — вы видите всё заранее.
+            {t('stage143_vanityWelcomeFoot')}
           </p>
         </div>
       </div>
@@ -117,10 +116,10 @@ export function ReferralVanityWelcomeBanner({
 }
 
 /** Compact strip for homepage / catalog top. */
-export function ReferralVanityWelcomeHost({ className = '' }) {
+export function ReferralVanityWelcomeHost({ className = '', language = 'ru' }) {
   return (
     <div className={`mx-auto max-w-4xl px-4 pt-4 ${className}`}>
-      <ReferralVanityWelcomeBanner persistSession />
+      <ReferralVanityWelcomeBanner persistSession language={language} />
     </div>
   )
 }

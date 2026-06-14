@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
+import { ReferralAmbassadorWaveGuide } from '@/components/referral/ReferralAmbassadorWaveGuide'
 import { toast } from 'sonner'
 
 export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBonusThb }) {
@@ -51,6 +52,8 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
 
   return (
     <div className="space-y-8">
+      <ReferralAmbassadorWaveGuide t={t} />
+
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">{t('stage91_whyShareTitle')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -78,6 +81,8 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
           </Card>
         </div>
       </section>
+
+      <ReferralAmbassadorWaveGuide t={t} />
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">

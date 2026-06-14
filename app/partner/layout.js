@@ -336,9 +336,14 @@ export default function PartnerLayout({ children }) {
                       <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
                     )}
                   </span>
-                  <span className={`text-sm flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                    {item.name}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className={`text-sm block ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                      {item.name}
+                    </span>
+                    <span className="hidden lg:block text-[10px] text-slate-400 leading-tight truncate">
+                      {item.description}
+                    </span>
+                  </div>
                   {isMessages && totalUnread > 0 && !isActive && (
                     <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px]">
                       {totalUnread > 99 ? '99+' : totalUnread}

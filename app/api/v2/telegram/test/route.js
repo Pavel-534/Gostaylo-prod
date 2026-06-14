@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { sendTestAlert, getBotInfo, getChatInfo, initializeTopics } from '@/lib/telegram';
+import { sendTestAlert, getBotInfo, getChatInfo, initializeTopics } from '@/lib/services/notifications/telegram.service.js';
 import { getSessionPayload } from '@/lib/services/session-service';
 
 async function requireAdminOrModeratorResponse() {
@@ -58,17 +58,15 @@ export async function POST(request) {
 
     const result = await sendTestAlert(type);
 
-    if (result.ok) {
+    if (result?.success) {
       return NextResponse.json({ 
         success: true, 
         message: `Test ${type} alert sent successfully!`,
-        messageId: result.result?.message_id,
-        chatId: result.result?.chat?.id
       });
     } else {
       return NextResponse.json({ 
         success: false, 
-        error: result.description || result.error || 'Failed to send message'
+        error: result?.error || result?.reason || 'Failed to send message'
       }, { status: 500 });
     }
 
