@@ -172,12 +172,12 @@ function ListingSidebarComponent({
             </p>
             <p className="mt-0.5 text-xs text-amber-700">
               {language === 'ru'
-                ? 'Показываем все объекты — уточните доступность напрямую у партнёра.'
+                ? 'Показываем все объекты — уточните доступность напрямую у хозяина.'
                 : language === 'zh'
-                  ? '显示所有房源 — 请直接向合作伙伴确认可用性。'
+                  ? '显示所有房源 — 请直接向房东确认可用性。'
                   : language === 'th'
-                    ? 'แสดงที่พักทั้งหมด — กรุณาตรวจสอบความพร้อมกับพาร์ทเนอร์โดยตรง'
-                    : 'Showing all listings — please confirm availability with the partner directly.'}
+                    ? 'แสดงที่พักทั้งหมด — กรุณาตรวจสอบความพร้อมกับเจ้าของโดยตรง'
+                    : 'Showing all listings — please confirm availability with the host directly.'}
             </p>
           </div>
         </div>

@@ -12,6 +12,10 @@ import {
 } from '@/lib/services/chat/access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
+import {
+  buildSupportJoinedChatPayload,
+  resolveAnnouncementText,
+} from '@/lib/booking-chat-copy.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,11 +24,18 @@ function displayNameFromProfile(p) {
   return formatPrivacyDisplayNameForParticipant(p.first_name, p.last_name, p.email, 'Support')
 }
 
-function supportJoinedCopy(lang) {
-  const l = String(lang || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en'
-  return l === 'ru'
-    ? 'Поддержка присоединилась к диалогу'
-    : 'Support has joined the conversation'
+function supportJoinedCopy(lang, adminName, forDispute = false) {
+  const copies = buildSupportJoinedChatPayload({ adminName, forDispute })
+  const { title, body } = resolveAnnouncementText(
+    {
+      ru: { title: copies.announcement_title, body: copies.announcement_body },
+      en: { title: copies.announcement_title_en, body: copies.announcement_body_en },
+      zh: { title: copies.announcement_title_zh, body: copies.announcement_body_zh },
+      th: { title: copies.announcement_title_th, body: copies.announcement_body_th },
+    },
+    lang,
+  )
+  return `${title}\n\n${body}`.trim()
 }
 
 export async function POST(request) {
@@ -88,7 +99,9 @@ export async function POST(request) {
     })
   }
 
-  const textBody = supportJoinedCopy(lang)
+  const forDispute = body?.forDispute === true || body?.disputeContext === true
+  const textBody = supportJoinedCopy(lang, adminName, forDispute)
+  const payload = buildSupportJoinedChatPayload({ adminName, forDispute })
   const messageId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 
   const { error: msgErr } = await supabaseAdmin.from('messages').insert({
@@ -100,7 +113,7 @@ export async function POST(request) {
     message: textBody,
     content: textBody,
     type: 'system',
-    metadata: { system_key: 'support_joined' },
+    metadata: payload,
     is_read: false,
     created_at: now,
   })

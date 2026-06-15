@@ -53,15 +53,32 @@ const STATUS_CFG = {
   PENDING: { ru: 'Ожидает', en: 'Pending', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
   CONFIRMED: { ru: 'Подтверждено', en: 'Confirmed', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
   PAID: { ru: 'Оплачено', en: 'Paid', cls: 'bg-green-100 text-green-800 border-green-200' },
+  PAID_ESCROW: { ru: 'Эскроу', en: 'Escrow', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  CHECKED_IN: { ru: 'Заезд', en: 'Checked in', cls: 'bg-sky-100 text-sky-800 border-sky-200' },
+  DISPUTED: { ru: 'Спор', en: 'Dispute', cls: 'bg-amber-100 text-amber-900 border-amber-300' },
   COMPLETED: { ru: 'Завершено', en: 'Completed', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
   CANCELLED: { ru: 'Отменено', en: 'Cancelled', cls: 'bg-red-100 text-red-700 border-red-200' },
   REFUNDED: { ru: 'Возврат', en: 'Refunded', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
 }
 
+function statusBadgeLabel(statusKey, lang = 'ru') {
+  const key = String(statusKey || '').toUpperCase()
+  const cfg = STATUS_CFG[key]
+  if (!cfg) return null
+  const i18nKey = `chatBookingStatus_${key}`
+  const translated = getUIText(i18nKey, lang)
+  if (translated !== i18nKey) return translated
+  if (lang === 'en') return cfg.en
+  if (lang === 'zh' || lang === 'th') return cfg.en
+  return cfg.ru
+}
+
 function StatusBadge({ statusLabel, lang = 'ru' }) {
   if (!statusLabel) return null
-  const cfg = STATUS_CFG[String(statusLabel).toUpperCase()]
-  if (!cfg) return null
+  const key = String(statusLabel).toUpperCase()
+  const cfg = STATUS_CFG[key]
+  const label = statusBadgeLabel(key, lang)
+  if (!cfg || !label) return null
   return (
     <span
       className={cn(
@@ -69,7 +86,7 @@ function StatusBadge({ statusLabel, lang = 'ru' }) {
         cfg.cls,
       )}
     >
-      {lang === 'en' ? cfg.en : cfg.ru}
+      {label}
     </span>
   )
 }

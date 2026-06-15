@@ -85,6 +85,7 @@ function MessageItem({
   ownVariant,
   userRole,
   onInvoiceCancelled,
+  onInvoicePaid,
   booking,
   listing,
   staffThread = false,
@@ -221,6 +222,11 @@ function MessageItem({
               ? () => onInvoiceCancelled(msg.id)
               : undefined
           }
+          onInvoicePaid={
+            !isOwn && typeof onInvoicePaid === 'function'
+              ? () => onInvoicePaid(msg.id)
+              : undefined
+          }
         />
       </div>
     )
@@ -269,6 +275,7 @@ function MessageItem({
  * @param {string}   [props.userRole]       — 'renter' | 'partner' — для CTA отзыва
  * @param {boolean}  [props.autoScroll]     — скролл к новым сообщениям (default: true)
  * @param {Function} [props.onInvoiceCancelled] — (messageId) => void — отмена инвойса
+ * @param {Function} [props.onInvoicePaid] — (messageId) => void — оптимистичный PAID в ленте
  * @param {object}   [props.booking] — бронь треда (даты, listings.district) для upsell «Транспорт»
  * @param {object}   [props.listing] — листинг диалога
  * @param {boolean}  [props.staffThread] — режим админ/модератор: BOOKING_REQUEST, SYSTEM, без Pay в инвойсе
@@ -284,6 +291,7 @@ export function ChatMessageList({
   userRole,
   autoScroll = true,
   onInvoiceCancelled,
+  onInvoicePaid,
   booking,
   listing,
   staffThread = false,
@@ -347,6 +355,7 @@ export function ChatMessageList({
                 ownVariant={ownVariant}
                 userRole={userRole}
                 onInvoiceCancelled={onInvoiceCancelled}
+                onInvoicePaid={onInvoicePaid}
                 booking={booking}
                 listing={listing}
                 staffThread={staffThread}

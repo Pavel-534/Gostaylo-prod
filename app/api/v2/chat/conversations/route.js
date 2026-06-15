@@ -15,6 +15,11 @@ import { PushService } from '@/lib/services/push.service.js'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { isMarkedE2eTestData } from '@/lib/e2e/test-data-tag'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
+import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
+import { attachReviewFlagsToBookings } from '@/lib/booking/attach-review-flags-to-bookings.js'
+import { enrichBookingFinancialSnapshot } from '@/lib/chat/booking-enrich-financial.js'
+import { resolveConversationInboxStatusLabel } from '@/lib/chat/conversation-inbox-status.js'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -150,14 +155,21 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (bookingIds.length) {
     const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
     const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,currency,guests_count,partner_id`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,price_paid,currency,guests_count,partner_id,renter_id,commission_thb,partner_earnings_thb,commission_rate,pricing_snapshot,metadata`,
       { headers: hdr, cache: 'no-store' }
     )
     const bl = await br.json()
     if (Array.isArray(bl)) {
       for (const b of bl) bookingsById[b.id] = b
     }
-    const enrichedBookings = await attachPartnerTrustToBookings(Object.values(bookingsById))
+    let enrichedBookings = await attachPartnerTrustToBookings(Object.values(bookingsById))
+    enrichedBookings = enrichedBookings.map((b) => enrichBookingFinancialSnapshot(b))
+    if (supabaseAdmin) {
+      enrichedBookings = await attachDisputeToBookings(supabaseAdmin, enrichedBookings)
+      enrichedBookings = await attachReviewFlagsToBookings(supabaseAdmin, enrichedBookings, {
+        viewerUserId,
+      })
+    }
     for (const b of enrichedBookings) {
       bookingsById[b.id] = b
     }
@@ -234,8 +246,10 @@ async function enrichConversationRows(rows, viewerUserId) {
     const base = mapConversationRow(c)
     const listing = c.listing_id ? listingsById[c.listing_id] ?? null : null
     const booking = c.booking_id ? bookingsById[c.booking_id] ?? null : null
+    const statusLabel = resolveConversationInboxStatusLabel(booking, base.statusLabel)
     return {
       ...base,
+      statusLabel,
       listing,
       booking,
       partnerLastSeenAt: c.partner_id ? participantLastSeenById[String(c.partner_id)] ?? null : null,

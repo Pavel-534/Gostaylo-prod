@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase';
-import { verifyTronTransaction, GOSTAYLO_WALLET } from '@/lib/services/tron.service';
+import { verifyTronTransaction, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
 import { getExpectedUsdtForBooking } from '@/lib/booking-price-integrity';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import PaymentIntentService from '@/lib/services/payment-intent.service';
@@ -54,6 +54,90 @@ function verifySharedSecret(request, body) {
     return { ok: false, error: 'invalid_secret' };
   }
   return { ok: true };
+}
+
+/**
+ * Post-escrow extension invoice on PAID_ESCROW+ booking (parity with payments/confirm webhook).
+ */
+async function tryPostEscrowInvoiceFromCryptoWebhook({ booking, bookingId, txid, body }) {
+  if (!isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+    return null;
+  }
+
+  const invoiceIdFromBody = body?.invoiceId || body?.invoice_id || null;
+  const intentRes = invoiceIdFromBody
+    ? await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId, invoiceId: String(invoiceIdFromBody) })
+    : await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId });
+  if (!intentRes.success || !intentRes.intent?.invoiceId) {
+    return null;
+  }
+
+  const intent = intentRes.intent;
+  const amountThb = Number(intent.amountThb);
+  let expectedUsdt =
+    body?.expectedAmount != null && String(body.expectedAmount).trim() !== ''
+      ? parseFloat(body.expectedAmount)
+      : null;
+  if (!Number.isFinite(expectedUsdt) || expectedUsdt <= 0) {
+    expectedUsdt = Number.isFinite(amountThb) && amountThb > 0 ? await thbToUsdt(amountThb) : null;
+  }
+  if (!Number.isFinite(expectedUsdt) || expectedUsdt <= 0) {
+    return NextResponse.json(
+      { success: false, error: 'Could not resolve expected USDT amount for post-escrow invoice' },
+      { status: 400 },
+    );
+  }
+
+  const verification = await verifyTronTransaction(txid, expectedUsdt);
+  if (!verification.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        verified: false,
+        error: verification.error || verification.status,
+        status: verification.status,
+      },
+      { status: 400 },
+    );
+  }
+
+  const marked = await PaymentIntentService.markPaid(intent.id, {
+    source: 'crypto_webhook_post_escrow',
+    txId: txid,
+    gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
+    raw: verification.data,
+  });
+  if (!marked.success) {
+    console.warn('[crypto/confirm] post-escrow markPaid:', marked.error);
+  }
+
+  const invoiceEffect = await applyInvoicePostPaymentEffects({
+    bookingId,
+    invoiceId: intent.invoiceId,
+    txId: txid,
+    gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
+    source: 'crypto_webhook_post_escrow',
+  });
+
+  const status = String(booking.status || '').toUpperCase();
+  return NextResponse.json({
+    success: true,
+    verified: true,
+    bookingId,
+    intentId: intent.id,
+    idempotent: true,
+    alreadyProcessed: true,
+    postEscrowInvoice: true,
+    bookingStatus: status,
+    ...(status === 'PAID_ESCROW' ? { alreadyEscrowed: true } : {}),
+    invoiceEffect,
+    data: {
+      txid,
+      bookingId,
+      intentId: intent.id,
+      tron: verification.data,
+    },
+  });
 }
 
 export async function POST(request) {
@@ -122,6 +206,13 @@ export async function POST(request) {
     }
 
     if (isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+      const postEscrow = await tryPostEscrowInvoiceFromCryptoWebhook({
+        booking,
+        bookingId,
+        txid,
+        body,
+      });
+      if (postEscrow) return postEscrow;
       return idempotentPaidBookingResponse(booking);
     }
 

@@ -17,6 +17,7 @@ import { useCurrency } from '@/contexts/currency-context'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 import { cancelChatInvoice } from '@/lib/chat/post-chat-invoice'
+import { getUIText } from '@/lib/translations'
 
 const STATUS_LABEL = {
   PENDING: { en: 'Pending', ru: 'Ожидает оплаты' },
@@ -258,7 +259,7 @@ export function InvoiceBubble({
           </div>
           {!invoice.booking_id && (
             <p className="text-xs text-amber-800 bg-amber-50 rounded-md p-2 mt-2">
-              К счёту не привязано бронирование — оплата через кассу недоступна. Напишите партнёру.
+              {getUIText('invoiceBubble_noBookingLinked', language)}
             </p>
           )}
         </DialogContent>

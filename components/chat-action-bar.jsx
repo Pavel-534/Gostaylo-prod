@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, XCircle, Receipt, CreditCard } from 'lucide-react'
+import { CheckCircle2, XCircle, Receipt, CreditCard, Star } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { NO_PAY_TRAVEL_STATUSES } from '@/lib/booking/status-sets.js'
 import { cn } from '@/lib/utils'
@@ -53,10 +53,63 @@ export function ChatActionBar({
   language = 'ru',
 }) {
   const bookingStatus = String(booking?.status || '').toUpperCase()
+  const bookingId = booking?.id
   const [pressPay, setPressPay] = useState(false)
   const [pressDecline, setPressDecline] = useState(false)
   const [pressConfirm, setPressConfirm] = useState(false)
   const [pressInvoice, setPressInvoice] = useState(false)
+  const [pressReview, setPressReview] = useState(false)
+
+  const canRenterReview =
+    isTraveling &&
+    !isHosting &&
+    bookingStatus === 'COMPLETED' &&
+    (booking?.canSubmitRenterReview === true || booking?.can_submit_renter_review === true)
+
+  const canPartnerReview =
+    isHosting &&
+    (booking?.canSubmitPartnerGuestReview === true || booking?.can_submit_partner_guest_review === true)
+
+  if (canRenterReview || canPartnerReview) {
+    const reviewHref = canRenterReview
+      ? `/renter/reviews/new?bookingId=${encodeURIComponent(bookingId)}`
+      : `/partner/bookings/${encodeURIComponent(bookingId)}/guest-review`
+    const reviewLabel = canRenterReview
+      ? getUIText('chatRateStay', language)
+      : getUIText('chatRateGuest', language)
+    const reviewHint = canRenterReview
+      ? getUIText('chatHowWasStay', language)
+      : getUIText('chatHowWasGuest', language)
+
+    return (
+      <div className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}>
+        <span className="text-sm font-semibold leading-snug text-slate-800 sm:min-w-0 sm:flex-1">
+          {reviewHint}
+        </span>
+        <Button
+          asChild
+          className={cn(
+            'h-12 min-h-[48px] w-full shrink-0 gap-2 rounded-2xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover sm:w-auto sm:min-w-[11rem]',
+            tactile,
+            pressReview && 'opacity-70 scale-[0.98]',
+          )}
+        >
+          <Link
+            href={reviewHref}
+            data-testid="chat-action-review"
+            data-pressing={pressReview ? 'true' : 'false'}
+            onPointerDown={() => setPressReview(true)}
+            onPointerUp={() => setPressReview(false)}
+            onPointerCancel={() => setPressReview(false)}
+            onPointerLeave={() => setPressReview(false)}
+          >
+            <Star className="h-5 w-5" />
+            {reviewLabel}
+          </Link>
+        </Button>
+      </div>
+    )
+  }
 
   if (isTraveling && !isHosting) {
     if (suppressTravelPayBar) return null

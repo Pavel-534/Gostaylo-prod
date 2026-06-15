@@ -68,16 +68,16 @@ export function CheckoutSuccessView({ language, chatHref }) {
           <h3 className="text-2xl font-bold mb-2">{getUIText('checkout_successTitle', language)}</h3>
           <p className="text-slate-600 mb-6">{getUIText('checkout_successBody', language)}</p>
           <div className="space-y-3">
+            <Button asChild variant="brand" className="w-full">
+              <Link href="/my-bookings">{getUIText('checkout_myBookings', language)}</Link>
+            </Button>
             {chatHref && (
-              <Button asChild variant="brand" className="w-full">
+              <Button asChild variant="outline" className="w-full">
                 <Link href={chatHref}>{getUIText('checkout_chatHost', language)}</Link>
               </Button>
             )}
-            <Button asChild variant={chatHref ? 'outline' : 'brand'} className="w-full">
-              <Link href="/">{getUIText('checkout_home', language)}</Link>
-            </Button>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/my-bookings">{getUIText('checkout_myBookings', language)}</Link>
+              <Link href="/">{getUIText('checkout_home', language)}</Link>
             </Button>
           </div>
         </CardContent>

@@ -5,6 +5,9 @@ import {
 import {
   normalizeThbPerUnitRate,
   thbPerRubFromRubPerThb,
+  smokeDefaultThbPerRub,
+  isLikelySmokeDefaultRubThbPerUnit,
+  isRubUsdCrossRateAnomaly,
 } from '@/lib/finance/thb-per-unit-rate.js'
 import { formatPrice } from '@/lib/currency.js'
 
@@ -30,5 +33,15 @@ describe('thb-per-unit-rate RUB inversion guard', () => {
     const rates = { RUB: 2.8 }
     const formatted = formatPrice(575, 'RUB', rates, 'ru')
     expect(formatted).toMatch(/₽1[\s\u00a0]?[23]\d{2}/)
+  })
+
+  it('detects smoke-default RUB thb-per-unit fingerprint', () => {
+    expect(isLikelySmokeDefaultRubThbPerUnit(smokeDefaultThbPerRub())).toBe(true)
+    expect(isLikelySmokeDefaultRubThbPerUnit(0.450036)).toBe(false)
+  })
+
+  it('detects RUB/USD cross anomaly from smoke RUB', () => {
+    expect(isRubUsdCrossRateAnomaly(32.658393, 0.357143)).toBe(true)
+    expect(isRubUsdCrossRateAnomaly(32.658393, 0.450036)).toBe(false)
   })
 })

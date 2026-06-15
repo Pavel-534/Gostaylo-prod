@@ -105,10 +105,12 @@ export function useUnifiedMessagesPeer({
       const inv = messages[i]?.metadata?.invoice
       if (!inv || String(inv.booking_id || '') !== String(booking.id)) continue
       if (String(inv.status || 'PENDING').toUpperCase() !== 'PENDING') continue
+      const invId = inv.id || messages[i]?.metadata?.invoice_id
+      if (!invId) continue
       const pm = String(inv.payment_method || 'CRYPTO').toUpperCase()
       const q =
         pm === 'CARD' || pm === 'CARD_INTL' ? 'CARD' : pm === 'MIR' || pm === 'CARD_RU' ? 'MIR' : 'CRYPTO'
-      return `/checkout/${encodeURIComponent(booking.id)}?pm=${q}`
+      return `/checkout/${encodeURIComponent(booking.id)}?invoiceId=${encodeURIComponent(String(invId))}&pm=${q}`
     }
     return null
   }, [messages, booking, isHosting])

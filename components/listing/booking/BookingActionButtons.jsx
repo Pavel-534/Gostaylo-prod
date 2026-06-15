@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { Button } from '@/components/ui/button'
+import { getUIText } from '@/lib/translations'
 import { ArrowRight, MessageCircle } from 'lucide-react'
 
 function ChatPreviewBadge({ preview, hasUnread, language }) {
@@ -128,7 +129,7 @@ export function BookingActionButtons({
           data-testid="booking-contact-host-unavailable"
         >
           <MessageCircle className="mr-2 h-4 w-4" />
-          {language === 'ru' ? 'Спросить у хозяина в чате' : 'Ask partner in chat'}
+          {language === 'ru' ? 'Спросить у хозяина в чате' : getUIText('listingDetail_askPartnerChat', language)}
         </Button>
       )}
 

@@ -89,7 +89,13 @@ function CheckoutPageInner({ params: paramsProp }) {
     return <CheckoutUnavailableView language={c.language} />
   }
   if (p.paymentSuccess) {
-    const chatHref = p.chatConversationId ? `/messages/${encodeURIComponent(p.chatConversationId)}` : null
+    const chatBase = p.chatConversationId
+      ? `/messages/${encodeURIComponent(p.chatConversationId)}`
+      : null
+    const chatHref =
+      chatBase && invoiceIdParam
+        ? `${chatBase}?invoicePaid=${encodeURIComponent(invoiceIdParam)}`
+        : chatBase
     return <CheckoutSuccessView language={c.language} chatHref={chatHref} />
   }
   if (p.paymentReturnVerifying) {

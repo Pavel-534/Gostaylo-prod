@@ -18,13 +18,14 @@ const DealDetailsCard = nextDynamic(
 /**
  * Right column: listing + booking summary (deal card).
  */
-export function BookingInfoSidebar({ listing, booking, language, onOpenCalendar, className }) {
+export function BookingInfoSidebar({ listing, booking, language, isHosting = false, onOpenCalendar, className }) {
   if (!listing && !booking) return null
   return (
     <DealDetailsCard
       listing={listing}
       booking={booking}
       language={language}
+      isHosting={isHosting}
       className={className}
       onOpenCalendar={onOpenCalendar}
     />

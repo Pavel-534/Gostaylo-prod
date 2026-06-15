@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
 import { Archive, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -59,6 +59,8 @@ const PartnerChatCalendarPeek = nextDynamic(
 
 export default function UnifiedMessagesClient({ params }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const invoicePaidParam = searchParams.get('invoicePaid')
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const { markConversationRead: markGlobalRead, typingByConversation } = useChatContext()
@@ -100,6 +102,7 @@ export default function UnifiedMessagesClient({ params }) {
   )
 
   const markNowRef = useRef(null)
+  const invoicePaidHandledRef = useRef(null)
   const thread = useUnifiedMessagesThread({
     conversationId,
     user,
@@ -148,6 +151,7 @@ export default function UnifiedMessagesClient({ params }) {
 
   useEffect(() => {
     setPayBarSuppressed(false)
+    invoicePaidHandledRef.current = null
   }, [conversationId, booking?.id])
 
   useEffect(() => {
@@ -211,6 +215,29 @@ export default function UnifiedMessagesClient({ params }) {
     discardVoice,
     setVoiceSending,
   })
+
+  useEffect(() => {
+    if (!invoicePaidParam || threadLoading || !messages.length) return
+    if (invoicePaidHandledRef.current === invoicePaidParam) return
+    const targetId = String(invoicePaidParam)
+    const match = messages.find((m) => {
+      const inv = m.metadata?.invoice
+      const invId = inv?.id || m.metadata?.invoice_id
+      return invId && String(invId) === targetId
+    })
+    if (!match) return
+    const st = String(match.metadata?.invoice?.status || 'PENDING').toUpperCase()
+    if (st !== 'PAID') {
+      outbound.onInvoicePaid(match.id)
+    }
+    invoicePaidHandledRef.current = invoicePaidParam
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('invoicePaid')
+      const next = `${url.pathname}${url.search}${url.hash}`
+      router.replace(next, { scroll: false })
+    }
+  }, [invoicePaidParam, messages, threadLoading, outbound, router])
 
   const { handleInboxTabChange, handleConversationSelect } = useUnifiedMessagesNavigation({
     router,
@@ -394,6 +421,7 @@ export default function UnifiedMessagesClient({ params }) {
       listing={listing}
       booking={booking}
       language={language}
+      isHosting={isHosting}
       className="min-h-0"
       onOpenCalendar={listingIdForCalendar ? () => setCalendarOpen(true) : undefined}
     />
@@ -443,6 +471,7 @@ export default function UnifiedMessagesClient({ params }) {
               isHosting={isHosting}
               partnerInquiryActions={bookingActions.partnerInquiryActionsForMilestone}
               onInvoiceCancelled={outbound.onInvoiceCancelled}
+              onInvoicePaid={outbound.onInvoicePaid}
             />
           }
           composerSlot={

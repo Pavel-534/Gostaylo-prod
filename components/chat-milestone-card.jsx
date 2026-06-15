@@ -161,6 +161,14 @@ const MILESTONE_CFG = {
     textColor: 'text-amber-900',
     label: { ru: 'Официальный спор открыт', en: 'Official dispute opened' },
   },
+  dispute_mediation_started: {
+    icon: Clock,
+    bg: 'bg-brand/5',
+    border: 'border-brand/25',
+    iconColor: 'text-brand',
+    textColor: 'text-brand-navy',
+    label: { ru: 'Окно медиации', en: 'Mediation window' },
+  },
   capacity_price_inquiry: {
     icon: Bell,
     bg: 'bg-white',
@@ -188,10 +196,25 @@ const MILESTONE_CFG = {
 }
 
 function getConfig(systemKey, meta, _lang) {
-  // booking_announcement доминирует
-  if (meta?.booking_announcement) return MILESTONE_CFG.booking_announcement
   const key = systemKey || '_default'
-  return MILESTONE_CFG[key] || MILESTONE_CFG._default
+  if (key !== '_default' && MILESTONE_CFG[key]) return MILESTONE_CFG[key]
+  if (meta?.booking_announcement) return MILESTONE_CFG.booking_announcement
+  return MILESTONE_CFG._default
+}
+
+function resolveAnnouncementCopy(meta, language, fallbackBody) {
+  const l =
+    language === 'en' ? 'en' : language === 'zh' ? 'zh' : language === 'th' ? 'th' : 'ru'
+  const title =
+    (l === 'ru' ? meta?.announcement_title : meta?.[`announcement_title_${l}`]) ||
+    meta?.announcement_title ||
+    null
+  const body =
+    (l === 'ru' ? meta?.announcement_body : meta?.[`announcement_body_${l}`]) ||
+    meta?.announcement_body ||
+    fallbackBody ||
+    null
+  return { title, body }
 }
 
 // ─── Компонент ────────────────────────────────────────────────────────────────
@@ -207,7 +230,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
   const sk = meta.system_key
   const cfg = getConfig(sk, meta, language)
   const Icon = cfg.icon
-  const lang = language === 'en' ? 'en' : 'ru'
+  const lang = language === 'en' ? 'en' : language === 'zh' ? 'zh' : language === 'th' ? 'th' : 'ru'
 
   const isInquirySystem =
     sk === 'capacity_price_inquiry' || sk === 'private_special_deal_inquiry'
@@ -216,7 +239,13 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
   const showMilestoneHostDecision =
     isInquirySystem || sk === 'booking_created'
 
-  // Текст — для inquiry: локализованные поля из metadata; иначе meta.text / content
+  const rawFallback =
+    meta.text || meta.message || message.content || message.message || null
+
+  const announcement = meta?.booking_announcement
+    ? resolveAnnouncementCopy(meta, language, rawFallback)
+    : { title: null, body: rawFallback }
+
   const bodyText = isInquirySystem
     ? (lang === 'en' ? meta.inquiry_body_en : meta.inquiry_body_ru) ||
       meta.text ||
@@ -224,11 +253,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
       message.content ||
       message.message ||
       null
-    : meta.text ||
-      meta.message ||
-      message.content ||
-      message.message ||
-      null
+    : announcement.body
   const roleAwareBodyText =
     sk === 'booking_confirmed' && userRole === 'partner'
       ? (lang === 'ru'
@@ -292,7 +317,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
               </p>
             ) : null}
             <p className={cn('text-[11px] font-bold uppercase tracking-wide', cfg.textColor)}>
-              {cfg.label[lang]}
+              {announcement.title || cfg.label[lang] || cfg.label.ru}
             </p>
             {roleAwareBodyText && (
               <p className="text-sm leading-snug text-slate-700 whitespace-pre-wrap">{roleAwareBodyText}</p>

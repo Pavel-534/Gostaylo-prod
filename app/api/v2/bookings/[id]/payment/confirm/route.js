@@ -119,6 +119,52 @@ export async function POST(request, { params }) {
     }
 
     if (booking.status === 'PAID_ESCROW') {
+      const resolvedInvoiceIdEarly =
+        invoiceId || resolvedIntent?.invoiceId || null
+      if (resolvedInvoiceIdEarly) {
+        const intentIdForMark = effectiveIntentId || resolvedIntent?.id || null
+        if (!gate.skipClientMarkPaid && intentIdForMark) {
+          const paidSource =
+            gate.mode === 'crypto_tx_verified' ? 'verify_tron_api' : 'payment_confirm'
+          const marked = await PaymentIntentService.markPaid(intentIdForMark, {
+            txId: txId || null,
+            gatewayRef: gatewayRef || null,
+            source: paidSource,
+            raw: gate.tron || null,
+          })
+          if (!marked.success) {
+            return NextResponse.json(
+              { success: false, error: marked.error || 'Failed to mark intent paid' },
+              { status: 502 },
+            )
+          }
+        }
+
+        const invoiceEffect = await applyInvoicePostPaymentEffects({
+          bookingId,
+          invoiceId: resolvedInvoiceIdEarly,
+          txId: txId || null,
+          gatewayRef: gatewayRef || null,
+          source: gate.skipClientMarkPaid
+            ? 'payment_confirm_gateway_sync'
+            : 'payment_confirm_post_escrow',
+        })
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            bookingId,
+            status: 'PAID_ESCROW',
+            alreadyEscrowed: true,
+            postEscrowInvoice: true,
+            transactionId: txId,
+            confirmedAt: new Date().toISOString(),
+            invoiceEffect,
+            confirmMode: gate.mode,
+          },
+        })
+      }
+
       return NextResponse.json({
         success: true,
         data: {
@@ -128,7 +174,7 @@ export async function POST(request, { params }) {
           transactionId: txId,
           confirmedAt: new Date().toISOString(),
         },
-      });
+      })
     }
 
     if (!PAYMENT_CONFIRM_ALLOWED.has(booking.status)) {

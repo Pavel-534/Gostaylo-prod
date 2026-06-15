@@ -27,10 +27,10 @@ const STR = {
     sub: 'Мы объединяем арендодателей и путешественников по всему миру в одну прозрачную экосистему — виллы, яхты, транспорт и туры в пару тапов.',
     principlesH2: 'Что для нас важно',
     principles: [
-      { title: 'Прозрачность', desc: 'Без скрытых комиссий и комиссионеров. Только проверенные партнёры.' },
+      { title: 'Прозрачность', desc: 'Без скрытых комиссий и посредников. Только проверенные арендодатели.' },
       { title: 'Забота о гостях', desc: 'Проверяем объекты, чтобы аренда была понятной и без лишних сюрпризов.' },
       { title: 'Безопасность', desc: 'Escrow-защита платежей и круглосуточная поддержка на 4 языках.' },
-      { title: 'Глобальный охват', desc: 'Гости и партнёры со всего мира — Россия, Таиланд, Бали, Дубай и далее.' },
+      { title: 'Глобальный охват', desc: 'Гости и арендодатели со всего мира — Россия, Таиланд, Бали, Дубай и далее.' },
     ],
     storyH2: 'Наша история',
     storyParas: [
@@ -50,7 +50,7 @@ const STR = {
     sub: 'We connect property hosts and travelers worldwide into one transparent ecosystem — villas, yachts, vehicles, and tours in just a few taps.',
     principlesH2: 'What we care about',
     principles: [
-      { title: 'Transparency', desc: 'No hidden fees or middlemen. Verified partners only.' },
+      { title: 'Transparency', desc: 'No hidden fees or middlemen. Verified hosts only.' },
       { title: 'Guest-first service', desc: 'We verify listings so renting feels clear and hassle-free.' },
       { title: 'Safety', desc: 'Escrow-protected payments and 24/7 support in 4 languages.' },
       { title: 'Global reach', desc: 'Guests and hosts worldwide — Russia, Thailand, Bali, Dubai and beyond.' },
@@ -73,7 +73,7 @@ const STR = {
     sub: '我们将全球房东与旅客联结成一个透明的生态系统 — 别墅、游艇、车辆和旅行体验，只需几次点击。',
     principlesH2: '我们重视的事',
     principles: [
-      { title: '透明', desc: '无隐藏费用和中介。仅限经认证的合作伙伴。' },
+      { title: '透明', desc: '无隐藏费用和中介。仅限经认证的房东。' },
       { title: '精品服务', desc: '我们精选每一个房源，让租赁保持为一次体验而非简单交易。' },
       { title: '安全', desc: '托管支付保护，全天候 4 种语言支持。' },
       { title: '全球覆盖', desc: '来自世界各地的客人和房东 — 俄罗斯、泰国、巴厘岛、迪拜等。' },
@@ -96,7 +96,7 @@ const STR = {
     sub: 'เราเชื่อมโยงเจ้าของที่พักและนักเดินทางทั่วโลกเข้าด้วยกันในระบบที่โปร่งใส — วิลล่า เรือยอชต์ ยานพาหนะ และทัวร์ ในไม่กี่คลิก',
     principlesH2: 'สิ่งที่เราใส่ใจ',
     principles: [
-      { title: 'ความโปร่งใส', desc: 'ไม่มีค่าธรรมเนียมแฝงหรือคนกลาง พาร์ทเนอร์ที่ตรวจสอบแล้วเท่านั้น' },
+      { title: 'ความโปร่งใส', desc: 'ไม่มีค่าธรรมเนียมแฝงหรือคนกลาง เฉพาะเจ้าของที่ตรวจสอบแล้วเท่านั้น' },
       { title: 'ดูแลผู้เช่า', desc: 'เราตรวจสอบที่พักเพื่อให้การเช่าเข้าใจง่ายและไม่มีความเสี่ยงที่ไม่คาดคิด' },
       { title: 'ความปลอดภัย', desc: 'การชำระเงินผ่านเอสโครว์ พร้อมการสนับสนุน 24/7 ใน 4 ภาษา' },
       { title: 'ครอบคลุมทั่วโลก', desc: 'แขกและเจ้าของจากทั่วโลก — รัสเซีย ไทย บาหลี ดูไบ และอื่น ๆ' },

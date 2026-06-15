@@ -22,8 +22,8 @@ import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFina
 import { fetchPartnerCalendar } from '@/lib/api/partner-calendar-client'
 import { fetchPartnerBookingById } from '@/lib/api/partner-bookings-client'
 
-/** Кнопка «Финансы брони» только при наличии read-model в треде (нет снапшота — старые тестовые брони). */
-function hasUsableFinancialSnapshot(snap) {
+/** Full read-model from partner bookings API (`buildBookingFinancialSnapshotFromRow`). */
+function isFullFinancialSnapshot(snap) {
   if (snap == null || typeof snap !== 'object' || Array.isArray(snap)) return false
   return (
     snap.partnerPayoutThb != null ||
@@ -31,6 +31,21 @@ function hasUsableFinancialSnapshot(snap) {
     snap.gross != null ||
     snap.fee != null
   )
+}
+
+/** Lightweight enrich from chat `?enrich=1` (`enrichBookingFinancialSnapshot`). */
+function isLightweightFinancialSnapshot(snap) {
+  if (snap == null || typeof snap !== 'object' || Array.isArray(snap)) return false
+  return (
+    snap.partner_earnings_thb != null ||
+    snap.commission_thb != null ||
+    snap.guest_total_thb != null
+  )
+}
+
+/** Кнопка «Финансы брони» при любом usable snapshot (full или lightweight). */
+function hasUsableFinancialSnapshot(snap) {
+  return isFullFinancialSnapshot(snap) || isLightweightFinancialSnapshot(snap)
 }
 
 /**
@@ -127,10 +142,16 @@ export function PartnerChatCalendarPeek({
     if (!bookingId) return
     setFinanceError(null)
     setFinanceOpen(true)
-    if (financialSnapshotInitial && typeof financialSnapshotInitial === 'object') {
+
+    if (
+      financialSnapshotInitial &&
+      typeof financialSnapshotInitial === 'object' &&
+      isFullFinancialSnapshot(financialSnapshotInitial)
+    ) {
       setFinanceSnapshot(financialSnapshotInitial)
       return
     }
+
     setFinanceLoading(true)
     setFinanceSnapshot(null)
     try {

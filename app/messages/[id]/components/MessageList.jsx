@@ -24,6 +24,7 @@ export function MessageList({
   isHosting,
   partnerInquiryActions,
   onInvoiceCancelled,
+  onInvoicePaid,
 }) {
   return (
     <>
@@ -58,6 +59,7 @@ export function MessageList({
           listing={listing}
           partnerInquiryActions={partnerInquiryActions}
           onInvoiceCancelled={onInvoiceCancelled}
+          onInvoicePaid={onInvoicePaid}
         />
       )}
     </>

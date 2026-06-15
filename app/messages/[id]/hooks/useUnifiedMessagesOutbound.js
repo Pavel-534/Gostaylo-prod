@@ -174,6 +174,25 @@ export function useUnifiedMessagesOutbound({
     [setMessages],
   )
 
+  const onInvoicePaid = useCallback(
+    (msgId) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId
+            ? {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  invoice: { ...m.metadata?.invoice, status: 'PAID' },
+                },
+              }
+            : m,
+        ),
+      )
+    },
+    [setMessages],
+  )
+
   return {
     handleSendText,
     handleSendVoice,
@@ -182,5 +201,6 @@ export function useUnifiedMessagesOutbound({
     handleAttachFile,
     handleGuestVoiceBlobSend,
     onInvoiceCancelled,
+    onInvoicePaid,
   }
 }

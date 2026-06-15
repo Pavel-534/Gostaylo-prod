@@ -54,6 +54,58 @@ function idempotentPaidBookingResponse(booking) {
   });
 }
 
+/**
+ * Post-escrow extension invoice: booking already in capture pipeline, intent carries invoiceId.
+ */
+async function tryPostEscrowInvoiceFromWebhook({
+  booking,
+  bookingId,
+  intentIdFromPayload,
+  gatewayRef,
+  json,
+}) {
+  if (!isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+    return null;
+  }
+
+  const { intent, error: intentResolveError } = await resolvePaymentIntentForWebhook({
+    bookingId,
+    intentIdFromPayload,
+    paymentIdFromPayload: null,
+  });
+  if (intentResolveError || !intent?.invoiceId) return null;
+
+  const marked = await PaymentIntentService.markPaid(intent.id, {
+    source: 'payment_acquiring_webhook_post_escrow',
+    gatewayRef: gatewayRef || null,
+    raw: json,
+  });
+  if (!marked.success) {
+    console.warn('[payments/confirm] post-escrow markPaid:', marked.error);
+  }
+
+  const invoiceEffect = await applyInvoicePostPaymentEffects({
+    bookingId,
+    invoiceId: intent.invoiceId,
+    txId: null,
+    gatewayRef: gatewayRef || null,
+    source: 'payment_acquiring_webhook_post_escrow',
+  });
+
+  const status = String(booking.status || '').toUpperCase();
+  return NextResponse.json({
+    success: true,
+    bookingId,
+    intentId: intent.id,
+    idempotent: true,
+    alreadyProcessed: true,
+    postEscrowInvoice: true,
+    bookingStatus: status,
+    ...(status === 'PAID_ESCROW' ? { alreadyEscrowed: true } : {}),
+    invoiceEffect,
+  });
+}
+
 function parsePayload(json, adapterKey) {
   if (json?.object?.metadata && json.object?.amount) {
     const md = json.object.metadata;
@@ -339,6 +391,14 @@ export async function POST(request) {
   }
 
   if (isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+    const postEscrow = await tryPostEscrowInvoiceFromWebhook({
+      booking,
+      bookingId,
+      intentIdFromPayload: intentId,
+      gatewayRef,
+      json,
+    });
+    if (postEscrow) return postEscrow;
     return idempotentPaidBookingResponse(booking);
   }
 
@@ -517,6 +577,27 @@ export async function POST(request) {
     .eq('id', bookingId)
     .maybeSingle();
   if (bookingAfterMark && isPaymentAcquiringWebhookIdempotentBookingStatus(bookingAfterMark.status)) {
+    if (intent.invoiceId) {
+      const invoiceEffect = await applyInvoicePostPaymentEffects({
+        bookingId,
+        invoiceId: intent.invoiceId,
+        txId: null,
+        gatewayRef,
+        source: 'payment_acquiring_webhook_post_escrow',
+      });
+      const status = String(bookingAfterMark.status || '').toUpperCase();
+      return NextResponse.json({
+        success: true,
+        intentId: intent.id,
+        bookingId,
+        idempotent: true,
+        alreadyProcessed: true,
+        postEscrowInvoice: true,
+        bookingStatus: status,
+        ...(status === 'PAID_ESCROW' ? { alreadyEscrowed: true } : {}),
+        invoiceEffect,
+      });
+    }
     return idempotentPaidBookingResponse(bookingAfterMark);
   }
 
