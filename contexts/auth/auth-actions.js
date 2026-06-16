@@ -132,7 +132,8 @@ export function useAuthActions(params) {
         const stayOnCurrentPage =
           currentPath.startsWith('/partner/') ||
           currentPath.startsWith('/admin/') ||
-          currentPath.startsWith('/renter/')
+          currentPath.startsWith('/renter/') ||
+          currentPath.startsWith('/listings/')
         const customRedirect =
           savedRedirect || stayOnCurrentPage ? safeInternalPath(savedRedirect || currentPath, '/') : null
 

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
@@ -19,7 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
-import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
+import { getHostMoneyStage, getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
 import { brandMintHex } from '@/lib/theme/tokens'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
 import PartnerHostVerificationBanner from '@/components/partner/PartnerHostVerificationBanner'
@@ -43,6 +44,7 @@ import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { GSL_CARD } from '@/lib/theme/product-ui'
 
 export default function PartnerDashboardPageContent() {
+  const router = useRouter()
   const {
     language,
     partnerId,
@@ -330,7 +332,8 @@ export default function PartnerDashboardPageContent() {
                 </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                {getHostMoneyStage('PAID_ESCROW', language)?.eta ||
+                {getHostMoneyStage('PAID_ESCROW', language, { categorySlug: 'property' })?.eta ||
+                  getHostMoneyPolicyForListing({ categorySlug: 'property' }, language).protected ||
                   getUIText('partnerDashboard_futureIncomeDesc', language)}
               </p>
               <p className="text-xs font-medium text-brand-hover flex items-center gap-1">
@@ -501,6 +504,7 @@ export default function PartnerDashboardPageContent() {
       <WelcomePartnerModal
         isOpen={showWelcomeModal}
         onClose={() => setShowWelcomeModal(false)}
+        onStartListing={() => router.push('/partner/listings/new')}
         userName={userName}
       />
     </div>

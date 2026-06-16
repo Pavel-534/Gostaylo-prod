@@ -6,10 +6,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Clock, ArrowRight, Home, Mail } from 'lucide-react'
 import Link from 'next/link'
-import { getSiteDisplayName } from '@/lib/site-url'
+import { getSiteDisplayName, getSupportTelegramUrl } from '@/lib/site-url'
 
 export default function PartnerApplicationSuccessPage() {
   const router = useRouter()
+  const supportTelegramUrl = getSupportTelegramUrl()
   
   useEffect(() => {
     // Check if user came from application form
@@ -110,18 +111,19 @@ export default function PartnerApplicationSuccessPage() {
           </Button>
         </div>
 
-        {/* Support */}
-        <p className='text-center text-xs text-slate-500 mt-6'>
-          Вопросы? Напишите нам в{' '}
-          <a 
-            href='https://t.me/gostaylo_support' 
-            target='_blank' 
-            rel='noopener noreferrer'
-            className='text-teal-600 hover:underline'
-          >
-            Telegram
-          </a>
-        </p>
+        {supportTelegramUrl ? (
+          <p className='text-center text-xs text-slate-500 mt-6'>
+            Вопросы? Напишите нам в{' '}
+            <a
+              href={supportTelegramUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-teal-600 hover:underline'
+            >
+              Telegram
+            </a>
+          </p>
+        ) : null}
       </div>
 
       <style jsx global>{`

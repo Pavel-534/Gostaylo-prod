@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Loader2, Medal, Smartphone } from 'lucide-react'
 import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
-import { getSiteDisplayName } from '@/lib/site-url'
+import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 
 function round2Display(value) {
   const n = Number(value)
@@ -69,7 +69,7 @@ export function ReferralYourStatusCard({
       })
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `gostaylo-status-${Date.now()}.png`
+      a.download = `${getSiteBrandSlug()}-status-${Date.now()}.png`
       a.click()
     } catch (e) {
       console.warn('[ReferralYourStatusCard] share export:', e?.message || e)

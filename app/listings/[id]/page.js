@@ -34,7 +34,7 @@ function PremiumListingContent({ params }) {
   const { addToRecent } = useRecentlyViewed()
 
   const view = useListingViewData(params.id, { user, openLoginModal, addToRecent })
-  const { listing, reviews, loading, language, currency, exchangeRates, isFavorite, favoriteLoading, handleFavoriteClick } =
+  const { listing, reviews, loading, moderationPending, language, currency, exchangeRates, isFavorite, favoriteLoading, handleFavoriteClick } =
     view
 
   const booking = useListingBookingFlow({
@@ -110,6 +110,20 @@ function PremiumListingContent({ params }) {
   ) : null
 
   if (loading) return <ListingPageSkeleton />
+
+  if (moderationPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center max-w-md px-6">
+          <h2 className="text-2xl font-semibold mb-2">{getUIText('listingDetail_underModeration', language)}</h2>
+          <p className="text-slate-600 mb-6">{getUIText('listingDetail_underModerationDesc', language)}</p>
+          <Button onClick={() => router.push('/listings')} variant="outline">
+            {getUIText('listingDetail_backToListings', language)}
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   if (!listing) {
     return (

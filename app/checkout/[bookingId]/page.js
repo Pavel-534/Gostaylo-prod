@@ -16,6 +16,10 @@ import { PaymentMethods } from './components/PaymentMethods'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import {
+  getPayoutReleaseConfig,
+  getPayoutReleaseDisplayText,
+} from '@/lib/booking/payout-release-config.js'
+import {
   CheckoutFullPageSpinner,
   CheckoutCommissionSpinner,
   CheckoutAccessDeniedView,
@@ -85,18 +89,53 @@ function CheckoutPageInner({ params: paramsProp }) {
   if (p.accessDenied) {
     return <CheckoutAccessDeniedView language={c.language} />
   }
-  if (!p.booking || p.booking.status === 'CANCELLED') {
+  const bookingStatus = String(p.booking?.status || '').toUpperCase()
+  const bookingAlreadyPaid = ['PAID', 'PAID_ESCROW', 'COMPLETED'].includes(bookingStatus)
+  if (
+    !p.booking ||
+    bookingStatus === 'CANCELLED' ||
+    (!p.paymentSuccess &&
+      !p.paymentReturnVerifying &&
+      !p.paymentFailed &&
+      !isBookingPayable(bookingStatus) &&
+      !bookingAlreadyPaid)
+  ) {
     return <CheckoutUnavailableView language={c.language} />
   }
   if (p.paymentSuccess) {
     const chatBase = p.chatConversationId
       ? `/messages/${encodeURIComponent(p.chatConversationId)}`
       : null
-    const chatHref =
-      chatBase && invoiceIdParam
-        ? `${chatBase}?invoicePaid=${encodeURIComponent(invoiceIdParam)}`
-        : chatBase
-    return <CheckoutSuccessView language={c.language} chatHref={chatHref} />
+    const resolvedInvoiceId =
+      invoiceIdParam ||
+      p.invoice?.id ||
+      p.paymentIntent?.invoiceId ||
+      p.booking?.metadata?.invoiceId ||
+      null
+    const chatHref = chatBase
+      ? resolvedInvoiceId
+        ? `${chatBase}?invoicePaid=${encodeURIComponent(String(resolvedInvoiceId))}&fromPayment=1`
+        : `${chatBase}?fromPayment=1`
+      : null
+    const listingCategorySlug =
+      p.listing?.category_slug ||
+      p.booking?.listings?.category_slug ||
+      p.booking?.listings?.metadata?.category_slug ||
+      null
+    const escrowHint = listingCategorySlug
+      ? getPayoutReleaseDisplayText(
+          getPayoutReleaseConfig({ categorySlug: listingCategorySlug }),
+          c.language,
+          'protected',
+        )
+      : null
+    return (
+      <CheckoutSuccessView
+        language={c.language}
+        chatHref={chatHref}
+        escrowHint={escrowHint}
+      />
+    )
   }
   if (p.paymentReturnVerifying) {
     return <CheckoutPaymentReturnVerifyingView language={c.language} />

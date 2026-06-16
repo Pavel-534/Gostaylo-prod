@@ -10,6 +10,7 @@ import {
 } from './checkout-payment-intent-status.js'
 
 const POLL_MS = 2500
+const FAST_POLL_MS = 1000
 const MAX_POLLS = 12
 
 /**
@@ -115,7 +116,8 @@ export function useCheckoutPaymentReturn({
         finishFailed()
         return
       }
-      setTimeout(poll, POLL_MS)
+      const delay = polls === 1 ? FAST_POLL_MS : POLL_MS
+      setTimeout(poll, delay)
     }
 
     void poll()

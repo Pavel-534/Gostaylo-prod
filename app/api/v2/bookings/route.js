@@ -21,6 +21,7 @@ import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { resolveBookingListScope } from '@/lib/api/api-guard';
 import { resolveBookingCreateSession } from '@/lib/api/booking-create-guard';
+import { assertListingBookableForGuest } from '@/lib/listing/listing-booking-eligibility';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 
@@ -75,10 +76,13 @@ export async function POST(request) {
       return createScope.response;
     }
     const sessionRenterId = createScope.renterId;
-    const cookieStore = await cookies();
-    const uiLocale = normalizeUiLocaleCode(
-      parseResult.data.uiLocale || getLangFromRequest(cookieStore, request.headers),
-    );
+    let uiLocale
+    if (parseResult.data.uiLocale) {
+      uiLocale = normalizeUiLocaleCode(parseResult.data.uiLocale)
+    } else {
+      const cookieStore = await cookies()
+      uiLocale = normalizeUiLocaleCode(getLangFromRequest(cookieStore, request.headers))
+    }
     
     const {
       listingId,
@@ -104,9 +108,21 @@ export async function POST(request) {
 
     const { data: listingData } = await supabaseAdmin
       .from('listings')
-      .select('min_booking_days, max_booking_days, title, max_capacity, metadata, category_id, instant_booking')
+      .select('min_booking_days, max_booking_days, title, max_capacity, metadata, category_id, instant_booking, status, available, owner_id')
       .eq('id', listingId)
       .single();
+
+    if (!listingData) {
+      return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 });
+    }
+
+    const bookableGate = await assertListingBookableForGuest(listingData);
+    if (!bookableGate.ok) {
+      return NextResponse.json(
+        { success: false, error: bookableGate.error, code: bookableGate.code },
+        { status: bookableGate.code === 'HOST_PAYOUT_BLOCKED' ? 403 : 400 },
+      );
+    }
 
     let listingCategorySlug = '';
     if (listingData?.category_id) {

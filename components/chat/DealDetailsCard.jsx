@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
+import { readGuestPaymentDisplay } from '@/lib/booking/guest-payment-display.js'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget.jsx'
 
 const GUEST_ESCROW_STATUSES = new Set([
@@ -92,10 +93,7 @@ function resolveFinancialLines({ booking, isHosting, language }) {
 
   return {
     amountLabel: getUIText('dealCard_guestTotal', language),
-    amountLine:
-      guestTotal != null && guestTotal !== ''
-        ? `${Number(guestTotal).toLocaleString()} THB`
-        : '—',
+    amountLine: readGuestPaymentDisplay(booking, { language })?.displayAmount ?? '—',
     commissionLine: null,
     showEscrow: GUEST_ESCROW_STATUSES.has(String(booking?.status || '').toUpperCase()),
   }
@@ -127,7 +125,10 @@ export function DealDetailsCard({
   const status = booking?.status
 
   const financial = resolveFinancialLines({ booking, isHosting, language })
-  const hostMoney = isHosting && status ? getHostMoneyStage(status, language) : null
+  const hostMoney =
+    isHosting && status
+      ? getHostMoneyStage(status, language, { ...booking, listing })
+      : null
   const disputeSnapshot = resolveDisputeSnapshot(booking)
   const showDisputeWidget = Boolean(disputeSnapshot?.id && disputeSnapshot?.isActive)
 
@@ -210,9 +211,16 @@ export function DealDetailsCard({
                 </div>
               </div>
               {financial.showEscrow ? (
-                <div className="flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand/10 px-2 py-1.5 text-[11px] font-medium text-brand">
-                  <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {getUIText('dealCard_escrowProtected', language)}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand/10 px-2 py-1.5 text-[11px] font-medium text-brand">
+                    <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {getUIText('dealCard_escrowProtected', language)}
+                  </div>
+                  {!isHosting ? (
+                    <p className="text-[11px] text-slate-600 leading-snug px-0.5">
+                      {getUIText('dealCard_guestEscrowHint', language)}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </CardContent>

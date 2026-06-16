@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getUIText } from '@/lib/translations'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
@@ -100,7 +101,7 @@ export function useUnifiedMessagesPeer({
     if (isHosting || !booking?.id) return null
     const st = String(booking.status || '').toUpperCase()
     if (['CANCELLED', 'REFUNDED', 'COMPLETED', 'PAID', 'PAID_ESCROW'].includes(st)) return null
-    if (st !== 'CONFIRMED') return null
+    if (!isBookingPayable(st)) return null
     for (let i = messages.length - 1; i >= 0; i--) {
       const inv = messages[i]?.metadata?.invoice
       if (!inv || String(inv.booking_id || '') !== String(booking.id)) continue
@@ -112,7 +113,7 @@ export function useUnifiedMessagesPeer({
         pm === 'CARD' || pm === 'CARD_INTL' ? 'CARD' : pm === 'MIR' || pm === 'CARD_RU' ? 'MIR' : 'CRYPTO'
       return `/checkout/${encodeURIComponent(booking.id)}?invoiceId=${encodeURIComponent(String(invId))}&pm=${q}`
     }
-    return null
+    return `/checkout/${encodeURIComponent(booking.id)}`
   }, [messages, booking, isHosting])
 
   return {

@@ -61,6 +61,7 @@ export default function UnifiedMessagesClient({ params }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const invoicePaidParam = searchParams.get('invoicePaid')
+  const fromPaymentParam = searchParams.get('fromPayment')
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const { markConversationRead: markGlobalRead, typingByConversation } = useChatContext()
@@ -103,6 +104,7 @@ export default function UnifiedMessagesClient({ params }) {
 
   const markNowRef = useRef(null)
   const invoicePaidHandledRef = useRef(null)
+  const paymentRefreshHandledRef = useRef(false)
   const thread = useUnifiedMessagesThread({
     conversationId,
     user,
@@ -152,7 +154,50 @@ export default function UnifiedMessagesClient({ params }) {
   useEffect(() => {
     setPayBarSuppressed(false)
     invoicePaidHandledRef.current = null
+    paymentRefreshHandledRef.current = false
   }, [conversationId, booking?.id])
+
+  useEffect(() => {
+    const fromPayment = fromPaymentParam === '1'
+    const invoicePaidFlag = invoicePaidParam === '1'
+    const invoicePaidId =
+      invoicePaidParam && invoicePaidParam !== '1' ? String(invoicePaidParam) : null
+    const needsPaymentRefresh = fromPayment || invoicePaidFlag || Boolean(invoicePaidId)
+    if (!needsPaymentRefresh || paymentRefreshHandledRef.current) return
+    paymentRefreshHandledRef.current = true
+
+    setPayBarSuppressed(true)
+    if (!isHosting) {
+      setBooking((prev) => {
+        if (!prev) return prev
+        const st = String(prev.status || '').toUpperCase()
+        if (['PAID_ESCROW', 'PAID', 'COMPLETED', 'CANCELLED', 'REFUNDED'].includes(st)) {
+          return prev
+        }
+        return { ...prev, status: 'PAID_ESCROW' }
+      })
+    }
+    toast.success(getUIText('checkout_toast_paymentOk', language))
+
+    void (async () => {
+      await reloadThread()
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        if (fromPayment) url.searchParams.delete('fromPayment')
+        if (invoicePaidFlag) url.searchParams.delete('invoicePaid')
+        const next = `${url.pathname}${url.search}${url.hash}`
+        router.replace(next, { scroll: false })
+      }
+    })()
+  }, [
+    fromPaymentParam,
+    invoicePaidParam,
+    isHosting,
+    language,
+    reloadThread,
+    router,
+    setBooking,
+  ])
 
   useEffect(() => {
     if (!messages.length || safetyWarningShown) return
@@ -217,7 +262,7 @@ export default function UnifiedMessagesClient({ params }) {
   })
 
   useEffect(() => {
-    if (!invoicePaidParam || threadLoading || !messages.length) return
+    if (!invoicePaidParam || invoicePaidParam === '1' || threadLoading || !messages.length) return
     if (invoicePaidHandledRef.current === invoicePaidParam) return
     const targetId = String(invoicePaidParam)
     const match = messages.find((m) => {

@@ -5,7 +5,7 @@
  * Data: `hooks/usePartnerFinances.js`. UI: `components/partner/finances/*`.
  */
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, AlertTriangle, FileText } from 'lucide-react'
@@ -28,6 +28,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import {
+  getPayoutReleaseConfig,
+  getPayoutReleaseUiTexts,
+  inferDominantCategorySlug,
+} from '@/lib/booking/payout-release-config'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 function PartnerFinancesV2Content() {
   const fin = usePartnerFinances()
@@ -95,6 +101,14 @@ function PartnerFinancesV2Content() {
     loadDocumentsCount()
   }, [loadDocumentsCount])
 
+  const payoutPolicyTexts = useMemo(() => {
+    const slug = inferDominantCategorySlug(bookings)
+    const config = getPayoutReleaseConfig({ categorySlug: slug })
+    return getPayoutReleaseUiTexts(config, language)
+  }, [bookings, language])
+
+  const brandName = getSiteDisplayName()
+
   return (
     <div className="space-y-8 min-w-0 max-w-full">
       <PartnerFinancesHeader
@@ -102,9 +116,13 @@ function PartnerFinancesV2Content() {
         balanceBreakdown={balanceBreakdown}
         bookingsLength={bookings.length}
         onExportCsv={handleExportCSV}
+        escrowCardDesc={payoutPolicyTexts.escrowCard}
       />
 
-      <PartnerConciergePayoutBanner t={t} />
+      <PartnerConciergePayoutBanner
+        t={t}
+        body={payoutPolicyTexts.conciergePayoutBody?.replace(/\{brand\}/g, brandName)}
+      />
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
@@ -141,6 +159,8 @@ function PartnerFinancesV2Content() {
         t={t}
         summary={financesSummary}
         loading={summaryLoadingCombined}
+        thawHoldHint={payoutPolicyTexts.thawHoldShort}
+        escrowHint={payoutPolicyTexts.protected}
       />
 
       <PartnerFinancesPdfCard
@@ -255,7 +275,7 @@ function PartnerFinancesV2Content() {
             <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
               <h4 className="font-semibold text-blue-900 mb-1">{t('howPayoutsWork')}</h4>
-              <p className="text-sm text-blue-700">{t('payoutsInfo')}</p>
+              <p className="text-sm text-blue-700">{payoutPolicyTexts.payoutsInfo}</p>
             </div>
           </div>
         </CardContent>

@@ -21,6 +21,11 @@ import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
+import { useAuthModalState } from '@/hooks/useAuthModalState'
+
+const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
+const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
+const BOOKING_MODAL_INTENT_KEY = 'gostaylo_booking_modal_intent'
 
 /**
  * PDP: dates in URL, availability polling, commission/pricing, booking modal + POST /api/v2/bookings.
@@ -37,6 +42,61 @@ export function useListingBookingFlow({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const urlBookingSyncEnabledRef = useRef(false)
+
+  const persistBookingAuthContext = useCallback(
+    (intent = 'book') => {
+      try {
+        const qs = searchParams?.toString?.() || ''
+        const href = qs ? `${pathname}?${qs}` : pathname || '/'
+        sessionStorage.setItem(REDIRECT_AFTER_LOGIN_KEY, href)
+        sessionStorage.setItem(BOOKING_MODAL_INTENT_KEY, intent || 'book')
+        sessionStorage.setItem(BOOKING_MODAL_RESUME_KEY, '1')
+      } catch {
+        /* non-critical */
+      }
+    },
+    [pathname, searchParams],
+  )
+
+  const openLoginForBooking = useCallback(
+    (intent = 'book') => {
+      persistBookingAuthContext(intent)
+      openLoginModal()
+    },
+    [openLoginModal, persistBookingAuthContext],
+  )
+
+  useAuthModalState({
+    onClose: (outcome) => {
+      if (outcome !== 'success') return
+      try {
+        if (sessionStorage.getItem(BOOKING_MODAL_RESUME_KEY) !== '1') return
+        const savedIntent = sessionStorage.getItem(BOOKING_MODAL_INTENT_KEY) || 'book'
+        const intent =
+          savedIntent === 'private' || savedIntent === 'special' ? savedIntent : 'book'
+        setBookingModalIntent(intent)
+        setBookingModalOpen(true)
+      } catch {
+        /* non-critical */
+      }
+    },
+  })
+
+  useEffect(() => {
+    if (!user) return
+    try {
+      if (sessionStorage.getItem(BOOKING_MODAL_RESUME_KEY) !== '1') return
+      sessionStorage.removeItem(BOOKING_MODAL_RESUME_KEY)
+      const savedIntent = sessionStorage.getItem(BOOKING_MODAL_INTENT_KEY) || 'book'
+      sessionStorage.removeItem(BOOKING_MODAL_INTENT_KEY)
+      const intent =
+        savedIntent === 'private' || savedIntent === 'special' ? savedIntent : 'book'
+      setBookingModalIntent(intent)
+      setBookingModalOpen(true)
+    } catch {
+      /* non-critical */
+    }
+  }, [user])
 
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -324,7 +384,7 @@ export function useListingBookingFlow({
       e.preventDefault()
 
       if (!user) {
-        openLoginModal()
+        openLoginForBooking(bookingModalIntent)
         return
       }
 
@@ -457,7 +517,7 @@ export function useListingBookingFlow({
       guests,
       priceCalc,
       language,
-      openLoginModal,
+      openLoginForBooking,
       router,
     ],
   )

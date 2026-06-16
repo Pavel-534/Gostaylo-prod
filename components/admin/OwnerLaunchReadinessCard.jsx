@@ -18,6 +18,7 @@ import {
   Info,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { getSiteBrandSlug } from '@/lib/site-url'
 import {
   postFintechSmokeFinancialRun,
   postFintechPreparePause,
@@ -111,7 +112,7 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `gostaylo-pause-package-${new Date().toISOString().slice(0, 10)}.zip`
+        a.download = `${getSiteBrandSlug()}-pause-package-${new Date().toISOString().slice(0, 10)}.zip`
         a.click()
         URL.revokeObjectURL(url)
       }

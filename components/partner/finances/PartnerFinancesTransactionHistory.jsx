@@ -99,7 +99,7 @@ export function PartnerFinancesTransactionHistory({
                       />
                       {(() => {
                         const st = resolveBookingStatusBadge(booking, { t })
-                        const moneyStage = getHostMoneyStage(st.uiStatus, language)
+                        const moneyStage = getHostMoneyStage(st.uiStatus, language, booking)
                         return (
                           <>
                             <Badge

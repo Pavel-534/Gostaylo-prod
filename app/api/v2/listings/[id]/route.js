@@ -14,6 +14,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
+import { resolveListingPublicGuestAccess } from '@/lib/listing/listing-public-guest-gate'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 import { ReputationService } from '@/lib/services/reputation.service'
@@ -90,8 +91,30 @@ export async function GET(request, context) {
         error: 'Listing not found' 
       }, { status: 404 });
     }
+
+    const session = await getSessionPayload()
+    const viewerId = session?.userId ? String(session.userId) : null
+    const viewerRole = String(session?.role || '').toUpperCase()
+    const guestAccess = resolveListingPublicGuestAccess({
+      listing,
+      viewerId,
+      viewerRole,
+    })
+    if (!guestAccess.allowed) {
+      const isModeration = guestAccess.code === 'LISTING_UNDER_MODERATION'
+      return NextResponse.json(
+        {
+          success: false,
+          error: isModeration
+            ? 'This listing is under moderation'
+            : 'Listing not found',
+          code: guestAccess.code,
+        },
+        { status: guestAccess.httpStatus },
+      )
+    }
     
-    // Increment views (non-blocking)
+    // Increment views (non-blocking) — only for publicly visible listings
     supabaseAdmin
       .from('listings')
       .update({ views: (listing.views || 0) + 1 })
@@ -197,9 +220,6 @@ export async function GET(request, context) {
       console.warn('[LISTING GET] catalog promo', e?.message)
     }
 
-    const session = await getSessionPayload()
-    const viewerId = session?.userId ? String(session.userId) : null
-    const viewerRole = String(session?.role || '').toUpperCase()
     const canSeeOwnerPii =
       viewerId &&
       (viewerId === String(listing.owner_id) || isStaffRole(viewerRole))

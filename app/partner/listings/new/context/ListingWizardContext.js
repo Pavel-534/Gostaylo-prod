@@ -91,6 +91,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     handleMapSelect: actions.handleMapSelect,
     coordsValid: derived.coordsValid,
     pricingPreview: derived.pricingPreview,
+    draftListingIdRef: state.draftListingIdRef,
     resolveListingIdForUpload: actions.resolveListingIdForUpload,
     handleImageUpload: actions.handleImageUpload,
     removeImage: actions.removeImage,

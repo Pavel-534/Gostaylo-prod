@@ -11,6 +11,7 @@ import {
   filterOccupancyRangesByEndDate,
 } from '@/lib/services/ical-calendar-blocks-sync'
 import { readSystemSettingsByKeys, upsertSystemSetting } from '@/lib/admin/system-settings-store'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 /**
  * GoStayLo - iCal Sync API Endpoint
@@ -374,7 +375,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      service: 'GoStayLo iCal Sync',
+      service: `${getSiteDisplayName()} iCal Sync`,
       status,
       settings,
     })

@@ -17,6 +17,7 @@ import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/curr
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
 import { validateListingPublishQuality } from '@/lib/partner/listing-quality-gates.js';
 import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
+import { listingBasePriceSchema } from '@/lib/validations/listing';
 
 export const dynamic = 'force-dynamic';
 
@@ -217,7 +218,14 @@ export async function PATCH(request, context) {
   
   if (body.title !== undefined) updateData.title = body.title;
   if (body.description !== undefined) updateData.description = body.description;
-  if (body.basePriceThb !== undefined) updateData.base_price_thb = parseFloat(body.basePriceThb);
+  if (body.basePriceThb !== undefined) {
+    const priceParsed = listingBasePriceSchema.safeParse(body.basePriceThb);
+    if (!priceParsed.success) {
+      const msg = priceParsed.error.errors?.[0]?.message || 'Invalid base price';
+      return NextResponse.json({ success: false, error: msg, code: 'INVALID_BASE_PRICE' }, { status: 400 });
+    }
+    updateData.base_price_thb = priceParsed.data;
+  }
   if (body.baseCurrency !== undefined || body.base_currency !== undefined) {
     const incoming = body.baseCurrency ?? body.base_currency;
     const normalized = normalizeCurrencyCode(incoming);

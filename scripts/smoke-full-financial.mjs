@@ -50,6 +50,12 @@ function padRight(str, len) {
   return s + ' '.repeat(len - s.length)
 }
 
+function printStage149MigrationWarning() {
+  console.log(
+    `${BOLD}${YELLOW}⚠ Важно для продакшена:${RESET} миграции ${BOLD}stage149_2${RESET} и ${BOLD}stage149_3${RESET} должны быть применены.`,
+  )
+}
+
 function printHeader(modeLabel) {
   console.log('')
   console.log(`${BOLD}╔══════════════════════════════════════════════════════════════════╗${RESET}`)
@@ -58,6 +64,7 @@ function printHeader(modeLabel) {
   console.log(`${DIM}Режим:${RESET} ${modeLabel}`)
   console.log(`${DIM}Время:${RESET} ${new Date().toLocaleString('ru-RU')}`)
   console.log('')
+  printStage149MigrationWarning()
 }
 
 function printReport(result, railLabel) {
@@ -106,6 +113,7 @@ function printReport(result, railLabel) {
     if (ctx.zipBytes) console.log(`  ${DIM}ZIP:${RESET}      ~${Math.round(ctx.zipBytes / 1024)} KB`)
     if (ctx.bankPackageUrl) console.log(`  ${DIM}URL ZIP:${RESET}  ${ctx.bankPackageUrl}`)
   }
+  printStage149MigrationWarning()
   console.log('')
 }
 

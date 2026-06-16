@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { getSiteBrandSlug } from '@/lib/site-url'
 import {
   postLegalTestFullPackage,
   postFintechPreparePause,
@@ -119,7 +120,7 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `gostaylo-pause-package-${new Date().toISOString().slice(0, 10)}.zip`
+      a.download = `${getSiteBrandSlug()}-pause-package-${new Date().toISOString().slice(0, 10)}.zip`
       a.click()
       URL.revokeObjectURL(url)
       toast({

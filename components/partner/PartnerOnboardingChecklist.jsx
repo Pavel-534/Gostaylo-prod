@@ -44,35 +44,39 @@ export function PartnerOnboardingChecklist({ language = 'ru' }) {
     }
   }, [])
 
-  const steps = useMemo(
-    () => [
-      {
-        id: 'payout',
-        done: status.payoutReady,
-        title: t('partnerOnboarding_payoutTitle', 'Заполните payout profile'),
-        hint: t('partnerOnboarding_payoutHint', 'Банковский счёт или USDT-кошелёк для выплат'),
-        href: '/partner/payout-profiles',
-      },
-      {
-        id: 'calendar',
-        done: status.calendarConfigured,
-        title: t('partnerOnboarding_calendarTitle', 'Подключите календарь'),
-        hint: t(
-          'partnerOnboarding_calendarHint',
-          'iCal-синхронизация или отметьте занятые даты вручную',
-        ),
-        href: '/partner/calendar',
-      },
-      {
-        id: 'listing',
-        done: status.hasListing,
-        title: t('partnerOnboarding_listingTitle', 'Создайте объявление'),
-        hint: t('partnerOnboarding_listingHint', 'Хотя бы одно объявление в кабинете'),
-        href: '/partner/listings/new',
-      },
-    ],
-    [status, t],
-  )
+  const steps = useMemo(() => {
+    const payout = {
+      id: 'payout',
+      done: status.payoutReady,
+      title: t('partnerOnboarding_payoutTitle', 'Заполните payout profile'),
+      hint: t('partnerOnboarding_payoutHint', 'Банковский счёт или USDT-кошелёк для выплат'),
+      href: '/partner/payout-profiles',
+    }
+    const calendar = {
+      id: 'calendar',
+      done: status.calendarConfigured,
+      title: t('partnerOnboarding_calendarTitle', 'Подключите календарь'),
+      hint: t(
+        'partnerOnboarding_calendarHint',
+        'iCal-синхронизация или отметьте занятые даты вручную',
+      ),
+      href: '/partner/calendar',
+    }
+    const listing = {
+      id: 'listing',
+      done: status.hasListing,
+      title: t('partnerOnboarding_listingTitle', 'Создайте объявление'),
+      hint: t('partnerOnboarding_listingHint', 'Хотя бы одно объявление в кабинете'),
+      href: '/partner/listings/new',
+    }
+    if (status.listingCount === 0) {
+      return [listing, payout, calendar]
+    }
+    return [payout, calendar, listing]
+  }, [status, t])
+
+  const subtitleKey =
+    status.listingCount === 0 ? 'partnerOnboarding_subtitleListingFirst' : 'partnerOnboarding_subtitle'
 
   const completed = steps.filter((s) => s.done).length
   if (!loading && completed >= steps.length) return null
@@ -85,10 +89,7 @@ export function PartnerOnboardingChecklist({ language = 'ru' }) {
           {t('partnerOnboarding_title', 'Старт как партнёр')}
         </CardTitle>
         <CardDescription>
-          {t(
-            'partnerOnboarding_subtitle',
-            'Payout profile → календарь → первое объявление',
-          )}{' '}
+          {t(subtitleKey, 'Payout profile → календарь → первое объявление')}{' '}
           — {completed}/{steps.length}
         </CardDescription>
       </CardHeader>

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
+import { getSiteBrandSlug } from '@/lib/site-url'
 import { renderPartnerFinancialStatementPdf } from '@/lib/services/partner-finances-pdf.service'
 
 export const dynamic = 'force-dynamic'
@@ -86,7 +87,7 @@ export async function GET(request) {
       rows: rows || [],
     })
 
-    const filename = `gostaylo-statement-${fromRaw}-to-${toRaw}.pdf`
+    const filename = `${getSiteBrandSlug()}-statement-${fromRaw}-to-${toRaw}.pdf`
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {

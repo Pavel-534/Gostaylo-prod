@@ -10,10 +10,14 @@ import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { BRAND_CHART_HEX } from '@/lib/theme/product-ui'
 
-export function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru' }) {
+export function WelcomePartnerModal({ isOpen, onClose, onStartListing, userName, language = 'ru' }) {
   if (!isOpen) return null
   const brand = getSiteDisplayName()
   const t = (key) => getUIText(key, language, { brand })
+  const handleStart = () => {
+    onClose?.()
+    onStartListing?.()
+  }
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div
@@ -44,7 +48,7 @@ export function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru'
             <CalendarDays className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">{t('welcomePartnerBody')}</p>
           </div>
-          <Button onClick={onClose} className="w-full bg-white text-brand hover:bg-white/90">
+          <Button onClick={handleStart} className="w-full bg-white text-brand hover:bg-white/90">
             {t('welcomePartnerButton')}
           </Button>
         </div>

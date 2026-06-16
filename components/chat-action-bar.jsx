@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Receipt, CreditCard, Star } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { NO_PAY_TRAVEL_STATUSES } from '@/lib/booking/status-sets.js'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { cn } from '@/lib/utils'
 
 const T = {
@@ -27,7 +28,11 @@ const t = (key, lang) =>
     ? getUIText('chatHeader_confirmBooking', lang)
     : key === 'decline'
       ? getUIText('chatHeader_declineBooking', lang)
-      : T[key]?.[lang === 'en' ? 'en' : 'ru'] ?? ''
+      : key === 'pay'
+        ? getUIText('chatAction_payBooking', lang)
+        : key === 'awaitPay'
+          ? getUIText('chatAction_awaitPayment', lang)
+          : T[key]?.[lang === 'en' ? 'en' : 'ru'] ?? ''
 
 const barShell =
   'shrink-0 border-t border-slate-200 bg-white px-3 py-2 sm:px-5 sm:py-3 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
@@ -114,7 +119,7 @@ export function ChatActionBar({
   if (isTraveling && !isHosting) {
     if (suppressTravelPayBar) return null
     if (NO_PAY_TRAVEL_STATUSES.has(bookingStatus)) return null
-    if (!payNowHref && bookingStatus !== 'CONFIRMED') return null
+    if (!payNowHref && !isBookingPayable(bookingStatus)) return null
 
     return (
       <div className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}>

@@ -177,10 +177,17 @@ export default function AdminDashboard() {
           </Card>
         </Link>
 
-        <Link href="/admin/moderation">
+        <Link href="/admin/moderation" className="relative">
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-brand">
             <CardContent className="pt-6">
-              <Building2 className="h-8 w-8 text-brand mb-2" />
+              <div className="flex items-start justify-between gap-2">
+                <Building2 className="h-8 w-8 text-brand mb-2" />
+                {(stats?.listings?.pending || 0) > 0 ? (
+                  <Badge className="bg-orange-100 text-orange-800 shrink-0">
+                    {stats.listings.pending} PENDING
+                  </Badge>
+                ) : null}
+              </div>
               <h3 className="font-semibold">Listings</h3>
               <p className="text-sm text-slate-600">Review & approve</p>
             </CardContent>

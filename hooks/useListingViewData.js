@@ -18,6 +18,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
   const [listing, setListing] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [moderationPending, setModerationPending] = useState(false)
   const [language, setLanguage] = useState('ru')
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
@@ -47,16 +48,29 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     const queryKey = queryKeys.listing.detail(id)
     const cached = queryClient.getQueryData(queryKey)
     if (cached) {
-      setListing(cached)
+      if (cached.moderationPending) {
+        setModerationPending(true)
+        setListing(null)
+      } else {
+        setListing(cached)
+        setModerationPending(false)
+      }
       setLoading(false)
       return
     }
 
     try {
       const mapped = await fetchListingDetail(id)
-      if (mapped) {
+      if (mapped?.moderationPending) {
+        setModerationPending(true)
+        setListing(null)
+        queryClient.setQueryData(queryKey, { moderationPending: true })
+      } else if (mapped) {
         queryClient.setQueryData(queryKey, mapped)
         setListing(mapped)
+        setModerationPending(false)
+      } else {
+        setModerationPending(false)
       }
     } catch (error) {
       console.error('Failed to load listing:', error)
@@ -74,6 +88,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
       /* ignore */
     }
     setLoading(true)
+    setModerationPending(false)
     loadListing()
     loadReviews()
   }, [listingId, loadListing, loadReviews])
@@ -167,6 +182,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     reviews,
     setReviews,
     loading,
+    moderationPending,
     language,
     setLanguage,
     currency,

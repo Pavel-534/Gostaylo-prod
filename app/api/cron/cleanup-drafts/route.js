@@ -24,6 +24,7 @@ import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js';
 import { NotificationEvents, NotificationService } from '@/lib/services/notification.service';
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
+import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -299,20 +300,36 @@ async function processDisputeEvidenceRetention() {
   };
 }
 
+async function resolveListingIdForExpiredInvoice(invoiceRow) {
+  const meta = invoiceRow?.metadata && typeof invoiceRow.metadata === 'object' ? invoiceRow.metadata : {};
+  const fromMeta = meta?.listing?.id ?? meta?.listing_id ?? null;
+  if (fromMeta) return String(fromMeta);
+  const bookingId = invoiceRow?.booking_id ? String(invoiceRow.booking_id) : '';
+  if (!bookingId) return null;
+  const { data: booking } = await supabaseAdmin
+    .from('bookings')
+    .select('listing_id')
+    .eq('id', bookingId)
+    .maybeSingle();
+  return booking?.listing_id ? String(booking.listing_id) : null;
+}
+
 async function processExpiredPendingInvoices() {
   const nowMs = Date.now();
+  const nowIso = new Date().toISOString();
   const { data: pendingRows, error } = await supabaseAdmin
     .from('invoices')
-    .select('id,status,metadata,created_at,updated_at')
+    .select('id,status,metadata,created_at,updated_at,booking_id')
     .eq('status', 'pending')
     .limit(1000);
 
   if (error) {
-    return { success: false, error: error.message, scanned: 0, expired: 0 };
+    return { success: false, error: error.message, scanned: 0, expired: 0, holdsReleased: 0 };
   }
 
   let expired = 0;
   let skipped = 0;
+  let holdsReleased = 0;
 
   for (const invoice of pendingRows || []) {
     const expiryIso = resolveInvoiceExpiryIso(invoice);
@@ -321,21 +338,42 @@ async function processExpiredPendingInvoices() {
       skipped++;
       continue;
     }
-    const { error: upErr } = await supabaseAdmin
+    const { data: updatedRows, error: upErr } = await supabaseAdmin
       .from('invoices')
       .update({
         status: 'expired',
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
         metadata: {
           ...(invoice.metadata && typeof invoice.metadata === 'object' ? invoice.metadata : {}),
-          expired_at: new Date().toISOString(),
+          expired_at: nowIso,
           expired_reason: 'payment_window_elapsed',
         },
       })
       .eq('id', invoice.id)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+      .select('id, status, metadata, booking_id');
 
-    if (!upErr) expired++;
+    if (upErr || !updatedRows?.[0]) continue;
+
+    const expiredRow = updatedRows[0];
+    if (String(expiredRow.status || '').toLowerCase() !== 'expired') {
+      continue;
+    }
+
+    expired++;
+
+    const listingId = await resolveListingIdForExpiredInvoice(expiredRow);
+    const holdResult = await expireInvoiceHoldBlocks({
+      invoiceId: expiredRow.id,
+      listingId,
+      nowIso,
+    });
+    if (holdResult.released > 0) {
+      holdsReleased += holdResult.released;
+      console.info(
+        `[CLEANUP] invoice_hold released: invoice=${expiredRow.id} blocks=${holdResult.released}`,
+      );
+    }
   }
 
   return {
@@ -343,6 +381,7 @@ async function processExpiredPendingInvoices() {
     scanned: (pendingRows || []).length,
     expired,
     skipped,
+    holdsReleased,
   };
 }
 

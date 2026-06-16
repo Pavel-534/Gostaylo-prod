@@ -17,13 +17,13 @@ const ACCENTS = {
  * @param {object} [summary]
  * @param {boolean} [loading]
  */
-export function PartnerFinancesBalanceStrip({ t, summary, loading }) {
+export function PartnerFinancesBalanceStrip({ t, summary, loading, thawHoldHint, escrowHint }) {
   const items = [
     {
       id: 'escrow',
       icon: Shield,
       title: t('partnerFinances_bucketEscrowTitle'),
-      hint: t('partnerFinances_bucketEscrowDescShort'),
+      hint: escrowHint || t('partnerFinances_bucketEscrowDescShort'),
       value: summary?.escrowThb ?? 0,
       accent: 'escrow',
     },
@@ -31,7 +31,7 @@ export function PartnerFinancesBalanceStrip({ t, summary, loading }) {
       id: 'thaw',
       icon: Clock,
       title: t('partnerFinances_bucketThawHoldTitle'),
-      hint: t('partnerFinances_bucketThawHoldDescShort'),
+      hint: thawHoldHint || t('partnerFinances_bucketThawHoldDescShort'),
       value: summary?.thawHoldThb ?? 0,
       accent: 'thaw',
     },

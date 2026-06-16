@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { clampIntFromDigits } from '@/lib/listing-wizard-numeric'
 import {
@@ -26,6 +27,7 @@ import { buildWizardFormDataFromListing } from './listing-wizard-load-existing'
  * Stage 109.3 — wizard mutations (form, steps, upload, geo, AI, import).
  */
 export function useListingWizardActions(state, derived) {
+  const router = useRouter()
   const {
     editId,
     isEditMode,
@@ -379,8 +381,7 @@ export function useListingWizardActions(state, derived) {
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href)
         if (!url.searchParams.get('edit')) {
-          url.searchParams.set('edit', listingId)
-          window.history.replaceState(null, '', url.toString())
+          router.replace(`/partner/listings/new?edit=${encodeURIComponent(listingId)}`, { scroll: false })
         }
       }
       return listingId
@@ -395,7 +396,7 @@ export function useListingWizardActions(state, derived) {
     } finally {
       ensuringDraftRef.current = false
     }
-  }, [editId, formData, t, draftListingIdRef, ensuringDraftRef])
+  }, [editId, formData, t, draftListingIdRef, ensuringDraftRef, router])
 
   const handleImageUpload = useCallback(
     async (files) => {

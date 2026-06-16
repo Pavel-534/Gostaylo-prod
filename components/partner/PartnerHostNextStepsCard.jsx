@@ -2,13 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Calendar, ChevronRight, Gift, Inbox, Share2, Sparkles } from 'lucide-react'
+import { Calendar, ChevronRight, Copy, Gift, Inbox, MessageCircle, Share2, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { getUIText } from '@/lib/translations'
+import { getPublicSiteUrl } from '@/lib/site-url'
+import { formatPrice } from '@/lib/currency'
+
+function excerptDescription(text, max = 120) {
+  const s = String(text || '').replace(/\s+/g, ' ').trim()
+  if (!s) return ''
+  return s.length <= max ? s : `${s.slice(0, max - 1)}…`
+}
 
 /**
- * Stage 143.1 — «Что делать дальше» после первого объявления.
+ * Stage 143.1 / 149.1 — «Что делать дальше» после первого объявления.
  * @param {{ language?: string, partnerId?: string | null }} props
  */
 export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) {
@@ -16,6 +26,12 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
   const [loading, setLoading] = useState(true)
   const [hasListing, setHasListing] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [latestListingId, setLatestListingId] = useState(null)
+  const [latestListingStatus, setLatestListingStatus] = useState(null)
+  const [latestTitle, setLatestTitle] = useState('')
+  const [latestDescription, setLatestDescription] = useState('')
+  const [latestPriceThb, setLatestPriceThb] = useState(null)
+  const [latestCurrency, setLatestCurrency] = useState('THB')
 
   const storageKey = partnerId ? `partner_next_steps_dismissed_${partnerId}` : null
 
@@ -39,7 +55,16 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
         })
         const json = await res.json().catch(() => ({}))
         if (!cancelled && json?.success && json.data) {
-          setHasListing(Boolean(json.data.hasListing))
+          const d = json.data
+          setHasListing(Boolean(d.hasListing))
+          setLatestListingId(d.latestListingId || null)
+          setLatestListingStatus(d.latestListingStatus || null)
+          setLatestTitle(d.latestListingTitle || '')
+          setLatestDescription(d.latestListingDescription || '')
+          setLatestPriceThb(
+            d.latestListingBasePriceThb != null ? Number(d.latestListingBasePriceThb) : null,
+          )
+          setLatestCurrency(d.latestListingBaseCurrency || 'THB')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -51,6 +76,26 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
     }
   }, [])
 
+  const publicListingUrl = useMemo(() => {
+    if (!latestListingId) return ''
+    const base = (getPublicSiteUrl() || '').replace(/\/$/, '')
+    return `${base}/listings/${latestListingId}`
+  }, [latestListingId])
+
+  const sharePitch = useMemo(() => {
+    if (!publicListingUrl) return ''
+    const priceLine =
+      latestPriceThb != null && Number.isFinite(latestPriceThb) && latestPriceThb > 0
+        ? formatPrice(latestPriceThb, latestCurrency || 'THB')
+        : '—'
+    const excerpt = excerptDescription(latestDescription) || '—'
+    return t('partnerPostListing_sharePitch')
+      .replace(/\{\{title\}\}/g, latestTitle || '—')
+      .replace(/\{\{price\}\}/g, priceLine)
+      .replace(/\{\{excerpt\}\}/g, excerpt)
+      .replace(/\{\{url\}\}/g, publicListingUrl)
+  }, [latestCurrency, latestDescription, latestPriceThb, latestTitle, publicListingUrl, t])
+
   const steps = useMemo(
     () => [
       {
@@ -59,6 +104,7 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
         title: t('partnerPostListing_shareTitle'),
         hint: t('partnerPostListing_shareHint'),
         href: '/partner/listings',
+        isShare: true,
       },
       {
         id: 'calendar',
@@ -85,6 +131,33 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
     [t],
   )
 
+  async function copyPublicLink() {
+    if (!publicListingUrl) return
+    try {
+      await navigator.clipboard.writeText(publicListingUrl)
+      toast.success(t('partnerPostListing_linkCopied'))
+    } catch {
+      toast.error(t('partnerPostListing_linkCopyFailed'))
+    }
+  }
+
+  function openTelegramShare() {
+    if (!publicListingUrl) return
+    const text = encodeURIComponent(sharePitch || latestTitle || publicListingUrl)
+    const url = encodeURIComponent(publicListingUrl)
+    window.open(
+      `https://t.me/share/url?url=${url}&text=${text}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
+
+  function openWhatsAppShare() {
+    if (!publicListingUrl) return
+    const text = encodeURIComponent(sharePitch || `${latestTitle} ${publicListingUrl}`.trim())
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer')
+  }
+
   function dismiss() {
     setDismissed(true)
     if (storageKey) {
@@ -95,6 +168,8 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
       }
     }
   }
+
+  const showModerationBanner = String(latestListingStatus || '').toUpperCase() === 'PENDING'
 
   if (loading || !hasListing || dismissed) return null
 
@@ -111,8 +186,63 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
         <CardDescription>{t('partnerPostListing_subtitle')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
+        {showModerationBanner ? (
+          <div
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+            data-testid="partner-host-next-steps-moderation"
+          >
+            <span className="font-semibold">{t('partnerEdit_statusPending')}</span>
+            <span className="text-amber-900/90"> · {t('partnerPostListing_moderationEta')}</span>
+          </div>
+        ) : null}
+
         {steps.map((step) => {
           const Icon = step.icon
+          if (step.isShare && publicListingUrl) {
+            return (
+              <div
+                key={step.id}
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 space-y-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                    <Icon className="h-4 w-4" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-900">{step.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{step.hint}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={publicListingUrl}
+                    className="h-9 text-xs font-mono text-slate-700"
+                    aria-label={t('partnerPostListing_shareTitle')}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => void copyPublicLink()}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={openTelegramShare}>
+                    <MessageCircle className="h-4 w-4 mr-1.5" />
+                    Telegram
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={openWhatsAppShare}>
+                    WhatsApp
+                  </Button>
+                </div>
+              </div>
+            )
+          }
+
           return (
             <div
               key={step.id}

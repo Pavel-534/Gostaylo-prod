@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * AppHeader — SSOT header для всего приложения Gostaylo.
+ * AppHeader — SSOT header для всего приложения (white-label через getSiteDisplayName).
  *
  * Три режима (автодетект по pathname, override через prop variant):
  *   • public    → /, /listings, /help, /about, /u/* — glass-white, hero-aware

@@ -16,6 +16,8 @@ import {
   buildFintechSnapshotPayload,
   readFintechSnapshotFromBooking,
 } from '@/lib/services/finance/fintech-snapshot.service.js'
+import { assertHostPayoutReadyForBooking } from '@/lib/partner/host-payout-booking-gate'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +78,31 @@ export async function POST(request, { params }) {
     }
     if (booking.status === 'CANCELLED') {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 })
+    }
+    if (!isBookingPayable(booking.status)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'This booking cannot be paid in its current status.',
+          code: 'BOOKING_NOT_PAYABLE',
+        },
+        { status: 400 },
+      )
+    }
+
+    if (booking.listing_id) {
+      const { data: listingRow } = await supabaseAdmin
+        .from('listings')
+        .select('owner_id')
+        .eq('id', booking.listing_id)
+        .maybeSingle()
+      const payoutGate = await assertHostPayoutReadyForBooking(listingRow?.owner_id)
+      if (!payoutGate.ok) {
+        return NextResponse.json(
+          { success: false, error: payoutGate.error, code: payoutGate.code },
+          { status: 403 },
+        )
+      }
     }
 
     let invoice = null

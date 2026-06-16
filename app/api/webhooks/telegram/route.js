@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getPublicSiteUrl, getTelegramWebhookUrl } from '@/lib/site-url.js'
+import { getPublicSiteUrl, getTelegramWebhookUrl, getSiteDisplayName } from '@/lib/site-url.js'
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
 import { telegramEnv, IMAGE_CONFIG } from '@/lib/services/telegram/env.js'
 import { sendTelegram, withMainMenuForChat } from '@/lib/services/telegram/api.js'
@@ -268,7 +268,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    service: 'GoStayLo Telegram Webhook',
+    service: `${getSiteDisplayName()} Telegram Webhook`,
     version: '7.5',
     stage: 31,
     runtime: 'nodejs',

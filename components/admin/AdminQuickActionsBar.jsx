@@ -12,6 +12,7 @@ import {
   postFintechSmokeFinancialRun,
   triggerFintechBlobDownload,
 } from '@/lib/admin/admin-fintech-api-client'
+import { getSiteBrandSlug } from '@/lib/site-url'
 import { resolveAdminQuickActions } from '@/lib/admin/admin-menu'
 
 /**
@@ -55,7 +56,7 @@ export function AdminQuickActionsBar({ groupKey, role, className }) {
         return
       }
       if (blob) {
-        triggerFintechBlobDownload(blob, `gostaylo-prepare-pause-${Date.now()}.zip`)
+        triggerFintechBlobDownload(blob, `${getSiteBrandSlug()}-prepare-pause-${Date.now()}.zip`)
       }
       toast.success('Пакет подготовки к паузе скачан', {
         description: smokeOk ? 'Smoke пройден.' : 'В архиве есть ошибки smoke — проверьте отчёт.',

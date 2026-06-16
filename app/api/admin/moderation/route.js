@@ -7,12 +7,12 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
-import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-metadata'
 import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-recorder'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordStaffListingModeration } from '@/lib/services/audit/staff-audit'
+import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
 import {
   buildModerationFacets,
   filterPendingModerationListings,
@@ -252,26 +252,33 @@ export async function PATCH(request) {
 
     const finalDescription = updateData.description ?? listing.description
 
-    if (listing.owner?.telegram_id && (action === 'approve' || action === 'reject')) {
-      const appUrl = getPublicSiteUrl()
-      const partnerMessage =
-        action === 'approve'
-          ? `✅ <b>Ваше объявление опубликовано!</b>\n\n📍 <b>${finalTitle}</b>\n\n🎉 Теперь его видят арендаторы!\n\n<a href="${appUrl}/listings/${listing.id}">Посмотреть объявление →</a>`
-          : `❌ <b>Объявление отклонено</b>\n\n📍 <b>${listing.title}</b>\n\n📝 <b>Причина:</b>\n${rejectReason}\n\n<i>Исправьте замечания и отправьте повторно</i>\n\n<a href="${appUrl}/partner/listings/${listing.id}/edit">✏️ Редактировать объявление →</a>`
-
+    if (action === 'approve' || action === 'reject') {
+      const partner = listing.owner
+        ? {
+            id: listing.owner.id,
+            email: listing.owner.email,
+            telegram_id: listing.owner.telegram_id,
+            first_name: listing.owner.first_name,
+            last_name: listing.owner.last_name,
+          }
+        : null
+      const listingPayload = {
+        id: listingId,
+        title: action === 'approve' ? finalTitle : listing.title,
+        description: finalDescription,
+      }
       try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: listing.owner.telegram_id,
-            text: partnerMessage,
-            parse_mode: 'HTML',
-          }),
-        })
-        notificationSent = true
-      } catch (tgError) {
-        console.error('Telegram to partner error:', tgError)
+        await NotificationService.dispatch(
+          action === 'approve' ? NotificationEvents.LISTING_APPROVED : NotificationEvents.LISTING_REJECTED,
+          {
+            listing: listingPayload,
+            partner,
+            reason: action === 'reject' ? rejectReason : undefined,
+          },
+        )
+        notificationSent = !!(partner?.telegram_id || partner?.email)
+      } catch (notifyErr) {
+        console.error('[moderation] partner notification:', notifyErr)
       }
     }
 

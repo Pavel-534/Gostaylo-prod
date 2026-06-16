@@ -11,6 +11,7 @@ export function PartnerFinancesHeader({
   balanceBreakdown,
   bookingsLength,
   onExportCsv,
+  escrowCardDesc,
 }) {
   return (
     <div className="space-y-4 min-w-0">
@@ -36,7 +37,9 @@ export function PartnerFinancesHeader({
               <Wallet className="h-4 w-4 text-brand-hover" />
               {t('partnerFinances_escrowCardTitle')}
             </CardTitle>
-            <CardDescription className="text-xs">{t('partnerFinances_escrowCardDesc')}</CardDescription>
+            <CardDescription className="text-xs">
+              {escrowCardDesc || t('partnerFinances_escrowCardDesc')}
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-0 space-y-2 text-sm">
             <div className="flex justify-between">

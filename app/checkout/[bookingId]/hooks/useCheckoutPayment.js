@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 import { useCheckoutLoadState } from './useCheckoutLoadState.js'
@@ -16,12 +17,14 @@ import { useCheckoutPaymentReturn } from './useCheckoutPaymentReturn.js'
  */
 export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoading }) {
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const isPaymentReturn = searchParams.get('payment') === 'return'
   const [booking, setBooking] = useState(null)
   const [listing, setListing] = useState(null)
   const [invoice, setInvoice] = useState(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentFailed, setPaymentFailed] = useState(false)
-  const [paymentReturnVerifying, setPaymentReturnVerifying] = useState(false)
+  const [paymentReturnVerifying, setPaymentReturnVerifying] = useState(isPaymentReturn)
   const [chatConversationId, setChatConversationId] = useState(null)
   const [paymentIntent, setPaymentIntent] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('CARD')

@@ -23,6 +23,45 @@ import {
 } from '@/lib/partner/listing-quality-gates.js'
 import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 
+async function fetchPartnerListingCountBeforePublish() {
+  try {
+    const res = await fetch('/api/v2/partner/onboarding-status', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const json = await res.json().catch(() => ({}))
+    if (json?.success && json.data) {
+      return {
+        listingCount: Number(json.data.listingCount) || 0,
+        listingCountExcludingDrafts: Number(json.data.listingCountExcludingDrafts) || 0,
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { listingCount: 0, listingCountExcludingDrafts: 0 }
+}
+
+function showListingModerationToast(t) {
+  toast.success(t('partnerEdit_statusPending'), {
+    description: t('partnerPostListing_moderationEta'),
+    duration: 10000,
+  })
+}
+
+function resolvePostPublishRedirect({
+  listingId,
+  isEditMode,
+  listingCount,
+  listingCountExcludingDrafts,
+}) {
+  if (!listingId || isEditMode) return '/partner/listings'
+  const isFirstListing =
+    listingCount === 0 || listingCountExcludingDrafts === 0
+  if (isFirstListing) return '/partner/dashboard?published=1'
+  return `/partner/listings/${listingId}?highlight=calendar`
+}
+
 async function resolvePartnerUserId() {
   let userId = localStorage.getItem('gostaylo_user_id')
   if (userId) return userId
@@ -73,6 +112,8 @@ export function useListingSave() {
     formData,
     isEditMode,
     editId,
+    draftListingIdRef,
+    resolveListingIdForUpload,
     language,
     partnerCommissionRate,
     listingCategorySlug,
@@ -175,6 +216,7 @@ export function useListingSave() {
     if (!editId) return
     setPublishing(true)
     try {
+      const countsBefore = await fetchPartnerListingCountBeforePublish()
       const coverImage = buildCoverUrl()
       const categorySlug = listingCategorySlug
       const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
@@ -241,8 +283,15 @@ export function useListingSave() {
           await patchPartnerListingCoverImage(editId, newCover)
         }
         clearWizardDraft()
-        toast.success(t('partnerEdit_listingPublished'))
-        router.push('/partner/listings')
+        showListingModerationToast(t)
+        router.push(
+          resolvePostPublishRedirect({
+            listingId: editId,
+            isEditMode: false,
+            listingCount: countsBefore.listingCount,
+            listingCountExcludingDrafts: countsBefore.listingCountExcludingDrafts,
+          }),
+        )
       } else {
         const msg = result.error || t('partnerEdit_listingPublishErr')
         const extra = Array.isArray(result.errors) ? result.errors.join(' · ') : ''
@@ -399,6 +448,7 @@ export function useListingSave() {
     if (!assertPublishQualityGate(w, t)) return
     setLoading(true)
     try {
+      const countsBefore = await fetchPartnerListingCountBeforePublish()
       const userId = await resolvePartnerUserId()
       if (!userId) {
         toast.error(t('pleaseLogIn'))
@@ -439,11 +489,15 @@ export function useListingSave() {
         ...bookingDaysPayload,
         metadata: publishMeta,
       }
-      if (!editId) {
+      let publishListingId = editId || draftListingIdRef?.current || null
+      if (!publishListingId && typeof resolveListingIdForUpload === 'function') {
+        publishListingId = await resolveListingIdForUpload()
+      }
+      if (!publishListingId) {
         toast.error(t('listingQuality_saveDraftFirst', 'Save a draft before publishing'))
         return
       }
-      const res = await fetch(`/api/v2/partner/listings/${editId}`, {
+      const res = await fetch(`/api/v2/partner/listings/${publishListingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -465,7 +519,7 @@ export function useListingSave() {
       })
       const data = await res.json()
       if (data.success) {
-        const listingId = data.data?.id || data.listing?.id || editId
+        const listingId = data.data?.id || data.listing?.id || publishListingId
         const mig = await migrateExternalImagesAfterSave(listingId, formData.images)
         if (mig?.images?.length) {
           const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
@@ -495,12 +549,15 @@ export function useListingSave() {
           }
         }
         clearWizardDraft()
-        toast.success(isEditMode ? t('listingUpdated') : t('listingPublished'))
-        if (listingId && !isEditMode) {
-          router.push(`/partner/listings/${listingId}?highlight=calendar`)
-        } else {
-          router.push('/partner/listings')
-        }
+        showListingModerationToast(t)
+        router.push(
+          resolvePostPublishRedirect({
+            listingId,
+            isEditMode,
+            listingCount: countsBefore.listingCount,
+            listingCountExcludingDrafts: countsBefore.listingCountExcludingDrafts,
+          }),
+        )
       } else {
         const msg = data.error || t('failedToLoadListing')
         const extra = Array.isArray(data.errors) ? data.errors.join(' · ') : ''
@@ -513,6 +570,8 @@ export function useListingSave() {
     }
   }, [
     w,
+    buildCoverUrl,
+    draftListingIdRef,
     editId,
     formData,
     isEditMode,
@@ -520,8 +579,8 @@ export function useListingSave() {
     listingCategorySlug,
     listingCategoryWizardProfile,
     partnerCommissionRate,
-    w,
     publishFromDraft,
+    resolveListingIdForUpload,
     router,
     serverListing,
     setLoading,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getUserIdFromSession } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
+import { assertHostPayoutReadyForBooking } from '@/lib/partner/host-payout-booking-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,21 @@ export async function GET(request, { params }) {
       }
       if (String(booking.renter_id) !== String(sessionUserId)) {
         return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
+      }
+    }
+
+    if (booking.listing_id) {
+      const { data: listingRow } = await supabaseAdmin
+        .from('listings')
+        .select('owner_id')
+        .eq('id', booking.listing_id)
+        .maybeSingle()
+      const payoutGate = await assertHostPayoutReadyForBooking(listingRow?.owner_id)
+      if (!payoutGate.ok) {
+        return NextResponse.json(
+          { success: false, error: payoutGate.error, code: payoutGate.code },
+          { status: 403 },
+        )
       }
     }
 

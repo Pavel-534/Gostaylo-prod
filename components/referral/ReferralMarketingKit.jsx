@@ -11,7 +11,7 @@ import { Download, Facebook, FileText, Home, Loader2, Lock, MessageCircle, Plane
 import { cn } from '@/lib/utils'
 import { downloadAmbassadorCardPdf } from '@/lib/referral/ambassador-card-pdf'
 import { isUuidLike } from '@/lib/referral/uuid-like'
-import { getSiteDisplayName } from '@/lib/site-url'
+import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
@@ -210,7 +210,7 @@ export function ReferralMarketingKit({
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 32)
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `gostaylo-invite-${safeCode}.png`
+      a.download = `${getSiteBrandSlug()}-invite-${safeCode}.png`
       a.click()
     } finally {
       setDownloading(false)
@@ -256,7 +256,7 @@ export function ReferralMarketingKit({
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `gostaylo-stories-ambassador-${safeCode}.png`
+      a.download = `${getSiteBrandSlug()}-stories-ambassador-${safeCode}.png`
       a.click()
     } catch (e) {
       console.warn('[ReferralMarketingKit] stories ambassador export:', e?.message || e)
@@ -278,7 +278,7 @@ export function ReferralMarketingKit({
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `gostaylo-stories-team-${safeCode}.png`
+      a.download = `${getSiteBrandSlug()}-stories-team-${safeCode}.png`
       a.click()
     } catch (e) {
       console.warn('[ReferralMarketingKit] stories team export:', e?.message || e)

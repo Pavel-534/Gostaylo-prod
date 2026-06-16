@@ -4,6 +4,21 @@ import { getUIText } from '@/lib/translations'
 import { DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 
+function resolveCheckoutInitiateError(data, language) {
+  const code = String(data?.code || '').toUpperCase()
+  if (code === 'BOOKING_NOT_PAYABLE') {
+    return getUIText('checkout_error_notPayable', language)
+  }
+  if (code === 'WALLET_ACTIVATION_REQUIRED') {
+    return getUIText('checkout_toast_paymentInitFail', language)
+  }
+  const err = String(data?.error || '').trim()
+  if (/^[A-Z][A-Z0-9_]{7,}$/.test(err)) {
+    return getUIText('checkout_toast_paymentInitFail', language)
+  }
+  return err || getUIText('checkout_toast_paymentInitFail', language)
+}
+
 export function useCheckoutIntentFlow({
   bookingId,
   invoiceIdParam,
@@ -105,7 +120,7 @@ export function useCheckoutIntentFlow({
           }, 2000)
         }
       } else {
-        toast.error(data.error || getUIText('checkout_toast_paymentInitFail', language))
+        toast.error(resolveCheckoutInitiateError(data, language))
       }
     } catch (error) {
       console.error('Failed to initiate payment:', error)

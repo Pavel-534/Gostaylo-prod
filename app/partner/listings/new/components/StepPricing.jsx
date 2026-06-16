@@ -1,6 +1,7 @@
 'use client'
 
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { DollarSign } from 'lucide-react'
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
-import 'react-day-picker/dist/style.css'
+import { getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
 
 function StepPricingInner() {
   const w = useListingWizard()
@@ -34,10 +35,32 @@ function StepPricingInner() {
     setNewSeason,
     dayPickerLocale,
     numberLocale,
+    listingCategorySlug,
+    listingCategoryWizardProfile,
+    language,
   } = w
   const num = useCallback(
     (n) => (typeof n === 'number' ? n.toLocaleString(numberLocale) : n),
     [numberLocale],
+  )
+
+  const hostNetPreview = useMemo(() => {
+    const base = parseFloat(String(formData.basePriceThb)) || 0
+    const pct = Number(partnerCommissionRate)
+    if (!(base > 0) || !Number.isFinite(pct)) return null
+    return Math.round(base * (1 - pct / 100))
+  }, [formData.basePriceThb, partnerCommissionRate])
+
+  const payoutPolicyText = useMemo(
+    () =>
+      getHostMoneyPolicyForListing(
+        {
+          categorySlug: listingCategorySlug,
+          wizardProfile: listingCategoryWizardProfile,
+        },
+        language,
+      ).wizardBlurb,
+    [listingCategorySlug, listingCategoryWizardProfile, language],
   )
 
   return (
@@ -85,6 +108,27 @@ function StepPricingInner() {
           </p>
         </div>
       </div>
+      {hostNetPreview != null && hostNetPreview > 0 && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 space-y-2">
+          <p className="text-sm font-semibold text-emerald-900">{t('wizardHostNetTitle')}</p>
+          <p className="text-xl font-bold text-emerald-800">
+            {tr('wizardHostNetAmount', {
+              net: num(hostNetPreview),
+              pct: String(partnerCommissionRate),
+            })}
+          </p>
+          <div className="border-t border-emerald-200/80 pt-2">
+            <p className="text-xs font-medium text-emerald-900">{t('wizardHostPayoutTitle')}</p>
+            <p className="mt-1 text-xs leading-relaxed text-emerald-900/90">{payoutPolicyText}</p>
+            <Link
+              href="/partner/finances"
+              className="mt-2 inline-block text-xs font-medium text-brand underline-offset-2 hover:underline"
+            >
+              {t('financesTitle')}
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3">
         <p className="text-sm font-semibold text-sky-900">{t('wizardSitePriceTitle')}</p>
         <p className="mt-1 text-xl font-bold text-sky-800">
