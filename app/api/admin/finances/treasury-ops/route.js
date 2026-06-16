@@ -24,6 +24,8 @@ import {
 } from '@/lib/admin/financial-cron-health.js'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 import { loadYookassaOpsStatus } from '@/lib/payment/yookassa-ops-status.js'
+import { recordAdminAudit } from '@/lib/services/audit/admin-audit.js'
+import { normalizeAdminRole } from '@/lib/admin/admin-menu'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +77,9 @@ export async function PATCH(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
+  const actorRole = normalizeAdminRole(gate.profile?.role) || 'ADMIN'
+  const actorId = gate.profile?.id || null
+
   let body = {}
   try {
     body = await request.json()
@@ -87,7 +92,7 @@ export async function PATCH(request) {
     const r = await setTreasuryEmergencyPause({
       active,
       reason: body.reason,
-      pausedBy: gate.profile?.id || null,
+      pausedBy: actorId,
     })
     if (!r.success) {
       return NextResponse.json({ success: false, error: r.error }, { status: 500 })
@@ -98,7 +103,7 @@ export async function PATCH(request) {
         severity: 'critical',
         title: 'Emergency Pause включён',
         detail: body.reason || 'Владелец остановил брони и выплаты',
-        meta: { pausedBy: gate.profile?.id },
+        meta: { pausedBy: actorId },
         telegramHtml:
           `🛑 <b>Emergency Pause</b>\n\n` +
           `Новые бронирования и выплаты <b>заблокированы</b>.\n` +
@@ -106,18 +111,37 @@ export async function PATCH(request) {
           `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
       })
     }
+    await recordAdminAudit({
+      actorId,
+      actorRole,
+      action: active ? 'treasury_emergency_pause_on' : 'treasury_emergency_pause_off',
+      entityType: 'treasury_ops',
+      entityId: 'global',
+      reason: body.reason ? String(body.reason).slice(0, 2000) : null,
+      payload: { emergencyPause: active },
+    })
   }
 
   if (body.treasuryManualMode !== undefined) {
-    const r = await setTreasuryManualMode(Boolean(body.treasuryManualMode))
+    const manual = Boolean(body.treasuryManualMode)
+    const r = await setTreasuryManualMode(manual)
     if (!r.success) {
       return NextResponse.json({ success: false, error: r.error }, { status: 500 })
     }
+    await recordAdminAudit({
+      actorId,
+      actorRole,
+      action: manual ? 'treasury_manual_mode_on' : 'treasury_manual_mode_off',
+      entityType: 'treasury_ops',
+      entityId: 'global',
+      reason: body.reason ? String(body.reason).slice(0, 2000) : null,
+      payload: { treasuryManualMode: manual },
+    })
   }
 
   if (body.activateControlledLive === true) {
     const r = await activateControlledLive({
-      startedBy: gate.profile?.id || null,
+      startedBy: actorId,
       reason: body.reason,
     })
     if (!r.success) {
@@ -126,6 +150,15 @@ export async function PATCH(request) {
         { status: r.error === 'emergency_pause_active' ? 409 : 500 },
       )
     }
+    await recordAdminAudit({
+      actorId,
+      actorRole,
+      action: 'treasury_controlled_live_activated',
+      entityType: 'treasury_ops',
+      entityId: 'global',
+      reason: body.reason ? String(body.reason).slice(0, 2000) : null,
+      payload: { activateControlledLive: true },
+    })
   }
 
   const ops = await loadTreasuryOpsSettings()

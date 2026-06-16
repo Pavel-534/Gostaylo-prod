@@ -9,15 +9,17 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyTelegramBanLinkToken } from '@/lib/auth/telegram-ban-link'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { recordAdminAudit } from '@/lib/services/audit/admin-audit.js'
+import { normalizeAdminRole } from '@/lib/admin/admin-menu'
 
 export const dynamic = 'force-dynamic'
 
 const BAN_DURATION = '876600h' // ~100 years
 
-async function verifyAdminSession() {
+async function verifyAdminSession(request) {
   const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
-  return { adminId: access.profile?.id || null }
+  return { adminId: access.profile?.id || null, role: access.profile?.role || null }
 }
 
 async function assertTargetBanOk(userId) {
@@ -102,7 +104,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 })
   }
 
-  const admin = await verifyAdminSession()
+  const admin = await verifyAdminSession(request)
   const linkToken = body.banToken != null ? String(body.banToken).trim() : ''
   const parsedLink = linkToken ? verifyTelegramBanLinkToken(linkToken) : null
 
@@ -111,6 +113,15 @@ export async function POST(request) {
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 })
     }
+    await recordAdminAudit({
+      actorId: admin.adminId,
+      actorRole: normalizeAdminRole(admin.role) || 'ADMIN',
+      action: 'user_account_banned',
+      entityType: 'user',
+      entityId: userId,
+      reason: body.reason ? String(body.reason).slice(0, 2000) : null,
+      payload: { source: 'admin_users_ban' },
+    })
     return NextResponse.json({ success: true })
   }
 

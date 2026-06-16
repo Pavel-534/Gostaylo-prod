@@ -1,5 +1,10 @@
 /**
  * Stage 118.5 — RBAC для `/api/admin/**` и `/api/v2/admin/**` из SSOT меню (`admin-menu.ts`).
+ *
+ * Stage 153.1 — финансовые рычаги споров (`force_refund`, `split`, `freeze_payment`, `close_dispute`)
+ * дополнительно ограничены ролью **ADMIN** в обработчике
+ * `POST /api/v2/admin/disputes/[id]/action` (`denyUnlessAdminFinancialRole`).
+ * MODERATOR: чтение, `take_in_review`, сбор улик, комментарии — без денежных мутаций.
  */
 import {
   ADMIN_MENU_GROUPS,

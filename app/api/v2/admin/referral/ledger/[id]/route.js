@@ -5,6 +5,8 @@
 import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { applyReferralLedgerAdminAction } from '@/lib/admin/referral-ledger-admin.js'
+import { recordAdminAudit } from '@/lib/services/audit/admin-audit.js'
+import { normalizeAdminRole } from '@/lib/admin/admin-menu'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +38,18 @@ export async function PATCH(request, context) {
         { success: false, error: result?.error || 'REFERRAL_LEDGER_ACTION_FAILED' },
         { status: result?.error === 'NOT_FOUND' ? 404 : 400 },
       )
+    }
+    const ledgerAction = String(body?.action || '').trim().toLowerCase()
+    if (['hold', 'reject'].includes(ledgerAction)) {
+      await recordAdminAudit({
+        actorId: access.profile?.id || null,
+        actorRole: normalizeAdminRole(access.profile?.role) || 'ADMIN',
+        action: ledgerAction === 'hold' ? 'referral_ledger_hold' : 'referral_ledger_reject',
+        entityType: 'referral_ledger',
+        entityId: ledgerId,
+        reason: body?.note ? String(body.note).slice(0, 2000) : null,
+        payload: { action: ledgerAction, result },
+      })
     }
     return NextResponse.json({ success: true, data: result })
   } catch (e) {

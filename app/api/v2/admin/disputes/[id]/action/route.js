@@ -9,8 +9,39 @@ import {
 } from '@/lib/services/dispute/dispute-resolution-engine.js'
 import { applyDisputePayoutFreeze } from '@/lib/services/dispute/dispute-payout-freeze.js'
 import { MEDIATION_STATUS } from '@/lib/services/dispute/dispute-shared.js'
+import {
+  interceptDuplicateIdempotencyKey,
+  denyUnlessAdminFinancialRole,
+  isDisputeFinancialAction,
+  readIdempotencyKeyFromRequest,
+  recordAdminAudit,
+} from '@/lib/services/audit/admin-audit.js'
+import { normalizeAdminRole } from '@/lib/admin/admin-menu'
+import { recordCriticalSignal } from '@/lib/critical-telemetry.js'
 
 export const dynamic = 'force-dynamic'
+
+const IDEMPOTENT_DISPUTE_ACTIONS = new Set(['force_refund', 'split', 'freeze_payment'])
+
+async function recordSagaGapCriticalSignal({ disputeId, action, actorId, error }) {
+  recordCriticalSignal('DISPUTE_RESOLUTION_SAGA_GAP', {
+    threshold: 1,
+    windowMs: 10 * 60 * 1000,
+    tag: '[DISPUTE_SAGA]',
+    detailLines: [
+      `dispute_id=${disputeId}`,
+      `action=${action}`,
+      `actor_id=${actorId || 'unknown'}`,
+      `error=${String(error || '').slice(0, 500)}`,
+    ],
+    persistDetail: {
+      disputeId,
+      action,
+      actorId: actorId || null,
+      error: String(error || '').slice(0, 2000),
+    },
+  })
+}
 
 async function fetchDisputeSnapshot(disputeId) {
   const { data } = await supabaseAdmin
@@ -54,7 +85,19 @@ export async function POST(request, { params }) {
     const payload = await request.json().catch(() => null)
     const action = String(payload?.action || '').trim().toLowerCase()
     const reason = String(payload?.reason || '').trim().slice(0, 2000)
+    const idempotencyKey = readIdempotencyKeyFromRequest(request)
+    const actorRole = normalizeAdminRole(access.profile?.role) || 'UNKNOWN'
     const now = new Date().toISOString()
+
+    if (isDisputeFinancialAction(action)) {
+      const rbacDeny = denyUnlessAdminFinancialRole(access)
+      if (rbacDeny) return rbacDeny
+    }
+
+    if (idempotencyKey && IDEMPOTENT_DISPUTE_ACTIONS.has(action)) {
+      const dup = await interceptDuplicateIdempotencyKey(idempotencyKey)
+      if (dup) return dup
+    }
 
     const { data: dispute, error: fetchErr } = await supabaseAdmin
       .from('disputes')
@@ -68,7 +111,7 @@ export async function POST(request, { params }) {
     }
 
     const isTerminal = TERMINAL_STATUSES.has(String(dispute.status || '').toUpperCase())
-    if (isTerminal && ['freeze_payment', 'force_refund'].includes(action)) {
+    if (isTerminal && ['freeze_payment', 'force_refund', 'split'].includes(action)) {
       return NextResponse.json({ success: false, error: 'Dispute is already closed' }, { status: 400 })
     }
 
@@ -170,6 +213,16 @@ export async function POST(request, { params }) {
       }
 
       const snapFreeze = await fetchDisputeSnapshot(disputeId)
+      await recordAdminAudit({
+        actorId: staff.id,
+        actorRole,
+        action: 'dispute_freeze_payment',
+        entityType: 'dispute',
+        entityId: disputeId,
+        reason,
+        payload: { bookingId: dispute.booking_id, freezeApplied: freezeRes.success },
+        idempotencyKey,
+      })
       return NextResponse.json({
         success: true,
         data: { disputeId, action: 'freeze_payment', dispute: snapFreeze, freezeApplied: freezeRes.success },
@@ -202,43 +255,64 @@ export async function POST(request, { params }) {
         )
       }
 
-      const { error: upErr } = await supabaseAdmin
-        .from('disputes')
-        .update({
-          status: 'RESOLVED',
-          resolved_at: now,
-          closed_by: staff.id,
-          current_deadline_at: null,
-          freeze_payment: false,
-          force_refund_requested: true,
-          admin_action_flags: flags,
-          resolution_reason: resolutionReason,
-          metadata: {
-            ...(dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}),
-            force_refund_reason: reason || null,
-            force_refund_requested_by: staff.id,
-            force_refund_requested_at: now,
-            force_refund_ledger: true,
-          },
-          updated_at: now,
-        })
-        .eq('id', disputeId)
+      let upErr = null
+      try {
+        const updateRes = await supabaseAdmin
+          .from('disputes')
+          .update({
+            status: 'RESOLVED',
+            resolved_at: now,
+            closed_by: staff.id,
+            current_deadline_at: null,
+            freeze_payment: false,
+            force_refund_requested: true,
+            admin_action_flags: flags,
+            resolution_reason: resolutionReason,
+            metadata: {
+              ...(dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}),
+              force_refund_reason: reason || null,
+              force_refund_requested_by: staff.id,
+              force_refund_requested_at: now,
+              force_refund_ledger: true,
+            },
+            updated_at: now,
+          })
+          .eq('id', disputeId)
+        upErr = updateRes.error || null
+      } catch (e) {
+        upErr = e
+      }
       if (upErr) {
-        return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: upErr?.message || String(upErr),
+        })
+        return NextResponse.json({ success: false, error: upErr.message || String(upErr) }, { status: 500 })
       }
 
-      await DisputeService.appendDisputeEvent(disputeId, {
-        eventType: 'ADMIN_FORCE_REFUND',
-        fromStatus: prevStatusFr,
-        toStatus: 'RESOLVED',
-        actorId: staff.id,
-        actorRole: 'ADMIN',
-        reason: resolutionReason,
-        metadata: {
-          lever: 'force_refund',
-          refund_guest_thb: refundResult.refundGuestThb,
-        },
-      })
+      try {
+        await DisputeService.appendDisputeEvent(disputeId, {
+          eventType: 'ADMIN_FORCE_REFUND',
+          fromStatus: prevStatusFr,
+          toStatus: 'RESOLVED',
+          actorId: staff.id,
+          actorRole: 'ADMIN',
+          reason: resolutionReason,
+          metadata: {
+            lever: 'force_refund',
+            refund_guest_thb: refundResult.refundGuestThb,
+          },
+        })
+      } catch (e) {
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: e?.message || String(e),
+        })
+      }
 
       const { data: booking } = await supabaseAdmin
         .from('bookings')
@@ -256,6 +330,19 @@ export async function POST(request, { params }) {
       }
 
       const snapFr = await fetchDisputeSnapshot(disputeId)
+      await recordAdminAudit({
+        actorId: staff.id,
+        actorRole,
+        action: 'dispute_force_refund',
+        entityType: 'dispute',
+        entityId: disputeId,
+        reason: resolutionReason,
+        payload: {
+          bookingId,
+          refundGuestThb: refundResult.refundGuestThb,
+        },
+        idempotencyKey,
+      })
       return NextResponse.json({
         success: true,
         data: {
@@ -294,47 +381,70 @@ export async function POST(request, { params }) {
       }
 
       const prevStatusSplit = String(dispute.status || '')
-      const { error: upErr } = await supabaseAdmin
-        .from('disputes')
-        .update({
-          status: 'RESOLVED',
-          resolved_at: now,
-          closed_by: staff.id,
-          current_deadline_at: null,
-          freeze_payment: false,
-          admin_action_flags: {
-            ...(dispute.admin_action_flags && typeof dispute.admin_action_flags === 'object'
-              ? dispute.admin_action_flags
-              : {}),
-            split_resolved: true,
-          },
-          resolution_reason: resolutionReason,
-          metadata: {
-            ...(dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}),
-            split_guest_percent: splitResult.guestPercent,
-            split_refund_guest_thb: splitResult.refundGuestThb,
-            split_partner_release_thb: splitResult.partnerReleaseThb,
-            split_resolved_by: staff.id,
-            split_resolved_at: now,
-          },
-          updated_at: now,
+      let upErr = null
+      try {
+        const updateRes = await supabaseAdmin
+          .from('disputes')
+          .update({
+            status: 'RESOLVED',
+            resolved_at: now,
+            closed_by: staff.id,
+            current_deadline_at: null,
+            freeze_payment: false,
+            admin_action_flags: {
+              ...(dispute.admin_action_flags && typeof dispute.admin_action_flags === 'object'
+                ? dispute.admin_action_flags
+                : {}),
+              split_resolved: true,
+            },
+            resolution_reason: resolutionReason,
+            metadata: {
+              ...(dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}),
+              split_guest_percent: splitResult.guestPercent,
+              split_refund_guest_thb: splitResult.refundGuestThb,
+              split_partner_release_thb: splitResult.partnerReleaseThb,
+              split_resolved_by: staff.id,
+              split_resolved_at: now,
+            },
+            updated_at: now,
+          })
+          .eq('id', disputeId)
+        upErr = updateRes.error || null
+      } catch (e) {
+        upErr = e
+      }
+      if (upErr) {
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: upErr?.message || String(upErr),
         })
-        .eq('id', disputeId)
-      if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
+        return NextResponse.json({ success: false, error: upErr.message || String(upErr) }, { status: 500 })
+      }
 
-      await DisputeService.appendDisputeEvent(disputeId, {
-        eventType: 'ADMIN_SPLIT_RESOLVED',
-        fromStatus: prevStatusSplit,
-        toStatus: 'RESOLVED',
-        actorId: staff.id,
-        actorRole: 'ADMIN',
-        reason: resolutionReason,
-        metadata: {
-          guest_percent: splitResult.guestPercent,
-          refund_guest_thb: splitResult.refundGuestThb,
-          partner_release_thb: splitResult.partnerReleaseThb,
-        },
-      })
+      try {
+        await DisputeService.appendDisputeEvent(disputeId, {
+          eventType: 'ADMIN_SPLIT_RESOLVED',
+          fromStatus: prevStatusSplit,
+          toStatus: 'RESOLVED',
+          actorId: staff.id,
+          actorRole: 'ADMIN',
+          reason: resolutionReason,
+          metadata: {
+            guest_percent: splitResult.guestPercent,
+            refund_guest_thb: splitResult.refundGuestThb,
+            partner_release_thb: splitResult.partnerReleaseThb,
+          },
+        })
+      } catch (e) {
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: e?.message || String(e),
+        })
+      }
 
       const { data: booking } = await supabaseAdmin
         .from('bookings')
@@ -352,6 +462,21 @@ export async function POST(request, { params }) {
       }
 
       const snapSplit = await fetchDisputeSnapshot(disputeId)
+      await recordAdminAudit({
+        actorId: staff.id,
+        actorRole,
+        action: 'dispute_split',
+        entityType: 'dispute',
+        entityId: disputeId,
+        reason: resolutionReason,
+        payload: {
+          bookingId,
+          guestPercent: splitResult.guestPercent,
+          refundGuestThb: splitResult.refundGuestThb,
+          partnerReleaseThb: splitResult.partnerReleaseThb,
+        },
+        idempotencyKey,
+      })
       return NextResponse.json({
         success: true,
         data: {
@@ -513,38 +638,61 @@ export async function POST(request, { params }) {
 
       const metaBase = dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}
       const prevClose = String(dispute.status || '')
-      const { error: upErr } = await supabaseAdmin
-        .from('disputes')
-        .update({
-          status: 'CLOSED',
-          resolved_at: now,
-          closed_by: staff.id,
-          resolution_reason: verdict || null,
-          current_deadline_at: null,
-          freeze_payment: false,
-          penalty_requested: !!targetUserId || dispute.penalty_requested,
-          admin_action_flags: flags,
-          metadata: {
-            ...metaBase,
-            admin_verdict: verdict || null,
-            guilty_party: guiltyParty,
-            closed_by_staff: staff.id,
-            closed_at: now,
-          },
-          updated_at: now,
+      let upErr = null
+      try {
+        const updateRes = await supabaseAdmin
+          .from('disputes')
+          .update({
+            status: 'CLOSED',
+            resolved_at: now,
+            closed_by: staff.id,
+            resolution_reason: verdict || null,
+            current_deadline_at: null,
+            freeze_payment: false,
+            penalty_requested: !!targetUserId || dispute.penalty_requested,
+            admin_action_flags: flags,
+            metadata: {
+              ...metaBase,
+              admin_verdict: verdict || null,
+              guilty_party: guiltyParty,
+              closed_by_staff: staff.id,
+              closed_at: now,
+            },
+            updated_at: now,
+          })
+          .eq('id', disputeId)
+        upErr = updateRes.error || null
+      } catch (e) {
+        upErr = e
+      }
+      if (upErr) {
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: upErr?.message || String(upErr),
         })
-        .eq('id', disputeId)
-      if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
+        return NextResponse.json({ success: false, error: upErr.message || String(upErr) }, { status: 500 })
+      }
 
-      await DisputeService.appendDisputeEvent(disputeId, {
-        eventType: 'DISPUTE_CLOSED',
-        fromStatus: prevClose,
-        toStatus: 'CLOSED',
-        actorId: staff.id,
-        actorRole: 'ADMIN',
-        reason: verdict,
-        metadata: { guilty_party: guiltyParty, resolution_strategy: resolutionStrategy },
-      })
+      try {
+        await DisputeService.appendDisputeEvent(disputeId, {
+          eventType: 'DISPUTE_CLOSED',
+          fromStatus: prevClose,
+          toStatus: 'CLOSED',
+          actorId: staff.id,
+          actorRole: 'ADMIN',
+          reason: verdict,
+          metadata: { guilty_party: guiltyParty, resolution_strategy: resolutionStrategy },
+        })
+      } catch (e) {
+        await recordSagaGapCriticalSignal({
+          disputeId,
+          action,
+          actorId: staff.id,
+          error: e?.message || String(e),
+        })
+      }
 
       await DisputeService.notifyPartiesDisputeResolved({
         bookingId: dispute.booking_id,
