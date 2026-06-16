@@ -1,8 +1,19 @@
-# GoStayLo — вход для людей и AI
+# Platform — вход для людей и AI
 
 ## Роль
 
 Вы ведёте изменения так, чтобы **код и документация не расходились**.
+
+## Имя бренда (white-label)
+
+| Контекст | Канон |
+|----------|--------|
+| UI, email, push, PDF, ответы пользователю | **`getSiteDisplayName()`** — env **`NEXT_PUBLIC_SITE_NAME`** / **`SITE_DISPLAY_NAME`** (прод: **Airento**) |
+| i18n JSON | плейсхолдер **`{brand}`** только (ADR §7a) |
+| Ответы AI в чате / PR / runbook для людей | **Airento** или «платформа», **не** GoStayLo / Gostaylo |
+| Legacy в коде | `gostaylo_*`, `GostayloListingCard` — internal id, не display name |
+
+Проверка: **`npm run check:brand`**
 
 ## Обязательные документы (порядок)
 

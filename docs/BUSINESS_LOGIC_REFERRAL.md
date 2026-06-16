@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document describes how GoStayLo allocates referral rewards without damaging booking unit-economics.
+This document describes how the platform allocates referral rewards without damaging booking unit-economics.
 
 Canonical engine: `lib/services/marketing/referral-pnl.service.js`.
 

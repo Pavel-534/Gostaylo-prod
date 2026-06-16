@@ -1,4 +1,4 @@
-# Gostaylo
+# Airento
 
 **Cross-border rentals, built like a global hospitality product.** Phuket-anchored, **Russia**- and **worldwide**-ready: discovery, trust, and settlement at a **world-class** bar — one Next.js codebase, multi-locale and multi-currency, scaling past the launch corridor without forking the product.
 

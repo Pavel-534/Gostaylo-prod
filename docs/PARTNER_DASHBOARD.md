@@ -1,4 +1,4 @@
-# Gostaylo - Stage 2: Partner Dashboard
+# Stage 2: Partner Dashboard
 
 ## ✅ Implementation Complete
 
@@ -159,7 +159,7 @@ Professional Partner Dashboard for managing listings, bookings, commissions, and
 **Sidebar Navigation:**
 ```
 ┌─────────────────────────┐
-│ [FR] Gostaylo         │
+│ [FR] {brand}              │
 │     Partner Portal      │
 ├─────────────────────────┤
 │ 👤 Иван Партнёров      │

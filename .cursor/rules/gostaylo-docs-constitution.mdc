@@ -1,5 +1,5 @@
 ---
-description: GoStayLo — обязательное чтение доков и синхронизация манифеста/паспорта с кодом
+description: Platform (white-label) — обязательное чтение доков и синхронизация манифеста/паспорта с кодом
 alwaysApply: true
 ---
 
@@ -31,4 +31,9 @@ alwaysApply: true
 - Не размножать хардкод комиссий/курсов — только БД, env, `currency-last-resort.js` по ADR.
 - **Новая таблица в `public`:** в миграции обязательно **GRANT → RLS → POLICY** (шаблон `migrations/_template_new_public_table.sql`, правило `gostaylo-supabase-migrations.mdc`). С 2026-10-30 Supabase не выдаёт grants на новые таблицы автоматически.
 
-Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**.
+## Имя бренда (Stage 151.1)
+
+- В ответах пользователю, новых doc-строках и i18n — **`getSiteDisplayName()`** / **`{brand}`**; прод: **Airento** через env.
+- **Не использовать** GoStayLo / Gostaylo как текущее продуктовое имя (legacy internal id и исторические Stage-записи — исключение).
+
+Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**, **`npm run check:brand`**.

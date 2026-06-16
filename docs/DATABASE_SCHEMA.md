@@ -1,4 +1,4 @@
-# Gostaylo - Database Schema Documentation
+# Database Schema Documentation
 
 ## 📋 Table of Contents
 1. [Overview](#overview)

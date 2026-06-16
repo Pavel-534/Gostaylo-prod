@@ -1,4 +1,6 @@
-# Architectural Decisions — GoStayLo / Super App
+# Architectural Decisions — Super App Platform (white-label)
+
+> **Display name (prod):** **`getSiteDisplayName()`** ← `NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME` (сейчас **Airento**). Имя репозитория и legacy internal id (`gostaylo_*`) ≠ product brand.
 
 ## Единственный источник истины (SSOT)
 

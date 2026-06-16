@@ -1,4 +1,4 @@
-# GoStayLo Platform Audit (Apr 2026)
+# Platform Audit (Apr 2026)
 
 ## P0 (critical)
 - Unauthenticated check-in confirmation: `app/api/v2/bookings/[id]/check-in/confirm/route.js`

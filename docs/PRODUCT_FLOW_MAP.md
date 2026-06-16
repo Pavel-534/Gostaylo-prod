@@ -1,4 +1,4 @@
-# Product Flow Map — GoStayLo
+# Product Flow Map — Platform (white-label)
 
 **Version:** 2.0.0  
 **Last updated:** 2026-05-20 | **Stage 112.3:** iCal/seasonal/referral/push API clients; realtime auth SSOT; 109–112.x closed. | **Stage 112.2:** calendar/bookings/finances clients. | **Stage 112.1:** Go/No-Go; chat hooks → API clients. | **Stage 112.0:** pre-launch hardening — chat-ui + catalog-public; admin messages single enrich fetch. | **Stage 111.2:** all FinTech admin panels via API client. | **Stage 111.1:** home + FinTech API clients, catalog-public SSOT. | **Stage 111.0:** pre-launch page split — admin marketing/payments, partner dashboard, renter profile → hooks + PageContent; payments API client. | **Stage 110.8:** final polish — chat API client SSOT, page unload via api-clients/hooks. | **Stage 110.6b:** invoice = storefront (retail FX SSOT, partner guest prefill, dual-currency guest display). | **Stage 110.7:** chat final (`conversation-api-client`, inbox UPDATE merge, outbound thread-only); P2 UI extract — partner dashboard widgets, renter profile modal/completion, marketing promo helpers. | **Stage 110.6:** outbound/inbox polish, `post-chat-invoice.js`, P1-2 send pipeline closed on `/messages`. | **Stage 110.5:** Chat SSOT — `post-chat-message.server.js`, invoice → тот же POST; inbox/thread Realtime без дубля. | **Stage 110.4:** SSOT FX — `lib/pricing/fx-display.js`; витрина `retail=1`, settlement `retail=0`; wizard preview = retail rateMap в `baseCurrency`. | **Stage 109.0:** Admin FinTech console refactor (panels + hook, owner mode preserved). | **Stage 108.5 (FIN):** pricing aliases, chat badge dedup, FX cache v3, owner FinTech polish. | **Stage 108.4:** schema verify, status SSOT, CHECKED_IN UI. | **Stage 108.3:** cron health, thread Realtime dedup. | **Stage 108.1–108.2:** payout guard, dead UI, chat POST SSOT.  
@@ -120,7 +120,7 @@ flowchart TB
 | Сессия | Cookie `gostaylo_session` | `lib/auth/app-session-issue.js`, `session-service.js` |
 | Роли | Redirect после login | `RENTER` / `PARTNER` / `ADMIN` |
 
-**Инвариант:** финальная сессия приложения — всегда JWT GoStayLo, не только Supabase session.
+**Инвариант:** финальная сессия приложения — JWT платформы (`gostaylo_session`), не только Supabase session.
 
 ---
 
@@ -319,7 +319,7 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 
 ## 7. Сравнение с паттерном Airbnb
 
-| Паттерн | GoStayLo | Примечание |
+| Паттерн | Platform | Примечание |
 |---------|----------|------------|
 | Instant Book | ✓ `instant_booking` | |
 | Request to book | ✓ `INQUIRY` / `PENDING` | |

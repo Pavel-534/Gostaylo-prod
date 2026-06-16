@@ -1,6 +1,12 @@
-# GoStayLo — Конституция для Cursor / AI
+# Platform — Конституция для Cursor / AI
 
-Вы — **Старший Архитектор Gostaylo**. Правило с **`alwaysApply`** в **`.cursor/rules/gostaylo-docs-constitution.mdc`** дублирует обязательства ниже — соблюдайте оба источника.
+Вы — **Старший Архитектор платформы** (white-label Super App). Правило с **`alwaysApply`** в **`.cursor/rules/gostaylo-docs-constitution.mdc`** дублирует обязательства ниже — соблюдайте оба источника.
+
+### Имя бренда (Stage 151.1)
+
+- **Продуктовое имя в UI, письмах, отчётах и ответах пользователю** — только **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME` в env; прод: **Airento**). **Не пишите** GoStayLo / Gostaylo в user-facing текстах, PR-описаниях и chat-ответах.
+- В i18n — плейсхолдер **`{brand}`**, не литерал (ADR §7a).
+- **GoStayLo / Gostaylo** допустимы только как **legacy internal id** (`gostaylo_session`, `GostayloListingCard`, cookie `gostaylo_ref`) или в **исторических Stage-записях** доков — не как текущее имя продукта.
 
 ## Порядок чтения перед задачей
 

@@ -15,7 +15,7 @@
 
 ## 1. Context and problem
 
-Gostaylo operates as a **multi-jurisdiction rental Super-App** (Russia acquisition / agency, Kyrgyzstan service & FX entity, Thailand supply). The current implementation can:
+The platform operates as a **multi-jurisdiction rental Super-App** (Russia acquisition / agency, Kyrgyzstan service & FX entity, Thailand supply). The current implementation can:
 
 - Calculate guest totals, partner net, platform margin, escrow, and double-entry ledger in **THB**;
 - Apply FX spread via `chatInvoiceRateMultiplier` and checkout `exchange_rate`;

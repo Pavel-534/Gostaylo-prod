@@ -25,6 +25,7 @@ import { NotificationEvents, NotificationService } from '@/lib/services/notifica
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
+import { processExpiredAwaitingPaymentCheckouts } from '@/lib/booking/checkout-hold-expiry.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -474,6 +475,9 @@ export async function POST(request) {
     }
     
     const bookingSla = await processExpiredBookingRequests();
+    const checkoutHoldExpiry = await processExpiredAwaitingPaymentCheckouts({
+      trigger: 'cron_cleanup_drafts_checkout_hold',
+    });
     const invoiceExpiry = await processExpiredPendingInvoices();
     const disputeEvidenceRetention = await processDisputeEvidenceRetention();
     const disputeSla72h = await DisputeService.processSlaBreaches({ limit: 300 });
@@ -493,6 +497,7 @@ export async function POST(request) {
         cutoffDate: cutoffISO,
         expiryDays: DRAFT_EXPIRY_DAYS,
         bookingSla24h: bookingSla,
+        checkoutHoldExpiry,
         invoiceExpiry,
         disputeEvidenceRetention,
         disputeSla72h,

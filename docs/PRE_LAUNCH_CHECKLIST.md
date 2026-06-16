@@ -1,4 +1,4 @@
-# GoStayLo — Pre-Launch Checklist (Stage 103)
+# Pre-Launch Checklist (Stage 103)
 
 **Цель:** безопасный soft launch (первые 50–100 броней) с Financial Model v2.0, фискализацией, treasury и ручными выплатами (Concierge Launch).
 

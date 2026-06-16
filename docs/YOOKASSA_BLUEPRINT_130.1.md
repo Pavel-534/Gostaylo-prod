@@ -285,7 +285,7 @@ export async function createPayment(input) {
     amount: { value: Number(amountRub).toFixed(2), currency: 'RUB' },
     capture: true,
     confirmation: { type: 'redirect', return_url: returnUrl },
-    description: `GoStayLo booking ${bookingId}`,
+    description: `${getSiteDisplayName()} booking ${bookingId}`,
     metadata: {
       booking_id: bookingId,
       bookingId,

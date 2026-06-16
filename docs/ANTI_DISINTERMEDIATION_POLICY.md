@@ -1,8 +1,8 @@
-# GoStayLo Anti-Disintermediation Policy (Chat)
+# Anti-Disintermediation Policy (Chat)
 
 ## Purpose
 
-GoStayLo is an aggregator. Chat must not become a channel for partner/renter migration to external messengers, direct phone calls, or direct invoicing outside platform escrow.
+The platform is an aggregator. Chat must not become a channel for partner/renter migration to external messengers, direct phone calls, or direct invoicing outside platform escrow.
 
 This document defines a practical, low-risk implementation strategy (Airbnb-style) that protects commission without breaking chat UX.
 
@@ -30,7 +30,7 @@ Primary bypass vectors:
 
 - Contact exchange is disallowed before on-platform booking/payment milestones.
 - User-facing copy should be neutral and clear:
-  - "For your safety and booking protection, please keep communication in GoStayLo chat."
+  - "For your safety and booking protection, please keep communication in platform chat ({brand})."
 - Repeated attempts increase risk score and can trigger moderation actions.
 
 ## Enforcement Architecture (Server-First)
@@ -93,7 +93,7 @@ Common pattern:
 - repeat-attempt risk escalation to trust & safety tooling
 - transparent UX messaging ("stay on-platform for protection")
 
-GoStayLo should follow the same phased model to avoid false positives while quickly reducing commission leakage.
+The platform should follow the same phased model to avoid false positives while quickly reducing commission leakage.
 
 ## Implementation Plan (Safe Order)
 
