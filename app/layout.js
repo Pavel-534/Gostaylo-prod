@@ -1,4 +1,4 @@
-import { Inter, Cormorant_Garamond } from 'next/font/google'
+import { inter, cormorant } from '@/lib/theme/app-fonts'
 import './globals.css'
 import { Toaster } from 'sonner'
 import GeoSuggestToast from '@/components/geo/GeoSuggestToast'
@@ -23,16 +23,6 @@ import { cookies, headers } from 'next/headers'
 import { getLangFromRequest } from '@/lib/translations'
 import { GeoProvider } from '@/contexts/geo-context'
 import { IS_RUSSIA_COOKIE, getIsRussiaFromRequest } from '@/lib/geo'
-
-const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-serif',
-  display: 'swap',
-})
 
 export const viewport = {
   width: 'device-width',

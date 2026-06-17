@@ -23,6 +23,15 @@ function moneyRow(label, valueThb, { muted = false, strong = false } = {}) {
   )
 }
 
+function textRow(label, valueText, { muted = false } = {}) {
+  return (
+    <div className={`flex justify-between gap-3 text-sm ${muted ? 'text-slate-500' : 'text-slate-800'}`}>
+      <span className="pr-2">{label}</span>
+      <span className="shrink-0">{valueText}</span>
+    </div>
+  )
+}
+
 /**
  * Partner-facing breakdown from API `financial_snapshot` (read-model SSOT).
  */
@@ -78,7 +87,11 @@ export function PartnerFinancialSnapshotDialog({
           </p>
           {moneyRow(t('partnerFinancial_subtotal'), sub)}
           {guestFee > 0 ? moneyRow(t('partnerFinancial_guestServiceFee'), guestFee, { muted: true }) : null}
-          {hostComm > 0 ? moneyRow(t('partnerFinancial_hostCommission'), hostComm) : null}
+          {hostComm > 0
+            ? moneyRow(t('partnerFinancial_hostCommission'), hostComm)
+            : textRow(t('partnerFinancial_hostCommissionSpecialTariff'), t('partnerFinancial_zeroPercentTag'), {
+                muted: true,
+              })}
           {plat > 0 ? moneyRow(t('partnerFinancial_platformMargin'), plat, { muted: true }) : null}
           {ins > 0 ? moneyRow(t('partnerFinancial_insuranceReserve'), ins, { muted: true }) : null}
           {roundPot !== 0 ? moneyRow(t('partnerFinancial_roundingPot'), roundPot, { muted: true }) : null}

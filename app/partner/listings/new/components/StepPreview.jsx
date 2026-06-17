@@ -1,25 +1,35 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { Info } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ListingCard } from '@/components/listing-card'
 import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
+import { WizardFinancialRecap } from '@/components/partner/wizard/WizardFinancialRecap'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepPreviewInner() {
   const w = useListingWizard()
   const {
     t,
+    tr,
     formData,
     language,
+    numberLocale,
     listingCategorySlug,
+    listingCategoryWizardProfile,
+    partnerCommissionRate,
     canProceed,
     publishQualityChecklist,
-    getCategoryName,
     pricingPreview,
   } = w
-  const name = getCategoryName(listingCategorySlug) || formData.categoryName
+
+  const hostNetPreview = useMemo(() => {
+    const base = parseFloat(String(formData.basePriceThb)) || 0
+    const pct = Number(partnerCommissionRate)
+    if (!(base > 0) || !Number.isFinite(pct)) return null
+    return Math.round(base * (1 - pct / 100))
+  }, [formData.basePriceThb, partnerCommissionRate])
 
   return (
     <div className="space-y-6">
@@ -29,6 +39,19 @@ function StepPreviewInner() {
       </div>
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
+
+      {hostNetPreview != null && hostNetPreview > 0 ? (
+        <WizardFinancialRecap
+          language={language}
+          tr={tr}
+          basePriceThb={formData.basePriceThb}
+          hostNetThb={hostNetPreview}
+          hostCommissionPercent={partnerCommissionRate}
+          categorySlug={listingCategorySlug}
+          wizardProfile={listingCategoryWizardProfile}
+          numberLocale={numberLocale}
+        />
+      ) : null}
 
       <div className="flex gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700 leading-relaxed">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-brand" aria-hidden />

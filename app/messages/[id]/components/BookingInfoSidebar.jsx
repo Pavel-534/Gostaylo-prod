@@ -3,6 +3,7 @@
 import nextDynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
+import { HostBookingNextStepsCard } from '@/components/partner/HostBookingNextStepsCard'
 
 const DealDetailsCard = nextDynamic(
   () => import('@/components/chat/DealDetailsCard').then((m) => m.DealDetailsCard),
@@ -44,6 +45,16 @@ export function BookingInfoSidebar({ listing, booking, language, isHosting = fal
           wizardProfile={wizardProfile}
           chatHref={chatHref}
           payHref={payHref}
+          compact
+          surface="chat"
+        />
+      ) : null}
+      {isHosting && booking?.status ? (
+        <HostBookingNextStepsCard
+          booking={booking}
+          bookingId={booking?.id}
+          status={booking?.status}
+          language={language}
           compact
           surface="chat"
         />

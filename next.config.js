@@ -161,8 +161,8 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com ${siteOrigins}`,
-              `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com ${siteOrigins}`,
-              "font-src 'self' data: https://fonts.gstatic.com",
+              `style-src 'self' 'unsafe-inline' https://unpkg.com ${siteOrigins}`,
+              "font-src 'self' data:",
               "img-src 'self' data: blob: https: https://unpkg.com",
               "connect-src 'self' https: wss:",
               "frame-src 'self' https:",

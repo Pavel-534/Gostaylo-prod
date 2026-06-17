@@ -31,10 +31,13 @@
     "smoke:full-financial:intl": "node scripts/smoke-full-financial.mjs --rail=intl",
     "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all",
     "test:visual-referral": "playwright test --project=referral-dashboard-visual",
-    "export-tokens": "node scripts/export-figma-tokens.mjs"
+    "export-tokens": "node scripts/export-figma-tokens.mjs",
+    "fonts:vendor": "node scripts/vendor-app-fonts.mjs"
   },
   "dependencies": {
     "@changey/react-leaflet-markercluster": "^4.0.0-rc1",
+    "@fontsource-variable/cormorant-garamond": "^5.2.6",
+    "@fontsource-variable/inter": "^5.2.8",
     "@hookform/resolvers": "^5.1.1",
     "@prisma/client": "^7.4.1",
     "@radix-ui/react-accordion": "^1.2.11",

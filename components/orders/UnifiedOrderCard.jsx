@@ -103,6 +103,7 @@ export default function UnifiedOrderCard({
           />
 
           <OrderCardFinancialTotals
+            booking={booking}
             language={language}
             normalizedRole={u.normalizedRole}
             normalizedOrder={u.normalizedOrder}

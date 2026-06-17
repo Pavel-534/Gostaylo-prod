@@ -19,6 +19,7 @@ import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
 import { readGuestPaymentDisplay } from '@/lib/booking/guest-payment-display.js'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget.jsx'
 import { getGuestDateLabel } from '@/lib/i18n/guest-booking-labels'
+import { HostMoneyTimelineChip } from '@/components/partner/HostMoneyTimelineChip'
 
 /** Guest escrow badge — only while funds are actively held (not after thaw/payout). */
 const GUEST_ESCROW_BADGE_STATUSES = new Set(['PAID_ESCROW', 'PAID', 'CHECKED_IN'])
@@ -229,6 +230,14 @@ export function DealDetailsCard({
               ) : null}
             </CardContent>
           </Card>
+          {isHosting && status ? (
+            <HostMoneyTimelineChip
+              status={status}
+              language={language}
+              bookingContext={{ ...booking, listing }}
+              compact
+            />
+          ) : null}
 
           {showDisputeWidget ? (
             <DisputeStatusWidget

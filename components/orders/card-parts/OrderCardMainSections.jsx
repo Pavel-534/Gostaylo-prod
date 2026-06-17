@@ -8,6 +8,8 @@ import { OrderCardFinancials } from '@/components/orders/card-parts/OrderCardFin
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 import { resolvePartnerEscrowCallout } from '@/lib/orders/unified-order-card-model'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
+import { HostBookingNextStepsCard } from '@/components/partner/HostBookingNextStepsCard'
+import { HostMoneyTimelineChip } from '@/components/partner/HostMoneyTimelineChip'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 /** Timeline, trust, pricing block, check-in media, admin parties, escrow callouts, partner guest card. */
@@ -66,6 +68,15 @@ export function OrderCardMainSections({
           surface="my_bookings"
         />
       ) : null}
+      {normalizedRole === 'partner' && bookingId ? (
+        <HostBookingNextStepsCard
+          booking={booking}
+          bookingId={bookingId}
+          status={status}
+          language={language}
+          surface="my_bookings"
+        />
+      ) : null}
 
       <OrderTimeline
         status={status}
@@ -74,6 +85,9 @@ export function OrderCardMainSections({
         reviewed={reviewed}
         checkOut={checkOut}
       />
+      {normalizedRole === 'partner' ? (
+        <HostMoneyTimelineChip status={status} language={language} bookingContext={booking} />
+      ) : null}
 
       {normalizedRole === 'renter' && partnerTrustPublic ? (
         <PartnerRenterTrustBadges trust={partnerTrustPublic} language={language} />

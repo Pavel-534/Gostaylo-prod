@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
@@ -74,6 +74,12 @@ export default function PartnerDashboardPageContent() {
   } = usePartnerDashboardPage()
 
   const dashLocale = DASH_DATE_LOCALE[language] || ru
+
+  const payoutCategorySlug = useMemo(() => {
+    const fromStats = stats?.financialV2?.dominantCategorySlug
+    if (typeof fromStats === 'string' && fromStats.trim()) return fromStats.trim().toLowerCase()
+    return 'property'
+  }, [stats?.financialV2?.dominantCategorySlug])
 
   if (isLoading || !partnerId) {
     return <PartnerDashboardLoadingSkeleton />
@@ -355,8 +361,8 @@ export default function PartnerDashboardPageContent() {
                 </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                {getHostMoneyStage('PAID_ESCROW', language, { categorySlug: 'property' })?.eta ||
-                  getHostMoneyPolicyForListing({ categorySlug: 'property' }, language).protected ||
+                {getHostMoneyStage('PAID_ESCROW', language, { categorySlug: payoutCategorySlug })?.eta ||
+                  getHostMoneyPolicyForListing({ categorySlug: payoutCategorySlug }, language).protected ||
                   getUIText('partnerDashboard_futureIncomeDesc', language)}
               </p>
               <p className="text-xs font-medium text-brand-hover flex items-center gap-1">

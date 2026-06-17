@@ -22,6 +22,7 @@ import { ru } from 'date-fns/locale'
 import { toListingDate, listingDateToday, addListingDays } from '@/lib/listing-date'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { inferDominantCategorySlug } from '@/lib/booking/payout-release-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,6 +98,7 @@ function generateMockStats() {
     financialV2: {
       moneyInTransitThb: 0,
       incomeByMonth: buildIncomeByMonthFromPayouts([], today),
+      dominantCategorySlug: 'property',
     },
   }
 }
@@ -333,6 +335,15 @@ export async function GET(request) {
       
       let incomeByMonth = buildIncomeByMonthFromPayouts([], today)
       let moneyInTransitThb = 0
+      const bookingsForCategory = allBookings.map((b) => {
+        const listing = listings.find((l) => l.id === b.listing_id)
+        const catId = listing?.category_id ? String(listing.category_id) : ''
+        return {
+          ...b,
+          listing: { category_slug: catId ? categorySlugById[catId] ?? null : null },
+        }
+      })
+      const dominantCategorySlug = inferDominantCategorySlug(bookingsForCategory)
       try {
         const escrowBookings = allBookings.filter((b) => b.status === 'PAID_ESCROW')
         moneyInTransitThb =
@@ -398,6 +409,7 @@ export async function GET(request) {
         financialV2: {
           moneyInTransitThb,
           incomeByMonth,
+          dominantCategorySlug,
         },
       }
       

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
+import { PartnerCancellationPolicyPreview } from '@/components/partner/wizard/PartnerCancellationPolicyPreview'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
@@ -171,6 +172,10 @@ function StepPricingInner() {
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-500">{t('partnerEdit_cancellationPolicyHint')}</p>
+        <PartnerCancellationPolicyPreview
+          policy={formData.cancellationPolicy || 'moderate'}
+          language={language}
+        />
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
