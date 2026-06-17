@@ -6,7 +6,9 @@ import { getUIText } from '@/lib/translations'
 import OrderTimeline from '@/components/orders/OrderTimeline'
 import { OrderCardFinancials } from '@/components/orders/card-parts/OrderCardFinancials'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
-import { formatPayoutAfter } from '@/lib/orders/unified-order-card-model'
+import { resolvePartnerEscrowCallout } from '@/lib/orders/unified-order-card-model'
+import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 /** Timeline, trust, pricing block, check-in media, admin parties, escrow callouts, partner guest card. */
 export function OrderCardMainSections({
@@ -30,9 +32,41 @@ export function OrderCardMainSections({
   guestName,
   guestPhone,
   guestEmail,
+  supportChatHref = null,
+  listingCategorySlug = null,
+  wizardProfile = null,
 }) {
+  const partnerEscrowCallout =
+    normalizedRole === 'partner' ? resolvePartnerEscrowCallout(booking, status, language) : null
+  const partnerCalloutToneClass =
+    partnerEscrowCallout?.tone === 'sky'
+      ? 'border-sky-200 bg-sky-50 text-sky-900'
+      : partnerEscrowCallout?.tone === 'indigo'
+        ? 'border-indigo-200 bg-indigo-50 text-indigo-900'
+        : partnerEscrowCallout?.tone === 'emerald'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-blue-200 bg-blue-50 text-blue-900'
+
   return (
     <>
+      {normalizedRole === 'renter' &&
+      ['PENDING', 'INQUIRY', 'AWAITING_PAYMENT', 'PAID_ESCROW'].includes(String(status || '').toUpperCase()) ? (
+        <GuestBookingNextStepsCard
+          status={status}
+          bookingId={bookingId}
+          language={language}
+          categorySlug={listingCategorySlug}
+          wizardProfile={wizardProfile}
+          chatHref={supportChatHref}
+          payHref={
+            isBookingPayable(String(status || '').toUpperCase()) && bookingId
+              ? `/checkout/${encodeURIComponent(String(bookingId))}`
+              : null
+          }
+          surface="my_bookings"
+        />
+      ) : null}
+
       <OrderTimeline
         status={status}
         type={normalizedOrder.type}
@@ -71,7 +105,12 @@ export function OrderCardMainSections({
           ) : null}
           {checkInPhotoUrls.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-[11px] font-medium text-slate-600">{getUIText('orderCheckInPhotos_caption', language)}</p>
+              <p className="text-[11px] font-medium text-slate-600">
+                {getUIText('orderCheckInPhotos_caption', language, {
+                  listingCategorySlug: listingCategorySlug || undefined,
+                  wizardProfile,
+                })}
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {checkInPhotoUrls.map((url, idx) => (
                   <button
@@ -121,15 +160,9 @@ export function OrderCardMainSections({
         </div>
       ) : null}
 
-      {normalizedRole === 'partner' && ['PAID_ESCROW', 'CHECKED_IN'].includes(status) ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-          {getUIText('orderEscrow_partnerInEscrow', language).replace('{date}', formatPayoutAfter(checkOut, language))}
-        </div>
-      ) : null}
-
-      {normalizedRole === 'partner' && ['THAWED', 'COMPLETED', 'FINISHED'].includes(status) ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          {getUIText('orderEscrow_partnerReleased', language)}
+      {partnerEscrowCallout ? (
+        <div className={`rounded-xl border px-3 py-2 text-sm ${partnerCalloutToneClass}`}>
+          {partnerEscrowCallout.message}
         </div>
       ) : null}
 

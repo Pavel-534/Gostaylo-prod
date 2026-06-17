@@ -336,7 +336,22 @@ function PartnerSettingsContent() {
               </Button>
             </div>
           ) : partnerApp.status === 'REJECTED' ? (
-            <p className="text-sm text-slate-700">{getUIText('partnerSettingsVerification_rejected', language)}</p>
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                {getUIText('partnerSettingsVerification_rejected', language)}
+              </p>
+              {partnerApp.rejectionReason?.trim() ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900">
+                  <p className="font-semibold text-red-800">
+                    {getUIText('partnerSettingsVerification_rejectionReason', language)}
+                  </p>
+                  <p className="mt-1 leading-relaxed">{partnerApp.rejectionReason.trim()}</p>
+                </div>
+              ) : null}
+              <Button asChild size="sm" variant="brand">
+                <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
+              </Button>
+            </div>
           ) : isPending ? (
             <div className="space-y-3">
               {partnerApp.hasVerificationDoc ? (

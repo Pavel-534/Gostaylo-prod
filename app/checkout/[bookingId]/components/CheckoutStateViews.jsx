@@ -13,6 +13,14 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
+
+function trackCheckoutEscapeClick(placement, bookingId = null) {
+  void trackProductEvent(ProductAnalyticsEvents.CHECKOUT_ESCAPE_CLICK, {
+    placement,
+    booking_id: bookingId,
+  })
+}
 
 const SUCCESS_NEXT_STEP_KEYS = [
   'checkout_successNextSteps_1',
@@ -60,23 +68,58 @@ export function CheckoutAccessDeniedView({ language }) {
   )
 }
 
-export function CheckoutUnavailableView({ language }) {
+export function CheckoutUnavailableView({ language, bookingId = null, chatHref = null }) {
+  const bookingDetailsHref = bookingId
+    ? `/my-bookings?booking=${encodeURIComponent(String(bookingId))}`
+    : '/my-bookings'
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <Card className="max-w-md">
-        <CardContent className="pt-6 text-center">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <Card className="max-w-md w-full">
+        <CardContent className="pt-6 text-center space-y-4">
           <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_unavailableTitle', language)}</h3>
           <p className="text-slate-600 mb-4">{getUIText('checkout_unavailableBody', language)}</p>
-          <Button asChild>
-            <Link href="/">{getUIText('checkout_home', language)}</Link>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button asChild variant="brand">
+              <Link
+                href={bookingDetailsHref}
+                onClick={() => trackCheckoutEscapeClick('unavailable_booking_details', bookingId)}
+              >
+                {getUIText('checkout_escapeBookingDetails', language)}
+              </Link>
+            </Button>
+            {chatHref ? (
+              <Button asChild variant="outline">
+                <Link
+                  href={chatHref}
+                  onClick={() => trackCheckoutEscapeClick('unavailable_open_chat', bookingId)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {getUIText('checkout_escapeOpenChat', language)}
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="ghost" className="text-slate-600">
+              <Link href="/">{getUIText('checkout_home', language)}</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
   )
 }
 
-export function CheckoutSuccessView({ language, chatHref, escrowHint = null }) {
+export function CheckoutSuccessView({
+  language,
+  chatHref,
+  escrowHint = null,
+  successBody = null,
+  successNextStep3 = null,
+  listingCategorySlug = null,
+  wizardProfile = null,
+}) {
+  const uiCtx = listingCategorySlug ? { listingCategorySlug, wizardProfile } : undefined
+  const bodyText = successBody || getUIText('checkout_successBody', language, uiCtx)
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <Card className="max-w-md w-full border-slate-200/80 shadow-sm">
@@ -85,7 +128,7 @@ export function CheckoutSuccessView({ language, chatHref, escrowHint = null }) {
           <h3 className="text-2xl font-bold mb-2 text-slate-900">
             {getUIText('checkout_successTitle', language)}
           </h3>
-          <p className="text-slate-600 mb-5 leading-relaxed">{getUIText('checkout_successBody', language)}</p>
+          <p className="text-slate-600 mb-5 leading-relaxed">{bodyText}</p>
           <div className="text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 mb-6 space-y-3">
             <p className="text-sm font-semibold text-slate-900">
               {getUIText('checkout_successNextSteps_title', language)}
@@ -94,11 +137,16 @@ export function CheckoutSuccessView({ language, chatHref, escrowHint = null }) {
               {SUCCESS_NEXT_STEP_KEYS.map((key, index) => {
                 const Icon = SUCCESS_NEXT_STEP_ICONS[index]
                 const isHelpStep = key === 'checkout_successNextSteps_4'
+                const isEscrowStep = key === 'checkout_successNextSteps_3'
+                const stepText =
+                  isEscrowStep && successNextStep3
+                    ? successNextStep3
+                    : getUIText(key, language, uiCtx)
                 return (
                   <li key={key} className="flex gap-3 items-start text-sm text-slate-600 leading-relaxed">
                     <Icon className="h-4 w-4 shrink-0 mt-0.5 text-brand" aria-hidden />
                     <span>
-                      {getUIText(key, language)}
+                      {stepText}
                       {isHelpStep ? (
                         <>
                           {' '}
@@ -134,7 +182,7 @@ export function CheckoutSuccessView({ language, chatHref, escrowHint = null }) {
               >
                 <Link href={chatHref}>
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  {getUIText('checkout_chatHost', language)}
+                  {getUIText('checkout_chatHost', language, uiCtx)}
                 </Link>
               </Button>
             ) : null}
@@ -149,7 +197,15 @@ export function CheckoutSuccessView({ language, chatHref, escrowHint = null }) {
 }
 
 /** Stage 138.2 — calm full-page state while polling acquirer return. */
-export function CheckoutPaymentReturnVerifyingView({ language }) {
+export function CheckoutPaymentReturnVerifyingView({
+  language,
+  bookingId = null,
+  chatHref = null,
+}) {
+  const bookingDetailsHref = bookingId
+    ? `/my-bookings?booking=${encodeURIComponent(String(bookingId))}`
+    : '/my-bookings'
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <Card className="max-w-md w-full border-slate-200/80 shadow-sm">
@@ -163,6 +219,27 @@ export function CheckoutPaymentReturnVerifyingView({ language }) {
               {getUIText('checkout_returnVerifyingBody', language)}
             </p>
           </div>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button asChild variant="outline" size="sm">
+              <Link
+                href={bookingDetailsHref}
+                onClick={() => trackCheckoutEscapeClick('verifying_booking_details', bookingId)}
+              >
+                {getUIText('checkout_escapeBookingDetails', language)}
+              </Link>
+            </Button>
+            {chatHref ? (
+              <Button asChild variant="ghost" size="sm" className="text-brand">
+                <Link
+                  href={chatHref}
+                  onClick={() => trackCheckoutEscapeClick('verifying_open_chat', bookingId)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {getUIText('checkout_escapeOpenChat', language)}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -173,8 +250,16 @@ export function CheckoutPaymentReturnVerifyingView({ language }) {
  * Stage 138.2 — payment declined/cancelled or polling timeout after YooKassa return.
  * @param {{ language: string, chatHref?: string | null, onRetry: () => void, retrying?: boolean }} props
  */
-export function CheckoutPaymentFailedView({ language, chatHref, onRetry, retrying = false }) {
+export function CheckoutPaymentFailedView({
+  language,
+  chatHref,
+  onRetry,
+  retrying = false,
+  listingCategorySlug = null,
+  wizardProfile = null,
+}) {
   const supportHref = chatHref || '/help'
+  const uiCtx = listingCategorySlug ? { listingCategorySlug, wizardProfile } : undefined
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -208,7 +293,7 @@ export function CheckoutPaymentFailedView({ language, chatHref, onRetry, retryin
               <Link href={supportHref}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {chatHref
-                  ? getUIText('checkout_chatHost', language)
+                  ? getUIText('checkout_chatHost', language, uiCtx)
                   : getUIText('checkout_failedSupport', language)}
               </Link>
             </Button>

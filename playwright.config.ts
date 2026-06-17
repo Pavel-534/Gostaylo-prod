@@ -162,6 +162,17 @@ export default defineConfig({
       },
     },
     {
+      name: 'guest-inquiry-golden-path',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/guest-inquiry-golden-path.spec.ts',
+      timeout: 240_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.user,
+      },
+    },
+    {
       name: 'checkout-mock-smoke',
       dependencies: ['setup'],
       testDir: './tests/e2e',
@@ -294,5 +305,9 @@ export default defineConfig({
         url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 120_000,
+        env: {
+          ...process.env,
+          E2E_TEST_RUN: '1',
+        },
       },
 })

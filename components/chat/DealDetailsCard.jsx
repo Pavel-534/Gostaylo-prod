@@ -18,16 +18,10 @@ import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
 import { readGuestPaymentDisplay } from '@/lib/booking/guest-payment-display.js'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget.jsx'
+import { getGuestDateLabel } from '@/lib/i18n/guest-booking-labels'
 
-const GUEST_ESCROW_STATUSES = new Set([
-  'PAID_ESCROW',
-  'PAID',
-  'CHECKED_IN',
-  'THAWED',
-  'THAW_HOLD',
-  'READY_FOR_PAYOUT',
-  'COMPLETED',
-])
+/** Guest escrow badge — only while funds are actively held (not after thaw/payout). */
+const GUEST_ESCROW_BADGE_STATUSES = new Set(['PAID_ESCROW', 'PAID', 'CHECKED_IN'])
 
 function fmtDate(iso, language) {
   if (!iso) return null
@@ -95,7 +89,7 @@ function resolveFinancialLines({ booking, isHosting, language }) {
     amountLabel: getUIText('dealCard_guestTotal', language),
     amountLine: readGuestPaymentDisplay(booking, { language })?.displayAmount ?? '—',
     commissionLine: null,
-    showEscrow: GUEST_ESCROW_STATUSES.has(String(booking?.status || '').toUpperCase()),
+    showEscrow: GUEST_ESCROW_BADGE_STATUSES.has(String(booking?.status || '').toUpperCase()),
   }
 }
 
@@ -123,6 +117,16 @@ export function DealDetailsCard({
   const checkIn = booking?.check_in || booking?.checkIn
   const checkOut = booking?.check_out || booking?.checkOut
   const status = booking?.status
+  const categorySlug =
+    listing?.category_slug ||
+    listing?.categorySlug ||
+    booking?.category_slug ||
+    booking?.listings?.category_slug ||
+    null
+  const wizardProfile = listing?.wizard_profile || listing?.wizardProfile || null
+  const dateLabelCtx = { categorySlug, wizardProfile, language }
+  const checkInLabel = getGuestDateLabel('checkInLabel', dateLabelCtx)
+  const checkOutLabel = getGuestDateLabel('checkOutLabel', dateLabelCtx)
 
   const financial = resolveFinancialLines({ booking, isHosting, language })
   const hostMoney =
@@ -167,7 +171,7 @@ export function DealDetailsCard({
               <CalendarRange className="h-4 w-4 text-brand shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
-                  {getUIText('dealCard_checkIn', language) || (language === 'en' ? 'Check-in' : 'Заезд')}
+                  {checkInLabel}
                 </p>
                 <p className="text-slate-900 font-medium">{fmtDate(checkIn, language) || '—'}</p>
               </div>
@@ -176,7 +180,7 @@ export function DealDetailsCard({
               <CalendarRange className="h-4 w-4 text-brand shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
-                  {getUIText('dealCard_checkOut', language) || (language === 'en' ? 'Check-out' : 'Выезд')}
+                  {checkOutLabel}
                 </p>
                 <p className="text-slate-900 font-medium">{fmtDate(checkOut, language) || '—'}</p>
               </div>

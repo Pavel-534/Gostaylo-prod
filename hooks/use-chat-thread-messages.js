@@ -27,7 +27,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
-import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
+import { mapApiMessageToRow, mergeRealtimeMessage, mergeMessagesPreservingPaidInvoices } from '@/lib/chat/map-api-message'
 import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
 import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
 import { useChatRealtime } from '@/hooks/use-chat-realtime'
@@ -125,6 +125,10 @@ export function useChatThreadMessages({
 
   // Защита от race condition при быстром переключении диалогов
   const loadSeqRef = useRef(0)
+  const messagesRef = useRef([])
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   // Текущие опции маппера — обновляются вместе с selectedConv
   const mapperOptsRef = useRef(buildMapperOpts(null, userId, viewerRole, null))
@@ -234,7 +238,7 @@ export function useChatThreadMessages({
           const tb = String(b.createdAt ?? b.created_at ?? '')
           return ta.localeCompare(tb)
         })
-        return next
+        return mergeMessagesPreservingPaidInvoices(prev, next)
       })
     } catch {
       /* ignore */
@@ -290,18 +294,22 @@ export function useChatThreadMessages({
 
   // ── Загрузка треда ────────────────────────────────────────────────────────────
 
-  const loadThread = useCallback(async (convId) => {
+  const loadThread = useCallback(async (convId, options = {}) => {
     if (!convId || !userId) return
+
+    const soft = options.soft === true
+    const priorMessages = soft ? messagesRef.current : []
 
     const seq = ++loadSeqRef.current
     setIsLoading(true)
-    setSelectedConv(null)
-    setListing(null)
-    setBooking(null)
-    setMessages([])
+    if (!soft) {
+      setSelectedConv(null)
+      setListing(null)
+      setBooking(null)
+      setMessages([])
+    }
 
     try {
-      // 1. Загружаем обогащённую беседу (включает listing + booking)
       const conv = await fetchEnrichedConversation(convId)
 
       if (seq !== loadSeqRef.current) return
@@ -311,25 +319,19 @@ export function useChatThreadMessages({
       setListing(conv.listing ?? null)
       setBooking(conv.booking ?? null)
 
-      // Обновляем опции маппера до загрузки сообщений
       mapperOptsRef.current = buildMapperOpts(conv, userId, viewerRole, conv.booking ?? null)
 
-      // 2. Загружаем историю сообщений
       const { ok: msgOk, data: msgRows } = await fetchChatMessages(convId)
 
       if (seq !== loadSeqRef.current) return
       if (msgOk && Array.isArray(msgRows)) {
         const opts = mapperOptsRef.current
-        setMessages(
-          msgRows
-            .map((m) => mapApiMessageToRow(m, opts))
-            .filter(Boolean)
-        )
-      } else {
+        const mapped = msgRows.map((m) => mapApiMessageToRow(m, opts)).filter(Boolean)
+        setMessages(mergeMessagesPreservingPaidInvoices(priorMessages, mapped))
+      } else if (!soft) {
         setMessages([])
       }
 
-      // 3. Авто-пометка прочитанными
       onMarkReadRef.current?.()
       void postChatMarkRead(convId).catch(() => {})
     } catch {
@@ -518,7 +520,7 @@ export function useChatThreadMessages({
     sendInvoice,
     sendMedia,
     appendMessage,
-    reload: () => conversationId && loadThread(conversationId),
+    reload: () => conversationId && loadThread(conversationId, { soft: true }),
 
     // Вспомогательное
     setMessages,   // escape hatch для страниц с кастомной логикой

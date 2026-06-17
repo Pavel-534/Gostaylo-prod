@@ -50,3 +50,4 @@
 - Пуши: `lib/services/push.service.js`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`
 - Критичная телеметрия: `lib/critical-telemetry.js`
 - Бронирования: `lib/services/booking.service.js` (оркестратор) + модули в `lib/services/booking/` (Stage 2.1)
+- **Resend в тестах:** `lib/email/resend-transport-guard.js` — smoke/E2E/тестовые адреса не вызывают Resend API; правило `.cursor/rules/gostaylo-resend-transport-guard.mdc`

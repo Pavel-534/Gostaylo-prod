@@ -27,6 +27,7 @@ import { ListingMobileActions } from '@/components/listing/pdp/ListingMobileActi
 import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
+import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
 
 function PremiumListingContent({ params }) {
   const router = useRouter()
@@ -53,6 +54,9 @@ function PremiumListingContent({ params }) {
 
   const amenities = listing?.metadata?.amenities || []
   const galleryImageUrls = useMemo(() => getListingDisplayImageUrls(listing), [listing])
+  const postInquiryChatHref = booking.postInquiryBooking?.conversationId
+    ? `/messages/${encodeURIComponent(booking.postInquiryBooking.conversationId)}`
+    : null
 
   const mobileBelow = listing ? (
     <ListingMobileActions
@@ -151,6 +155,18 @@ function PremiumListingContent({ params }) {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 lg:pb-8">
           <GuestBookingFlowHint t={(key) => getUIText(key, language)} className="mb-4 max-w-2xl" />
+          {booking.postInquiryBooking ? (
+            <GuestBookingNextStepsCard
+              bookingId={booking.postInquiryBooking.bookingId}
+              status={booking.postInquiryBooking.status}
+              language={language}
+              categorySlug={listing?.categorySlug}
+              chatHref={postInquiryChatHref}
+              compact
+              surface="pdp"
+              className="mb-4 max-w-2xl"
+            />
+          ) : null}
           <ReferralCatalogFunnelStrip language={language} className="mb-4" />
           <ListingHeroGallery
             listing={listing}

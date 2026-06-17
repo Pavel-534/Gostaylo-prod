@@ -18,6 +18,7 @@ import { fetchExchangeRates } from '@/lib/client-data'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 import { cancelChatInvoice } from '@/lib/chat/post-chat-invoice'
 import { getUIText } from '@/lib/translations'
+import { isBookingPaid } from '@/lib/mask-contacts'
 
 const STATUS_LABEL = {
   PENDING: { en: 'Pending', ru: 'Ожидает оплаты' },
@@ -25,6 +26,16 @@ const STATUS_LABEL = {
   EXPIRED: { en: 'Expired', ru: 'Истёк' },
   CANCELLED: { en: 'Cancelled', ru: 'Отменён' },
 }
+
+const PAID_BOOKING_STATUSES = new Set([
+  'PAID',
+  'PAID_ESCROW',
+  'CHECKED_IN',
+  'THAWED',
+  'THAW_HOLD',
+  'READY_FOR_PAYOUT',
+  'COMPLETED',
+])
 
 /**
  * Компактная карточка счёта в ленте чата (in-app billing).
@@ -39,6 +50,10 @@ export function InvoiceBubble({
   /** id сообщения type=invoice — для отмены партнёром */
   messageId = null,
   onInvoiceCancelled = null,
+  /** Оптимистичный PAID в ленте до reload */
+  onInvoicePaid = null,
+  /** Статус брони — self-heal: PAID_ESCROW → пузырь «Оплачен» */
+  bookingStatus = null,
   language = 'ru',
 }) {
   const router = useRouter()
@@ -70,16 +85,27 @@ export function InvoiceBubble({
 
   if (!invoice) return null
 
-  const rawStatus = String(invoice.status || 'PENDING').toUpperCase()
+  const bookingPaid = PAID_BOOKING_STATUSES.has(String(bookingStatus || '').toUpperCase())
+  const rawStatus = bookingPaid
+    ? 'PAID'
+    : String(invoice.status || 'PENDING').toUpperCase()
   const statusInfo = STATUS_LABEL[rawStatus] || STATUS_LABEL.PENDING
   const isPaid = rawStatus === 'PAID'
+  const canPay =
+    showPay &&
+    !isOwn &&
+    !isPaid &&
+    Boolean(invoice.booking_id) &&
+    !bookingPaid
 
   function goCheckout(pm) {
     const bid = invoice.booking_id
     if (!bid) {
       setMethodOpen(false)
+      toast.error(getUIText('invoiceBubble_noBookingLinked', language))
       return
     }
+    onInvoicePaid?.()
     setNavigating(true)
     const qs = new URLSearchParams({ pm: String(pm || 'CARD') })
     if (invoice.id) qs.set('invoiceId', String(invoice.id))
@@ -125,7 +151,7 @@ export function InvoiceBubble({
                 {isEn ? 'Invoice' : 'Счёт'}
               </p>
               <p className="truncate font-mono text-xs font-semibold text-slate-800">
-                #{String(invoice.id || '').slice(-8)}
+                #{String(invoice.id || messageId || '').slice(-8)}
               </p>
             </div>
           </div>
@@ -160,14 +186,14 @@ export function InvoiceBubble({
           </p>
         )}
 
-        {showPay && !isOwn && rawStatus === 'PENDING' && (
+        {canPay && (
           <Button
             type="button"
             className="h-12 min-h-[48px] w-full rounded-xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover"
             data-testid="invoice-bubble-pay"
             onClick={() => {
               if (!invoice.booking_id) {
-                toast.error('К счёту не привязано бронирование')
+                toast.error(getUIText('invoiceBubble_noBookingLinked', language))
                 return
               }
               setMethodOpen(true)
@@ -182,7 +208,13 @@ export function InvoiceBubble({
           </Button>
         )}
 
-        {isOwn && rawStatus === 'PENDING' && (
+        {showPay && !isOwn && !isPaid && !invoice.booking_id && !bookingPaid ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {getUIText('invoiceBubble_noBookingLinked', language)}
+          </p>
+        ) : null}
+
+        {isOwn && rawStatus === 'PENDING' && !bookingPaid ? (
           <div className="flex flex-col gap-2">
             <p className="text-center text-xs font-medium text-slate-600">
               {isEn ? 'Awaiting payment' : 'Ожидаем оплату'}
@@ -199,7 +231,13 @@ export function InvoiceBubble({
               </Button>
             ) : null}
           </div>
-        )}
+        ) : null}
+
+        {isPaid && bookingPaid && isBookingPaid(bookingStatus) ? (
+          <p className="text-center text-xs font-medium text-emerald-800">
+            {getUIText('invoiceBubble_paidEscrowHint', language)}
+          </p>
+        ) : null}
       </div>
 
       <Dialog open={methodOpen} onOpenChange={setMethodOpen}>
@@ -257,11 +295,6 @@ export function InvoiceBubble({
               </span>
             </Button>
           </div>
-          {!invoice.booking_id && (
-            <p className="text-xs text-amber-800 bg-amber-50 rounded-md p-2 mt-2">
-              {getUIText('invoiceBubble_noBookingLinked', language)}
-            </p>
-          )}
         </DialogContent>
       </Dialog>
     </>

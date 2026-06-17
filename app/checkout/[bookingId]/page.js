@@ -89,8 +89,23 @@ function CheckoutPageInner({ params: paramsProp }) {
   if (p.accessDenied) {
     return <CheckoutAccessDeniedView language={c.language} />
   }
+  const listingCategorySlug =
+    p.listing?.category_slug ||
+    p.booking?.listings?.category_slug ||
+    p.booking?.listings?.metadata?.category_slug ||
+    null
+  const checkoutUiCtx = listingCategorySlug
+    ? {
+        listingCategorySlug,
+        wizardProfile:
+          p.listing?.wizard_profile || p.booking?.listings?.categories?.wizard_profile || null,
+      }
+    : undefined
   const bookingStatus = String(p.booking?.status || '').toUpperCase()
   const bookingAlreadyPaid = ['PAID', 'PAID_ESCROW', 'COMPLETED'].includes(bookingStatus)
+  const checkoutChatHref = p.chatConversationId
+    ? `/messages/${encodeURIComponent(p.chatConversationId)}`
+    : null
   if (
     !p.booking ||
     bookingStatus === 'CANCELLED' ||
@@ -100,7 +115,13 @@ function CheckoutPageInner({ params: paramsProp }) {
       !isBookingPayable(bookingStatus) &&
       !bookingAlreadyPaid)
   ) {
-    return <CheckoutUnavailableView language={c.language} />
+    return (
+      <CheckoutUnavailableView
+        language={c.language}
+        bookingId={params.bookingId}
+        chatHref={checkoutChatHref}
+      />
+    )
   }
   if (p.paymentSuccess) {
     const chatBase = p.chatConversationId
@@ -117,28 +138,37 @@ function CheckoutPageInner({ params: paramsProp }) {
         ? `${chatBase}?invoicePaid=${encodeURIComponent(String(resolvedInvoiceId))}&fromPayment=1`
         : `${chatBase}?fromPayment=1`
       : null
-    const listingCategorySlug =
-      p.listing?.category_slug ||
-      p.booking?.listings?.category_slug ||
-      p.booking?.listings?.metadata?.category_slug ||
-      null
-    const escrowHint = listingCategorySlug
-      ? getPayoutReleaseDisplayText(
-          getPayoutReleaseConfig({ categorySlug: listingCategorySlug }),
-          c.language,
-          'protected',
-        )
+    const releaseConfig = listingCategorySlug
+      ? getPayoutReleaseConfig({ categorySlug: listingCategorySlug })
+      : null
+    const escrowHint = releaseConfig
+      ? getPayoutReleaseDisplayText(releaseConfig, c.language, 'protected')
+      : null
+    const successBody = releaseConfig
+      ? getPayoutReleaseDisplayText(releaseConfig, c.language, 'guestEscrowSuccess')
+      : null
+    const successNextStep3 = releaseConfig
+      ? getPayoutReleaseDisplayText(releaseConfig, c.language, 'guestEscrowStep3')
       : null
     return (
       <CheckoutSuccessView
         language={c.language}
         chatHref={chatHref}
         escrowHint={escrowHint}
+        successBody={successBody}
+        successNextStep3={successNextStep3}
+        listingCategorySlug={listingCategorySlug}
       />
     )
   }
   if (p.paymentReturnVerifying) {
-    return <CheckoutPaymentReturnVerifyingView language={c.language} />
+    return (
+      <CheckoutPaymentReturnVerifyingView
+        language={c.language}
+        bookingId={params.bookingId}
+        chatHref={checkoutChatHref}
+      />
+    )
   }
   if (p.paymentFailed) {
     const chatHref = p.chatConversationId ? `/messages/${encodeURIComponent(p.chatConversationId)}` : null
@@ -146,6 +176,8 @@ function CheckoutPageInner({ params: paramsProp }) {
       <CheckoutPaymentFailedView
         language={c.language}
         chatHref={chatHref}
+        listingCategorySlug={listingCategorySlug}
+        wizardProfile={checkoutUiCtx?.wizardProfile}
         retrying={p.processing}
         onRetry={() => {
           p.clearPaymentFailed()
@@ -158,6 +190,8 @@ function CheckoutPageInner({ params: paramsProp }) {
     return <CheckoutCommissionSpinner />
   }
 
+  const tCheckout = (key) => getUIText(key, c.language, checkoutUiCtx)
+
   const flowT = (key) => getUIText(key, c.language)
 
   return (
@@ -166,21 +200,21 @@ function CheckoutPageInner({ params: paramsProp }) {
         <GuestBookingFlowHint t={flowT} />
         <Link href="/" className="inline-flex items-center text-brand hover:text-brand-hover text-sm font-medium">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {getUIText('checkout_back', c.language)}
+          {tCheckout('checkout_back')}
         </Link>
 
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{getUIText('checkout_title', c.language)}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{tCheckout('checkout_title')}</h1>
 
         <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 flex gap-3 items-start">
           <Shield className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" aria-hidden />
           <div className="text-sm text-slate-800 space-y-1">
-            <p className="font-semibold text-slate-900">{getUIText('checkout_escrowInfoTitle', c.language)}</p>
-            <p className="leading-relaxed">{getUIText('checkout_escrowInfoBody', c.language)}</p>
+            <p className="font-semibold text-slate-900">{tCheckout('checkout_escrowInfoTitle')}</p>
+            <p className="leading-relaxed">{tCheckout('checkout_escrowInfoBody')}</p>
             <Link
               href="/help/escrow-protection"
               className="inline-block font-medium text-brand hover:text-brand-hover underline underline-offset-2"
             >
-              {getUIText('checkout_escrowInfoLink', c.language)}
+              {tCheckout('checkout_escrowInfoLink')}
             </Link>
           </div>
         </div>
@@ -190,10 +224,10 @@ function CheckoutPageInner({ params: paramsProp }) {
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold text-emerald-900 text-sm">
-                {getUIText('checkout_confirmedBannerTitle', c.language)}
+                {tCheckout('checkout_confirmedBannerTitle')}
               </p>
               <p className="text-sm text-emerald-700 mt-0.5">
-                {getUIText('checkout_confirmedBannerBody', c.language)}
+                {tCheckout('checkout_confirmedBannerBody')}
               </p>
             </div>
           </div>

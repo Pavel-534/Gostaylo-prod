@@ -237,6 +237,26 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (newStatus === 'CANCELLED' || newStatus === 'DECLINED') {
+      try {
+        const full = await BookingService.getBookingById(id)
+        if (full) {
+          const cancelReason =
+            (typeof declineReasonDetail === 'string' && declineReasonDetail.trim()) ||
+            (typeof reason === 'string' && reason.trim()) ||
+            undefined
+          await NotificationService.dispatch(NotificationEvents.BOOKING_CANCELLED, {
+            booking: full,
+            guest: full.renter,
+            listing: full.listings,
+            reason: cancelReason,
+          })
+        }
+      } catch (e) {
+        console.error('[BOOKING UPDATE] BOOKING_CANCELLED notify', e)
+      }
+    }
+
     return NextResponse.json({
       status: 'success',
       data: updated || { id, status: newStatus },

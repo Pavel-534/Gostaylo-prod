@@ -183,9 +183,8 @@ const nextConfig = {
         source: '/_db/:path*',
         destination: `${base}/rest/v1/:path*`,
       },
-      // Public Storage objects: same-origin path hides Supabase host, but URLs remain world-fetchable
-      // if the bucket is public. KYC in `verification_documents` should be opened via
-      // GET /api/v2/admin/verification-doc (ADMIN + signed URL), not linked raw in external channels.
+      // Public Storage objects: same-origin path hides Supabase host (public buckets only).
+      // Private buckets: `verification_documents`, `chat-attachments` — guarded routes under `app/_storage/…`.
       {
         source: '/_storage/:path*',
         destination: `${base}/storage/v1/object/public/:path*`,

@@ -28,6 +28,8 @@ export function OrderCardHelpDialogs({
   language,
   normalizedRole,
   bookingId,
+  listingCategorySlug = null,
+  wizardProfile = null,
   helpOpen,
   onHelpOpenChange,
   helpStep,
@@ -63,19 +65,24 @@ export function OrderCardHelpDialogs({
 }) {
   if (normalizedRole === 'admin') return null
 
+  const helpCtx = listingCategorySlug
+    ? { listingCategorySlug, wizardProfile }
+    : undefined
+  const tHelp = (key) => getUIText(key, language, helpCtx)
+
   return (
     <>
       <Dialog open={helpOpen} onOpenChange={onHelpOpenChange}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>{getUIText('orderHelp_title', language)}</DialogTitle>
-            <DialogDescription>{getUIText('orderHelp_description', language)}</DialogDescription>
+            <DialogTitle>{tHelp('orderHelp_title')}</DialogTitle>
+            <DialogDescription>{tHelp('orderHelp_description')}</DialogDescription>
           </DialogHeader>
 
           {helpStep === 'pre' && normalizedRole === 'renter' ? (
             <div className="space-y-3 rounded-xl border border-brand/25 bg-brand/10 p-4">
-              <p className="text-sm font-semibold text-brand">{getUIText('orderHelp_preContactTitle', language)}</p>
-              <p className="text-sm text-brand/90">{getUIText('orderHelp_preContactDesc', language)}</p>
+              <p className="text-sm font-semibold text-brand">{tHelp('orderHelp_preContactTitle')}</p>
+              <p className="text-sm text-brand/90">{tHelp('orderHelp_preContactDesc')}</p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {supportChatHref ? (
                   <Button asChild variant="brand">
@@ -93,7 +100,7 @@ export function OrderCardHelpDialogs({
                   onClick={() => void onNotifyPartnerHelp()}
                 >
                   {helpNudgeSending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {getUIText('orderHelp_notifyPartner', language)}
+                  {tHelp('orderHelp_notifyPartner')}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setHelpStep('main')}>
                   {getUIText('orderHelp_skipPreStep', language)}
@@ -130,7 +137,7 @@ export function OrderCardHelpDialogs({
                         return (
                           <>
                             {partnerQuiet ? (
-                              <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyHint', language)}</p>
+                              <p className="text-xs text-slate-600">{tHelp('orderHelp_emergencyHint')}</p>
                             ) : null}
                             {debugEmergencyAlways && !partnerQuiet ? (
                               <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
@@ -158,7 +165,7 @@ export function OrderCardHelpDialogs({
                                   <Button asChild variant="brand">
                                     <Link href={supportChatHref}>
                                       <MessageSquare className="h-4 w-4 mr-2" />
-                                      {getUIText('orderHelp_writeToPartnerChat', language)}
+                                      {tHelp('orderHelp_writeToPartnerChat')}
                                     </Link>
                                   </Button>
                                 ) : null}
@@ -333,9 +340,9 @@ export function OrderCardHelpDialogs({
                   className="mt-0.5"
                   checked={emergencyCheck.no_property_access}
                   onCheckedChange={(v) => setEmergencyCheck((c) => ({ ...c, no_property_access: v === true }))}
-                  aria-label={getUIText(emergencyAccessCheckKey, language)}
+                  aria-label={tHelp(emergencyAccessCheckKey)}
                 />
-                <span>{getUIText(emergencyAccessCheckKey, language)}</span>
+                <span>{tHelp(emergencyAccessCheckKey)}</span>
               </label>
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-800">
                 <Checkbox

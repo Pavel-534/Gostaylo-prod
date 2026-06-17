@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import { Info } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ListingCard } from '@/components/listing-card'
 import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
@@ -28,6 +29,11 @@ function StepPreviewInner() {
       </div>
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
+
+      <div className="flex gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-brand" aria-hidden />
+        <p>{t('wizardModerationBanner')}</p>
+      </div>
 
       {!canProceed && (
         <p className="text-sm text-amber-800">{t('listingQuality_publishBlocked', t('continueFilling'))}</p>

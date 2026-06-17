@@ -113,8 +113,12 @@ export function useListingBookingFlow({
   const [availabilitySnapshot, setAvailabilitySnapshot] = useState(null)
   const [availabilityFetchLoading, setAvailabilityFetchLoading] = useState(false)
   const [bookingModalIntent, setBookingModalIntent] = useState('book')
+  const [postInquiryBooking, setPostInquiryBooking] = useState(null)
 
-  const listingPartnerId = listing?.ownerId ?? listing?.owner?.id ?? null
+  const listingUiCtx = useMemo(() => {
+    const slug = listing?.categorySlug || listing?.category?.slug
+    return slug ? { listingCategorySlug: slug } : undefined
+  }, [listing?.categorySlug, listing?.category?.slug])
   const isVehicleListing = isTransportListingCategory(
     listing?.categorySlug || listing?.category?.slug,
   )
@@ -465,26 +469,30 @@ export function useListingBookingFlow({
         const data = await res.json()
 
         if (data.success) {
+          const cid = data.conversationId
+          const bookingId = data.booking?.id
+          const bookingStatus = data.booking?.status
+
           void trackProductEvent(ProductAnalyticsEvents.BOOKING_START, {
             listing_id: listing?.id,
             inquiry: Boolean(data.inquiry),
             intent: bookingModalIntent,
           })
           if (data.inquiry) {
-            toast.success(getUIText('listingToast_bookingInquiry', language))
+            toast.success(getUIText('listingToast_bookingInquiry', language, listingUiCtx))
+            setPostInquiryBooking({
+              bookingId: bookingId || null,
+              status: String(bookingStatus || 'PENDING').toUpperCase(),
+              conversationId: cid || null,
+            })
           } else {
             toast.success(getUIText('listingToast_bookingCreated', language))
           }
           setBookingModalOpen(false)
           setBookingModalIntent('book')
-          const cid = data.conversationId
-          const bookingId = data.booking?.id
-          const bookingStatus = data.booking?.status
 
           if (data.inquiry) {
-            if (cid) {
-              router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
-            }
+            /* Stage 155.6 — остаёмся на PDP с GuestBookingNextStepsCard */
           } else if (bookingId && isBookingPayable(bookingStatus)) {
             router.push(`/checkout/${encodeURIComponent(bookingId)}`, { scroll: false })
           } else if (cid) {
@@ -517,6 +525,7 @@ export function useListingBookingFlow({
       guests,
       priceCalc,
       language,
+      listingUiCtx,
       openLoginForBooking,
       router,
     ],
@@ -560,5 +569,6 @@ export function useListingBookingFlow({
     openBookModal,
     handleAskPartnerUnavailable,
     handleBookingSubmit,
+    postInquiryBooking,
   }
 }

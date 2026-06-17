@@ -30,6 +30,7 @@ import {
   resolveMenuVariantForTelegramChat,
 } from '@/lib/services/telegram/menu-variant.js'
 import { resolveTelegramLanguageForChat, normalizeTelegramUiLang } from '@/lib/services/telegram/locale.js'
+import { validateTelegramWebhookLite } from '@/lib/webhooks/telegram-webhook-auth.js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,6 +58,8 @@ function isPartnerListingRole(role) {
 }
 
 export async function POST(request) {
+  const { botToken } = telegramEnv()
+
   let chatId
   let lang = 'en'
 
@@ -66,14 +69,13 @@ export async function POST(request) {
       update = await request.json()
     } catch (parseErr) {
       console.error('[WEBHOOK] Invalid or empty JSON body', parseErr?.message || parseErr)
-      return NextResponse.json({ ok: true })
+      return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 })
     }
 
-    const { botToken } = telegramEnv()
-    if (!botToken) {
-      console.error(
-        '[WEBHOOK] TELEGRAM_BOT_TOKEN missing — updates are accepted but replies cannot be sent. Set token in Vercel/hosting env.'
-      )
+    const liteGate = validateTelegramWebhookLite(update, botToken)
+    if (!liteGate.ok) {
+      console.warn('[WEBHOOK] Lite gate rejected update', liteGate.error)
+      return NextResponse.json({ ok: false, error: liteGate.error }, { status: liteGate.status })
     }
 
     if (update?.callback_query) {
@@ -269,8 +271,9 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: `${getSiteDisplayName()} Telegram Webhook`,
-    version: '7.5',
-    stage: 31,
+    version: '7.6',
+    stage: '154.3',
+    webhook_protection: 'lite_structural',
     runtime: 'nodejs',
     modular: true,
     /** Без утечки секрета: достаточно для проверки, что прод-сервер видит токен */

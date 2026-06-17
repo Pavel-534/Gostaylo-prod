@@ -87,6 +87,19 @@ export default function UnifiedOrderCard({
             guestName={u.guestName}
             guestPhone={u.guestPhone}
             guestEmail={u.guestEmail}
+            supportChatHref={u.supportChatHref}
+            listingCategorySlug={
+              u.listing?.category_slug ||
+              u.listing?.categorySlug ||
+              booking?.listings?.category_slug ||
+              null
+            }
+            wizardProfile={
+              u.listing?.wizard_profile ||
+              u.listing?.wizardProfile ||
+              booking?.listings?.categories?.wizard_profile ||
+              null
+            }
           />
 
           <OrderCardFinancialTotals
@@ -165,6 +178,18 @@ export default function UnifiedOrderCard({
             language={language}
             normalizedRole={u.normalizedRole}
             bookingId={u.bookingId}
+            listingCategorySlug={
+              u.listing?.category_slug ||
+              u.listing?.categorySlug ||
+              booking?.listings?.category_slug ||
+              null
+            }
+            wizardProfile={
+              u.listing?.wizard_profile ||
+              u.listing?.wizardProfile ||
+              booking?.listings?.categories?.wizard_profile ||
+              null
+            }
             helpOpen={u.helpOpen}
             onHelpOpenChange={(open) => {
               u.setHelpOpen(open)

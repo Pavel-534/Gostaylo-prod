@@ -111,6 +111,7 @@ export async function GET() {
       'BOOKING_INSTANT_PARTNER',
       'BOOKING_CONFIRMED',
       'PAYMENT_RECEIVED',
+      'PAYMENT_ESCROW_GUEST',
       'CHECKIN_REMINDER',
       'PAYOUT_READY',
       'FUNDS_THAWED_PARTNER',

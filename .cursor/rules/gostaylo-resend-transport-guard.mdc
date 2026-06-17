@@ -1,0 +1,41 @@
+---
+description: Resend — не отправлять реальные письма из smoke/E2E и на тестовые адреса
+alwaysApply: true
+---
+
+# Resend transport guard (Stage 155.5)
+
+**SSOT:** `lib/email/resend-transport-guard.js` — `shouldMockResendDelivery(to)`, `isResendTestRecipient(to)`, `mockResendDeliveryResult(...)`.
+
+## Обязательно
+
+Любой **новый** вызов Resend API (`fetch('https://api.resend.com/emails')` или обёртка) **до HTTP** проверяет guard:
+
+```javascript
+import { shouldMockResendDelivery, mockResendDeliveryResult } from '@/lib/email/resend-transport-guard.js'
+
+if (shouldMockResendDelivery(to)) {
+  return mockResendDeliveryResult(to, subject, 'your_module_name')
+}
+```
+
+Подключено в **`sendResendEmail`** (`lib/services/notifications/email.service.js`) и **`EmailService.sendEmail`** (`lib/services/email.service.js`). Новые модули — через эти функции, не дублировать `fetch` к Resend.
+
+## Когда мокается (без вызова API)
+
+- `SMOKE_FINANCIAL_RUN=1`, `E2E_TEST_RUN=1`
+- `RESEND_MOCK=1` или `NOTIFICATIONS_EMAIL_MOCK=1`
+- получатель `@smoke.invalid`, `@test.gostaylo.invalid`, `user-smoke-*`, `smoke-guest`, `smoke-partner`
+
+Обход только для ручной проверки доставки: **`RESEND_FORCE_SEND=1`**.
+
+## Тестовые пользователи и брони
+
+- Email smoke/E2E: **`lib/e2e/test-user-markers.js`** (`@smoke.invalid`, `@test.gostaylo.invalid`).
+- Данные броней/листингов в тестах: метка **`[E2E_TEST_DATA]`** где принято в проекте.
+- Financial smoke ставит `SMOKE_FINANCIAL_RUN=1` в `lib/smoke/financial-smoke-run.js` — notification handlers работают, transport мокается.
+
+## Запрещено
+
+- Прямой Resend из smoke-шагов, фикстур или cron без guard.
+- Отправка на `@*.invalid` в CI/local без mock (жжёт квоту и портит репутацию домена).

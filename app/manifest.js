@@ -1,6 +1,6 @@
 import { getSiteDisplayName } from '@/lib/site-url'
 
-/** PWA manifest: имя сайта из SSOT (NEXT_PUBLIC_SITE_NAME / SITE_DISPLAY_NAME). */
+/** PWA manifest (Stage 155.3): runtime SSOT — getSiteDisplayName() from env; public/manifest.json is static fallback. */
 export default function manifest() {
   const brand = getSiteDisplayName()
   const short = brand.length > 12 ? brand.slice(0, 12) : brand

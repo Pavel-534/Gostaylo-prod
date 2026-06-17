@@ -2,6 +2,7 @@
 
 import nextDynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
+import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
 
 const DealDetailsCard = nextDynamic(
   () => import('@/components/chat/DealDetailsCard').then((m) => m.DealDetailsCard),
@@ -20,14 +21,40 @@ const DealDetailsCard = nextDynamic(
  */
 export function BookingInfoSidebar({ listing, booking, language, isHosting = false, onOpenCalendar, className }) {
   if (!listing && !booking) return null
+
+  const categorySlug =
+    listing?.category_slug ||
+    listing?.categorySlug ||
+    booking?.category_slug ||
+    booking?.listings?.category_slug ||
+    null
+  const wizardProfile = listing?.wizard_profile || listing?.wizardProfile || null
+  const conversationId = booking?.conversation_id || booking?.conversationId || null
+  const chatHref = conversationId ? `/messages/${encodeURIComponent(String(conversationId))}` : null
+  const payHref = booking?.id ? `/checkout/${encodeURIComponent(String(booking.id))}` : null
+
   return (
-    <DealDetailsCard
-      listing={listing}
-      booking={booking}
-      language={language}
-      isHosting={isHosting}
-      className={className}
-      onOpenCalendar={onOpenCalendar}
-    />
+    <div className={className ? `${className} flex flex-col gap-4` : 'flex flex-col gap-4'}>
+      {!isHosting && booking?.status ? (
+        <GuestBookingNextStepsCard
+          bookingId={booking?.id}
+          status={booking.status}
+          language={language}
+          categorySlug={categorySlug}
+          wizardProfile={wizardProfile}
+          chatHref={chatHref}
+          payHref={payHref}
+          compact
+          surface="chat"
+        />
+      ) : null}
+      <DealDetailsCard
+        listing={listing}
+        booking={booking}
+        language={language}
+        isHosting={isHosting}
+        onOpenCalendar={onOpenCalendar}
+      />
+    </div>
   )
 }

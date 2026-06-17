@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
@@ -42,9 +43,20 @@ import {
 import { usePartnerDashboardPage } from '@/hooks/partner/use-partner-dashboard-page'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { GSL_CARD } from '@/lib/theme/product-ui'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function PartnerDashboardPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [showPublishedModerationBanner, setShowPublishedModerationBanner] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('published') === '1') {
+      setShowPublishedModerationBanner(true)
+      router.replace('/partner/dashboard', { scroll: false })
+    }
+  }, [searchParams, router])
+
   const {
     language,
     partnerId,
@@ -83,6 +95,17 @@ export default function PartnerDashboardPageContent() {
 
   return (
     <div className="space-y-6">
+      {showPublishedModerationBanner ? (
+        <Alert className="rounded-2xl border-brand/25 bg-brand/5 text-slate-800">
+          <Check className="h-4 w-4 text-brand" aria-hidden />
+          <AlertTitle className="text-slate-900">
+            {getUIText('partnerEdit_statusPending', language)}
+          </AlertTitle>
+          <AlertDescription>
+            {getUIText('partnerDashboard_publishedModerationBanner', language)}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <PartnerDashboardWalletOverview />
       <PartnerReferralWelcomeStrip />
       <PartnerOnboardingChecklist language={language} />
