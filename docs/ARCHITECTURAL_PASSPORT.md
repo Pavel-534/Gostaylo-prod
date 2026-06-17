@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.156.3 | **Last Updated**: 2026-06-17 | **Stage 156.3:** Smoke 12g FK shield (`ensureSmokeListingExists`, shared `context.listingId`); wizard Financial Recap (`StepPreview`) + host cancellation preview (`StepPricing`). | **Stage 156.2:** Build-stable self-hosted fonts + Host Journey Closure Wave 2B Phase 2 (`HostBookingNextStepsCard`, `HostMoneyTimelineChip`, host 0% special tariff line in payout breakdown). | **Stage 156.1:** Wave 2B P0 — partner order card footer labels; host money i18n; dashboard `dominantCategorySlug`. | **Stage 156.0:** Wave 1E sealed — vertical guest payment notify copy (`guest-booking-labels.js`); Playwright `guest-inquiry-golden-path`; E2E `promote-booking-paid-escrow`.
+> **Version**: 12.157.0 | **Last Updated**: 2026-06-17 | **Stage 157.0:** Location L2 — geo write SSOT (`resolveListingGeoSnapshot`), Phuket district canon, `WHERE_SLUG_ALIASES`, popular chip alignment, `geo_locations` seed pattaya/kazan. | **Stage 156.3:** Smoke 12g FK shield; wizard Financial Recap + host cancellation preview. | **Stage 156.2:** Build-stable fonts + Host Journey Closure Wave 2B Phase 2.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)

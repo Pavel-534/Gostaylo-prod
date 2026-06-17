@@ -14,6 +14,7 @@ import { createListingSchema } from '@/lib/validations/listing';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
+import { applyListingGeoSnapshotToInsertRow } from '@/lib/partner/apply-listing-geo-snapshot';
 
 export async function GET(request) {
   try {
@@ -127,6 +128,11 @@ export async function POST(request) {
       title,
       description,
       district,
+      country,
+      region,
+      city,
+      latitude,
+      longitude,
       basePriceThb,
       images,
       metadata,
@@ -173,15 +179,16 @@ export async function POST(request) {
           : partner.instant_booking === true;
     
     // Create listing
-    const { data: listing, error } = await supabaseAdmin
-      .from('listings')
-      .insert({
+    const insertRow = applyListingGeoSnapshotToInsertRow(
+      {
         owner_id: partnerId,
         category_id: categoryId,
         status: partner.is_verified ? 'PENDING' : 'INACTIVE',
         title,
         description,
-        district,
+        district: district || '',
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
         base_price_thb: basePriceThb,
         base_currency: isListingBaseCurrency(baseCurrency) ? normalizeCurrencyCode(baseCurrency) : 'THB',
         commission_rate: commissionRate,
@@ -189,8 +196,14 @@ export async function POST(request) {
         cover_image: images?.[0] || null,
         metadata: metadata || {},
         instant_booking: instantBookingValue,
-        available: false
-      })
+        available: false,
+      },
+      { country, region, city, district, latitude, longitude, metadata },
+    )
+
+    const { data: listing, error } = await supabaseAdmin
+      .from('listings')
+      .insert(insertRow)
       .select()
       .single();
     

@@ -115,6 +115,12 @@ model Listing {
   
   // Location
   district        String        // Rawai, Patong, Kata, etc.
+  /// ISO 3166-1 alpha-2 — FK `geo_locations.code` (Stage GP-1 / 157 write path)
+  countryCode     String?       @map("country_code")
+  /// Region slug e.g. TH-PHK — FK `geo_locations.code`
+  regionCode      String?       @map("region_code")
+  /// City slug e.g. phuket-city — FK `geo_locations.code`
+  cityCode        String?       @map("city_code")
   latitude        Float?
   longitude       Float?
   address         String?

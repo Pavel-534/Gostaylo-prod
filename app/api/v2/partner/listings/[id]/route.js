@@ -18,6 +18,7 @@ import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
 import { validateListingPublishQuality } from '@/lib/partner/listing-quality-gates.js';
 import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
 import { listingBasePriceSchema } from '@/lib/validations/listing';
+import { applyListingGeoSnapshotToUpdateData } from '@/lib/partner/apply-listing-geo-snapshot';
 
 export const dynamic = 'force-dynamic';
 
@@ -199,7 +200,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, categories(slug, name, wizard_profile)')
+    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, country_code, region_code, city_code, categories(slug, name, wizard_profile)')
     .eq('id', listingId)
     .single();
   
@@ -303,7 +304,9 @@ export async function PATCH(request, context) {
       );
     }
   }
-  
+
+  applyListingGeoSnapshotToUpdateData(updateData, body, existing);
+
   // Update
   const { data: updated, error } = await supabase
     .from('listings')

@@ -1,7 +1,4 @@
-export const WIZARD_DISTRICTS = [
-  'Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala',
-  'Surin', 'Bang Tao', 'Nai Harn', 'Panwa', 'Mai Khao', 'Nai Yang',
-]
+export { PHUKET_DISTRICTS_CANON as WIZARD_DISTRICTS } from '@/lib/locations/phuket-districts-canonical'
 
 export function getDefaultWizardFormData() {
   return {
