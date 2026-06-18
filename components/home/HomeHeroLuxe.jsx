@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { Search, Sparkles, Home, Bike, Map as MapIcon, Anchor, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { HOME_CATEGORY_ICONS } from './home-constants'
-import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
+import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 
 /**
  * Базовый стиль 60-px поля (Apple/Airbnb-уровень).
@@ -54,19 +54,16 @@ export function HomeHeroLuxe({
   heroTitle = null,
   onCategoryTabClick,
 }) {
-  const [locations, setLocations] = useState(getStaticLocationsSeed)
-  const [locationsLoading, setLocationsLoading] = useState(true)
-
-  useEffect(() => {
-    fetchSearchLocations()
-      .then(({ ok, locations }) => {
-        if (ok) setLocations(locations)
-      })
-      .catch(() => {})
-      .finally(() => setLocationsLoading(false))
-  }, [])
-
+  const locations = useMemo(() => getStaticLocationsSeed(), [])
   const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
+
+  const fetchWhereSuggestions = useCallback(
+    async (q) => {
+      const res = await fetchLocationSuggest({ q, lang: language, limit: 12 })
+      return res.ok ? res.items : []
+    },
+    [language],
+  )
 
   const displayTabs = useMemo(
     () =>
@@ -239,7 +236,7 @@ export function HomeHeroLuxe({
               value={where || 'all'}
               onChange={setWhere}
               placeholder={getUIText('wherePlaceholder', language)}
-              loading={locationsLoading}
+              fetchSuggestions={fetchWhereSuggestions}
               variant="flat"
               language={language}
               className={cn(FIELD_BASE_CLASS, 'px-0')}

@@ -11,7 +11,7 @@
  * Listings for grid/map: @/lib/search-endpoints LISTINGS_SEARCH_API_PATH (not fetched here).
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Search, Layers, MapPin, Sparkles } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,7 @@ import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-p
 import { chipIconForCategory } from '@/components/search/category-chip-icon'
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { fetchCategories } from '@/lib/client-data'
-import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
+import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 
 export function UnifiedSearchBar({
   variant = 'hero',
@@ -75,9 +75,8 @@ export function UnifiedSearchBar({
   nights: _nights = 0
 }) {
   const [categories, setCategories] = useState([])
-  /** Сразу известные города/районы (Пхукет) — без ожидания API; ответ locations подмешивает реальные данные */
-  const [locations, setLocations] = useState(getStaticLocationsSeed)
-  const [locationsLoading, setLocationsLoading] = useState(true)
+  /** Статический seed — только для label fallback выбранного значения (Stage 158: suggest API). */
+  const locations = useMemo(() => getStaticLocationsSeed(), [])
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
   const [mobileWhereInput, setMobileWhereInput] = useState('')
@@ -90,18 +89,17 @@ export function UnifiedSearchBar({
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    fetchSearchLocations()
-      .then(({ ok, locations }) => {
-        if (ok) setLocations(locations)
-      })
-      .catch(() => {})
-      .finally(() => setLocationsLoading(false))
-  }, [])
-
   const whereOptionsFull = useMemo(
     () => buildWhereOptions(locations, language),
-    [locations, language]
+    [locations, language],
+  )
+
+  const fetchWhereSuggestions = useCallback(
+    async (q) => {
+      const res = await fetchLocationSuggest({ q, lang: language, limit: 12 })
+      return res.ok ? res.items : []
+    },
+    [language],
   )
 
   const categoryLabel =
@@ -254,8 +252,8 @@ export function UnifiedSearchBar({
           value={where || 'all'}
           onChange={setWhere}
           placeholder={getUIText('whereShort', language)}
-          loading={locationsLoading}
-          loadingPlaceholder={getUIText('loading', language)}
+          fetchSuggestions={fetchWhereSuggestions}
+          loading={false}
           variant="compact"
           language={language}
           className="min-w-0"
@@ -368,8 +366,8 @@ export function UnifiedSearchBar({
           value={where || 'all'}
           onChange={setWhere}
           placeholder={getUIText('wherePlaceholder', language)}
-          loading={locationsLoading}
-          loadingPlaceholder={getUIText('loading', language)}
+          fetchSuggestions={fetchWhereSuggestions}
+          loading={false}
           variant="hero"
           language={language}
           className="min-w-[180px] flex-[1.2] xl:min-w-[220px]"

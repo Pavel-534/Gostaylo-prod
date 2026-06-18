@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.157.0 | **Last Updated**: 2026-06-17 | **Stage 157.0:** Location L2 — geo write SSOT (`resolveListingGeoSnapshot`), Phuket district canon, `WHERE_SLUG_ALIASES`, popular chip alignment, `geo_locations` seed pattaya/kazan. | **Stage 156.3:** Smoke 12g FK shield; wizard Financial Recap + host cancellation preview. | **Stage 156.2:** Build-stable fonts + Host Journey Closure Wave 2B Phase 2.
+> **Version**: 12.162.1 | **Last Updated**: 2026-06-17 | **Stage 162.1:** PostGIS `coordinates` + `ST_DWithin` radius search. | **Stage 162.0:** Admin UI очереди локаций. | **Stage 161.0:** Batch normalize cron. | **Stage 160.0:** Admin location queue + MERGE engine.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -116,7 +116,7 @@
 
 - **Главная:** `hooks/home/use-platform-home-page.js` + `lib/home/platform-home-api-client.js`; `PlatformHomeContent.jsx` — только разметка (~337 строк).
 - **FinTech-пульт:** все HTTP из `useAdminFinTechConsole` → `lib/admin/admin-fintech-api-client.js` (bundle load, pricing, pools, fiscal, reconcile, CSV blob).
-- **Публичная витрина:** `lib/api/catalog-public-client.js` (site-features, public stats, locations); `lib/api/auth-client.js` (SSOT `fetchAuthMe`, re-export в partner-finances-client).
+- **Публичная витрина:** `lib/api/catalog-public-client.js` (site-features, public stats, locations, **location suggest**); `lib/api/auth-client.js` (SSOT `fetchAuthMe`, re-export в partner-finances-client).
 - **Дубли:** `useHomeFilters` использует `useDebounce` из `lib/hooks/useListingsSearch.js` вместо локальной копии.
 - **Проверки:** `npm run build` OK; `npm run smoke:full-financial` 15/15 PASS.
 
@@ -371,6 +371,8 @@
 - **SSOT guard:** **`lib/security/admin-staff-access.js`** — **`requireAdminStaff(request)`** → staff + RBAC по префиксу из **`lib/admin/admin-api-access.ts`** (правила из **`lib/admin/admin-menu.ts`** + **`ADMIN_V2_PREFIX_MENU_HREF`**; неизвестный путь — только **ADMIN**). Покрытие: все **`app/api/admin/**`** и **`app/api/v2/admin/**`**. **`GET /api/admin/search`** — глобальный поиск с ранжированием. UI: **`AdminGlobalSearch`**, меню SSOT **`lib/admin/admin-menu.ts`** (Control: System Health + AI + Security; Marketplace Health в «Операции»).
 - **Заявка → профиль:** при переводе партнёрской заявки в **`APPROVED`** (**`app/api/v2/admin/partners`**) профиль получает **`is_verified: true`**, **`verification_status: 'VERIFIED'`**; в **`critical_signal_events`** пишется **`SYSTEM_AUTO_VERIFICATION`** (**`lib/services/audit/system-auto-verification.js`**).
 - **Marketplace Health:** **`GET /api/v2/admin/marketplace-health`** — доступ **ADMIN** и **MODERATOR**; ответ дополняется **`pulseWindowDays`**, **`snapshotRowsLast7Days`** (046), **`autoVerificationsLast7Days`** (журнал); UI **`/admin/marketplace-health`** — блок **Pulse**. Клиентская оболочка: **`app/admin/layout.js`** — пункт меню **`moderatorAccess: true`**, путь убран из **`MODERATOR_RESTRICTED_PREFIXES`**.
+- **Location governance UI (Stage 162.0):** **`/admin/locations/suggestions`** — очередь PENDING из **`location_suggestions`**; **`GET /api/v2/admin/locations/suggestions`** (ADMIN + MODERATOR); **`PATCH …/resolve`** (MERGE/REJECT, ADMIN-only, опционально **`reject_reason`**); компоненты **`components/admin/locations/*`**; пункт меню «Очередь локаций» (иконка MapPin) в группе «Операции»; stats strip из **`GET /api/v2/admin/health`** → **`locationNormalize`**, **`locationSuggest`**.
+- **PostGIS spatial search (Stage 162.1):** миграция **`stage162_1_postgis.sql`** — колонка **`listings.coordinates`** (`geography Point 4326`), триггер sync из **`latitude`/`longitude`**, RPC **`listings_ids_within_radius_v1`**; каталог **`GET /api/v2/search`** / **`/api/v2/listings/search`** — query **`lat`**, **`lng`|`lon`**, **`radius`|`radiusKm`** (км); bbox pre-filter + **`ST_DWithin`**; fallback Haversine если миграция не применена (**`lib/api/postgis-probe.js`**).
 
 ### Stage 90.2 — Журнал действий персонала и полировка UX каталога, 2026-05
 

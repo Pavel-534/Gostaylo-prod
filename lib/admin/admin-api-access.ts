@@ -64,6 +64,7 @@ const ADMIN_V2_PREFIX_MENU_HREF: Record<string, string> = {
   '/api/v2/admin/referral': '/admin/marketing',
   '/api/v2/admin/contact-leak-dashboard': '/admin/security',
   '/api/v2/admin/marketplace-health': '/admin/marketplace-health',
+  '/api/v2/admin/locations': '/admin/locations/suggestions',
   '/api/v2/admin/health': '/admin/health',
   '/api/v2/admin/exchange-rates-health': '/admin/health',
   '/api/v2/admin/ai-usage': '/admin/ai-usage',

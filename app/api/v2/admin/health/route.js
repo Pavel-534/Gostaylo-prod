@@ -18,6 +18,8 @@ import {
 } from '@/lib/admin/ops-job-health.js'
 import { loadNotificationChannelHealth } from '@/lib/admin/notification-channel-health.js'
 import { loadCriticalSignalsHealth } from '@/lib/admin/critical-signals-health.js'
+import { getLocationSuggestMetricsSnapshot } from '@/lib/locations/location-suggest-metrics'
+import { getLocationNormalizeLastRunSnapshot } from '@/lib/services/batch-location-normalize.service'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -207,6 +209,8 @@ export async function GET(request) {
     referralReconciliation,
     referralUnlock,
     referralSystemHealth,
+    locationSuggest: getLocationSuggestMetricsSnapshot(),
+    locationNormalize: getLocationNormalizeLastRunSnapshot(),
     meta: {
       opsError,
       opsTablePresent: !opsFetchError || !String(opsFetchError.message || '').includes(OPS_MISSING),

@@ -35,7 +35,7 @@
 | **L0** (было до GP) | `district` free text, Phuket ILIKE | до 2026-02 |
 | **L1** (сейчас) | GP migration + client autocomplete + umbrella Phuket; write path не замкнут | 156.x |
 | **L2** | Geo codes on save, aligned chips, canonical district | **157** |
-| **L3** | Server suggest + synonym table + listing_count rank | 158–159 |
+| **L3** | Server suggest + synonym table + listing_count rank | 158–159 (suggest **158.0**, fuzzy **158.1**, unverified **158.2**, **geo_synonyms 158.3**) |
 | **L4** | Location governance (admin queue, batch normalize) | 160–161 |
 | **L5** | PostGIS radius + map-first catalog | 162–163 |
 | **L6** | Industrial ops (metrics, stale detection, i18n scale) | 164+ |
@@ -147,8 +147,8 @@ flowchart TB
 
 | Stage | Theme | Key deliverables | Closes |
 |-------|-------|------------------|--------|
-| **160** | Unknown district queue | Table `location_suggestions` (district_raw, lat, lon, listing_id, status); on publish if district ∉ canon → insert `pending`; admin list approve → add to `geo_locations` or map to existing | Auto-discovery with human gate |
-| **161** | Batch normalize | Cron `POST /api/cron/normalize-listing-districts`; trim, case-fold, alias map; report drift metrics to admin health | Data consistency |
+| **160** | Unknown district queue (admin UI) | Admin list approve PENDING `location_suggestions` → add to `geo_locations` or map to existing (**table + capture in 158.2**) | Auto-discovery with human gate |
+| **161** | Batch normalize | Cron `POST /api/v2/cron/normalize-locations`; synonym/canon cleanup; capture auto-merge (weight ≥ 80) | Data consistency |
 
 **Acceptance Wave B:** zero new ACTIVE listings with non-canonical district after 7 days; admin can approve «Cherngtalay» → «Cherng Talay» once.
 
@@ -178,7 +178,7 @@ flowchart TB
 | Current | Target | Stage |
 |---------|--------|-------|
 | `lib/geo/country-presets.js` | Read from `geo_locations` API or generated JSON from DB | 159+ |
-| `lib/locations/thailand-aliases.js` | `geo_synonyms` table + thin reader | 159 |
+| `lib/locations/thailand-aliases.js` | `geo_synonyms` table + thin reader (**158.3** suggest done; labels only in where-options) | 159 |
 | `lib/locations/city-district-map.js` | District children from `geo_locations` where `parent_code = city` | 160 |
 | `GET /api/v2/search/locations` full scan | Materialized view `mv_location_inventory` refreshed hourly | 158 |
 | `app/api/v2/districts/route.js` hardcoded | Deprecate → suggest API | 158 |

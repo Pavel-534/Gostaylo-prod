@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
+import { splitLabelHighlight } from '@/lib/locations/location-text-match'
 import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations'
 import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
 import { useUserGeo } from '@/lib/hooks/useUserGeo'
@@ -32,6 +33,77 @@ function useIsMobile() {
   return isMobile
 }
 
+function matchKindTooltip(language, opt) {
+  if (opt.match_kind === 'synonym' && opt.matched_synonym) {
+    if (language === 'ru') return `Синоним: «${opt.matched_synonym}»`
+    if (language === 'th') return `คำพ้อง: ${opt.matched_synonym}`
+    if (language === 'zh') return `同义词：${opt.matched_synonym}`
+    return `Synonym: ${opt.matched_synonym}`
+  }
+  if (opt.match_kind === 'unverified' || opt.is_new) {
+    if (language === 'ru') return 'Новая локация — ожидает проверки'
+    if (language === 'th') return 'สถานที่ใหม่ — รอการตรวจสอบ'
+    if (language === 'zh') return '新地点 — 待审核'
+    return 'New location — pending review'
+  }
+  return undefined
+}
+
+function WhereOptionLabel({ opt, query = '', language = 'ru' }) {
+  const count = opt.listing_count
+  const tooltip = matchKindTooltip(language, opt)
+  const needle =
+    opt.matched_synonym ||
+    (opt.matched_term &&
+    opt.label.toLowerCase().includes(String(opt.matched_term).toLowerCase())
+      ? opt.matched_term
+      : query.trim())
+  const hl = splitLabelHighlight(opt.label, needle)
+
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-2" title={tooltip}>
+      <span className="min-w-0 truncate">
+        {hl ? (
+          <>
+            {hl.before}
+            <mark className="rounded-sm bg-brand/15 text-inherit">{hl.match}</mark>
+            {hl.after}
+          </>
+        ) : (
+          opt.label
+        )}
+      </span>
+      {typeof count === 'number' && count > 0 ? (
+        <span className="ml-auto shrink-0 text-xs tabular-nums text-slate-400">
+          {count}
+        </span>
+      ) : opt.match_kind === 'synonym' ? (
+        <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+          ≈
+        </span>
+      ) : opt.match_kind === 'unverified' || opt.is_new ? (
+        <span className="ml-auto shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+          new
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
+function didYouMeanCopy(language, label) {
+  if (language === 'ru') return `Возможно, вы имели в виду: ${label}`
+  if (language === 'th') return `คุณหมายถึง: ${label}`
+  if (language === 'zh') return `您是否指的是：${label}`
+  return `Did you mean: ${label}`
+}
+
+function approximateMatchCopy(language, label) {
+  if (language === 'ru') return `Примерно соответствует: ${label}`
+  if (language === 'th') return `ตรงกันโดยประมาณ: ${label}`
+  if (language === 'zh') return `大致匹配：${label}`
+  return `Approximate match: ${label}`
+}
+
 export function WhereCombobox({
   options,
   value,
@@ -42,6 +114,8 @@ export function WhereCombobox({
   loading = false,
   loadingPlaceholder = '…',
   language = 'ru',
+  fetchSuggestions,
+  suggestDebounceMs = 250,
 }) {
   const [inputValue, setInputValue] = useState('')
   const [drawerQuery, setDrawerQuery] = useState('')
@@ -51,6 +125,10 @@ export function WhereCombobox({
   const listRef = useRef(null)
   const listboxId = useRef(`where-listbox-${Math.random().toString(36).slice(2, 9)}`).current
   const isMobile = useIsMobile()
+  const useServerSuggest = typeof fetchSuggestions === 'function'
+  const [suggestOptions, setSuggestOptions] = useState([])
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const suggestSeqRef = useRef(0)
   // Override-карта { value → localizedLabel } — нужна когда option.label из API это slug ("moscow"),
   // а chip принёс локализованную строку ("Москва"). Без этого sync-effect на value→label
   // перезаписывал бы наш override на slug.
@@ -74,15 +152,69 @@ export function WhereCombobox({
     setInputValue(label)
   }, [value, options])
 
+  const activeQuery = isMobile ? drawerQuery : inputValue
+  const activeQueryTrimmed = activeQuery.trim()
+
+  useEffect(() => {
+    if (!useServerSuggest || !open || !activeQueryTrimmed) {
+      setSuggestOptions([])
+      setSuggestLoading(false)
+      return
+    }
+
+    const seq = ++suggestSeqRef.current
+    const timer = setTimeout(() => {
+      setSuggestLoading(true)
+      fetchSuggestions(activeQueryTrimmed)
+        .then((items) => {
+          if (seq !== suggestSeqRef.current) return
+          setSuggestOptions(Array.isArray(items) ? items : [])
+        })
+        .catch(() => {
+          if (seq !== suggestSeqRef.current) return
+          setSuggestOptions([])
+        })
+        .finally(() => {
+          if (seq !== suggestSeqRef.current) return
+          setSuggestLoading(false)
+        })
+    }, suggestDebounceMs)
+
+    return () => clearTimeout(timer)
+  }, [
+    activeQueryTrimmed,
+    fetchSuggestions,
+    open,
+    suggestDebounceMs,
+    useServerSuggest,
+  ])
+
   const displayed = useMemo(() => {
     const q = inputValue.trim()
+    if (useServerSuggest && q) {
+      if (suggestLoading && suggestOptions.length === 0) return []
+      return suggestOptions.slice(0, 20)
+    }
     if (!q) {
       const all = options.find((o) => o.type === 'all')
       const rest = options.filter((o) => o.type !== 'all').slice(0, 12)
       return all ? [all, ...rest] : rest
     }
     return filterWhereOptions(options, q).slice(0, 20)
-  }, [options, inputValue])
+  }, [options, inputValue, useServerSuggest, suggestOptions, suggestLoading])
+
+  const fieldLoading = loading || (useServerSuggest && suggestLoading && activeQueryTrimmed)
+
+  const didYouMeanHint = useMemo(() => {
+    if (!useServerSuggest || !activeQueryTrimmed || displayed.length === 0) return null
+    const top = displayed[0]
+    if (top.match_kind === 'unverified' || top.is_new) {
+      return approximateMatchCopy(language, top.label)
+    }
+    if (top.match_kind !== 'fuzzy') return null
+    if (displayed.some((o) => o.match_kind === 'exact' || o.match_kind === 'alias')) return null
+    return didYouMeanCopy(language, top.label)
+  }, [activeQueryTrimmed, displayed, language, useServerSuggest])
 
   useEffect(() => {
     setHighlightedIndex(-1)
@@ -125,11 +257,11 @@ export function WhereCombobox({
   }
 
   const onFocus = () => {
-    if (!loading) setOpen(true)
+    if (!fieldLoading) setOpen(true)
   }
 
   const onKeyDown = (e) => {
-    if (loading) return
+    if (fieldLoading) return
 
     if (e.key === 'Escape') {
       setOpen(false)
@@ -178,16 +310,20 @@ export function WhereCombobox({
   // (приоритет над list, чтобы был обзор по миру, а не свалка опций)
   const isEmptyInput = inputValue.trim() === ''
   const showQuickChips = open && !loading && isEmptyInput
-  const showList = open && !loading && displayed.length > 0 && !isEmptyInput
+  const showList = open && !fieldLoading && displayed.length > 0 && !isEmptyInput
   const drawerDisplayed = useMemo(() => {
     const q = drawerQuery.trim()
+    if (useServerSuggest && q) {
+      if (suggestLoading && suggestOptions.length === 0) return []
+      return suggestOptions.slice(0, 30)
+    }
     if (!q) {
       const all = options.find((o) => o.type === 'all')
       const rest = options.filter((o) => o.type !== 'all').slice(0, 20)
       return all ? [all, ...rest] : rest
     }
     return filterWhereOptions(options, q).slice(0, 30)
-  }, [options, drawerQuery])
+  }, [options, drawerQuery, useServerSuggest, suggestOptions, suggestLoading])
 
   // Быстрый выбор локации по chip
   const handleChipSelect = useCallback(
@@ -234,7 +370,7 @@ export function WhereCombobox({
         loading && 'opacity-90'
       )}
     >
-      {loading ? (
+      {fieldLoading ? (
         <Loader2
           className={cn(
             'text-brand flex-shrink-0 animate-spin',
@@ -251,7 +387,7 @@ export function WhereCombobox({
       {isMobile ? (
         <button
           type="button"
-          disabled={loading}
+          disabled={fieldLoading}
           onClick={() => setOpen(true)}
           className={cn(
             'min-w-0 flex-1 truncate bg-transparent text-left outline-none disabled:cursor-wait',
@@ -262,7 +398,7 @@ export function WhereCombobox({
                 : 'text-sm text-slate-700',
           )}
         >
-          {(value && value !== 'all') ? inputValue : (loading ? loadingPlaceholder : placeholder)}
+          {(value && value !== 'all') ? inputValue : (fieldLoading ? loadingPlaceholder : placeholder)}
         </button>
       ) : (
         <input
@@ -271,7 +407,7 @@ export function WhereCombobox({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          disabled={loading}
+          disabled={fieldLoading}
           role="combobox"
           aria-expanded={open}
           aria-controls={listboxId}
@@ -280,7 +416,7 @@ export function WhereCombobox({
             highlightedIndex >= 0 ? `${listboxId}-opt-${highlightedIndex}` : undefined
           }
           aria-label={placeholder || 'Where'}
-          placeholder={loading ? loadingPlaceholder : placeholder}
+          placeholder={fieldLoading ? loadingPlaceholder : placeholder}
           value={inputValue}
           onChange={onInputChange}
           onFocus={onFocus}
@@ -295,7 +431,7 @@ export function WhereCombobox({
           )}
         />
       )}
-      {value && value !== 'all' && !loading && (
+      {value && value !== 'all' && !fieldLoading && (
         <button
           type="button"
           onClick={clear}
@@ -382,10 +518,13 @@ export function WhereCombobox({
                       )}
                     >
                       <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" aria-hidden />
-                      <span>{opt.label}</span>
+                      <WhereOptionLabel opt={opt} query={drawerQuery.trim()} language={language} />
                     </button>
                   ))}
                 </div>
+                {didYouMeanHint ? (
+                  <p className="mt-2 px-1 text-xs text-slate-500">{didYouMeanHint}</p>
+                ) : null}
               </div>
             </DrawerContent>
           </Drawer>
@@ -401,6 +540,7 @@ export function WhereCombobox({
             )}
           >
             {showList ? (
+              <>
               <ul ref={listRef} id={listboxId} className="max-h-[50vh] overflow-y-auto" role="listbox">
                 {displayed.map((opt, i) => {
                   const active = i === highlightedIndex
@@ -425,12 +565,16 @@ export function WhereCombobox({
                         onClick={() => handleSelect(opt)}
                       >
                         <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" aria-hidden />
-                        <span>{opt.label}</span>
+                        <WhereOptionLabel opt={opt} query={inputValue.trim()} language={language} />
                       </button>
                     </li>
                   )
                 })}
               </ul>
+              {didYouMeanHint ? (
+                <p className="mt-1 px-2 pb-1 text-xs text-slate-500">{didYouMeanHint}</p>
+              ) : null}
+              </>
             ) : null}
             {showQuickChips ? (
               <div className="space-y-3 p-1">

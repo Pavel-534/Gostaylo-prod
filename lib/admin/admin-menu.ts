@@ -31,6 +31,7 @@ export type AdminMenuIconKey =
   | 'Mail'
   | 'Globe2'
   | 'Megaphone'
+  | 'MapPin'
 
 export type AdminMenuItem = {
   title: string
@@ -126,6 +127,12 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         title: 'Marketplace Health',
         href: '/admin/marketplace-health',
         icon: 'Globe2',
+        allowedRoles: ['ADMIN', 'MODERATOR'],
+      },
+      {
+        title: 'Очередь локаций',
+        href: '/admin/locations/suggestions',
+        icon: 'MapPin',
         allowedRoles: ['ADMIN', 'MODERATOR'],
       },
     ],

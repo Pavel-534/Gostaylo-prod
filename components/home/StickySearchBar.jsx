@@ -18,7 +18,7 @@
  * @updated 2026-02-05 Conversion Polish — Summary Chips с фокусом на поля
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Search, MapPin, Users, Layers, Calendar, X } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
@@ -28,7 +28,7 @@ import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { GuestsPopover, formatGuestsSummaryText } from '@/components/search/GuestsPopover'
 import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
-import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
+import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 const APPEAR_SCROLL_PX = 280
@@ -80,22 +80,12 @@ export function StickySearchBar({
   onSearch,
 }) {
   const [visible, setVisible] = useState(false)
-  const [locations, setLocations] = useState(getStaticLocationsSeed)
-  const [locationsLoading, setLocationsLoading] = useState(true)
+  const locations = useMemo(() => getStaticLocationsSeed(), [])
 
   // Refs на контейнеры полей — для программного focus через Summary Chips
   const whereRef = useRef(null)
   const datesRef = useRef(null)
   const guestsTriggerRef = useRef(null)
-
-  useEffect(() => {
-    fetchSearchLocations()
-      .then(({ ok, locations }) => {
-        if (ok) setLocations(locations)
-      })
-      .catch(() => {})
-      .finally(() => setLocationsLoading(false))
-  }, [])
 
   useEffect(() => {
     let ticking = false
@@ -112,6 +102,14 @@ export function StickySearchBar({
   }, [])
 
   const whereOptions = useMemo(() => buildWhereOptions(locations, language), [locations, language])
+
+  const fetchWhereSuggestions = useCallback(
+    async (q) => {
+      const res = await fetchLocationSuggest({ q, lang: language, limit: 12 })
+      return res.ok ? res.items : []
+    },
+    [language],
+  )
 
   const catLabel =
     category && category !== 'all'
@@ -175,7 +173,7 @@ export function StickySearchBar({
               value={where || 'all'}
               onChange={setWhere}
               placeholder={getUIText('wherePlaceholder', language)}
-              loading={locationsLoading}
+              fetchSuggestions={fetchWhereSuggestions}
               variant="hero"
               language={language}
               className="min-h-[36px] min-w-0 [&_button]:h-auto [&_button]:min-h-[36px] [&_button]:rounded-none [&_button]:border-0 [&_button]:px-0 [&_button]:text-sm [&_button]:shadow-none [&_button]:focus:ring-0"

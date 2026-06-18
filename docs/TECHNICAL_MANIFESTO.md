@@ -10,6 +10,22 @@
 
 **Stage 149.3 (2026-06-14):** Smoke RPC shield — financial smoke step **6e** (`runStage149AtomicRpcSmokeStep`): real in-process **`POST /api/v2/bookings`** on dedicated listing **`max_capacity=1`** → **`create_booking_atomic_v1`**; second guest → **409 `DATES_CONFLICT`**; same step simulates **`processExpiredPendingInvoices`** path → **`expireInvoiceHoldBlocks`** releases **`calendar_blocks.source=invoice_hold`**. Smoke session: **`getSessionPayload()`** honors **`getSmokeFinancialSessionUserId()`** when **`SMOKE_FINANCIAL_RUN=1`**. **Requires migrations `stage149_2` + `stage149_3` on prod.**
 
+**Stage 162.1 (2026-06-17):** PostGIS spatial search — `migrations/stage162_1_postgis.sql` (`coordinates geography(Point,4326)`, GiST `idx_listings_coordinates`, trigger `sync_listing_coordinates_from_latlng`, RPC `listings_ids_within_radius_v1`); `lib/api/search/spatial-filter.js` + `postgis-probe.js`; catalog `?lat=&lng|lon=&radius|radiusKm=` → `ST_DWithin` via RPC + bbox pre-filter; Haversine fallback until migration applied.
+
+**Stage 162.0 (2026-06-17):** Admin location queue UI — **`/admin/locations/suggestions`** (ADMIN + MODERATOR read; MERGE/REJECT ADMIN-only); components `LocationSuggestionsTable`, `LocationMergeDialog` (debounced `target_code` autocomplete via `fetchLocationSuggest`), `LocationRejectDialog` (optional `reject_reason`); client `lib/admin/location-suggestions-api-client.js`; menu «Очередь локаций» в «Операции».
+
+**Stage 161.0 (2026-06-17):** Batch location normalize — `batch-location-normalize.service.js` + `POST /api/v2/cron/normalize-locations` (batch 100–500, env `LOCATION_NORMALIZE_BATCH_SIZE` default 200); `lookup-geo-synonym.js` (auto-merge weight ≥ 80); capture auto-merge skips PENDING when synonym matches; report `by_source: { synonym, canon_only }`.
+
+**Stage 160.0 (2026-06-17):** Location governance L4 — `GET /api/v2/admin/locations/suggestions` (PENDING queue + `listings_count`); `PATCH …/resolve` (MERGE/REJECT, ADMIN-only); atomic merge RPC `resolve_location_suggestion_merge_v1`; `location-suggest-metrics.js` (p50/p95, synonym/unverified rates).
+
+**Stage 158.3 (2026-06-17):** `geo_synonyms` table + `location-synonyms.js` (300s cache, `lang='*'` for latin slugs); suggest first-pass synonym lookup (`match_kind: synonym`, `matched_synonym`); alias-index canonical-only; seed ~249 rows from legacy JS + RU cities (Самара, Сочи, Казань, Москва); fuzzy remains final fallback.
+
+**Stage 158.2 (2026-06-17):** Unknown location capture — `listing-geo-verification.js` (`geo_status` verified/unverified, `metadata.unverified_location`); `location-suggestion-capture.service.js` → table `location_suggestions` (PENDING, service_role); suggest merges pending rows (`match_kind: unverified`, `is_new: true`); minimal RU↔EN translit (`location-transliteration.js`); configurable short-query fuzzy (`LOCATION_FUZZY_SIMILARITY_MIN_SHORT=0.65`, `LOCATION_FUZZY_SHORT_QUERY_MAX_LEN=5`).
+
+**Stage 158.1 (2026-06-17):** Location suggest L3.1 — `location-text-match.js` (exact→alias→prefix→contains→fuzzy, `LOCATION_FUZZY_SIMILARITY_MIN=0.72`) + `location-alias-index.js` (presets + `thailand-aliases` + geo); `match_kind` / `matched_term` in API; `WhereCombobox` highlight + «did you mean» on fuzzy.
+
+**Stage 158.0 (2026-06-17):** Location L3 — `GET /api/v2/search/locations/suggest` (`lib/locations/location-suggest.service.js`): server autocomplete over `geo_locations` + Phuket districts, ranked by ACTIVE `listing_count` (inventory cache 120s); guest hero path uses `fetchLocationSuggest` + debounced `WhereCombobox` (no full `GET /api/v2/search/locations` on home).
+
 **Stage 157.0 (2026-06-17):** Location L2 — `resolveListingGeoSnapshot` write SSOT (`lib/locations/resolve-listing-geo-snapshot.js`); partner save writes `country_code`/`region_code`/`city_code` + `metadata.city`; `PHUKET_DISTRICTS_CANON` single source; `WHERE_SLUG_ALIASES` (phuket→phuket-city, bali→ID-BA); seed `pattaya`/`kazan` in `geo_locations`; backfill `scripts/geo-backfill-legacy-listings.js`.
 
 **Stage 156.3 (2026-06-17):** Financial smoke **12g** FK shield — `runReferralFraudGateSmokeStep({ listingId, partnerId })` + `ensureSmokeListingExists`; partner listing wizard **Financial Recap** on `StepPreview` (`WizardFinancialRecap`) and **host cancellation preview** on `StepPricing` (`PartnerCancellationPolicyPreview`, SSOT `cancellation-refund-rules` + `listings-public` tier copy).

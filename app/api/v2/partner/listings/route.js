@@ -15,6 +15,7 @@ import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { applyListingGeoSnapshotToInsertRow } from '@/lib/partner/apply-listing-geo-snapshot';
+import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
 
 export async function GET(request) {
   try {
@@ -179,7 +180,7 @@ export async function POST(request) {
           : partner.instant_booking === true;
     
     // Create listing
-    const insertRow = applyListingGeoSnapshotToInsertRow(
+    const { insertRow, locationCapture } = applyListingGeoSnapshotToInsertRow(
       {
         owner_id: partnerId,
         category_id: categoryId,
@@ -209,6 +210,13 @@ export async function POST(request) {
     
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (locationCapture && listing?.id) {
+      scheduleLocationSuggestionCapture({
+        ...locationCapture,
+        suggested_by_listing_id: listing.id,
+      });
     }
 
     if (instantBooking !== undefined || instant_booking !== undefined) {

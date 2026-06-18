@@ -19,6 +19,7 @@ import { validateListingPublishQuality } from '@/lib/partner/listing-quality-gat
 import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
 import { listingBasePriceSchema } from '@/lib/validations/listing';
 import { applyListingGeoSnapshotToUpdateData } from '@/lib/partner/apply-listing-geo-snapshot';
+import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -305,7 +306,12 @@ export async function PATCH(request, context) {
     }
   }
 
-  applyListingGeoSnapshotToUpdateData(updateData, body, existing);
+  const { updateData: geoPatchedData, locationCapture } = applyListingGeoSnapshotToUpdateData(
+    updateData,
+    body,
+    existing,
+  );
+  Object.assign(updateData, geoPatchedData);
 
   // Update
   const { data: updated, error } = await supabase
@@ -318,6 +324,13 @@ export async function PATCH(request, context) {
   if (error) {
     console.error('[PARTNER-LISTING] Update error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+
+  if (locationCapture && updated?.id) {
+    scheduleLocationSuggestionCapture({
+      ...locationCapture,
+      suggested_by_listing_id: updated.id,
+    });
   }
 
   if (Object.prototype.hasOwnProperty.call(updateData, 'instant_booking')) {
