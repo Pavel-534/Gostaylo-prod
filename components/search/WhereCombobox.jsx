@@ -16,7 +16,11 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { splitLabelHighlight } from '@/lib/locations/location-text-match'
-import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations'
+import {
+  POPULAR_DESTINATION_GROUPS,
+  POPULAR_DESTINATIONS_FLAT,
+  getDestinationLabel,
+} from '@/lib/locations/popular-destinations'
 import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
 import { useUserGeo } from '@/lib/hooks/useUserGeo'
 import { getUIText } from '@/lib/translations'
@@ -104,6 +108,40 @@ function approximateMatchCopy(language, label) {
   return `Approximate match: ${label}`
 }
 
+function dedupeByValue(items) {
+  const seen = new Set()
+  return items.filter((item) => {
+    const key = `${item.type || 'city'}:${item.value}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+/** Мгновенный клиентский suggest (популярные + статический seed), пока ждём сервер. */
+function filterInstantSuggestions(options, query, language) {
+  const q = query.trim()
+  if (!q) return []
+
+  const popularOpts = POPULAR_DESTINATIONS_FLAT.map((chip) => ({
+    value: chip.value,
+    type: 'city',
+    label: chip.labels[language] || chip.labels.en,
+    match: [chip.value, ...Object.values(chip.labels || {})].map((s) =>
+      String(s).toLowerCase(),
+    ),
+  }))
+
+  const popularFiltered = filterWhereOptions(
+    [{ value: 'all', type: 'all', label: '', match: [] }, ...popularOpts],
+    q,
+  ).filter((o) => o.type !== 'all')
+
+  const staticFiltered = filterWhereOptions(options, q).filter((o) => o.type !== 'all')
+
+  return dedupeByValue([...popularFiltered, ...staticFiltered]).slice(0, 20)
+}
+
 export function WhereCombobox({
   options,
   value,
@@ -115,7 +153,7 @@ export function WhereCombobox({
   loadingPlaceholder = '…',
   language = 'ru',
   fetchSuggestions,
-  suggestDebounceMs = 250,
+  suggestDebounceMs = 150,
 }) {
   const [inputValue, setInputValue] = useState('')
   const [drawerQuery, setDrawerQuery] = useState('')
@@ -148,9 +186,10 @@ export function WhereCombobox({
       return
     }
     const override = overrideLabelRef.current?.[value]
-    const label = override || getOptionLabel(options, value)
+    const label =
+      override || getOptionLabel(options, value) || getDestinationLabel(value, language)
     setInputValue(label)
-  }, [value, options])
+  }, [value, options, language])
 
   const activeQuery = isMobile ? drawerQuery : inputValue
   const activeQueryTrimmed = activeQuery.trim()
@@ -192,8 +231,10 @@ export function WhereCombobox({
   const displayed = useMemo(() => {
     const q = inputValue.trim()
     if (useServerSuggest && q) {
-      if (suggestLoading && suggestOptions.length === 0) return []
-      return suggestOptions.slice(0, 20)
+      if (suggestOptions.length > 0) {
+        return dedupeByValue(suggestOptions).slice(0, 20)
+      }
+      return filterInstantSuggestions(options, q, language)
     }
     if (!q) {
       const all = options.find((o) => o.type === 'all')
@@ -201,9 +242,9 @@ export function WhereCombobox({
       return all ? [all, ...rest] : rest
     }
     return filterWhereOptions(options, q).slice(0, 20)
-  }, [options, inputValue, useServerSuggest, suggestOptions, suggestLoading])
+  }, [options, inputValue, language, useServerSuggest, suggestOptions])
 
-  const fieldLoading = loading || (useServerSuggest && suggestLoading && activeQueryTrimmed)
+  const suggestRefreshing = useServerSuggest && suggestLoading && Boolean(activeQueryTrimmed)
 
   const didYouMeanHint = useMemo(() => {
     if (!useServerSuggest || !activeQueryTrimmed || displayed.length === 0) return null
@@ -228,16 +269,25 @@ export function WhereCombobox({
 
   const handleSelect = useCallback(
     (opt, displayLabelOverride) => {
+      const label =
+        displayLabelOverride ||
+        opt.label ||
+        getDestinationLabel(opt.value, language) ||
+        opt.value ||
+        ''
+      if (opt.type !== 'all' && opt.value) {
+        overrideLabelRef.current = { ...overrideLabelRef.current, [opt.value]: label }
+      }
       onChange?.(opt.value)
       if (opt.type === 'all') {
         setInputValue('')
       } else {
-        setInputValue(displayLabelOverride || opt.label)
+        setInputValue(label)
       }
       setOpen(false)
       setHighlightedIndex(-1)
     },
-    [onChange]
+    [onChange, language],
   )
 
   const clear = useCallback(
@@ -257,11 +307,11 @@ export function WhereCombobox({
   }
 
   const onFocus = () => {
-    if (!fieldLoading) setOpen(true)
+    setOpen(true)
   }
 
   const onKeyDown = (e) => {
-    if (fieldLoading) return
+    if (loading) return
 
     if (e.key === 'Escape') {
       setOpen(false)
@@ -310,12 +360,15 @@ export function WhereCombobox({
   // (приоритет над list, чтобы был обзор по миру, а не свалка опций)
   const isEmptyInput = inputValue.trim() === ''
   const showQuickChips = open && !loading && isEmptyInput
-  const showList = open && !fieldLoading && displayed.length > 0 && !isEmptyInput
+  const showList = open && displayed.length > 0 && !isEmptyInput
+  const showPopoverPanel = showList || showQuickChips
   const drawerDisplayed = useMemo(() => {
     const q = drawerQuery.trim()
     if (useServerSuggest && q) {
-      if (suggestLoading && suggestOptions.length === 0) return []
-      return suggestOptions.slice(0, 30)
+      if (suggestOptions.length > 0) {
+        return dedupeByValue(suggestOptions).slice(0, 30)
+      }
+      return filterInstantSuggestions(options, q, language)
     }
     if (!q) {
       const all = options.find((o) => o.type === 'all')
@@ -323,7 +376,7 @@ export function WhereCombobox({
       return all ? [all, ...rest] : rest
     }
     return filterWhereOptions(options, q).slice(0, 30)
-  }, [options, drawerQuery, useServerSuggest, suggestOptions, suggestLoading])
+  }, [options, drawerQuery, language, useServerSuggest, suggestOptions])
 
   // Быстрый выбор локации по chip
   const handleChipSelect = useCallback(
@@ -370,7 +423,7 @@ export function WhereCombobox({
         loading && 'opacity-90'
       )}
     >
-      {fieldLoading ? (
+      {loading ? (
         <Loader2
           className={cn(
             'text-brand flex-shrink-0 animate-spin',
@@ -387,7 +440,7 @@ export function WhereCombobox({
       {isMobile ? (
         <button
           type="button"
-          disabled={fieldLoading}
+          disabled={loading}
           onClick={() => setOpen(true)}
           className={cn(
             'min-w-0 flex-1 truncate bg-transparent text-left outline-none disabled:cursor-wait',
@@ -398,7 +451,7 @@ export function WhereCombobox({
                 : 'text-sm text-slate-700',
           )}
         >
-          {(value && value !== 'all') ? inputValue : (fieldLoading ? loadingPlaceholder : placeholder)}
+          {(value && value !== 'all') ? inputValue : (loading ? loadingPlaceholder : placeholder)}
         </button>
       ) : (
         <input
@@ -407,7 +460,7 @@ export function WhereCombobox({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          disabled={fieldLoading}
+          disabled={loading}
           role="combobox"
           aria-expanded={open}
           aria-controls={listboxId}
@@ -416,7 +469,7 @@ export function WhereCombobox({
             highlightedIndex >= 0 ? `${listboxId}-opt-${highlightedIndex}` : undefined
           }
           aria-label={placeholder || 'Where'}
-          placeholder={fieldLoading ? loadingPlaceholder : placeholder}
+          placeholder={loading ? loadingPlaceholder : placeholder}
           value={inputValue}
           onChange={onInputChange}
           onFocus={onFocus}
@@ -431,7 +484,7 @@ export function WhereCombobox({
           )}
         />
       )}
-      {value && value !== 'all' && !fieldLoading && (
+      {value && value !== 'all' && !loading && (
         <button
           type="button"
           onClick={clear}
@@ -530,13 +583,13 @@ export function WhereCombobox({
           </Drawer>
         </>
       ) : (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open && showPopoverPanel} onOpenChange={setOpen}>
           <PopoverAnchor asChild>{triggerField}</PopoverAnchor>
           <PopoverContent
             align="start"
             className={cn(
               'w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] min-w-[18rem] max-h-[min(70vh,560px)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-2 shadow-2xl',
-              (showList || showQuickChips) && 'z-[220]',
+              showPopoverPanel && 'z-[220]',
             )}
           >
             {showList ? (
@@ -571,6 +624,12 @@ export function WhereCombobox({
                   )
                 })}
               </ul>
+              {suggestRefreshing ? (
+                <div className="flex items-center gap-2 border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand" aria-hidden />
+                  <span>{language === 'ru' ? 'Уточняем…' : 'Refining…'}</span>
+                </div>
+              ) : null}
               {didYouMeanHint ? (
                 <p className="mt-1 px-2 pb-1 text-xs text-slate-500">{didYouMeanHint}</p>
               ) : null}

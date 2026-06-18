@@ -28,11 +28,13 @@ import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
+import { SimilarListingsRail } from '@/components/recommendations/SimilarListingsRail'
+import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
 
 function PremiumListingContent({ params }) {
   const router = useRouter()
   const { user, openLoginModal } = useAuth()
-  const { addToRecent } = useRecentlyViewed()
+  const { addToRecent } = useRecentlyViewed({ userId: user?.id })
 
   const view = useListingViewData(params.id, { user, openLoginModal, addToRecent })
   const { listing, reviews, loading, moderationPending, language, currency, exchangeRates, isFavorite, favoriteLoading, handleFavoriteClick } =
@@ -196,6 +198,21 @@ function PremiumListingContent({ params }) {
 
               <Separator />
               <ListingReviews listing={listing} reviews={reviews} language={language} />
+
+              <Separator />
+              <SimilarListingsRail
+                listingId={listing.id}
+                language={language}
+                currency={currency}
+                exchangeRates={exchangeRates}
+              />
+
+              <RecentlyViewedRail
+                currentListingId={listing.id}
+                language={language}
+                currency={currency}
+                exchangeRates={exchangeRates}
+              />
             </div>
 
             <div className="lg:col-span-1">

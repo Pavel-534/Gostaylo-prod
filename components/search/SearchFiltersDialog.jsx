@@ -48,9 +48,14 @@ function amenityLabel(slug, language) {
   return language === 'ru' ? row.ru : row.en
 }
 
-function PriceHistogram({ listings, binCount = 14 }) {
+function PriceHistogram({ listings, binCount = 14, histogramBins = null, maxThb = LISTINGS_PRICE_SLIDER_MAX_THB }) {
   const { counts, max } = useMemo(() => {
-    const maxP = LISTINGS_PRICE_SLIDER_MAX_THB
+    if (Array.isArray(histogramBins) && histogramBins.length > 0) {
+      const counts = histogramBins
+      const peak = Math.max(1, ...counts)
+      return { counts, max: peak }
+    }
+    const maxP = maxThb
     const counts = Array(binCount).fill(0)
     for (const l of listings || []) {
       const p = getEffectiveSearchUnitPriceThb(l)
@@ -60,7 +65,7 @@ function PriceHistogram({ listings, binCount = 14 }) {
     }
     const peak = Math.max(1, ...counts)
     return { counts, max: peak }
-  }, [listings, binCount])
+  }, [listings, binCount, histogramBins, maxThb])
 
   return (
     <div className="flex h-14 items-end gap-px rounded-md border border-slate-100 bg-slate-50 px-1 py-1">
@@ -88,6 +93,7 @@ export function SearchFiltersDialog({
   extraFilters,
   onExtraFiltersChange,
   listingsSample = [],
+  priceHistogram = null,
   resultCount = 0,
 }) {
   const panel = getSearchFilterPanelKind(categorySlug, categoryWizardProfile)
@@ -149,12 +155,22 @@ export function SearchFiltersDialog({
               {pricePeriodLabel}
             </Label>
             <p className="text-xs text-slate-500">
-              {t(
-                'Гистограмма по текущей выборке на странице',
-                'Histogram reflects the current result set on this page'
-              )}
+              {priceHistogram?.bins?.length
+                ? t(
+                    'Гистограмма по результатам поиска на сервере',
+                    'Histogram from server search results',
+                  )
+                : t(
+                    'Гистограмма по текущей выборке на странице',
+                    'Histogram reflects the current result set on this page',
+                  )}
             </p>
-            <PriceHistogram listings={listingsSample} />
+            <PriceHistogram
+              listings={listingsSample}
+              binCount={priceHistogram?.binCount ?? 14}
+              histogramBins={priceHistogram?.bins ?? null}
+              maxThb={priceHistogram?.maxThb ?? LISTINGS_PRICE_SLIDER_MAX_THB}
+            />
             <Slider
               min={0}
               max={LISTINGS_PRICE_SLIDER_MAX_THB}

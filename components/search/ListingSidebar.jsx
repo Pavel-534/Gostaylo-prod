@@ -16,6 +16,7 @@ import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon, Cale
 import { cn } from '@/lib/utils';
 import { getUIText } from '@/lib/translations';
 import { isTransportListingCategory } from '@/lib/listing-category-slug';
+import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
 
 function ListingSidebarComponent({
   listings = [],
@@ -47,6 +48,10 @@ function ListingSidebarComponent({
   catalogCategories = null,
   onListingPointerEnter = null,
   onListingPointerLeave = null,
+  onListingCardSelect = null,
+  catalogSort = 'recommended',
+  onCatalogSortChange = null,
+  catalogSortDistanceAvailable = false,
 }) {
   useEffect(() => {
     if (!highlightedListingId) return;
@@ -188,6 +193,17 @@ function ListingSidebarComponent({
         "flex-1",
         showMap && "hidden lg:block"
       )}>
+        {onCatalogSortChange ? (
+          <div className="mb-4 flex items-center justify-end gap-2">
+            <span className="text-sm text-slate-600">{getUIText('catalogSortLabel', language)}</span>
+            <CatalogSortSelect
+              value={catalogSort}
+              onChange={onCatalogSortChange}
+              language={language}
+              distanceDisabled={!catalogSortDistanceAvailable}
+            />
+          </div>
+        ) : null}
         <div 
           className={cn(
             "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 transition-opacity duration-200",
@@ -199,8 +215,13 @@ function ListingSidebarComponent({
               key={listing.id}
               className="animate-in fade-in slide-in-from-bottom-4 duration-300"
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
-              onMouseEnter={() => onListingPointerEnter?.(listing.id)}
+              onMouseEnter={() => {
+                onListingPointerEnter?.(listing.id)
+                onListingCardSelect?.(listing.id)
+              }}
               onMouseLeave={() => onListingPointerLeave?.(listing.id)}
+              onClick={() => onListingCardSelect?.(listing.id)}
+              role="presentation"
             >
               <ListingCard 
                 listing={listing}

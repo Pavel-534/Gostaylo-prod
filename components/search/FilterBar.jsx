@@ -45,6 +45,7 @@ export function FilterBar({
   extraFilters,
   onExtraFiltersChange,
   listingsForFiltersHistogram = [],
+  priceHistogram = null,
   filterResultCount = 0,
   textQuery = '',
   setTextQuery,
@@ -246,6 +247,7 @@ export function FilterBar({
           extraFilters={extraFilters}
           onExtraFiltersChange={onExtraFiltersChange}
           listingsSample={listingsForFiltersHistogram}
+          priceHistogram={priceHistogram}
           resultCount={filterResultCount}
         />
       ) : null}

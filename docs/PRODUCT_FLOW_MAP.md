@@ -1,7 +1,7 @@
 # Product Flow Map — Platform (white-label)
 
 **Version:** 2.0.0  
-**Last updated:** 2026-05-20 | **Stage 112.3:** iCal/seasonal/referral/push API clients; realtime auth SSOT; 109–112.x closed. | **Stage 112.2:** calendar/bookings/finances clients. | **Stage 112.1:** Go/No-Go; chat hooks → API clients. | **Stage 112.0:** pre-launch hardening — chat-ui + catalog-public; admin messages single enrich fetch. | **Stage 111.2:** all FinTech admin panels via API client. | **Stage 111.1:** home + FinTech API clients, catalog-public SSOT. | **Stage 111.0:** pre-launch page split — admin marketing/payments, partner dashboard, renter profile → hooks + PageContent; payments API client. | **Stage 110.8:** final polish — chat API client SSOT, page unload via api-clients/hooks. | **Stage 110.6b:** invoice = storefront (retail FX SSOT, partner guest prefill, dual-currency guest display). | **Stage 110.7:** chat final (`conversation-api-client`, inbox UPDATE merge, outbound thread-only); P2 UI extract — partner dashboard widgets, renter profile modal/completion, marketing promo helpers. | **Stage 110.6:** outbound/inbox polish, `post-chat-invoice.js`, P1-2 send pipeline closed on `/messages`. | **Stage 110.5:** Chat SSOT — `post-chat-message.server.js`, invoice → тот же POST; inbox/thread Realtime без дубля. | **Stage 110.4:** SSOT FX — `lib/pricing/fx-display.js`; витрина `retail=1`, settlement `retail=0`; wizard preview = retail rateMap в `baseCurrency`. | **Stage 109.0:** Admin FinTech console refactor (panels + hook, owner mode preserved). | **Stage 108.5 (FIN):** pricing aliases, chat badge dedup, FX cache v3, owner FinTech polish. | **Stage 108.4:** schema verify, status SSOT, CHECKED_IN UI. | **Stage 108.3:** cron health, thread Realtime dedup. | **Stage 108.1–108.2:** payout guard, dead UI, chat POST SSOT.  
+**Last updated:** 2026-06-18 | **Stage 167.2:** «Для вас» feed — Wave F (Discovery) **closed**.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -36,7 +36,10 @@
 |--------|----------------------|-----------------|
 | Политика | `ARCHITECTURAL_DECISIONS.md` | Старые комментарии в UI |
 | Вертикаль листинга | `categories.slug` + `categories.wizard_profile` | Только `category_id` без slug |
-| Поиск каталога | `lib/api/run-listings-search-get.js` | Прямой PostgREST с клиента |
+| Поиск каталога | `lib/api/run-listings-search-get.js`, `lib/recommendations/ranking-policy.js` (`sort=`) | Прямой PostgREST с клиента |
+| Discovery (167.0+) | `lib/recommendations/`; `GET /api/v2/recommendations/for-you` (167.2) | Ad-hoc scoring в UI |
+| Сортировка каталога | **`lib/recommendations/ranking-policy.js`** only | `lib/api/search/ranking.js` напрямую |
+| Избранное | `GET /api/v2/favorites`, `GET /api/v2/favorites/check` | Полный список favorites ради heart на PDP |
 | Создание брони | `POST /api/v2/bookings` → `booking-create-guard.js` → `creation.js` / `inquiry.service.js` | **111.1b:** session-bound `renterId`; стандарт — RPC `create_booking_atomic_v1`; inquiry — INSERT `INQUIRY` |
 | Атомарность create | RPC `create_booking_atomic_v1` | Двухшаговый create без RPC |
 | Цена на create | `pricing_snapshot` + `lib/services/booking/pricing-engine-integration.js` | Клиентский total без attestation |
@@ -70,6 +73,10 @@ flowchart TB
   subgraph discover [Discovery]
     S --> H[Home /listings]
     H --> PDP[PDP /listings/id]
+    PDP --> SIM[Similar listings rail]
+    PDP --> REC[Recently viewed rail]
+    H --> FYP[For you rail 167.2]
+    H --> SORT[catalog sort + price histogram]
   end
 
   subgraph book [Booking]
@@ -129,9 +136,14 @@ flowchart TB
 | Шаг | UI | API / код |
 |-----|-----|-----------|
 | Главная | `PlatformHomeContent`, `HomeHeroLuxe` | `GET /api/v2/categories` |
-| Каталог | `app/listings/*`, `useListingsSearch` | `GET /api/v2/search`, `GET /api/v2/listings/search` → **`runListingsSearchGet`** |
-| Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter` |
-| PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]` |
+| Каталог | `app/listings/*`, `useListingsSearch` | `GET /api/v2/search`, `GET /api/v2/listings/search` → **`runListingsSearchGet`**; **`sort=`** + **`meta.priceHistogram`** |
+| Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter`; гистограмма цены из API |
+| PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]`; **`SimilarListingsRail`**, **`RecentlyViewedRail`** |
+| Похожие | `SimilarListingsRail` | `GET /api/v2/listings/[id]/similar` |
+| Для вас | `ForYouRail` (home + catalog) | `GET /api/v2/recommendations/for-you` → **`personalization-v1.service.js`** |
+| Недавно смотрели | `RecentlyViewedRail`, `useRecentlyViewed({ userId })` | localStorage + **`GET /api/v2/listing-views`** merge; **`POST`** on PDP view |
+| Каталог map↔list | `ListingSidebar` + `InteractiveSearchMap` | hover/click card ↔ marker highlight + scroll; cluster `fitBounds` |
+| Heart PDP | `useFavoriteState` | `GET /api/v2/favorites/check?listingId=` (не полный список) |
 | Цена на карточке / фильтр | `ListingCard`, `CardPriceDisplay`, **`guest-display-price.js`**, **`fx-display.js`** | **110.1:** guest THB = base + `guestServiceFeePercent`; search → `guestDisplayPriceThb`; фильтр/гистограмма → **`getGuestDisplayForSearchFilters`**. **110.1b:** favorites API + SEO layout — fee % из **`getCommissionRate`**, не дефолт платформы. **110.4:** retail FX в UI. Breakdown брони — mid FX. |
 | Trust | `ListingTrustVerifiedMiniBadge` | `listingQualifiesForTrustVerifiedMiniBadge` + `owner.is_verified` |
 

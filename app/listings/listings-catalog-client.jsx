@@ -32,9 +32,12 @@ import {
   parseExtraFiltersFromParams,
   appendExtraFiltersToParams,
   defaultExtraFilters,
+  parseCatalogSortFromParams,
 } from '@/lib/search/listings-page-url'
+import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
+import { ForYouRail } from '@/components/recommendations/ForYouRail'
 
 const ITEMS_PER_PAGE = 12
 
@@ -105,6 +108,7 @@ function ListingsContent() {
     const sem = searchParams.get('semantic')
     if (sem === '0') setSmartSearchOn(false)
     else if (sem === '1') setSmartSearchOn(true)
+    setCatalogSort(parseCatalogSortFromParams(searchParams))
   }, [searchParamsKey])
 
   useEffect(() => {
@@ -129,6 +133,7 @@ function ListingsContent() {
   const [extraFilters, setExtraFilters] = useState(() => defaultExtraFilters())
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '')
+  const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [smartSearchOn, setSmartSearchOn] = useState(() => {
     const sem = searchParams.get('semantic')
     if (sem === '0') return false
@@ -243,6 +248,10 @@ function ListingsContent() {
     setMapSelectedListingId(id)
   }, [])
 
+  const handleListingCardSelect = useCallback((id) => {
+    setMapSelectedListingId(id)
+  }, [])
+
   const debouncedWhere = useDebounce(where)
   const debouncedGuests = useDebounce(guests)
   const debouncedDateRange = useDebounce(dateRange)
@@ -297,6 +306,7 @@ function ListingsContent() {
     initialSemanticFromUrl,
     itemsPerPage: ITEMS_PER_PAGE,
     displayCurrency: currency,
+    catalogSort,
   })
 
   const handleCatalogSearchSubmit = useCallback(() => {
@@ -317,6 +327,16 @@ function ListingsContent() {
     }
   }, [allListings, mapSelectedListingId])
 
+  const catalogSortDistanceAvailable = useMemo(
+    () => Boolean(resolveCatalogSortCenter({ where: debouncedWhere, bounds: appliedBbox })),
+    [debouncedWhere, appliedBbox],
+  )
+
+  useEffect(() => {
+    if (catalogSort !== 'distance') return
+    if (!catalogSortDistanceAvailable) setCatalogSort('recommended')
+  }, [catalogSort, catalogSortDistanceAvailable])
+
   const loadMoreRef = useIntersectionObserver(loadMore)
 
   useEffect(() => {
@@ -326,11 +346,11 @@ function ListingsContent() {
     if (storedCurrency) setCurrency(storedCurrency)
 
     if (user?.id) {
-      fetch(`/api/v2/renter/favorites?userId=${user.id}`)
+      fetch('/api/v2/favorites')
         .then((res) => res.json())
         .then((data) => {
-          if (data.success && data.data) {
-            setUserFavorites(new Set(data.data.map((fav) => fav.listing_id)))
+          if (data.success && data.favorites) {
+            setUserFavorites(new Set(data.favorites.map((fav) => fav.listing_id)))
           }
         })
         .catch(console.error)
@@ -379,6 +399,7 @@ function ListingsContent() {
     if (qt.length >= 2) params.set('q', qt)
     bboxToSearchParams(appliedBbox, params)
     appendExtraFiltersToParams(params, extraFilters)
+    if (catalogSort && catalogSort !== 'recommended') params.set('sort', catalogSort)
     const s = params.toString()
     if (s === lastPushedSearchRef.current) return
     lastPushedSearchRef.current = s
@@ -396,6 +417,7 @@ function ListingsContent() {
     appliedBbox,
     extraFilters,
     wizardProfileBySlug,
+    catalogSort,
   ])
 
   const clearDates = () => setDateRange({ from: null, to: null })
@@ -530,6 +552,7 @@ function ListingsContent() {
         extraFilters={extraFilters}
         onExtraFiltersChange={setExtraFilters}
         listingsForFiltersHistogram={allListings}
+        priceHistogram={meta?.priceHistogram ?? null}
         filterResultCount={allListings.length}
         textQuery={searchQuery}
         setTextQuery={setSearchQuery}
@@ -541,6 +564,16 @@ function ListingsContent() {
 
       <div className="container mx-auto px-4 pt-4">
         <ReferralCatalogFunnelStrip language={language} />
+      </div>
+
+      <div className="container mx-auto px-4 py-4">
+        <ForYouRail
+          where={where}
+          language={language}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          surface="for_you_catalog"
+        />
       </div>
 
       <div id="listings-results" className="container mx-auto px-4 py-6">
@@ -576,6 +609,10 @@ function ListingsContent() {
               catalogCategories={catalogCategories}
               onListingPointerEnter={prefetchListingDetail}
               onListingPointerLeave={cancelListingDetailPrefetch}
+              onListingCardSelect={handleListingCardSelect}
+              catalogSort={catalogSort}
+              onCatalogSortChange={setCatalogSort}
+              catalogSortDistanceAvailable={catalogSortDistanceAvailable}
             />
           </div>
 

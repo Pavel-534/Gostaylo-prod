@@ -206,6 +206,39 @@ function MapViewportReporter({ onViewportBbox, debounceMs = 400 }) {
   return null
 }
 
+function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
+  const map = useMap()
+  const lastPanIdRef = useRef(null)
+
+  useEffect(() => {
+    const id = String(selectedListingId || '').trim()
+    if (!id || lastPanIdRef.current === id) return
+
+    let lat = null
+    let lng = null
+
+    const pin = (pins || []).find((p) => String(p.id) === id)
+    if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng)) {
+      lat = pin.lat
+      lng = pin.lng
+    } else {
+      const listing = (listings || []).find((l) => String(l.id) === id)
+      const ll = listing ? extractListingLatLng(listing) : null
+      if (ll) {
+        lat = ll.lat
+        lng = ll.lng
+      }
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+    lastPanIdRef.current = id
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { animate: true, duration: 0.45 })
+  }, [selectedListingId, pins, listings, map])
+
+  return null
+}
+
 function pinToFitListing(pin) {
   if (!pin?.id) return null
   return {
@@ -357,6 +390,12 @@ export default function InteractiveSearchMap({
           hasConfirmedBookingFn={hasConfirmedBooking}
           suppressBoundsUntilRef={suppressBoundsUntilRef}
           mapFitResetKey={mapFitResetKey}
+        />
+
+        <MapSelectionSync
+          selectedListingId={selectedListingId}
+          pins={effectivePins}
+          listings={listings}
         />
 
         {useServerClusters ? (

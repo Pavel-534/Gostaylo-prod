@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.166.0 | **Last Updated**: 2026-06-17 | **Stage 166.0:** Performance & scaling (Wave E). | **Stage 165.0:** Wave D — geo alerts, rate limits.
+> **Version**: 12.167.2 | **Last Updated**: 2026-06-18 | **Stage 167.2:** «Для вас» personalization (Wave F closed). | **Stage 167.1:** listing_views, map↔list. | **Stage 166.0:** Performance & scaling (Wave E).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -194,7 +194,12 @@
 | **Каталог / карта** | Цена на карточке и маркере — SSOT; без дат: «X / ночь» (или / сутки); с датами: «X за N ночей». | **`components/card/CardPriceDisplay.jsx`**, **`components/listing-card.jsx`**, **`InteractiveSearchMap`**, **`TopListingsGrid`** |
 | **PDP hero** | Desktop **`BookingWidget`** + mobile **`MobileBookingBar`**: `getPdpHeroGuestPriceThb`; подпись «+ сервисный сбор и налоги» → scroll к **`#booking-price-breakdown`**. | **`components/listing/BookingWidget.jsx`**, **`components/listing/booking/BookingPriceBreakdown.jsx`** |
 | **SEO / structured data** | Meta title/description и Schema.org `Offer.price` — гостевая цена (не голый `base_price_thb`). | **`app/listings/[id]/layout.js`**, **`lib/seo/listing-schema-org.js`** |
-| **Избранное / недавние** | **`GET /api/v2/favorites`** отдаёт `guest_display_price_thb` + `guest_service_fee_percent` (SSOT `getGuestDisplayPerNight`); PDP recent — поле с карточки API. | **`app/api/v2/favorites/route.js`**, **`app/renter/favorites/page.js`**, **`lib/hooks/use-recently-viewed.js`** |
+| **Избранное / недавние** | **`GET /api/v2/favorites`** SSOT; **`GET /api/v2/favorites/check?listingId=`** O(1) на PDP; **`useFavoriteState`**; **`/api/v2/renter/favorites`** — thin proxy; PDP **`RecentlyViewedRail`** (`useRecentlyViewed` localStorage). | **`app/api/v2/favorites/route.js`**, **`app/api/v2/favorites/check/route.js`**, **`lib/hooks/useFavoriteState.js`**, **`components/recommendations/RecentlyViewedRail.jsx`** |
+| **«Для вас» (167.2)** | `GET /api/v2/recommendations/for-you`; `personalization-v1.service.js`; `ForYouRail` | Ad-hoc home scoring в компонентах |
+| **Discovery / похожие** | `GET /api/v2/listings/[id]/similar`; PDP **`SimilarListingsRail`** | **`lib/recommendations/similar-listings.service.js`** |
+| **Недавно смотрели** | localStorage + **`listing_views`** после логина; merge в `useRecentlyViewed`; `POST/GET /api/v2/listing-views` | **`migrations/stage167_1_listing_views.sql`**, **`lib/recommendations/listing-views.service.js`** |
+| **Каталог map↔list** | `onListingCardSelect` → highlight + `MapSelectionSync`; marker click → scroll card; cluster → `fitBounds(cellSizeM)` | **`InteractiveSearchMap.jsx`**, **`ListingSidebar.jsx`** |
+| **Сортировка каталога** | **`lib/recommendations/ranking-policy.js`** — единственный SSOT | `ranking.js` / `spatial-filter` — re-export / deprecated |
 | **Не путать** | Партнёрская база, ledger, payout FX, FinTech-пульт — отдельные домены; на FinTech-пульте для владельца — подсказка «суммы для гостя (с сервисным сбором)» где применимо. | ADR / **`docs/FINANCIAL_FLOW_MAP.md`** |
 
 ### SSOT FX и retail markup (Stage 110.4)

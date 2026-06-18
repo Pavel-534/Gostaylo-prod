@@ -1,261 +1,113 @@
 /**
- * GoStayLo - Renter Favorites API (v2)
- * 
- * GET /api/v2/renter/favorites - List all favorites for current user
- * POST /api/v2/renter/favorites - Toggle (add/remove) listing from favorites
- * 
- * Features:
- * - Server-side session validation
- * - Optimistic UI support
- * - Returns listing details with each favorite
- * 
- * @version 2.0
+ * GoStayLo - Renter Favorites API (v2) — thin proxy to SSOT `/api/v2/favorites` (Stage 167.0).
  */
 
 import { NextResponse } from 'next/server'
+import { GET as favoritesGet, POST as favoritesPost, DELETE as favoritesDelete } from '@/app/api/v2/favorites/route'
+import { GET as favoritesCheckGet } from '@/app/api/v2/favorites/check/route'
+
 export const dynamic = 'force-dynamic'
-import { supabaseAdmin } from '@/lib/supabase'
-export async function GET(request) {
+
+function adaptFavoritesList(body) {
+  const rows = body?.favorites || []
+  return rows.map((row) => ({
+    id: row.id,
+    listing_id: row.listing_id,
+    created_at: row.created_at,
+    listing: row.listings ?? null,
+  }))
+}
+
+export async function GET() {
   try {
-    // Get user ID from query params (passed by client)
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-    
-    console.log('[FAVORITES] GET request for userId:', userId)
-    
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing userId'
-      }, { status: 400 })
+    const res = await favoritesGet()
+    const body = await res.json()
+    if (!body?.success) {
+      return NextResponse.json(body, { status: res.status })
     }
-    
-    // First, get favorites
-    const { data: favoritesData, error: favError } = await supabaseAdmin
-      .from('favorites')
-      .select('id, listing_id, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-    
-    console.log('[FAVORITES] Step 1 - Favorites query:', { 
-      hasError: !!favError, 
-      errorCode: favError?.code,
-      errorMessage: favError?.message,
-      dataLength: favoritesData?.length 
-    })
-    
-    if (favError) {
-      // If table doesn't exist, return empty array
-      if (favError.code === 'PGRST116' || favError.message.includes('does not exist')) {
-        console.log('[FAVORITES] Table does not exist yet, returning empty array')
-        return NextResponse.json({
-          success: true,
-          data: [],
-          count: 0,
-          message: 'Favorites table will be created on first save'
-        })
-      }
-      
-      console.error('[FAVORITES GET ERROR]', favError)
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to fetch favorites',
-        details: favError.message,
-        code: favError.code
-      }, { status: 500 })
-    }
-    
-    // If no favorites, return empty
-    if (!favoritesData || favoritesData.length === 0) {
-      console.log('[FAVORITES] No favorites found for user')
-      return NextResponse.json({
-        success: true,
-        data: [],
-        count: 0
-      })
-    }
-    
-    // Get listing IDs
-    const listingIds = favoritesData.map(f => f.listing_id)
-    
-    // Fetch listings separately
-    const { data: listingsData, error: listingsError } = await supabaseAdmin
-      .from('listings')
-      .select('*')
-      .in('id', listingIds)
-    
-    console.log('[FAVORITES] Step 2 - Listings query:', { 
-      hasError: !!listingsError,
-      listingsFound: listingsData?.length 
-    })
-    
-    if (listingsError) {
-      console.error('[FAVORITES] Error fetching listings:', listingsError)
-      // Return favorites without listings details
-      return NextResponse.json({
-        success: true,
-        data: favoritesData.map(f => ({ ...f, listing: null })),
-        count: favoritesData.length
-      })
-    }
-    
-    // Map listings to favorites
-    const listingsMap = {}
-    listingsData.forEach(listing => {
-      listingsMap[listing.id] = listing
-    })
-    
-    const formattedFavorites = favoritesData.map(fav => ({
-      id: fav.id,
-      listing_id: fav.listing_id,
-      created_at: fav.created_at,
-      listing: listingsMap[fav.listing_id] || null
-    }))
-    
-    console.log(`[FAVORITES] Successfully formatted ${formattedFavorites.length} favorites`)
-    
+    const data = adaptFavoritesList(body)
     return NextResponse.json({
       success: true,
-      data: formattedFavorites,
-      count: formattedFavorites.length
+      data,
+      count: data.length,
+      guestServiceFeePercent: body.guestServiceFeePercent,
     })
-    
   } catch (error) {
-    console.error('[FAVORITES GET ERROR]', error)
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 })
+    console.error('[RENTER FAVORITES PROXY GET]', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
-// POST /api/v2/renter/favorites - Toggle favorite
 export async function POST(request) {
   try {
-    const { userId, listingId } = await request.json()
-    
-    if (!userId || !listingId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing userId or listingId'
-      }, { status: 400 })
+    const { listingId } = await request.json()
+    if (!listingId) {
+      return NextResponse.json({ success: false, error: 'Missing listingId' }, { status: 400 })
     }
-    
-    // Check if already favorited
-    const { data: existing, error: checkError } = await supabaseAdmin
-      .from('favorites')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('listing_id', listingId)
-      .single()
-    
-    if (checkError && checkError.code !== 'PGRST116') {
-      // If table doesn't exist, create it first
-      if (checkError.message.includes('does not exist')) {
-        console.log('[FAVORITES] Creating favorites table...')
-        // Note: In production, table should be created via migration
-        // For now, we'll let Supabase auto-create on insert
-      }
+
+    const checkUrl = new URL('http://local/api/v2/favorites/check')
+    checkUrl.searchParams.set('listingId', String(listingId))
+    const checkRes = await favoritesCheckGet(new Request(checkUrl))
+    const checkBody = await checkRes.json()
+
+    if (!checkRes.ok) {
+      return NextResponse.json(checkBody, { status: checkRes.status })
     }
-    
-    // Toggle logic
-    if (existing) {
-      // Remove from favorites
-      const { error: deleteError } = await supabaseAdmin
-        .from('favorites')
-        .delete()
-        .eq('id', existing.id)
-      
-      if (deleteError) {
-        console.error('[FAVORITES DELETE ERROR]', deleteError)
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to remove from favorites'
-        }, { status: 500 })
-      }
-      
-      return NextResponse.json({
-        success: true,
-        action: 'removed',
-        message: 'Removed from favorites',
-        isFavorite: false
-      })
-    } else {
-      // Add to favorites
-      const { data: newFavorite, error: insertError } = await supabaseAdmin
-        .from('favorites')
-        .insert({
-          user_id: userId,
-          listing_id: listingId,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single()
-      
-      if (insertError) {
-        console.error('[FAVORITES INSERT ERROR]', insertError)
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to add to favorites'
-        }, { status: 500 })
-      }
-      
-      return NextResponse.json({
-        success: true,
-        action: 'added',
-        message: 'Added to favorites',
-        isFavorite: true,
-        data: newFavorite
-      })
+
+    const isFavorite = Boolean(checkBody?.isFavorite)
+    const actionRes = isFavorite
+      ? await favoritesDelete(
+          new Request('http://local/api/v2/favorites', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId }),
+          }),
+        )
+      : await favoritesPost(
+          new Request('http://local/api/v2/favorites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId }),
+          }),
+        )
+
+    const actionBody = await actionRes.json()
+    if (!actionBody?.success) {
+      return NextResponse.json(actionBody, { status: actionRes.status })
     }
-    
-  } catch (error) {
-    console.error('[FAVORITES POST ERROR]', error)
+
     return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 })
+      success: true,
+      action: isFavorite ? 'removed' : 'added',
+      message: isFavorite ? 'Removed from favorites' : 'Added to favorites',
+      isFavorite: !isFavorite,
+      data: actionBody.favorite ?? null,
+    })
+  } catch (error) {
+    console.error('[RENTER FAVORITES PROXY POST]', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
-// DELETE /api/v2/renter/favorites - Remove specific favorite (alternative to POST toggle)
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
     const listingId = searchParams.get('listingId')
-    
-    if (!userId || !listingId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing userId or listingId'
-      }, { status: 400 })
+    if (!listingId) {
+      return NextResponse.json({ success: false, error: 'Missing listingId' }, { status: 400 })
     }
-    
-    const { error: deleteError } = await supabaseAdmin
-      .from('favorites')
-      .delete()
-      .eq('user_id', userId)
-      .eq('listing_id', listingId)
-    
-    if (deleteError) {
-      console.error('[FAVORITES DELETE ERROR]', deleteError)
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to remove from favorites'
-      }, { status: 500 })
-    }
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Removed from favorites'
-    })
-    
+
+    const res = await favoritesDelete(
+      new Request('http://local/api/v2/favorites', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      }),
+    )
+    const body = await res.json()
+    return NextResponse.json(body, { status: res.status })
   } catch (error) {
-    console.error('[FAVORITES DELETE ERROR]', error)
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 })
+    console.error('[RENTER FAVORITES PROXY DELETE]', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

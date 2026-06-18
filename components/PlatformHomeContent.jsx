@@ -12,6 +12,7 @@ import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { StickySearchBar } from '@/components/home/StickySearchBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
+import { ForYouRail } from '@/components/recommendations/ForYouRail'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
@@ -187,6 +188,16 @@ export function PlatformHomeContent() {
         setGuestsBreakdown={setGuestsBreakdown}
         onSearch={handleSearch}
       />
+
+      <div className="gsl-page-container max-w-6xl py-8">
+        <ForYouRail
+          where={where}
+          language={language}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          surface="for_you_home"
+        />
+      </div>
 
       {/* Listings Grid — конверсия first, юзер видит объявления сразу под hero */}
       <TopListingsGrid

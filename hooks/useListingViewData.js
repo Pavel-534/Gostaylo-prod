@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { detectLanguage, getUIText } from '@/lib/translations'
+import { detectLanguage } from '@/lib/translations'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { fetchListingDetail } from '@/lib/catalog/fetch-listing-detail'
 import { queryKeys } from '@/lib/query-keys'
+import { useFavoriteState } from '@/lib/hooks/useFavoriteState'
 
 /**
  * PDP primary view data: listing + reviews load, locale/currency, favorites, recently viewed.
@@ -22,8 +22,12 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
   const [language, setLanguage] = useState('ru')
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [favoriteLoading, setFavoriteLoading] = useState(false)
+
+  const {
+    isFavorite,
+    favoriteLoading,
+    handleFavoriteClick,
+  } = useFavoriteState(listingId, { user, openLoginModal, language })
 
   const loadReviews = useCallback(async () => {
     try {
@@ -108,22 +112,6 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
   }, [])
 
   useEffect(() => {
-    if (!user?.id || !listing?.id) {
-      setIsFavorite(false)
-      return
-    }
-    fetch('/api/v2/favorites')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.favorites) {
-          const inFavs = data.favorites.some((f) => f.listing_id === listing.id)
-          setIsFavorite(inFavs)
-        }
-      })
-      .catch(() => {})
-  }, [user?.id, listing?.id])
-
-  useEffect(() => {
     if (listing && !loading) {
       void trackProductEvent(ProductAnalyticsEvents.LISTING_VIEW, {
         listing_id: listing.id,
@@ -141,40 +129,6 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
       })
     }
   }, [listing, loading, addToRecent])
-
-  const handleFavoriteClick = useCallback(async () => {
-    if (!user) {
-      openLoginModal()
-      return
-    }
-    if (favoriteLoading || !listing?.id) return
-    setFavoriteLoading(true)
-    const newState = !isFavorite
-    setIsFavorite(newState)
-    try {
-      const res = await fetch('/api/v2/favorites', {
-        method: newState ? 'POST' : 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: listing.id }),
-      })
-      const data = await res.json()
-      if (!data.success) {
-        setIsFavorite(!newState)
-        toast.error(getUIText('listingDetail_favoriteError', language))
-      } else {
-        toast.success(
-          newState
-            ? getUIText('listingDetail_favoriteAdded', language)
-            : getUIText('listingDetail_favoriteRemoved', language),
-        )
-      }
-    } catch {
-      setIsFavorite(!newState)
-      toast.error(getUIText('listingDetail_networkError', language))
-    } finally {
-      setFavoriteLoading(false)
-    }
-  }, [user, favoriteLoading, listing?.id, isFavorite, language, openLoginModal])
 
   return {
     listing,
