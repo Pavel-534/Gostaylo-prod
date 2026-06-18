@@ -14,6 +14,7 @@
     "lint": "eslint . --max-warnings 50",
     "lint:fix": "eslint . --fix",
     "verify:currency": "node scripts/verify-format-price.mjs",
+    "verify:coord-privacy": "node scripts/verify-coord-privacy-ssot.mjs",
     "check:payout-methods": "node scripts/check-payout-methods.mjs",
     "verify:schema-103-2": "node scripts/verify-stage103-2-schema.mjs",
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",

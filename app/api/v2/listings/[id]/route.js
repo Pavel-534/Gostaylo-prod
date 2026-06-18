@@ -15,6 +15,11 @@ import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
 import { resolveListingPublicGuestAccess } from '@/lib/listing/listing-public-guest-gate'
+import {
+  resolveCoordinateRevealLevel,
+  serializePublicCoordinates,
+} from '@/lib/geo/listing-public-coordinates'
+import { fetchRenterBookingsForListingReveal } from '@/lib/geo/public-coordinate-viewer-context'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 import { ReputationService } from '@/lib/services/reputation.service'
@@ -79,7 +84,7 @@ export async function GET(request, context) {
       .from('listings')
       .select(`
         *,
-        categories (id, name, slug, icon),
+        categories (id, name, slug, icon, wizard_profile),
         owner:profiles!owner_id (id, first_name, last_name, is_verified, verification_status, avatar, email, phone)
       `)
       .eq('id', id)
@@ -223,6 +228,18 @@ export async function GET(request, context) {
     const canSeeOwnerPii =
       viewerId &&
       (viewerId === String(listing.owner_id) || isStaffRole(viewerRole))
+
+    let renterBookingsForReveal = []
+    if (viewerId && !canSeeOwnerPii) {
+      renterBookingsForReveal = await fetchRenterBookingsForListingReveal(viewerId, id)
+    }
+    const coordReveal = resolveCoordinateRevealLevel({
+      viewerId,
+      viewerRole,
+      listing,
+      renterBookings: renterBookingsForReveal,
+    })
+    const publicCoords = serializePublicCoordinates(listing, coordReveal)
     
     // Transform for frontend
     const transformed = {
@@ -234,9 +251,11 @@ export async function GET(request, context) {
       title: listing.title,
       description: listing.description,
       district: listing.district,
-      latitude: listing.latitude,
-      longitude: listing.longitude,
-      address: listing.address,
+      latitude: publicCoords.latitude,
+      longitude: publicCoords.longitude,
+      isApproximate: publicCoords.isApproximate,
+      locationPrivacyMode: publicCoords.locationPrivacyMode,
+      address: publicCoords.address,
       basePriceThb: basePriceThbParsed,
       guestDisplayPriceThb,
       guestServiceFeePercent,

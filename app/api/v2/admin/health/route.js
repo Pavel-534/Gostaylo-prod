@@ -20,6 +20,10 @@ import { loadNotificationChannelHealth } from '@/lib/admin/notification-channel-
 import { loadCriticalSignalsHealth } from '@/lib/admin/critical-signals-health.js'
 import { getLocationSuggestMetricsSnapshot } from '@/lib/locations/location-suggest-metrics'
 import { getLocationNormalizeLastRunSnapshot } from '@/lib/services/batch-location-normalize.service'
+import { loadSpatialStatsHealth } from '@/lib/admin/spatial-stats-health.js'
+import { loadPrivacyStatsHealth } from '@/lib/admin/privacy-stats-health.js'
+import { getGeoDriftLastRunSnapshot } from '@/lib/services/geo-drift-detector.service'
+import { loadPerformanceStatsHealth } from '@/lib/admin/performance-stats-health.js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -77,7 +81,7 @@ export async function GET(request) {
   const signalsKey = url.searchParams.get('signalsKey')
   const signalsQ = url.searchParams.get('signalsQ')
 
-  const [referralReconciliation, referralUnlock, referralSystemHealth, notificationChannels, criticalSignals] =
+  const [referralReconciliation, referralUnlock, referralSystemHealth, notificationChannels, criticalSignals, spatialStats, privacyStats] =
     await Promise.all([
       loadReferralReconciliationHealth(),
       loadReferralUnlockHealth(),
@@ -89,6 +93,8 @@ export async function GET(request) {
         search: signalsQ,
         limit: 50,
       }),
+      loadSpatialStatsHealth(),
+      loadPrivacyStatsHealth(),
     ])
 
   let slaNudge = {
@@ -211,6 +217,11 @@ export async function GET(request) {
     referralSystemHealth,
     locationSuggest: getLocationSuggestMetricsSnapshot(),
     locationNormalize: getLocationNormalizeLastRunSnapshot(),
+    spatialStats,
+    privacyStats,
+    mapPinsMetrics: spatialStats?.mapPinsMetrics ?? null,
+    geoDrift: getGeoDriftLastRunSnapshot(),
+    performanceStats: loadPerformanceStatsHealth(),
     meta: {
       opsError,
       opsTablePresent: !opsFetchError || !String(opsFetchError.message || '').includes(OPS_MISSING),

@@ -16,6 +16,7 @@ import {
   Siren,
   Sparkles,
   Trash2,
+  Map,
 } from 'lucide-react'
 import { JobErrorDetails, OpsJobFailureRow } from '@/components/admin/health/JobErrorDetails'
 import { NotificationChannelsCard } from '@/components/admin/health/NotificationChannelsCard'
@@ -63,6 +64,8 @@ export default function AdminHealthPage() {
   const [loading, setLoading] = useState(true)
   const [reconcileBusy, setReconcileBusy] = useState(false)
   const [reconcileMsg, setReconcileMsg] = useState(null)
+  const [geoDriftBusy, setGeoDriftBusy] = useState(false)
+  const [geoDriftMsg, setGeoDriftMsg] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -133,6 +136,33 @@ export default function AdminHealthPage() {
     }
   }, [load])
 
+  const runGeoDriftScanNow = useCallback(async () => {
+    setGeoDriftBusy(true)
+    setGeoDriftMsg(null)
+    try {
+      const res = await fetch('/api/v2/admin/geo/drift-scan', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emitSignals: false }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        setGeoDriftMsg(json.error || `Ошибка ${res.status}`)
+        return
+      }
+      const d = json.data || {}
+      setGeoDriftMsg(
+        `Drift: mismatch ${d.coordLatlngMismatch ?? 0}, unverified ${d.unverifiedActive ?? 0}, stale ${(d.coordsNullLatlngSet ?? 0) + (d.latlngNullCoordsSet ?? 0)}`,
+      )
+      await load()
+    } catch (e) {
+      setGeoDriftMsg(e?.message || 'Сеть')
+    } finally {
+      setGeoDriftBusy(false)
+    }
+  }, [load])
+
   const ical = data?.jobs?.['ical-sync']
   const sweeper = data?.jobs?.['push-sweeper']
   const hygiene = data?.jobs?.['push-token-hygiene']
@@ -147,6 +177,12 @@ export default function AdminHealthPage() {
   const referralSystemHealth = data?.referralSystemHealth
   const referralUnlock = data?.referralUnlock
   const referralUnlockJob = data?.jobs?.['referral-unlock']
+  const spatialStats = data?.spatialStats
+  const privacyStats = data?.privacyStats
+  const mapPinsMetrics = data?.mapPinsMetrics
+  const locationNormalize = data?.locationNormalize
+  const geoDrift = data?.geoDrift
+  const performanceStats = data?.performanceStats
   const adapterEntries = Object.entries(adapterHealth?.adapters || {})
   const hasAdapterProblems = adapterEntries.some(([, row]) => !row?.ready) || !adapterHealth?.global?.ready
 
@@ -753,6 +789,139 @@ export default function AdminHealthPage() {
             </CardContent>
           </Card>
         </div>
+      ) : null}
+
+      {data ? (
+        <Card className="rounded-2xl border border-sky-100 bg-sky-50/30 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-sky-950">
+              <Map className="h-5 w-5 text-sky-700" />
+              Geo &amp; Map Operations (Stage 164)
+            </CardTitle>
+            <CardDescription className="text-sky-900/80">
+              PostGIS, coordinate privacy, map-pins latency и geo drift. Крон{' '}
+              <code className="text-xs bg-white/80 px-1 rounded">/api/cron/geo-drift-detector</code>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+                <p className="text-xs text-slate-500">PostGIS</p>
+                <p className="font-semibold text-slate-900">
+                  {spatialStats?.postgis?.postgisSpatialSearch ? 'active' : 'degraded'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  GiST: {spatialStats?.gistIndexPresent == null ? '—' : spatialStats.gistIndexPresent ? 'ok' : 'missing'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+                <p className="text-xs text-slate-500">Coords coverage</p>
+                <p className="font-semibold text-slate-900">
+                  {spatialStats?.activeWithCoordinates ?? 0} / {spatialStats?.activeTotal ?? 0}
+                </p>
+                <p className="text-xs text-slate-500">
+                  ratio {spatialStats?.coordinatesCoverageRatio ?? 0}
+                </p>
+              </div>
+              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+                <p className="text-xs text-slate-500">Privacy fuzz (runtime)</p>
+                <p className="font-semibold text-slate-900">
+                  {(privacyStats?.runtime?.fuzz_ratio ?? 0) * 100}% fuzz
+                </p>
+                <p className="text-xs text-slate-500">
+                  reveal {(privacyStats?.runtime?.reveal_rate ?? 0) * 100}%
+                </p>
+              </div>
+              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+                <p className="text-xs text-slate-500">Map-pins p95</p>
+                <p className="font-semibold text-slate-900">{mapPinsMetrics?.p95_ms ?? 0} ms</p>
+                <p className="text-xs text-slate-500">
+                  clusters {(mapPinsMetrics?.clusters_request_ratio ?? 0) * 100}%
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-700">
+              <span>
+                Normalize queue:{' '}
+                <strong>{locationNormalize?.last_summary?.remaining_unverified ?? '—'}</strong> unverified
+              </span>
+              <span>
+                Drift mismatch:{' '}
+                <strong>{geoDrift?.last_summary?.coordLatlngMismatch ?? '—'}</strong>
+              </span>
+              <span>
+                Cluster privacy ratio:{' '}
+                <strong>{mapPinsMetrics?.cluster_privacy_ratio ?? 1}</strong>
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-lg"
+                disabled={geoDriftBusy || loading}
+                onClick={() => void runGeoDriftScanNow()}
+              >
+                {geoDriftBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Запустить geo drift scan
+              </Button>
+              {geoDriftMsg ? <span className="text-xs text-slate-600">{geoDriftMsg}</span> : null}
+            </div>
+            {geoDrift?.last_run_at ? (
+              <p className="text-xs text-slate-500">
+                Последний drift scan: {formatDt(geoDrift.last_run_at)}
+              </p>
+            ) : null}
+            {spatialStats?.error || privacyStats?.error ? (
+              <p className="text-xs text-amber-700">
+                {spatialStats?.error || privacyStats?.error}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {data && performanceStats ? (
+        <Card className="rounded-2xl border border-violet-100 bg-violet-50/20 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-violet-950">
+              <Activity className="h-5 w-5 text-violet-700" />
+              Performance (Stage 166)
+            </CardTitle>
+            <CardDescription>Latency p95/p99, spatial cache hit ratio, circuit breaker</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+              <p className="text-xs text-slate-500">Search p95 / p99</p>
+              <p className="font-semibold">
+                {performanceStats.search?.p95_ms ?? 0} / {performanceStats.search?.p99_ms ?? 0} ms
+              </p>
+            </div>
+            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+              <p className="text-xs text-slate-500">Map-pins p95 / p99</p>
+              <p className="font-semibold">
+                {performanceStats.mapPins?.p95_ms ?? 0} / {performanceStats.mapPins?.p99_ms ?? 0} ms
+              </p>
+            </div>
+            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+              <p className="text-xs text-slate-500">Spatial cache hit</p>
+              <p className="font-semibold">
+                {((performanceStats.spatialCache?.hit_ratio ?? 0) * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+              <p className="text-xs text-slate-500">Open circuits</p>
+              <p className="font-semibold">
+                {performanceStats.spatialCircuit?.openCircuits?.length ?? 0}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       {data ? (

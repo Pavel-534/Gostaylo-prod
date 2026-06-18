@@ -1,12 +1,15 @@
 /**
  * SearchMapWrapper — Leaflet map (~40% width on lg), price pills, viewport bounds callback.
+ * Stage 163.1 — map-pins API + lazy popup.
  */
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { boundsParamsReady } from '@/lib/catalog/build-catalog-search-params';
+import { useMapPinsFetch } from '@/lib/hooks/useMapPinsFetch';
 
 const InteractiveSearchMap = dynamic(
   () => import('@/components/listing/InteractiveSearchMap'),
@@ -22,6 +25,9 @@ const InteractiveSearchMap = dynamic(
 
 function SearchMapWrapperComponent({
   listings = [],
+  /** @type {ReturnType<typeof import('@/lib/catalog/build-catalog-search-params').buildCatalogSearchKeyParams> | null} */
+  searchKeyParams = null,
+  appliedBbox = null,
   userBookings = [],
   userId = null,
   language = 'ru',
@@ -39,6 +45,27 @@ function SearchMapWrapperComponent({
   appliedBboxKey = '',
   mapFitResetKey = '',
 }) {
+  const [viewportBbox, setViewportBbox] = useState(null);
+
+  const mapQueryBounds = appliedBbox ?? viewportBbox;
+  const boundsReady = boundsParamsReady(mapQueryBounds);
+
+  const mapPinsKeyParams = useMemo(() => {
+    if (!searchKeyParams || !boundsReady) return null;
+    return { ...searchKeyParams, bounds: mapQueryBounds, limit: '500' };
+  }, [searchKeyParams, mapQueryBounds, boundsReady]);
+
+  const { mode, pins, clusters, isLoading } = useMapPinsFetch(mapPinsKeyParams, {
+    enabled: showMap && boundsReady,
+  });
+
+  const mapPinsUseApi = boundsReady && !isLoading;
+
+  const handleViewportBbox = useCallback((bbox) => {
+    if (appliedBbox) return;
+    setViewportBbox(bbox);
+  }, [appliedBbox]);
+
   return (
     <div
       className={cn(
@@ -50,6 +77,11 @@ function SearchMapWrapperComponent({
       <div className="h-[500px] lg:h-full rounded-lg overflow-hidden border border-slate-200 shadow-lg">
         <InteractiveSearchMap
           listings={listings}
+          mapPins={pins}
+          mapClusters={clusters}
+          mapMode={mode}
+          mapPinsUseApi={mapPinsUseApi}
+          onViewportBbox={handleViewportBbox}
           userBookings={userBookings}
           userId={userId}
           language={language}

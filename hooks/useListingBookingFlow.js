@@ -123,6 +123,11 @@ export function useListingBookingFlow({
     listing?.categorySlug || listing?.category?.slug,
   )
 
+  const listingPartnerId = useMemo(
+    () => listing?.ownerId ?? listing?.owner?.id ?? listing?.owner_id ?? null,
+    [listing?.ownerId, listing?.owner?.id, listing?.owner_id],
+  )
+
   const commissionHook = useCommission(listingPartnerId)
 
   const availabilitySyncPricing = useMemo(() => {

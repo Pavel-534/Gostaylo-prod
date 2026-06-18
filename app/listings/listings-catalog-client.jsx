@@ -279,6 +279,7 @@ function ListingsContent() {
     commitSemanticSearch,
     loadMore,
     retry,
+    searchKeyParams,
   } = useListingsFetch({
     selectedCategory,
     categoryWizardProfile: selectedCategoryWizardProfile,
@@ -580,6 +581,8 @@ function ListingsContent() {
 
           <SearchMapWrapper
             listings={allListings}
+            searchKeyParams={searchKeyParams}
+            appliedBbox={appliedBbox}
             userBookings={userBookings}
             userId={user?.id}
             language={language}

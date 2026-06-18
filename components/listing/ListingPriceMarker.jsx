@@ -1,20 +1,22 @@
 'use client'
 
 /**
- * Маркер каталога: ценовая пилюля + Popup (**`ListingPopupCard`**).
+ * Маркер каталога: ценовая пилюля + Popup (**`ListingPopupCard`** или lazy **`ListingMapPopupLazy`**).
  * SSOT пилюли: **`createLeafletPricePillDivIcon`** (**`lib/maps/map-provider-adapter.js`**).
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { createLeafletPricePillDivIcon } from '@/lib/maps/map-provider-adapter'
 import { listingQualifiesForTrustVerifiedMiniBadge } from '@/lib/listing-card-spec-profile'
 import { ListingPopupCard } from '@/components/listing/ListingPopupCard'
+import { ListingMapPopupLazy } from '@/components/listing/ListingMapPopupLazy'
 
 /**
  * @param {object} props
- * @param {Record<string, unknown>} props.listing
+ * @param {Record<string, unknown>} [props.listing] — полный листинг (fallback / legacy)
+ * @param {{ id: string, lat?: number, lng?: number, price?: number|null }} [props.pin] — lean pin (Stage 163.1)
  * @param {[number,number]} props.position
  * @param {string} props.priceLabel
  * @param {boolean} props.approximate
@@ -24,9 +26,11 @@ import { ListingPopupCard } from '@/components/listing/ListingPopupCard'
  * @param {object|null} [props.initialDates]
  * @param {string} [props.currency]
  * @param {Record<string, number>} [props.exchangeRates]
+ * @param {boolean} [props.lazyPopup]
  */
 export function ListingPriceMarker({
-  listing,
+  listing = null,
+  pin = null,
   position,
   priceLabel,
   approximate,
@@ -36,9 +40,16 @@ export function ListingPriceMarker({
   initialDates = null,
   currency = 'THB',
   exchangeRates = { THB: 1 },
+  lazyPopup = false,
 }) {
   const map = useMap()
-  const gslVerified = listingQualifiesForTrustVerifiedMiniBadge(listing)
+  const [popupOpen, setPopupOpen] = useState(false)
+  const markerListing = listing || (pin ? { id: pin.id } : null)
+  const listingId = String(markerListing?.id || pin?.id || '').trim()
+  const hasFullListing = Boolean(listing?.title)
+  const useLazyPopup = lazyPopup && !hasFullListing && Boolean(listingId)
+
+  const gslVerified = listing ? listingQualifiesForTrustVerifiedMiniBadge(listing) : false
   const icon = useMemo(
     () => createLeafletPricePillDivIcon(L, priceLabel, { selected, approximate }),
     [priceLabel, selected, approximate],
@@ -52,21 +63,34 @@ export function ListingPriceMarker({
       zIndexOffset={selected ? 1100 : 0}
       eventHandlers={{
         click: () => {
-          const lid = listing?.id
-          if (lid != null && lid !== '') onSelect?.(String(lid))
+          if (listingId) onSelect?.(listingId)
           map.setView(position, Math.max(map.getZoom(), 14), { animate: true })
         },
+        popupopen: () => setPopupOpen(true),
+        popupclose: () => setPopupOpen(false),
       }}
     >
       <Popup autoPan autoPanPadding={[80, 60]} className="map-listing-popup">
-        <ListingPopupCard
-          listing={listing}
-          language={language}
-          isApproximateLocation={approximate}
-          initialDates={initialDates}
-          currency={currency}
-          exchangeRates={exchangeRates}
-        />
+        {useLazyPopup ? (
+          <ListingMapPopupLazy
+            listingId={listingId}
+            enabled={popupOpen}
+            language={language}
+            isApproximateLocation={approximate}
+            initialDates={initialDates}
+            currency={currency}
+            exchangeRates={exchangeRates}
+          />
+        ) : (
+          <ListingPopupCard
+            listing={listing}
+            language={language}
+            isApproximateLocation={approximate}
+            initialDates={initialDates}
+            currency={currency}
+            exchangeRates={exchangeRates}
+          />
+        )}
       </Popup>
     </Marker>
   )
