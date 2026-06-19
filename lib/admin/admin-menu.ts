@@ -294,7 +294,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       {
         title: 'Audit log',
         href: '/admin/audit',
-        icon: 'ScrollText',
+        icon: 'Scale',
         allowedRoles: ['ADMIN', 'MODERATOR'],
       },
     ],
