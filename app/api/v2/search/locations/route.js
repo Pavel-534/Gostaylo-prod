@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { LISTINGS_PUBLIC_CATALOG_VIEW } from '@/lib/db/listings-public-catalog';
 import { PHUKET_DISTRICTS } from '@/lib/locations/city-district-map';
 
 export const dynamic = 'force-dynamic';
@@ -14,9 +15,8 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const { data: listings, error } = await supabaseAdmin
-      .from('listings')
-      .select('district, metadata')
-      .eq('status', 'ACTIVE');
+      .from(LISTINGS_PUBLIC_CATALOG_VIEW)
+      .select('district, metadata');
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

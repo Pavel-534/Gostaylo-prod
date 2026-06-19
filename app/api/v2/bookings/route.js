@@ -56,7 +56,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   return withCorrelationFromRequest(request, async () => {
-  const rl = rateLimitCheck(request, 'booking');
+  const rl = await rateLimitCheck(request, 'booking');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }

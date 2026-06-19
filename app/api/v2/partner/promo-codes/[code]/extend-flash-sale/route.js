@@ -17,7 +17,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    const limited = rateLimitCheck(request, 'promo_extend', String(userId))
+    const limited = await rateLimitCheck(request, 'promo_extend', String(userId))
     if (limited) {
       return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers })
     }

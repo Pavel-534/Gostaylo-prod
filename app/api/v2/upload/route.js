@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { tryGetJwtSecret } from '@/lib/auth/jwt-secret'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes'
+import { rateLimitCheck } from '@/lib/rate-limit'
 import {
   resolveMediaProfileId,
   logMediaProfile,
@@ -37,6 +38,11 @@ function replacePathExtensionToWebp(storagePath) {
 }
 
 export async function POST(request) {
+  const rl = await rateLimitCheck(request, 'upload')
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers })
+  }
+
   const jwtCheck = tryGetJwtSecret()
   if (!jwtCheck.ok) {
     return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500)

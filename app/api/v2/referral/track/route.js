@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * Public click tracking — sets HttpOnly cookie gostaylo_ref (last-touch 7d).
  */
 export async function GET(request) {
-  const rl = rateLimitCheck(request, 'referral_track');
+  const rl = await rateLimitCheck(request, 'referral_track');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }

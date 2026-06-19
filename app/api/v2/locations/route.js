@@ -6,15 +6,15 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { LISTINGS_PUBLIC_CATALOG_VIEW } from '@/lib/db/listings-public-catalog';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const { data: listings, error } = await supabaseAdmin
-      .from('listings')
+      .from(LISTINGS_PUBLIC_CATALOG_VIEW)
       .select('district, metadata')
-      .eq('status', 'ACTIVE')
       .not('district', 'is', null);
 
     if (error) {

@@ -42,6 +42,8 @@ const ADMIN_V2_PREFIX_MENU_HREF: Record<string, string> = {
   '/api/v2/admin/bookings': '/admin/bookings',
   '/api/v2/admin/disputes': '/admin/disputes',
   '/api/v2/admin/waitlist': '/admin/waitlist',
+  '/api/v2/admin/privacy/erasure-requests': '/admin/privacy/erasure',
+  '/api/v2/admin/audit/logs': '/admin/audit',
   '/api/v2/admin/users/ban': '/admin/users',
   '/api/v2/admin/users': '/admin/users',
   '/api/v2/admin/audit/impersonation': '/admin/users',

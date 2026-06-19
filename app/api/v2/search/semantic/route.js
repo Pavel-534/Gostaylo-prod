@@ -11,7 +11,7 @@ import { fetchSemanticListingMatches, SEMANTIC_MIN_SIMILARITY } from '@/lib/sear
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const rl = rateLimitCheck(request, 'semantic_search')
+  const rl = await rateLimitCheck(request, 'semantic_search')
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers })
   }

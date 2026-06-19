@@ -147,32 +147,11 @@ const nextConfig = {
   },
 
   /**
-   * Явно разрешаем оба домена (на случай внешнего CSP-прокси).
-   * 'self' покрывает текущий хост; домены — для кросс-ссылок и редиректов.
+   * Stage 168.2 — security headers + CSP applied in `middleware.ts` (`lib/security/security-headers.js`).
+   * Nonce per request via `x-nonce` request header for App Router.
    */
   async headers() {
-    const siteOrigins = SITE_IMAGE_HOSTS.map((h) => `https://${h}`).join(' ')
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com ${siteOrigins}`,
-              `style-src 'self' 'unsafe-inline' https://unpkg.com ${siteOrigins}`,
-              "font-src 'self' data:",
-              "img-src 'self' data: blob: https: https://unpkg.com",
-              "connect-src 'self' https: wss:",
-              "frame-src 'self' https:",
-              "worker-src 'self' blob:",
-              "manifest-src 'self'",
-            ].join('; '),
-          },
-        ],
-      },
-    ]
+    return []
   },
 
   async rewrites() {

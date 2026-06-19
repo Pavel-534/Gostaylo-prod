@@ -12,7 +12,7 @@ import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
 import PricingService from '@/lib/services/pricing.service'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
-import { getSessionPayload } from '@/lib/services/session-service'
+import { getSessionPayload, requirePartnerSession } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
 import { resolveListingPublicGuestAccess } from '@/lib/listing/listing-public-guest-gate'
 import {
@@ -320,10 +320,43 @@ export async function GET(request, context) {
   }
 }
 
+/**
+ * Partner/admin-only mutation guard for legacy public listing routes.
+ * @param {string} listingId
+ */
+async function requireListingOwnerMutation(listingId) {
+  const auth = await requirePartnerSession()
+  if (auth.error) return { error: auth.error }
+
+  const { data: listing, error } = await supabaseAdmin
+    .from('listings')
+    .select('id, owner_id')
+    .eq('id', listingId)
+    .maybeSingle()
+
+  if (error || !listing) {
+    return {
+      error: NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 }),
+    }
+  }
+
+  if (auth.userRole !== 'ADMIN' && String(listing.owner_id) !== String(auth.userId)) {
+    return {
+      error: NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 }),
+    }
+  }
+
+  return { auth, listing }
+}
+
 export async function PUT(request, context) {
   try {
     const params = await Promise.resolve(context.params)
     const { id } = params
+
+    const gate = await requireListingOwnerMutation(id)
+    if (gate.error) return gate.error
+
     const body = await request.json();
     
     // Build update object
@@ -395,6 +428,9 @@ export async function DELETE(request, context) {
   try {
     const params = await Promise.resolve(context.params)
     const { id } = params
+
+    const gate = await requireListingOwnerMutation(id)
+    if (gate.error) return gate.error
     
     // 1. First, get listing to retrieve image URLs for cleanup
     const { data: listing, error: fetchError } = await supabaseAdmin

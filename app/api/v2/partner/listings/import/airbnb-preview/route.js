@@ -129,7 +129,7 @@ function toPreview(row, categoryId) {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(request) {
-  const limited = rateLimitCheck(request, 'partner_import')
+  const limited = await rateLimitCheck(request, 'partner_import')
   if (limited) {
     return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers })
   }

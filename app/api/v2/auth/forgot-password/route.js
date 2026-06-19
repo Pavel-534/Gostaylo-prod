@@ -13,11 +13,12 @@ import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
-  const rl = rateLimitCheck(request, 'auth');
+  const rl = await rateLimitCheck(request, 'auth');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }
@@ -146,7 +147,7 @@ export async function POST(request) {
     });
     
     if (response.ok) {
-      console.log('[FORGOT-PASSWORD] Reset email sent to:', user.email);
+      console.log('[FORGOT-PASSWORD] Reset email sent to:', hashPiiForLog(user.email));
     } else {
       const error = await response.text();
       console.error('[FORGOT-PASSWORD] Resend error:', error);

@@ -20,6 +20,7 @@ import {
   getCountryCodeFromHeaders,
   isRussiaCountry,
 } from '@/lib/geo';
+import { applySecurityHeaders } from '@/lib/security/security-headers';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_SERVER_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -108,20 +109,22 @@ function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
 }
 
 /** Нет сессии / битая сессия / бан → единая точка входа (см. TECHNICAL_MANIFESTO). */
-function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
+function redirectToLogin(request: NextRequest, pathname: string, nonce?: string): NextResponse {
   const dest = pathname + request.nextUrl.search;
   const url = new URL('/login', request.url);
   url.searchParams.set('redirect', dest);
-  return withGeo(request, NextResponse.redirect(url));
+  return withGeo(request, NextResponse.redirect(url), nonce);
 }
 
 /**
  * Ставит cookie + request header для RU (скрытие Google OAuth в UI).
  * На localhost без geo-заголовков cookie не перезаписывается.
  */
-function withGeo(request: NextRequest, response: NextResponse): NextResponse {
+function withGeo(request: NextRequest, response: NextResponse, nonce?: string): NextResponse {
   const country = getCountryCodeFromHeaders(request.headers);
-  if (!country) return response;
+  if (!country) {
+    return nonce ? applySecurityHeaders(response, { nonce }) : response;
+  }
 
   const ru = isRussiaCountry(country);
   const reqHeaders = new Headers(request.headers);
@@ -130,6 +133,7 @@ function withGeo(request: NextRequest, response: NextResponse): NextResponse {
   } else {
     reqHeaders.delete(IS_RUSSIA_HEADER);
   }
+  if (nonce) reqHeaders.set('x-nonce', nonce);
 
   response.cookies.set(IS_RUSSIA_COOKIE, ru ? '1' : '0', {
     path: '/',
@@ -137,15 +141,20 @@ function withGeo(request: NextRequest, response: NextResponse): NextResponse {
     sameSite: 'lax',
   });
 
-  return response;
+  return nonce ? applySecurityHeaders(response, { nonce }) : response;
 }
 
-function nextWithGeo(request: NextRequest, init?: Parameters<typeof NextResponse.next>[0]): NextResponse {
+function nextWithGeo(
+  request: NextRequest,
+  init?: Parameters<typeof NextResponse.next>[0],
+  nonce?: string,
+): NextResponse {
   const country = getCountryCodeFromHeaders(request.headers);
   const ru = country ? isRussiaCountry(country) : null;
   const reqHeaders = new Headers(init?.request?.headers || request.headers);
   if (ru === true) reqHeaders.set(IS_RUSSIA_HEADER, '1');
   else if (ru === false) reqHeaders.delete(IS_RUSSIA_HEADER);
+  if (nonce) reqHeaders.set('x-nonce', nonce);
 
   const res = NextResponse.next({
     ...init,
@@ -160,11 +169,12 @@ function nextWithGeo(request: NextRequest, init?: Parameters<typeof NextResponse
     });
   }
 
-  return res;
+  return nonce ? applySecurityHeaders(res, { nonce }) : res;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const nonce = btoa(crypto.randomUUID()).replace(/=+$/, '');
 
   /** Stage 56.0 — propagate correlation id into API route handlers (Node ALS picks it up at boundary). */
   if (pathname.startsWith('/api/')) {
@@ -175,40 +185,41 @@ export async function middleware(request: NextRequest) {
         : globalThis.crypto.randomUUID();
     const reqHeaders = new Headers(request.headers);
     reqHeaders.set('x-correlation-id', id);
-    const res = nextWithGeo(request, { request: { headers: reqHeaders } });
+    reqHeaders.set('x-nonce', nonce);
+    const res = nextWithGeo(request, { request: { headers: reqHeaders } }, nonce);
     res.headers.set('x-correlation-id', id);
     return res;
   }
 
   const legacy = legacyMessagesRedirect(request);
-  if (legacy) return withGeo(request, legacy);
+  if (legacy) return withGeo(request, legacy, nonce);
 
   const matchedRoute = Object.keys(PROTECTED_ROUTES).find((route) => pathname.startsWith(route));
 
   if (!matchedRoute) {
-    return nextWithGeo(request);
+    return nextWithGeo(request, undefined, nonce);
   }
 
   if (!JWT_SECRET) {
-    return redirectToLogin(request, pathname);
+    return redirectToLogin(request, pathname, nonce);
   }
 
   const token = request.cookies.get('gostaylo_session')?.value;
 
   if (!token) {
-    return redirectToLogin(request, pathname);
+    return redirectToLogin(request, pathname, nonce);
   }
 
   const decoded = await verifyToken(token);
 
   if (!decoded) {
-    const response = redirectToLogin(request, pathname);
+    const response = redirectToLogin(request, pathname, nonce);
     response.cookies.delete('gostaylo_session');
     return response;
   }
 
   if (await isUserBanned(decoded.userId)) {
-    const response = redirectToLogin(request, pathname);
+    const response = redirectToLogin(request, pathname, nonce);
     response.cookies.delete('gostaylo_session');
     return response;
   }
@@ -219,7 +230,7 @@ export async function middleware(request: NextRequest) {
 
   if (!roleOk) {
     // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
-    return withGeo(request, NextResponse.redirect(new URL('/', request.url)));
+    return withGeo(request, NextResponse.redirect(new URL('/', request.url)), nonce);
   }
 
   if (decoded.role === 'MODERATOR') {
@@ -231,11 +242,11 @@ export async function middleware(request: NextRequest) {
       '/admin/settings',
     ];
     if (restrictedPaths.some((path) => pathname.startsWith(path))) {
-      return withGeo(request, NextResponse.redirect(new URL('/admin/dashboard', request.url)));
+      return withGeo(request, NextResponse.redirect(new URL('/admin/dashboard', request.url)), nonce);
     }
   }
 
-  return nextWithGeo(request);
+  return nextWithGeo(request, undefined, nonce);
 }
 
 export const config = {

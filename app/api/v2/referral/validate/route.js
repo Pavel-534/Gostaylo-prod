@@ -5,7 +5,7 @@ import { rateLimitCheck } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
-  const rl = rateLimitCheck(request, 'promo_validate');
+  const rl = await rateLimitCheck(request, 'promo_validate');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }

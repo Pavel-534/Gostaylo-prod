@@ -158,6 +158,12 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
+        title: 'Удаление аккаунтов',
+        href: '/admin/privacy/erasure',
+        icon: 'Shield',
+        allowedRoles: ['ADMIN'],
+      },
+      {
         title: 'Верификация реквизитов',
         href: '/admin/payout-verification',
         icon: 'BadgeCheck',
@@ -284,6 +290,12 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         href: '/admin/ai-usage',
         icon: 'Sparkles',
         allowedRoles: ['ADMIN'],
+      },
+      {
+        title: 'Audit log',
+        href: '/admin/audit',
+        icon: 'ScrollText',
+        allowedRoles: ['ADMIN', 'MODERATOR'],
       },
     ],
   },

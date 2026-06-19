@@ -7,14 +7,41 @@ import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { supabaseAdmin } from '@/lib/supabase';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { recordAdminAudit } from '@/lib/services/audit/admin-audit.js'
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-async function verifyAdmin() {
+/**
+ * @param {import('next/server').NextRequest | Request} request
+ */
+async function verifyAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
-  return { ok: true };
+  return { ok: true, profile: access.profile };
+}
+
+/**
+ * @param {{ profile?: { id?: string, role?: string } }} auth
+ * @param {{ type: string, date: string, format: string, rowCount: number }} meta
+ * @param {Record<string, string>} headers
+ * @param {BodyInit} body
+ */
+async function finishExport(auth, meta, headers, body) {
+  await recordAdminAudit({
+    actorId: auth.profile?.id ?? null,
+    actorRole: auth.profile?.role ?? 'UNKNOWN',
+    action: 'data_export',
+    entityType: meta.type,
+    entityId: meta.date,
+    payload: {
+      format: meta.format,
+      rowCount: meta.rowCount,
+      path: '/api/v2/admin/export',
+    },
+  });
+
+  return new NextResponse(body, { status: 200, headers });
 }
 
 function csvEscape(value) {
@@ -62,7 +89,7 @@ function dayBoundsUtc(isoDate) {
 }
 
 export async function GET(request) {
-  const auth = await verifyAdmin();
+  const auth = await verifyAdmin(request);
   if (auth.error) {
     return auth.error;
   }
@@ -111,25 +138,20 @@ export async function GET(request) {
       ]);
 
       const base = `audit_logs_${date}`;
+      const rowCount = rows.length;
       if (format === 'xlsx') {
         const buf = toXlsxBuffer('audit_logs', headers, rows);
-        return new NextResponse(buf, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="${base}.xlsx"`,
-          },
-        });
+        return finishExport(auth, { type, date, format, rowCount }, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${base}.xlsx"`,
+        }, buf);
       }
 
       const csv = '\uFEFF' + toCsv(headers, rows);
-      return new NextResponse(csv, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${base}.csv"`,
-        },
-      });
+      return finishExport(auth, { type, date, format, rowCount }, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${base}.csv"`,
+      }, csv);
     }
 
     if (type === 'bookings') {
@@ -158,48 +180,38 @@ export async function GET(request) {
       if (list.length === 0) {
         const headers = ['message'];
         const rows = [['За выбранную дату нет записей (создание или изменение в этот день по UTC).']];
+        const rowCount = 0;
         if (format === 'xlsx') {
           const buf = toXlsxBuffer('bookings', headers, rows);
-          return new NextResponse(buf, {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              'Content-Disposition': `attachment; filename="${base}.xlsx"`,
-            },
-          });
+          return finishExport(auth, { type, date, format, rowCount }, {
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': `attachment; filename="${base}.xlsx"`,
+          }, buf);
         }
         const csv = '\uFEFF' + toCsv(headers, rows);
-        return new NextResponse(csv, {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="${base}.csv"`,
-          },
-        });
+        return finishExport(auth, { type, date, format, rowCount }, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${base}.csv"`,
+        }, csv);
       }
 
       const headers = Object.keys(list[0]);
       const rows = list.map((row) => headers.map((h) => row[h]));
+      const rowCount = list.length;
 
       if (format === 'xlsx') {
         const buf = toXlsxBuffer('bookings', headers, rows);
-        return new NextResponse(buf, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="${base}.xlsx"`,
-          },
-        });
+        return finishExport(auth, { type, date, format, rowCount }, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${base}.xlsx"`,
+        }, buf);
       }
 
       const csv = '\uFEFF' + toCsv(headers, rows);
-      return new NextResponse(csv, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${base}.csv"`,
-        },
-      });
+      return finishExport(auth, { type, date, format, rowCount }, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${base}.csv"`,
+      }, csv);
     }
 
     return NextResponse.json(

@@ -12,6 +12,7 @@ import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
 import { buildCommonProfileUpdates } from '@/lib/validation/profile-schema';
+import { normalizeNotificationPreferences } from '@/lib/privacy/notification-preferences';
 import {
   clearGostayloSessionCookie,
   signJwtForProfile,
@@ -22,9 +23,11 @@ export const dynamic = 'force-dynamic';
 function mapRowToClientUser(user, dbRole) {
   const displayLast = stripLegacyModeratorMarker(user.last_name);
   const rawAvatar = user.avatar && String(user.avatar).trim();
-  const prefs = user.notification_preferences && typeof user.notification_preferences === 'object'
-    ? user.notification_preferences
-    : { email: true, telegram: false, telegramChatId: null };
+  const prefs = normalizeNotificationPreferences(
+    user.notification_preferences && typeof user.notification_preferences === 'object'
+      ? user.notification_preferences
+      : null,
+  );
 
   return {
     id: user.id,

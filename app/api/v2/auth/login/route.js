@@ -30,7 +30,7 @@ const ROLE_REDIRECTS = {
 };
 
 export async function POST(request) {
-  const rl = rateLimitCheck(request, 'auth');
+  const rl = await rateLimitCheck(request, 'auth');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }

@@ -31,6 +31,7 @@ import {
 } from '@/lib/services/telegram/menu-variant.js'
 import { resolveTelegramLanguageForChat, normalizeTelegramUiLang } from '@/lib/services/telegram/locale.js'
 import { validateTelegramWebhookLite } from '@/lib/webhooks/telegram-webhook-auth.js'
+import { hashPiiForLog, scrubPiiString } from '@/lib/logging/pii-scrub.js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -112,7 +113,7 @@ export async function POST(request) {
     }
 
     console.log(
-      `[WEBHOOK] Chat: ${chatId}, User: ${firstName}, TelegramId: ${telegramUserId}, Lang: ${lang}, Text: ${text?.substring(0, 50)}`
+      `[WEBHOOK] Chat: ${chatId}, User: ${hashPiiForLog(firstName)}, TelegramId: ${hashPiiForLog(String(telegramUserId))}, Lang: ${lang}, Text: ${scrubPiiString(text?.substring(0, 50))}`,
     )
 
     if (text.startsWith('/help')) {

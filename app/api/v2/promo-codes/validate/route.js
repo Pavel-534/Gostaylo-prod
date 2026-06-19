@@ -12,7 +12,7 @@ import { PromoErrorCode, promoErrorJson } from '@/lib/promo/promo-error-codes';
 
 export async function POST(request) {
   try {
-    const limited = rateLimitCheck(request, 'promo_validate');
+    const limited = await rateLimitCheck(request, 'promo_validate');
     if (limited) {
       return promoErrorJson(PromoErrorCode.PROMO_RATE_LIMITED, limited.status, {
         retryAfter: limited.body.retryAfter,

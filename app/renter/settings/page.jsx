@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
+import { PrivacyDataRightsCard } from '@/components/renter/PrivacyDataRightsCard'
 
 export default function RenterSettingsPage() {
   const { language } = useI18n()
@@ -309,6 +309,8 @@ export default function RenterSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PrivacyDataRightsCard />
 
       <div className="flex justify-end">
         <Button className="bg-teal-600 hover:bg-teal-700" onClick={handleSave} disabled={saving}>

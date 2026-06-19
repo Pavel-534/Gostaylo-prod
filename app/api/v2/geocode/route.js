@@ -6,12 +6,18 @@
 
 import { NextResponse } from 'next/server'
 import { getNominatimUserAgent } from '@/lib/http-client-identity'
+import { rateLimitCheck } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 
 export async function GET(request) {
+  const rl = await rateLimitCheck(request, 'geocode')
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')

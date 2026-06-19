@@ -23,6 +23,7 @@ import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
 import ReferralAttributionService from '@/lib/referral/attribution.service.js';
 import { notifyTeammateJoined } from '@/lib/services/marketing/referral-notification.service.js';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 import {
   AUTH_PASSWORD_MIN_LENGTH,
   AUTH_PASSWORD_COMPLEXITY_RE,
@@ -64,7 +65,7 @@ async function sendVerificationEmail(user, token) {
   const siteName = getSiteDisplayName();
 
   try {
-    console.log('[EMAIL] Sending verification to:', user.email);
+    console.log('[EMAIL] Sending verification to:', hashPiiForLog(user.email));
     console.log('[EMAIL] From:', EMAIL_FROM);
     
     const response = await fetch('https://api.resend.com/emails', {
@@ -166,7 +167,7 @@ async function sendTelegramNotification(user) {
 }
 
 export async function POST(request) {
-  const rl = rateLimitCheck(request, 'auth');
+  const rl = await rateLimitCheck(request, 'auth');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
   }

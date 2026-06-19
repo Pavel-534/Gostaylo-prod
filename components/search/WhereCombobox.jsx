@@ -301,6 +301,22 @@ export function WhereCombobox({
     [onChange]
   )
 
+  /** Клик по иконке/padding — сразу в input (Airbnb: всё поле кликабельно). */
+  const focusComboboxInput = useCallback(
+    (e) => {
+      if (loading || isMobile) return
+      if (e.target.closest('button')) return
+      const input = inputRef.current
+      if (!input) return
+      // Клик по самому input — нативный фокус
+      if (e.target === input) return
+      if (document.activeElement === input) return
+      e.preventDefault()
+      input.focus({ preventScroll: true })
+    },
+    [loading, isMobile],
+  )
+
   const onInputChange = (e) => {
     if (!open) setOpen(true)
     setInputValue(e.target.value)
@@ -413,6 +429,7 @@ export function WhereCombobox({
 
   const triggerField = (
     <div
+      onPointerDown={focusComboboxInput}
       className={cn(
         'flex items-center gap-3 text-left w-full min-w-0',
         isHero
@@ -583,10 +600,12 @@ export function WhereCombobox({
           </Drawer>
         </>
       ) : (
-        <Popover open={open && showPopoverPanel} onOpenChange={setOpen}>
+        <Popover open={open && showPopoverPanel} onOpenChange={setOpen} modal={false}>
           <PopoverAnchor asChild>{triggerField}</PopoverAnchor>
           <PopoverContent
             align="start"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onCloseAutoFocus={(e) => e.preventDefault()}
             className={cn(
               'w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] min-w-[18rem] max-h-[min(70vh,560px)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-2 shadow-2xl',
               showPopoverPanel && 'z-[220]',

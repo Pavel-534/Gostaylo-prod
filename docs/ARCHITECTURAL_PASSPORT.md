@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.167.2 | **Last Updated**: 2026-06-18 | **Stage 167.2:** «Для вас» personalization (Wave F closed). | **Stage 167.1:** listing_views, map↔list. | **Stage 166.0:** Performance & scaling (Wave E).
+> **Version**: 12.168.2 | **Last Updated**: 2026-06-18 | **Stage 168.2:** Redis rate limits + security headers + PII scrub. | **Stage 168.1:** DSAR export + account erasure queue.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -425,6 +425,37 @@
 - **Версии:** `CURRENT_PARTNER_TERMS_VERSION` = `2026-05-19-v1` (гостевая оферта остаётся `2026-05-18-v1`).
 - **Оплата → бронь:** `stampBookingTermsOnSuccessfulPayment` в `lib/legal-consent.js`, вызывается из `EscrowService.moveToEscrow` после `PAID_ESCROW` (все платёжные пути).
 - **Checkout:** чекбокс `variant="checkout"` — оферта + ссылка на политику возвратов.
+
+### Stage 168.2 — Operational Security (2026-06-18)
+
+#### Distributed rate limiting
+- **SSOT:** `lib/rate-limit/config.js` (tiers), `lib/rate-limit/store.js` (facade), `lib/rate-limit/redis-store.js` (Upstash), `lib/rate-limit/memory-store.js` (fallback).
+- **Env (priority):** Vercel KV `KV_REST_API_URL` + `KV_REST_API_TOKEN` → Upstash `UPSTASH_REDIS_REST_*`. `KV_REST_API_READ_ONLY_TOKEN` не используется для INCR (только write token). Without remote store — in-memory per instance + `console.warn` in production. Header `X-RateLimit-Backend: kv|redis|memory`.
+- **API:** `rateLimitCheck()` is **async**; response header `X-RateLimit-Backend: redis|memory`.
+- **Tiers (per minute unless noted):** `spatial_map` 60, `spatial_catalog` 45, `spatial_catalog_user` 90, `search` 60, `geocode` 30, `upload` 20, `chat` 60 (per user+IP), `auth` 10/15min, `data_export` 3/day.
+
+#### Security headers & CSP
+- **Middleware:** `middleware.ts` → `lib/security/security-headers.js` on every matched response.
+- **Headers:** HSTS (prod), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `COOP`, `CORP`.
+- **CSP:** per-request **nonce** (`x-nonce` request header); prod `script-src` uses nonce + `strict-dynamic` (no `unsafe-eval`); dev allows `unsafe-eval`/`unsafe-inline` for HMR. CSP removed from `next.config.js` headers (single source: middleware).
+
+#### PII scrubbing
+- **SSOT:** `lib/logging/pii-scrub.js` — email/phone regex + sensitive key hashing.
+- **Wired:** `logStructured()`, `critical_signal_events` detail in `lib/critical-telemetry.js`.
+
+#### Admin audit explorer
+- **UI:** `/admin/audit` (ADMIN + MODERATOR read).
+- **API:** `GET /api/v2/admin/audit/logs` — filters `entity_type`, `entity_id`, `action`.
+
+### Stage 168.1 — Data Subject Rights (DSAR + erasure) (2026-06-18)
+
+- **Export:** `GET /api/v2/me/data-export` — JSON bundle (`lib/privacy/data-subject-export.service.js`): profile, bookings (renter + partner), favorites, `listing_views` (listing_id + viewed_at), reviews, partner listings summary, wallet + wallet_transactions summary, erasure history, push token count; rate limit **`data_export`** 3/day.
+- **Erasure request:** `GET|POST|DELETE /api/v2/me/request-erasure` — queue row in **`data_erasure_requests`** (`pending_grace`, **`ERASURE_GRACE_DAYS=30`**); blocks if active bookings, ACTIVE listings, staff role (ADMIN/MODERATOR), or already completed.
+- **Processing:** cron **`POST /api/cron/process-data-erasure`** (daily 05:00 UTC in `vercel.json`); anonymizes profile (`deleted+{sha256}@anonymized.invalid`), clears PII fields, deletes favorites/views/push tokens, bans session; **ledger + bookings retained** for compliance.
+- **Admin queue:** `/admin/privacy/erasure` + `GET /api/v2/admin/privacy/erasure-requests`, `PATCH /api/v2/admin/privacy/erasure-requests/[id]` (`process_now` | `cancel`, ADMIN only for process).
+- **Consent SSOT:** `lib/privacy/notification-preferences.js` — `transactional` (booking/payment/dispute) vs `marketing` (email/push promos); merged on `GET /api/v2/auth/me` and profile PATCH via `mergeNotificationPreferences`.
+- **UI:** `components/renter/PrivacyDataRightsCard.jsx` on `/renter/settings`.
+- **Migration:** `migrations/stage168_1_data_subject_rights.sql` — table `data_erasure_requests`, column `profiles.data_erasure_completed_at`.
 
 ### Stage 102.1 — Legal block neutral copy (2026-05)
 

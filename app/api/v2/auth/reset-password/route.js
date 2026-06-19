@@ -14,6 +14,7 @@ import {
   AUTH_PASSWORD_MIN_LENGTH,
   AUTH_PASSWORD_COMPLEXITY_RE,
 } from '@/lib/auth/password-policy';
+import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,7 +110,7 @@ export async function POST(request) {
     return authErrorJson(AuthErrorCode.AUTH_PASSWORD_RESET_FAILED, 500);
   }
 
-  console.log('[RESET-PASSWORD] Password reset for:', user.email);
+  console.log('[RESET-PASSWORD] Password reset for:', hashPiiForLog(user.email));
 
   return NextResponse.json({ success: true });
 }

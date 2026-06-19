@@ -10,7 +10,7 @@ import { SIMILAR_DEFAULT_LIMIT } from '@/lib/recommendations/constants'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
-  const rl = rateLimitCheck(request, 'search')
+  const rl = await rateLimitCheck(request, 'search')
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers })
   }
