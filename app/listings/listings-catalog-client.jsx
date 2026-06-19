@@ -16,6 +16,10 @@ import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { FilterBar } from '@/components/search/FilterBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
+import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
+import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
@@ -37,7 +41,9 @@ import {
 import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
+import { useFavoritesBatch } from '@/hooks/use-favorites-batch'
 
 const ITEMS_PER_PAGE = 12
 
@@ -58,6 +64,7 @@ function ListingsContent() {
   const router = useRouter()
   const pathname = usePathname()
   const { user } = useAuth()
+  const isMobile = useIsMobile()
 
   const [selectedCategory, setSelectedCategory] = useState(() =>
     normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all'),
@@ -127,7 +134,6 @@ function ListingsContent() {
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const [showMap, setShowMap] = useState(false)
-  const [userFavorites, setUserFavorites] = useState(new Set())
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(null)
   const [extraFilters, setExtraFilters] = useState(() => defaultExtraFilters())
@@ -175,6 +181,7 @@ function ListingsContent() {
   const lastPushedSearchRef = useRef('')
   const didInitUrlHydrateRef = useRef(false)
   const skipNextUrlPushRef = useRef(false)
+  const catalogSortRef = useRef(catalogSort)
 
   const mapFitResetKey = useMemo(
     () =>
@@ -309,6 +316,22 @@ function ListingsContent() {
     catalogSort,
   })
 
+  const visibleListingIds = useMemo(() => listings.map((listing) => listing.id), [listings])
+  const { favoriteIds: userFavorites, applyOptimisticFavorite } = useFavoritesBatch({
+    userId: user?.id,
+    listingIds: visibleListingIds,
+  })
+
+  useEffect(() => {
+    if (!isMobile) return
+    if (showMap) {
+      recordPwaEngagement('map_open')
+      deferPwaPrompt()
+      return () => resumePwaPrompt()
+    }
+    return undefined
+  }, [isMobile, showMap])
+
   const handleCatalogSearchSubmit = useCallback(() => {
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
       setAiSearchPending(true)
@@ -333,9 +356,28 @@ function ListingsContent() {
   )
 
   useEffect(() => {
+    catalogSortRef.current = catalogSort
+  }, [catalogSort])
+
+  useEffect(() => {
     if (catalogSort !== 'distance') return
     if (!catalogSortDistanceAvailable) setCatalogSort('recommended')
   }, [catalogSort, catalogSortDistanceAvailable])
+
+  const handleCatalogSortChange = useCallback(
+    (next) => {
+      const prev = catalogSortRef.current
+      if (prev === next) return
+      void trackProductEvent(ProductAnalyticsEvents.CATALOG_SORT_CHANGE, {
+        from_sort: prev,
+        to_sort: next,
+        ...(debouncedWhere && debouncedWhere !== 'all' ? { where: debouncedWhere } : {}),
+        has_bbox: Boolean(appliedBbox),
+      })
+      setCatalogSort(next)
+    },
+    [debouncedWhere, appliedBbox],
+  )
 
   const loadMoreRef = useIntersectionObserver(loadMore)
 
@@ -346,15 +388,6 @@ function ListingsContent() {
     if (storedCurrency) setCurrency(storedCurrency)
 
     if (user?.id) {
-      fetch('/api/v2/favorites')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.favorites) {
-            setUserFavorites(new Set(data.favorites.map((fav) => fav.listing_id)))
-          }
-        })
-        .catch(console.error)
-
       fetch(`/api/v2/bookings?renterId=${user.id}`)
         .then((res) => res.json())
         .then((data) => {
@@ -428,11 +461,7 @@ function ListingsContent() {
       return
     }
 
-    setUserFavorites((prev) => {
-      const next = new Set(prev)
-      newIsFavorite ? next.add(listingId) : next.delete(listingId)
-      return next
-    })
+    applyOptimisticFavorite(listingId, newIsFavorite)
 
     try {
       const res = await fetch('/api/v2/favorites', {
@@ -444,11 +473,7 @@ function ListingsContent() {
       const data = await res.json()
 
       if (!data.success) {
-        setUserFavorites((prev) => {
-          const next = new Set(prev)
-          newIsFavorite ? next.delete(listingId) : next.add(listingId)
-          return next
-        })
+        applyOptimisticFavorite(listingId, !newIsFavorite)
         toast.error(getUIText('favoriteUpdateError', language))
       } else {
         toast.success(
@@ -462,11 +487,7 @@ function ListingsContent() {
         )
       }
     } catch {
-      setUserFavorites((prev) => {
-        const next = new Set(prev)
-        newIsFavorite ? next.delete(listingId) : next.add(listingId)
-        return next
-      })
+      applyOptimisticFavorite(listingId, !newIsFavorite)
       toast.error(getUIText('networkError', language))
     }
   }
@@ -497,6 +518,44 @@ function ListingsContent() {
       checkOutTime,
     }),
     [dateRange, checkInTime, checkOutTime],
+  )
+
+  const catalogMapPanelProps = useMemo(
+    () => ({
+      listings: allListings,
+      searchKeyParams,
+      appliedBbox,
+      userBookings,
+      userId: user?.id ?? null,
+      language,
+      currency,
+      exchangeRates,
+      initialDates: cardDates,
+      selectedListingId: mapSelectedListingId,
+      onListingMarkerClick: handleListingMarkerClick,
+      onSearchThisArea: handleSearchThisArea,
+      mapBoundsLocked: !!appliedBbox,
+      onClearMapBounds: handleClearMapBounds,
+      appliedBboxKey,
+      mapFitResetKey,
+    }),
+    [
+      allListings,
+      searchKeyParams,
+      appliedBbox,
+      userBookings,
+      user?.id,
+      language,
+      currency,
+      exchangeRates,
+      cardDates,
+      mapSelectedListingId,
+      handleListingMarkerClick,
+      handleSearchThisArea,
+      handleClearMapBounds,
+      appliedBboxKey,
+      mapFitResetKey,
+    ],
   )
 
   const hasMore = displayedCount < allListings.length
@@ -594,6 +653,7 @@ function ListingsContent() {
               cardDates={cardDates}
               guests={guests}
               showMap={showMap}
+              mobileMapSheet={isMobile}
               onFavorite={handleFavorite}
               onLoadMore={loadMore}
               onRetry={retry}
@@ -611,7 +671,7 @@ function ListingsContent() {
               onListingPointerLeave={cancelListingDetailPrefetch}
               onListingCardSelect={handleListingCardSelect}
               catalogSort={catalogSort}
-              onCatalogSortChange={setCatalogSort}
+              onCatalogSortChange={handleCatalogSortChange}
               catalogSortDistanceAvailable={catalogSortDistanceAvailable}
             />
           </div>
@@ -623,7 +683,6 @@ function ListingsContent() {
             userBookings={userBookings}
             userId={user?.id}
             language={language}
-            showMap={showMap}
             currency={currency}
             exchangeRates={exchangeRates}
             initialDates={cardDates}
@@ -637,6 +696,13 @@ function ListingsContent() {
           />
         </div>
       </div>
+
+      <CatalogMobileMapSheet
+        open={isMobile && showMap}
+        onClose={() => setShowMap(false)}
+        language={language}
+        mapPanelProps={catalogMapPanelProps}
+      />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 # Product Flow Map — Platform (white-label)
 
 **Version:** 2.0.0  
-**Last updated:** 2026-06-18 | **Stage 167.2:** «Для вас» feed — Wave F (Discovery) **closed**.  
+**Last updated:** 2026-06-19 | **Stage 169.0 (proposed):** Guest retention analytics SSOT — Wave G P0 docs.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -37,9 +37,10 @@
 | Политика | `ARCHITECTURAL_DECISIONS.md` | Старые комментарии в UI |
 | Вертикаль листинга | `categories.slug` + `categories.wizard_profile` | Только `category_id` без slug |
 | Поиск каталога | `lib/api/run-listings-search-get.js`, `lib/recommendations/ranking-policy.js` (`sort=`) | Прямой PostgREST с клиента |
-| Discovery (167.0+) | `lib/recommendations/`; `GET /api/v2/recommendations/for-you` (167.2) | Ad-hoc scoring в UI |
+| Discovery (167.0+) | `lib/recommendations/`; `GET /api/v2/recommendations/for-you` (167.2); placement § ADR-167 §2.9 | Ad-hoc scoring в UI |
+| Discovery analytics (169.0+) | `docs/ADR/169-guest-retention-analytics.md`; `lib/analytics/product-analytics.js`; planned `recommendation-rail-analytics.js` | Ad-hoc `ph.capture` в rails |
 | Сортировка каталога | **`lib/recommendations/ranking-policy.js`** only | `lib/api/search/ranking.js` напрямую |
-| Избранное | `GET /api/v2/favorites`, `GET /api/v2/favorites/check` | Полный список favorites ради heart на PDP |
+| Избранное | `GET /api/v2/favorites` (list page); `GET /api/v2/favorites/check?listingIds=` (catalog hearts); `?listingId=` (PDP) | Полный список favorites ради heart на каталоге |
 | Создание брони | `POST /api/v2/bookings` → `booking-create-guard.js` → `creation.js` / `inquiry.service.js` | **111.1b:** session-bound `renterId`; стандарт — RPC `create_booking_atomic_v1`; inquiry — INSERT `INQUIRY` |
 | Атомарность create | RPC `create_booking_atomic_v1` | Двухшаговый create без RPC |
 | Цена на create | `pricing_snapshot` + `lib/services/booking/pricing-engine-integration.js` | Клиентский total без attestation |
@@ -140,9 +141,10 @@ flowchart TB
 | Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter`; гистограмма цены из API |
 | PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]`; **`SimilarListingsRail`**, **`RecentlyViewedRail`** |
 | Похожие | `SimilarListingsRail` | `GET /api/v2/listings/[id]/similar` |
-| Для вас | `ForYouRail` (home + catalog) | `GET /api/v2/recommendations/for-you` → **`personalization-v1.service.js`** |
+| Для вас | `ForYouRail` (home + catalog) | `GET /api/v2/recommendations/for-you` → **`personalization-v1.service.js`** (auth + **guest cookie** 169.5) |
 | Недавно смотрели | `RecentlyViewedRail`, `useRecentlyViewed({ userId })` | localStorage + **`GET /api/v2/listing-views`** merge; **`POST`** on PDP view |
-| Каталог map↔list | `ListingSidebar` + `InteractiveSearchMap` | hover/click card ↔ marker highlight + scroll; cluster `fitBounds` |
+| Каталог map↔list | `ListingSidebar` + `CatalogSearchMapPanel` / `CatalogMobileMapSheet` (mobile) | hover/click card ↔ marker; cluster `fitBounds`; mobile full-screen map sheet (169.3) |
+| Heart catalog | `useFavoritesBatch` | `GET /api/v2/favorites/check?listingIds=` (visible cards, chunked) |
 | Heart PDP | `useFavoriteState` | `GET /api/v2/favorites/check?listingId=` (не полный список) |
 | Цена на карточке / фильтр | `ListingCard`, `CardPriceDisplay`, **`guest-display-price.js`**, **`fx-display.js`** | **110.1:** guest THB = base + `guestServiceFeePercent`; search → `guestDisplayPriceThb`; фильтр/гистограмма → **`getGuestDisplayForSearchFilters`**. **110.1b:** favorites API + SEO layout — fee % из **`getCommissionRate`**, не дефолт платформы. **110.4:** retail FX в UI. Breakdown брони — mid FX. |
 | Trust | `ListingTrustVerifiedMiniBadge` | `listingQualifiesForTrustVerifiedMiniBadge` + `owner.is_verified` |

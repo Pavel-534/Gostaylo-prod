@@ -21,6 +21,12 @@ async function postToClients(payload) {
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
 
+// Stage 169.4 — fetch handler required for Chrome beforeinstallprompt / installability.
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return
+  event.respondWith(fetch(event.request))
+})
+
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {

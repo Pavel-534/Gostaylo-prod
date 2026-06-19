@@ -209,6 +209,7 @@ function PremiumListingContent({ params }) {
 
               <RecentlyViewedRail
                 currentListingId={listing.id}
+                userId={user?.id}
                 language={language}
                 currency={currency}
                 exchangeRates={exchangeRates}

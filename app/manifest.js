@@ -1,6 +1,6 @@
 import { getSiteDisplayName } from '@/lib/site-url'
 
-/** PWA manifest (Stage 155.3): runtime SSOT — getSiteDisplayName() from env; public/manifest.json is static fallback. */
+/** PWA manifest (Stage 155.3 / 169.4): runtime SSOT — getSiteDisplayName(); install prompt — hooks/use-pwa-install.js */
 export default function manifest() {
   const brand = getSiteDisplayName()
   const short = brand.length > 12 ? brand.slice(0, 12) : brand

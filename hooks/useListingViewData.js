@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { detectLanguage } from '@/lib/translations'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
+import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { fetchListingDetail } from '@/lib/catalog/fetch-listing-detail'
 import { queryKeys } from '@/lib/query-keys'
 import { useFavoriteState } from '@/lib/hooks/useFavoriteState'
@@ -117,6 +118,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
         listing_id: listing.id,
         category_slug: listing.categorySlug || undefined,
       })
+      recordPwaEngagement('pdp_view')
       addToRecent({
         id: listing.id,
         title: listing.title,

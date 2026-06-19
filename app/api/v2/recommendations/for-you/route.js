@@ -3,9 +3,11 @@
  */
 
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { rateLimitCheck } from '@/lib/rate-limit'
 import { verifySessionFromCookies } from '@/lib/auth/session-from-cookie'
 import { getForYouRecommendations } from '@/lib/recommendations/personalization-v1.service'
+import { readGuestViewedFromNextCookies } from '@/lib/guest/guest-signals-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,11 +31,14 @@ export async function GET(request) {
     userId = null
   }
 
+  const guestViewItems = userId ? [] : readGuestViewedFromNextCookies(await cookies())
+
   try {
     const { listings, meta } = await getForYouRecommendations({
       userId,
       where: where && where !== 'all' ? where : null,
       limit: limitRaw,
+      guestViewItems,
     })
 
     return NextResponse.json({

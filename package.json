@@ -32,6 +32,7 @@
     "smoke:full-financial:intl": "node scripts/smoke-full-financial.mjs --rail=intl",
     "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all",
     "test:visual-referral": "playwright test --project=referral-dashboard-visual",
+    "test:discovery-analytics": "playwright test --project=discovery-analytics",
     "export-tokens": "node scripts/export-figma-tokens.mjs",
     "fonts:vendor": "node scripts/vendor-app-fonts.mjs"
   },

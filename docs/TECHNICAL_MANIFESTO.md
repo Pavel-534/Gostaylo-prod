@@ -16,6 +16,18 @@
 
 **Stage 168.0 (2026-06-18):** Security P0 hotfixes — (1) `PUT`/`DELETE` `/api/v2/listings/[id]` → `requirePartnerSession()` + owner/admin; (2) `listings_public_catalog` view + RLS (`stage168_0_security_hotfixes.sql`); (3) `/api/v2/admin/export` auth fix + `recordAdminAudit` on export; (4) RLS service_role-only: `referral_attributions`, `marketing_promo_tank_ledger`, `leads_waiting_list`, `referral_team_events` (`stage168_0_rls_sensitive_tables.sql`); (5) Schema.org `lodgingStreetAddressStub` — district-only for `mapLocationDisplayMode: privacy` (no raw `address` in JSON-LD).
 
+**Stage 169.5 (2026-06-19):** Wave G P2 — guest personalization cookie: **`lib/guest/guest-signals.js`** (`guest_viewed_listings`, max 40, TTL 30d); **`personalization-v1.service.js`** `guest_personalized` mode for For You; similar listings guest category boost; login merge cookie → **`listing_views`** via **`useRecentlyViewed`**; analytics `guest_personalization_for_you`.
+
+**Stage 169.4 (2026-06-19):** Wave G P2 — smart PWA install prompt: **`lib/pwa/`** + **`hooks/use-pwa-install.js`** + **`PwaInstallPrompt`** (mobile only); `beforeinstallprompt` (Android) + iOS A2HS instructions; engagement gates (≥2 visit days OR ≥2 PDP OR map open); 10-day snooze; events `pwa_prompt_shown|accepted|dismissed`; SW fetch handler on **`firebase-messaging-sw.js`** + early register **`register-app-sw.js`**.
+
+**Stage 169.3 (2026-06-19):** Wave G P1 — mobile catalog map full-screen sheet: **`CatalogMobileMapSheet`** + shared **`CatalogSearchMapPanel`**; desktop **`SearchMapWrapper`** unchanged (`max-lg:hidden`); swipe-down / list button close; bbox + map-pins state preserved via shared panel props.
+
+**Stage 169.2 (2026-06-19):** Wave G P1 — batch favorites check for catalog: `GET /api/v2/favorites/check?listingIds=` → `{ favorites: { [id]: boolean } }` (max 50/chunk); SSOT **`lib/favorites/`** + **`hooks/use-favorites-batch.js`**; catalog hearts via batch (visible cards only), PDP unchanged (`useFavoriteState` + singular `listingId`).
+
+**Stage 169.1 (2026-06-19):** Wave G P1 — `RecentlyViewedRail` on home (`recent_home`); `FOR_YOU_MIN_RESULTS=6` + `PERSONALIZATION_MIN_RESULTS` alias; mobile For You cap **`FOR_YOU_MOBILE_MAX_CARDS=5`** (≤768px), catalog For You hidden **≤480px**; SSOT **`lib/recommendations/for-you-rail-display.js`**.
+
+**Stage 169.0 (2026-06-19):** Wave G P0 — discovery analytics SSOT: `lib/analytics/recommendation-rail-analytics.js` (`useRecommendationRailAnalytics`, `trackRecommendationClick`, IO impression + sessionStorage dedupe); wired on `SimilarListingsRail`, `RecentlyViewedRail`, `ForYouRail`; `RecommendationRailShell` `forwardRef`; product event `catalog_sort_change` on user-initiated catalog sort (`listings-catalog-client.jsx`); E2E `tests/e2e/discovery-analytics.spec.ts` (`npm run test:discovery-analytics`) via `window.__GSL_ANALYTICS_TAP__`. ADR: `docs/ADR/169-guest-retention-analytics.md`.
+
 **Stage 167.3 (2026-06-18):** WhereCombobox UX (hero/sticky) — input больше не `disabled` во время server suggest; мгновенный клиентский фильтр по `POPULAR_DESTINATIONS_FLAT` + static seed (stale-while-revalidate), debounce 150ms; popover не открывается пустым; выбор из списка сохраняет локализованный label (`overrideLabelRef` + `getDestinationLabel`); dedupe по `value`; спиннер только в футере dropdown («Уточняем…»); `onOpenAutoFocus` — курсор с первого клика.
 
 **Stage 167.2 (2026-06-18):** Wave F closure — `personalization-v1.service.js` (weighted scoring: views 7d 40% + favorites category 30% + geo centroid 20% + reputation 10%); `GET /api/v2/recommendations/for-you` (auth personalized / guest regional popular); `ForYouRail` on home + catalog; analytics `recommendation_impression` / `recommendation_click`.
@@ -688,7 +700,7 @@ SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owne
 
 - **SSOT имени для UI, SEO, писем, пушей, Telegram, экспорта `.ics`:** **`getSiteDisplayName()`** в **`lib/site-url.js`**. Источник: **`NEXT_PUBLIC_SITE_NAME`** или **`SITE_DISPLAY_NAME`** (trim); если не задано — нейтрально **`Platform`** (без вывода hostname из URL).
 - **Строки словарей UI:** в **`lib/translations/**`** используйте плейсхолдер **`{brand}`**; при разрешении через **`getUIText` / `t()`** подстановка выполняется в **`lib/translations/index.js`** (**`injectBrand`**).
-- **PWA:** динамический манифест **`app/manifest.js`** (name / short_name / description от **`getSiteDisplayName()`**); метаданные корня — **`generateMetadata`** в **`app/layout.js`**.
+- **PWA:** динамический манифест **`app/manifest.js`** (name / short_name / description от **`getSiteDisplayName()`**); smart install prompt **`PwaInstallPrompt`** (169.4, mobile); метаданные корня — **`generateMetadata`** в **`app/layout.js`**.
 - **Resend From (фолбэк):** **`getTransactionalFromAddress()`** в **`lib/email-env.js`** — если нет **`EMAIL_FROM`** / **`FROM_EMAIL`**, строка вида **`<display name> <booking@gostaylo.com>`** (адрес почты по-прежнему из домена продукта; имя — из **`getSiteDisplayName()`**).
 
 ### Исходящие HTTP: slug + User-Agent (Stage 50.2)

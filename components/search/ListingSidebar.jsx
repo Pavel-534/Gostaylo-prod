@@ -33,6 +33,8 @@ function ListingSidebarComponent({
   cardDates = {},
   guests = '1',
   showMap = false,
+  /** Stage 169.3 — full-screen map sheet on mobile; list stays visible underneath. */
+  mobileMapSheet = false,
   onFavorite,
   onLoadMore,
   onRetry,
@@ -140,26 +142,29 @@ function ListingSidebarComponent({
   
   return (
     <>
-      {/* Mobile Map Toggle */}
-      <div className="lg:hidden mb-4 flex justify-end">
-        <Button
-          onClick={onToggleMap}
-          variant="outline"
-          className="gap-2"
-        >
-          {showMap ? (
-            <>
-              <ListIcon className="h-4 w-4" />
-              {getUIText('showList', language)}
-            </>
-          ) : (
-            <>
-              <MapIcon className="h-4 w-4" />
-              {getUIText('showMap', language)}
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Mobile Map Toggle — hidden while full-screen sheet is open */}
+      {!mobileMapSheet || !showMap ? (
+        <div className="mb-4 flex justify-end lg:hidden">
+          <Button
+            onClick={onToggleMap}
+            variant="outline"
+            className="gap-2 rounded-2xl"
+            data-testid="catalog-mobile-map-toggle"
+          >
+            {showMap && !mobileMapSheet ? (
+              <>
+                <ListIcon className="h-4 w-4" />
+                {getUIText('showList', language)}
+              </>
+            ) : (
+              <>
+                <MapIcon className="h-4 w-4" />
+                {getUIText('showMap', language)}
+              </>
+            )}
+          </Button>
+        </div>
+      ) : null}
 
       {/* Soft Fallback Banner — показываем когда точный поиск дал 0, но есть похожие */}
       {isSoftFallback && (
@@ -189,10 +194,12 @@ function ListingSidebarComponent({
       )}
 
       {/* Listings Grid */}
-      <div className={cn(
-        "flex-1",
-        showMap && "hidden lg:block"
-      )}>
+      <div
+        className={cn(
+          'flex-1',
+          showMap && !mobileMapSheet && 'hidden lg:block',
+        )}
+      >
         {onCatalogSortChange ? (
           <div className="mb-4 flex items-center justify-end gap-2">
             <span className="text-sm text-slate-600">{getUIText('catalogSortLabel', language)}</span>

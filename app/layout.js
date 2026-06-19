@@ -17,6 +17,7 @@ import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
 import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
+import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
 import { cookies, headers } from 'next/headers'
@@ -131,6 +132,7 @@ button{font:inherit}
                   <AppHeader />
                   <MainContent>{children}</MainContent>
                 <MobileBottomNav />
+                <PwaInstallPrompt />
                 <GeoSuggestToast />
                 <Toaster
                   position="top-center"

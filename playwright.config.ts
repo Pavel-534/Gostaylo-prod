@@ -61,6 +61,7 @@ const productionSmokeProjects =
  * Stage 9 API Guard: `tests/e2e/stage9-api-guard.spec.ts` — проект `stage9-api-guard` (depends on setup).
  * Stage 12 Escrow Regression: `tests/e2e/stage12-escrow-regression.spec.ts` — проект `stage12-escrow-regression`.
  * Speed Bot: `tests/e2e/speed-bot.spec.ts` — проект `speed-bot`.
+ * Discovery analytics (169.0): `tests/e2e/discovery-analytics.spec.ts` — проект `discovery-analytics` (`npm run test:discovery-analytics`).
  *
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
@@ -181,6 +182,16 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH.user,
+      },
+    },
+    {
+      name: 'discovery-analytics',
+      testDir: './tests/e2e',
+      testMatch: '**/discovery-analytics.spec.ts',
+      timeout: 120_000,
+      workers: 1,
+      use: {
+        ...devices['Desktop Chrome'],
       },
     },
     {

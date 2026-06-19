@@ -3,9 +3,12 @@
  */
 
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { rateLimitCheck } from '@/lib/rate-limit'
+import { verifySessionFromCookies } from '@/lib/auth/session-from-cookie'
 import { findSimilarListings } from '@/lib/recommendations/similar-listings.service'
 import { SIMILAR_DEFAULT_LIMIT } from '@/lib/recommendations/constants'
+import { readGuestViewedFromNextCookies } from '@/lib/guest/guest-signals-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,8 +29,18 @@ export async function GET(request, { params }) {
     ? Math.min(Math.max(limitRaw, 4), 20)
     : SIMILAR_DEFAULT_LIMIT
 
+  let guestViewItems = []
   try {
-    const { listings, meta } = await findSimilarListings(listingId, { limit })
+    const session = await verifySessionFromCookies()
+    if (!session.ok) {
+      guestViewItems = readGuestViewedFromNextCookies(await cookies())
+    }
+  } catch {
+    guestViewItems = readGuestViewedFromNextCookies(await cookies())
+  }
+
+  try {
+    const { listings, meta } = await findSimilarListings(listingId, { limit, guestViewItems })
     return NextResponse.json({
       success: true,
       listings,

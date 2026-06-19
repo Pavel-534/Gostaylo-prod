@@ -1,13 +1,12 @@
 {
   "/api/v2/geo/whoami/route": "app/api/v2/geo/whoami/route.js",
-  "/page": "app/page.js",
-  "/api/v2/internal/e2e/referral-dashboard-visual/route": "app/api/v2/internal/e2e/referral-dashboard-visual/route.js",
-  "/api/v2/auth/login/route": "app/api/v2/auth/login/route.js",
+  "/api/v2/search/route": "app/api/v2/search/route.js",
+  "/api/v2/listings/[id]/similar/route": "app/api/v2/listings/[id]/similar/route.js",
+  "/listings/page": "app/listings/page.js",
   "/api/v2/auth/me/route": "app/api/v2/auth/me/route.js",
-  "/profile/referral/page": "app/profile/referral/page.js",
-  "/api/v2/wallet/me/route": "app/api/v2/wallet/me/route.js",
-  "/api/v2/auth/realtime-token/route": "app/api/v2/auth/realtime-token/route.js",
-  "/api/v2/referral/me/route": "app/api/v2/referral/me/route.js",
-  "/api/v2/chat/conversations/route": "app/api/v2/chat/conversations/route.js",
-  "/api/v2/auth/realtime-claims/route": "app/api/v2/auth/realtime-claims/route.js"
+  "/api/v2/recommendations/for-you/route": "app/api/v2/recommendations/for-you/route.js",
+  "/api/v2/categories/route": "app/api/v2/categories/route.js",
+  "/api/v2/exchange-rates/route": "app/api/v2/exchange-rates/route.js",
+  "/api/v2/site-features/route": "app/api/v2/site-features/route.js",
+  "/api/v2/listings/search/route": "app/api/v2/listings/search/route.js"
 }

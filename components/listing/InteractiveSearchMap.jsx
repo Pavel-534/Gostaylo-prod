@@ -206,6 +206,25 @@ function MapViewportReporter({ onViewportBbox, debounceMs = 400 }) {
   return null
 }
 
+function MapSizeInvalidator({ layoutResetKey = 0 }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const raf = window.requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false })
+    })
+    const timer = window.setTimeout(() => {
+      map.invalidateSize({ animate: false })
+    }, 320)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.clearTimeout(timer)
+    }
+  }, [map, layoutResetKey])
+
+  return null
+}
+
 function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
   const map = useMap()
   const lastPanIdRef = useRef(null)
@@ -304,6 +323,7 @@ export default function InteractiveSearchMap({
   onClearMapBounds,
   appliedBboxKey = '',
   mapFitResetKey = '',
+  layoutResetKey = 0,
 }) {
   const [mounted, setMounted] = useState(false)
   const suppressBoundsUntilRef = useRef(0)
@@ -365,12 +385,18 @@ export default function InteractiveSearchMap({
         center={center}
         zoom={zoom}
         className="absolute inset-0 z-0 h-full w-full rounded-lg"
-        scrollWheelZoom={true}
+        scrollWheelZoom
+        touchZoom
+        dragging
+        doubleClickZoom
+        zoomControl
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        <MapSizeInvalidator layoutResetKey={layoutResetKey} />
 
         {typeof onViewportBbox === 'function' && (
           <MapViewportReporter onViewportBbox={onViewportBbox} />
