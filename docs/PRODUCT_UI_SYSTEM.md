@@ -102,6 +102,29 @@ npm run export-tokens
 - Loading: `LoadingPageShell` или skeleton с `gsl-shimmer`
 - Empty: `components/empty-state.jsx` или `ReferralEmptyState` для referral-контекста
 
+## App Shell (Stage 170.0 — ADR-100)
+
+| Слой | SSOT |
+|------|------|
+| Header height | `AppHeader` → `--app-header-height` |
+| Bottom nav height | `MobileBottomNav` → `--app-bottom-nav-height` |
+| Content insets | `MainContent` + `.app-shell-main` в `globals.css` |
+| Sub-navigation | In-flow only (`ProfileHubNav`, partner breadcrumbs) — **не** sticky/fixed |
+
+**Запрещено:** ad-hoc `pb-*` / `bottom-[*]` на страницах для обхода bottom nav — только shell utilities (Wave 2 мигрирует legacy).
+
+**Bypass маршрутов:** `/` (top), `/messages`, `/admin`, `/partner`, `/renter` — см. `components/main-content.jsx`.
+
+**Sticky / fixed offsets (Stage 170.1):** `.app-sticky-below-header` (`top: var(--app-header-height)`), `.app-fixed-above-bottom-nav` (над bottom nav + safe-area). Каталог: без локального mini-header; `FilterBar` search row — sticky below header.
+
+**Profile hub (Stage 170.2):** referral / wallet / status — `ProductPageShell`; wallet withdraw CTA — `.app-fixed-above-bottom-nav`; secondary scroll pad — `.app-shell-secondary-chrome-pad` когда CTA виден.
+
+**PDP + renter (Stage 170.3):** PDP — bottom nav скрыт; `MobileBookingBar` flush bottom + `.app-padb-safe-screen-bottom`; `ListingPageNav` sticky below header. Renter — `app/renter/layout.js` insets via CSS vars; `.pb-bottom-nav` = `var(--app-bottom-nav-height)`.
+
+**Partner / admin workspace (Stage 170.4):** `.app-workspace-sidebar`; `main` `pt-[var(--app-header-height)]` на всех breakpoints; desktop breadcrumb + page toolbars — `.app-sticky-below-header`.
+
+**Long tail (Stage 170.5):** `.app-fixed-below-header` (fixed under header); `.app-fixed-above-bottom-nav` (FAB, PWA, Geo); `.app-pad-mobile-booking-chrome` (PDP scroll); Sonner top offset via CSS var.
+
 ## Stage 115.2 — глубокая миграция (referral, partner, search, admin)
 
 | Область | Изменения |

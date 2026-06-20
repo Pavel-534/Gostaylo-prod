@@ -3,21 +3,11 @@
 import { Shimmer, ListingGridSkeleton } from '@/components/listing-card-skeleton'
 
 /**
- * Mirrors catalog chrome: sticky header, filter block, list + map column.
+ * Mirrors catalog chrome: FilterBar block + list + map column (ADR-100 — global AppHeader only).
  */
 export function ListingsCatalogSkeleton() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Shimmer className="h-6 w-28 rounded" />
-          <div className="flex items-center gap-2">
-            <Shimmer className="h-8 w-8 rounded-lg" />
-            <Shimmer className="h-6 w-20 rounded hidden sm:block" />
-          </div>
-          <Shimmer className="h-7 w-10 rounded-full" />
-        </div>
-      </div>
       <div className="bg-white border-b border-slate-100">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap gap-2 mb-3">

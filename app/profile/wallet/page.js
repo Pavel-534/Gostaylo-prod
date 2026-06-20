@@ -17,6 +17,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useWalletMeQuery, invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
@@ -148,7 +149,12 @@ export default function ProfileWalletPage() {
     )
 
   return (
-    <ProductPageShell containerClassName="space-y-8 sm:space-y-10 pb-24 md:pb-0">
+    <ProductPageShell
+      containerClassName={cn(
+        'space-y-8 sm:space-y-10',
+        stickyVisible && 'app-shell-secondary-chrome-pad',
+      )}
+    >
       <ProfileHubNav t={t} />
       <PageSectionHeader
         title={t('stage1143_tabNavWallet')}

@@ -16,6 +16,8 @@ import { useProfileUpdate } from '@/app/profile/hooks/useProfileUpdate'
 import { ProfileInfo } from '@/app/profile/components/ProfileInfo'
 import { ProfileSecurity } from '@/app/profile/components/ProfileSecurity'
 import { ProfilePreferences } from '@/app/profile/components/ProfilePreferences'
+import { ProductPageShell } from '@/components/product/ProductPageShell'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 import { useI18n } from '@/contexts/i18n-context'
@@ -40,13 +42,7 @@ const KYC_LABELS = {
 
 export default function ProfilePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPageShell />}>
       <ProfileContent />
     </Suspense>
   )
@@ -193,19 +189,15 @@ function ProfileContent() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>
-    )
+    return <LoadingPageShell />
   }
   if (!user) {
     return null
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+    <>
+    <ProductPageShell narrow containerClassName="max-w-2xl">
         <ProfileInfo
           user={user}
           isPartner={isPartner}
@@ -230,7 +222,7 @@ function ProfileContent() {
         <ProfilePreferences user={user} isPartner={isPartner} onLogout={handleLogout} router={router} />
 
         <ProfileSecurity user={user} onToast={(o) => toast(o)} />
-      </div>
+    </ProductPageShell>
 
       <Dialog open={showPartnerModal} onOpenChange={setShowPartnerModal}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -373,6 +365,6 @@ function ProfileContent() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

@@ -70,11 +70,10 @@ export function CatalogMobileMapSheet({
         aria-label={getUIText('showMap', language)}
         data-testid="catalog-mobile-map-sheet"
         className={cn(
-          'fixed inset-x-0 top-0 z-[35] flex flex-col bg-white md:hidden',
+          'fixed inset-x-0 top-0 app-fixed-above-bottom-nav z-[35] flex flex-col bg-white md:hidden',
           'animate-in slide-in-from-bottom duration-300',
         )}
         style={{
-          bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >

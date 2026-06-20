@@ -4,7 +4,7 @@
  * MobileSearchBottomSheet — FAB + Bottom Sheet поиск для мобильных.
  *
  * Архитектура:
- * - FAB: pill-кнопка зафиксирована над tabbar (bottom-[80px])
+ * - FAB: pill над tabbar — `.app-fixed-above-bottom-nav` (ADR-100)
  * - Bottom Sheet: слайд снизу, полный поиск с функциональными контролами
  * - Категории: горизонтальный scroll (NO wrap)
  * - Локация: quick chips (Patong, Kamala, Bang Tao, Kata, Rawai, Karon, All)
@@ -53,7 +53,7 @@ export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = f
       tabIndex={shown ? 0 : -1}
       data-testid="mobile-search-fab"
       className={cn(
-        'fixed bottom-[80px] left-1/2 z-30 -translate-x-1/2',
+        'fixed app-fixed-above-bottom-nav left-1/2 z-30 -translate-x-1/2',
         'flex items-center gap-2 rounded-full bg-brand px-5 py-3',
         'text-sm font-semibold text-white',
         'shadow-[0_10px_30px_rgba(0,102,102,0.45)]',

@@ -7,7 +7,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 
 /**
- * Stage 132.3 — mobile sticky withdraw CTA on /profile/wallet.
+ * Stage 132.3 / 170.2 — mobile sticky withdraw CTA on /profile/wallet (ADR-100: above bottom nav).
  */
 export function ReferralWalletStickyWithdraw({
   visible = false,
@@ -30,7 +30,7 @@ export function ReferralWalletStickyWithdraw({
 
   return (
     <div
-      className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/90 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.08)]"
+      className="md:hidden fixed inset-x-0 app-fixed-above-bottom-nav z-50 border-t border-slate-200/90 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 px-3 pt-2 pb-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]"
       aria-label={t('stage1323_stickyWithdrawAria')}
     >
       <div className="mx-auto max-w-lg flex items-center gap-2 min-w-0">

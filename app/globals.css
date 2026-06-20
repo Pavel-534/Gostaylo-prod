@@ -143,19 +143,91 @@ code {
   padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
-/* Ensure main content doesn't get hidden behind fixed elements */
+/* ADR-100 — App Shell insets (SSOT: --app-header-height, --app-bottom-nav-height) */
 @layer utilities {
-  .pt-header {
-    padding-top: 3.5rem; /* h-14 = 56px */
+  .app-shell-main {
+    padding-top: var(--app-header-height, 64px);
+    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
   }
+  .app-shell-main-top-only {
+    padding-top: var(--app-header-height, 64px);
+  }
+  .app-shell-main-bottom-only {
+    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+  }
+  @screen md {
+    .app-shell-main,
+    .app-shell-main-bottom-only {
+      padding-bottom: 0;
+    }
+  }
+  /* Renter / legacy workspace: bottom inset tracks live nav height (ADR-100) */
   .pb-bottom-nav {
-    padding-bottom: 4rem; /* h-16 = 64px */
+    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
   }
   @screen md {
     .pb-bottom-nav {
       padding-bottom: 0;
     }
   }
+  .app-sticky-below-header {
+    position: sticky;
+    top: var(--app-header-height, 64px);
+  }
+  .app-fixed-above-bottom-nav {
+    bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+  }
+  /** Fixed chrome flush to screen bottom (PDP booking bar — no bottom nav) */
+  .app-padb-safe-screen-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 16px));
+  }
+  .app-fixed-below-header {
+    top: var(--app-header-height, 64px);
+  }
+  .app-shell-scroll-pad-bottom-nav {
+    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+  }
+  @screen md {
+    .app-shell-scroll-pad-bottom-nav {
+      padding-bottom: 0;
+    }
+  }
+  /** PDP main scroll clearance above fixed MobileBookingBar (nav hidden on PDP) */
+  .app-pad-mobile-booking-chrome {
+    padding-bottom: 10rem;
+  }
+  @screen lg {
+    .app-pad-mobile-booking-chrome {
+      padding-bottom: 2rem;
+    }
+  }
+  /** Partner / admin sidebar: mobile below header; desktop full-height with inner inset */
+  .app-workspace-sidebar {
+    top: var(--app-header-height, 64px);
+    height: calc(100dvh - var(--app-header-height, 64px));
+    max-height: calc(100dvh - var(--app-header-height, 64px));
+  }
+  @screen lg {
+    .app-workspace-sidebar {
+      top: 0;
+      height: 100dvh;
+      max-height: 100dvh;
+      padding-top: var(--app-header-height, 64px);
+    }
+  }
+  .app-shell-secondary-chrome-pad {
+    padding-bottom: 3.5rem;
+  }
+  @screen md {
+    .app-shell-secondary-chrome-pad {
+      padding-bottom: 0;
+    }
+  }
+}
+
+/* Sonner top-center — below AppHeader (Stage 170.5) */
+[data-sonner-toaster][data-y-position='top'] {
+  top: calc(var(--app-header-height, 64px) + 8px) !important;
 }
 
 /* Stage 115.0 / 129.0 — Product UI cohesion (SSOT: lib/theme/tokens.cjs, product-ui.js) */

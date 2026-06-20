@@ -201,10 +201,10 @@ export default function RenterLayout({ children }) {
         )}
 
         {/* Mobile Sidebar */}
-        <div 
+        <div
           className={cn(
-            "fixed top-16 left-0 bottom-0 w-72 bg-white border-r z-40 transform transition-transform md:hidden",
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            'fixed left-0 bottom-0 w-72 bg-white border-r z-40 transform transition-transform md:hidden top-[var(--app-header-height,64px)]',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
           <nav className="p-4 space-y-2">
@@ -251,8 +251,8 @@ export default function RenterLayout({ children }) {
           </nav>
         </div>
 
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-6 flex-1 min-h-0 pb-bottom-nav">
+        {/* Main Content — ADR-100: own shell insets (MainContent bypass for /renter) */}
+        <main className="container mx-auto flex-1 min-h-0 px-4 pt-[calc(var(--app-header-height,64px)+1.5rem)] md:pt-[var(--app-header-height,64px)] pb-bottom-nav md:pb-6">
           {children}
         </main>
 

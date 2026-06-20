@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ListingCard } from '@/components/listing-card'
-import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { getUIText } from '@/lib/translations'
 import { RecommendationRailShell } from '@/components/recommendations/RecommendationRailShell'
 import {
@@ -18,6 +17,7 @@ import {
   FOR_YOU_MIN_RESULTS,
   FOR_YOU_MOBILE_MAX_CARDS,
   FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX,
+  RECOMMENDATION_RAIL_CARD_CLASS,
 } from '@/lib/recommendations/constants'
 import { resolveForYouRailDisplay } from '@/lib/recommendations/for-you-rail-display'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -106,13 +106,7 @@ export function ForYouRail({
   })
 
   if (loading) {
-    return (
-      <RecommendationRailShell title={getUIText('forYouTitle', language)} className={className}>
-        <div className="min-w-[260px] snap-start">
-          <ListingGridSkeleton count={1} />
-        </div>
-      </RecommendationRailShell>
-    )
+    return null
   }
 
   if (!shouldRender) return null
@@ -124,7 +118,7 @@ export function ForYouRail({
       className={className}
     >
       {displayListings.map((listing, index) => (
-        <div key={listing.id} className="w-[260px] shrink-0 snap-start">
+        <div key={listing.id} className={RECOMMENDATION_RAIL_CARD_CLASS}>
           <Link
             href={`/listings/${listing.id}`}
             className="block"

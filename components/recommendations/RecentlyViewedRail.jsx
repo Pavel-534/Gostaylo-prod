@@ -10,7 +10,10 @@ import {
   trackRecommendationClick,
   useRecommendationRailAnalytics,
 } from '@/lib/analytics/recommendation-rail-analytics.js'
-import { RECENTLY_VIEWED_MIN_PDP } from '@/lib/recommendations/constants'
+import {
+  RECENTLY_VIEWED_MIN_PDP,
+  RECOMMENDATION_RAIL_CARD_CLASS,
+} from '@/lib/recommendations/constants'
 
 export function RecentlyViewedRail({
   currentListingId,
@@ -54,7 +57,7 @@ export function RecentlyViewedRail({
       className={className}
     >
       {items.map((listing, index) => (
-        <div key={listing.id} className="w-[260px] shrink-0 snap-start">
+        <div key={listing.id} className={RECOMMENDATION_RAIL_CARD_CLASS}>
           <Link
             href={`/listings/${listing.id}`}
             className="block"

@@ -23,6 +23,7 @@ import {
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { getUIText } from '@/lib/translations'
 import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])

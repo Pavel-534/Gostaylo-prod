@@ -124,7 +124,7 @@ export default function AdminLayout({ children }) {
         <aside
           className={`${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-out flex flex-col fixed h-screen z-50 lg:z-30 shadow-2xl`}
+          } w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-out flex flex-col fixed app-workspace-sidebar z-50 lg:z-30 shadow-2xl`}
         >
           <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
             <div className={`${!sidebarOpen && 'lg:hidden'}`}>
@@ -235,12 +235,11 @@ export default function AdminLayout({ children }) {
 
         <main
           className={cn(
-            'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 lg:pt-0',
-            'pt-[var(--app-header-height,64px)]',
+            'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 pt-[var(--app-header-height,64px)] lg:pt-0',
             isAdminMessagesSection && 'flex min-h-0 flex-col overflow-hidden max-lg:flex-1',
           )}
         >
-          <div className="hidden lg:block sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200/50 z-10">
+          <div className="hidden lg:block sticky app-sticky-below-header z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50">
             {isImpersonating && (
               <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 px-6 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">

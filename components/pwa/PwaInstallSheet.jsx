@@ -33,14 +33,10 @@ export function PwaInstallSheet({
         aria-label={getUIText('pwaInstall_title', language)}
         data-testid="pwa-install-sheet"
         className={cn(
-          'fixed inset-x-0 z-[45] flex flex-col rounded-t-3xl bg-white md:hidden',
+          'fixed inset-x-0 app-fixed-above-bottom-nav z-[45] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
-          'animate-in slide-in-from-bottom duration-300',
+          'animate-in slide-in-from-bottom duration-300 app-padb-safe-screen-bottom',
         )}
-        style={{
-          bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
-        }}
       >
         <div className="flex justify-center pt-3 pb-1" aria-hidden>
           <div className="h-1 w-12 rounded-full bg-slate-200" />

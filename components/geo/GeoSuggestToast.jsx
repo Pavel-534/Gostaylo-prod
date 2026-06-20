@@ -159,7 +159,7 @@ export default function GeoSuggestToast() {
     <div
       data-testid="geo-suggest-toast"
       className={cn(
-        'fixed z-[90] md:right-6 md:bottom-6 bottom-[90px] left-4 right-4 md:left-auto md:max-w-sm',
+        'fixed z-[90] md:right-6 md:bottom-6 app-fixed-above-bottom-nav left-4 right-4 md:left-auto md:max-w-sm md:!bottom-6',
         'pointer-events-none',
       )}
       aria-live="polite"

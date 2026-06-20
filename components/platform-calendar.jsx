@@ -88,14 +88,13 @@ function DayCell({
   
   if (!isPast && status !== 'PAST') {
     if (isSelectingCheckout) {
-      // When selecting checkout, blocked dates ARE clickable for checkout
-      // The checkout day itself doesn't need to be free (guest leaves at 12:00)
       isClickable = true
-      visuallyBlocked = false // Don't show as blocked when selecting checkout
+      visuallyBlocked = false
     } else {
-      // When selecting check-in, only can_check_in dates
-      isClickable = canCheckIn
-      visuallyBlocked = status === 'BLOCKED' && !isTransition
+      // Today is always a valid check-in anchor unless explicitly blocked for the whole day
+      const todayCheckInOk = isToday && status !== 'BLOCKED'
+      isClickable = canCheckIn || todayCheckInOk || (isTransition && canCheckOut)
+      visuallyBlocked = status === 'BLOCKED' && !isTransition && !todayCheckInOk
     }
   } else {
     visuallyBlocked = true
@@ -115,18 +114,13 @@ function DayCell({
       className={cn(
         "relative aspect-square w-full flex flex-col items-center justify-center text-sm transition-all",
         "focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1 rounded-lg",
-        // Today - just bold
-        isToday && !isRangeStart && !isRangeEnd && "font-bold",
-        // Selection states - Teal colors
-        isRangeStart && "bg-brand text-white rounded-l-lg rounded-r-none z-10",
-        isRangeEnd && "bg-brand text-white rounded-r-lg rounded-l-none z-10",
-        isRangeStart && isRangeEnd && "rounded-lg", // Single day selection
-        isInRange && !isRangeStart && !isRangeEnd && "bg-brand/10 text-brand rounded-none",
-        // Blocked - very faded, no clicks (only when NOT selecting checkout)
+        isToday && !isRangeStart && !isRangeEnd && "font-bold ring-2 ring-brand/50 ring-inset",
+        isRangeStart && "bg-brand text-white shadow-md ring-2 ring-brand ring-offset-1 ring-offset-white dark:ring-offset-slate-900 rounded-l-lg rounded-r-none z-10",
+        isRangeEnd && "bg-brand text-white shadow-md ring-2 ring-brand ring-offset-1 ring-offset-white dark:ring-offset-slate-900 rounded-r-lg rounded-l-none z-10",
+        isRangeStart && isRangeEnd && "rounded-lg",
+        isInRange && !isRangeStart && !isRangeEnd && "bg-brand/25 text-brand-hover dark:bg-brand/35 dark:text-brand rounded-none",
         visuallyBlocked && "opacity-20 pointer-events-none cursor-not-allowed text-slate-400",
-        // Available hover
-        isClickable && !isSelected && !visuallyBlocked && "hover:bg-slate-100 cursor-pointer",
-        // Transition day - split visual (only when not selecting checkout)
+        isClickable && !isSelected && !visuallyBlocked && "hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer",
         isTransition && !isSelected && !isInRange && !isSelectingCheckout && "transition-day-split"
       )}
       data-date={toListingDate(date) || format(date, 'yyyy-MM-dd')}

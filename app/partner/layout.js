@@ -245,7 +245,7 @@ export default function PartnerLayout({ children }) {
         <aside
           className={`${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200 transition-all duration-300 ease-out flex flex-col fixed h-screen z-50 lg:z-30 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
+          } w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200 transition-all duration-300 ease-out flex flex-col fixed app-workspace-sidebar z-50 lg:z-30 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
         >
           {/* Logo & Close */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -389,8 +389,8 @@ export default function PartnerLayout({ children }) {
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden pt-[var(--app-header-height,64px)] lg:pt-0">
-          {/* Desktop Top Bar */}
-          <div className="hidden lg:block sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-10">
+          {/* Desktop Top Bar — lg: top-0 in main column (header covers viewport top band) */}
+          <div className="hidden lg:block sticky app-sticky-below-header z-10 bg-white/95 backdrop-blur-sm border-b border-slate-200/80">
             {/* Impersonation Banner - Desktop */}
             {isImpersonating && (
               <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">

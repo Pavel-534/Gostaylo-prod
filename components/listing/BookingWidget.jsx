@@ -343,8 +343,7 @@ export function MobileBookingBar({
 
   return (
     <div
-      className="lg:hidden fixed z-50 bg-white border-t border-slate-200 py-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3"
-      style={{ bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))' }}
+      className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-slate-200 py-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] app-padb-safe-screen-bottom px-3"
     >
       {mobileOfferTiers.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">

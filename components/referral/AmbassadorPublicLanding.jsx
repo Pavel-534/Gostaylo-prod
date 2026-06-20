@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
 import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pending-ref-client'
 import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
@@ -117,8 +118,8 @@ export function AmbassadorPublicLanding({
     String(currentUser.id).toLowerCase() === String(landing.userId).toLowerCase()
 
   return (
-    <div className="min-h-screen bg-brand-surface text-slate-900 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-16">
-      <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-10">
+    <div className={cn('min-h-screen bg-brand-surface text-slate-900 sm:pb-16', !isSelf && 'app-shell-secondary-chrome-pad')}>
+      <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky app-sticky-below-header z-10">
         <div className="mx-auto max-w-4xl px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="shrink-0">
             <Link href="/listings" aria-label={t('publicProfileBack')}>
@@ -298,7 +299,7 @@ export function AmbassadorPublicLanding({
       </div>
 
       {!isSelf ? (
-        <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur-md p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden">
+        <div className="fixed inset-x-0 app-fixed-above-bottom-nav z-20 border-t border-slate-200 bg-white/95 backdrop-blur-md p-3 app-padb-safe-screen-bottom sm:hidden">
           <div className="mx-auto max-w-4xl flex gap-2">
             <Button
               variant="brand"

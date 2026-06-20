@@ -124,7 +124,7 @@ export function ListingWizardPageInner() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+      <div className="sticky app-sticky-below-header z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <Button

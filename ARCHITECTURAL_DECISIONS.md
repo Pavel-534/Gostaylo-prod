@@ -370,3 +370,30 @@ Re-read this file when:
 ### Why
 - Мгновенный back-navigation и плавная смена фильтров (placeholder / stale cache).
 - Снижение дублирующих search-запросов; единый SSOT fetch для каталога и FX display на мигрированных экранах.
+
+---
+
+## ADR-100: App Shell Contract & Bottom Nav SSOT
+
+**Status:** Approved  
+**Date:** 2026-06-19  
+**Author:** Pavel + engineering
+
+### Decision
+
+Контентная область приложения компенсирует размеры фиксированных панелей **централизованно**. Вводится динамическая CSS-переменная **`--app-bottom-nav-height`** по аналогии с **`--app-header-height`**. Прямой хардкод нижних отступов (`pb-*`, `bottom-[*]`) на страницах для обхода мобильной панели **запрещён** — только утилиты shell (`app-shell-main`, `pb-bottom-nav` как legacy bridge до миграции workspace layouts). Саб-хедеры (вкладки профиля / партнёрки, `ProfileHubNav`) остаются **строго в потоке документа (in-flow)** и скроллятся вместе с контентом.
+
+### Implementation (Wave 0–1)
+
+| Слой | SSOT |
+|------|------|
+| Header height | `AppHeader` → ResizeObserver → `--app-header-height` на `<html>` |
+| Bottom nav height | `MobileBottomNav` → ResizeObserver → `--app-bottom-nav-height` на `<html>` |
+| Content insets | `MainContent` + `.app-shell-main` в `globals.css` |
+| Bypass matrix | Декларативные правила маршрутов в `components/main-content.jsx` |
+
+### Why
+
+- Единая геометрия shell на mobile без per-page magic numbers (Airbnb / Stripe pattern).
+- Безопасные зоны (`env(safe-area-inset-bottom)`) учитываются один раз в shell utilities.
+- Sub-navigation не дублирует fixed chrome — ground truth UX для profile hub и partner breadcrumbs.

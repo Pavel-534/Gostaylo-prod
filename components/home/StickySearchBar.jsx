@@ -11,8 +11,7 @@
  *   - Плавная анимация (slide-down + fade), transition 300ms.
  *   - Popover/calendar поднимаются из бара с z-[200] — перекрывают весь контент ниже.
  *
- * Z-index: fixed top-[64px] z-[80] (ниже header z-[100], но выше всех контентных
- * блоков — TrustBar, TopListingsGrid не перекрывают popover).
+ * Z-index: fixed `.app-fixed-below-header` z-[120] (ниже header z-[100], но выше контента)
  *
  * @created 2026-02-05 Premium Air UX & Conversion Fix
  * @updated 2026-02-05 Conversion Polish — Summary Chips с фокусом на поля
@@ -154,7 +153,7 @@ export function StickySearchBar({
       data-testid="sticky-search-bar"
       aria-hidden={!visible}
       className={cn(
-        'fixed left-0 right-0 top-16 z-[120] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] transition-all duration-300 md:block',
+        'fixed left-0 right-0 app-fixed-below-header z-[120] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] transition-all duration-300 md:block',
         visible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none',
       )}
     >

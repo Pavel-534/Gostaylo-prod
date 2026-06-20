@@ -7,9 +7,6 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Loader2 } from 'lucide-react'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
@@ -39,7 +36,6 @@ import {
   parseCatalogSortFromParams,
 } from '@/lib/search/listings-page-url'
 import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
-import { getSiteDisplayName } from '@/lib/site-url'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
@@ -562,29 +558,6 @@ function ListingsContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            aria-label={getUIText('backToHome', language)}
-            title={getUIText('backToHome', language)}
-            className="flex items-center gap-2 text-slate-600 hover:text-brand transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="hidden sm:inline">{getUIText('backToHome', language)}</span>
-          </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-bold">
-              {(getSiteDisplayName().trim().charAt(0) || 'P').toUpperCase()}
-            </div>
-            <span className="font-semibold text-lg hidden sm:inline">{getSiteDisplayName()}</span>
-          </Link>
-          <Badge variant="secondary" className="bg-brand/10 text-brand-hover">
-            {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : `${allListings.length}`}
-          </Badge>
-        </div>
-      </div>
-
       <FilterBar
         language={language}
         dateRange={dateRange}

@@ -378,7 +378,7 @@ export default function PartnerListings() {
   return (
     <div className='max-w-full overflow-x-hidden'>
       {/* Header - Mobile optimized */}
-      <div className='px-4 py-4 bg-white border-b sticky top-0 z-10'>
+      <div className='px-4 py-4 bg-white border-b sticky app-sticky-below-header z-10'>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>

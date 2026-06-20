@@ -77,14 +77,21 @@ function SearchDayCell({
       onClick={handleClick}
       disabled={!isClickable}
       className={cn(
-        "relative w-10 h-10 flex items-center justify-center text-sm text-slate-900 transition-colors rounded-full",
-        isPast && "text-slate-300 cursor-not-allowed",
-        !isPast && "hover:bg-brand/10",
-        isToday && !isSelected && "font-bold",
-        isRangeStart && "bg-brand text-white rounded-r-none",
-        isRangeEnd && "bg-brand text-white rounded-l-none",
-        isInRange && !isRangeStart && !isRangeEnd && "bg-brand/15 text-brand rounded-none",
-        isSelected && !isRangeStart && !isRangeEnd && "bg-brand text-white"
+        "relative w-10 h-10 flex items-center justify-center text-sm transition-colors rounded-full",
+        "text-slate-900 dark:text-slate-100",
+        isPast && "text-slate-300 dark:text-slate-600 cursor-not-allowed",
+        !isPast && !isSelected && !isInRange && "hover:bg-brand/10 dark:hover:bg-brand/20",
+        isToday && !isSelected && "font-bold ring-2 ring-brand/50 ring-inset",
+        isRangeStart &&
+          "bg-brand text-white shadow-md ring-2 ring-brand ring-offset-1 ring-offset-white dark:ring-offset-slate-900 rounded-r-none z-10",
+        isRangeEnd &&
+          "bg-brand text-white shadow-md ring-2 ring-brand ring-offset-1 ring-offset-white dark:ring-offset-slate-900 rounded-l-none z-10",
+        isRangeStart && isRangeEnd && "rounded-full",
+        isInRange &&
+          !isRangeStart &&
+          !isRangeEnd &&
+          "bg-brand/25 text-brand-hover dark:bg-brand/35 dark:text-brand rounded-none",
+        isSelected && !isRangeStart && !isRangeEnd && "bg-brand text-white shadow-md"
       )}
     >
       {date.getDate()}

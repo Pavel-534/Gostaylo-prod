@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.169.5 | **Last Updated**: 2026-06-19 | **Stage 169.5:** Guest cookie personalization (`guest_viewed_listings`). | **Stage 169.4:** Smart PWA install prompt (`use-pwa-install`, mobile only). | **Stage 169.3:** Mobile catalog map full-screen sheet (`CatalogMobileMapSheet`). | **Stage 169.2:** Batch favorites check on catalog (`listingIds`, `useFavoritesBatch`). | **Stage 169.1:** Recently viewed rail on home (`recent_home`). | **Stage 169.0:** Discovery analytics SSOT (`recommendation-rail-analytics.js`, `catalog_sort_change`). | **Stage 168.2:** Redis rate limits + security headers + PII scrub. | **Stage 168.1:** DSAR export + account erasure queue.
+> **Version**: 12.170.7 | **Last Updated**: 2026-06-19 | **Stage 170.7:** App Shell CI guard (`npm run check:shell`). | **Stage 170.6:** Partner/admin desktop shell hotfix. | **Stage 170.5:** Long tail shell tokens. | **Stage 170.4:** Partner/admin workspace sidebar. | **Stage 170.0–170.3:** App Shell SSOT waves. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)

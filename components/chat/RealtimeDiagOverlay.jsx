@@ -116,7 +116,7 @@ export function RealtimeDiagOverlay({ conversationId }) {
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-20 right-4 z-[9999] bg-red-600 text-white text-xs px-2 py-1 rounded opacity-80 hover:opacity-100"
+        className="fixed app-fixed-above-bottom-nav right-4 z-[9999] bg-red-600 text-white text-xs px-2 py-1 rounded opacity-80 hover:opacity-100"
         style={{ fontFamily: 'monospace' }}
       >
         REALTIME DIAG
