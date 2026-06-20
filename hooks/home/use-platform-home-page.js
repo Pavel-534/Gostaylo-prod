@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { format, isSameDay, differenceInDays } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
@@ -18,7 +18,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { getUIText } from '@/lib/translations'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { hasCategoryParent } from '@/lib/config/category-hierarchy'
-import { useHomeFilters } from '@/components/home/useHomeFilters'
+import { usePublicSearchFilters } from '@/lib/hooks/use-public-search-filters'
 import {
   AUTO_HERO_TITLE_FALLBACK,
   AUTO_TOP_LISTINGS_TITLE_FALLBACK,
@@ -46,7 +46,7 @@ export function usePlatformHomePage() {
   const [waitingEmail, setWaitingEmail] = useState('')
   const [waitingSubmitLoading, setWaitingSubmitLoading] = useState(false)
 
-  const filters = useHomeFilters(categories)
+  const filters = usePublicSearchFilters({ surface: 'home', categoriesFromApi: categories })
   const {
     selectedCategory,
     setSelectedCategory,
@@ -73,6 +73,7 @@ export function usePlatformHomePage() {
     debouncedGuests,
     debouncedSearchQuery,
     transportSearchMode,
+    navigateToCatalog,
   } = filters
   const selectedCategoryRow = useMemo(
     () => categories.find((c) => String(c?.slug) === String(selectedCategory || '')),
@@ -211,34 +212,8 @@ export function usePlatformHomePage() {
       setComingSoonCategory(selectedCategoryRow)
       return
     }
-    const params = new URLSearchParams()
-    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
-    if (where && where !== 'all') params.set('where', where)
-    if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
-    if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
-    if (transportSearchMode && dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-      params.set('checkInTime', checkInTime)
-      params.set('checkOutTime', checkOutTime)
-    }
-    if (guests && guests !== '1') params.set('guests', guests)
-    const qt = searchQuery.trim()
-    if (qt.length >= 2) params.set('q', qt)
-    if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
-    router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
-  }, [
-    selectedCategory,
-    where,
-    dateRange,
-    guests,
-    searchQuery,
-    semanticSiteEnabled,
-    smartSearchOn,
-    router,
-    transportSearchMode,
-    checkInTime,
-    checkOutTime,
-    selectedCategoryRow,
-  ])
+    navigateToCatalog()
+  }, [navigateToCatalog, selectedCategoryRow])
 
   const handleCategoryTabClick = useCallback(
     (tab) => {

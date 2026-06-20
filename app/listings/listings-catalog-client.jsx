@@ -6,9 +6,9 @@
  */
 
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
-import { format, parseISO, differenceInDays } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { FilterBar } from '@/components/search/FilterBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
@@ -19,20 +19,17 @@ import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
+import { useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
+import { usePublicSearchFilters } from '@/lib/hooks/use-public-search-filters'
 import { usePublicCategoriesQuery } from '@/lib/hooks/use-public-catalog-queries'
 import { useListingDetailPrefetch } from '@/lib/hooks/use-listing-detail-prefetch'
 import { detectLanguage, DEFAULT_UI_LANGUAGE, getUIText } from '@/lib/translations'
-import { normalizeListingCategorySlugForSearch } from '@/lib/listing-category-slug'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { getCatalogSearchHeadlines } from '@/lib/search/catalog-search-headlines'
 import { isCatalogTransportIntervalMode } from '@/lib/search/catalog-transport-interval'
 import {
   parseBBoxFromParams,
-  bboxToSearchParams,
   parseExtraFiltersFromParams,
-  appendExtraFiltersToParams,
-  defaultExtraFilters,
   parseCatalogSortFromParams,
 } from '@/lib/search/listings-page-url'
 import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
@@ -43,86 +40,10 @@ import { useFavoritesBatch } from '@/hooks/use-favorites-batch'
 
 const ITEMS_PER_PAGE = 12
 
-function canonicalWhere(w) {
-  if (w == null) return 'all'
-  const s = String(w).trim()
-  if (!s || s.toLowerCase() === 'all') return 'all'
-  return s
-}
-
-function parseTimeParam(v, fallback = '07:00') {
-  const s = String(v || '').trim()
-  return /^\d{2}:\d{2}$/.test(s) ? s : fallback
-}
-
 function ListingsContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
   const { user } = useAuth()
   const isMobile = useIsMobile()
-
-  const [selectedCategory, setSelectedCategory] = useState(() =>
-    normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all'),
-  )
-  const [where, setWhereState] = useState(() =>
-    canonicalWhere(
-      searchParams.get('where') || searchParams.get('location') || searchParams.get('city') || 'all',
-    ),
-  )
-  const setWhere = useCallback((w) => setWhereState(canonicalWhere(w)), [])
-  const [guests, setGuests] = useState(searchParams.get('guests') || '1')
-  const [guestsBreakdown, setGuestsBreakdown] = useState(() => {
-    const total = Math.max(1, parseInt(searchParams.get('guests') || '1', 10) || 1)
-    return { adults: total, children: 0, infants: 0 }
-  })
-  const [dateRange, setDateRange] = useState({
-    from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
-    to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
-  })
-  const [checkInTime, setCheckInTime] = useState(() => parseTimeParam(searchParams.get('checkInTime')))
-  const [checkOutTime, setCheckOutTime] = useState(() => parseTimeParam(searchParams.get('checkOutTime')))
-
-  const searchParamsKey = searchParams.toString()
-  const urlSyncDidMount = useRef(false)
-  useEffect(() => {
-    if (!urlSyncDidMount.current) {
-      urlSyncDidMount.current = true
-      return
-    }
-    setSelectedCategory(normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all'))
-    setWhereState(
-      canonicalWhere(
-        searchParams.get('where') ||
-          searchParams.get('location') ||
-          searchParams.get('city') ||
-          'all',
-      ),
-    )
-    const nextGuests = searchParams.get('guests') || '1'
-    setGuests(nextGuests)
-    setDateRange({
-      from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
-      to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
-    })
-    setCheckInTime(parseTimeParam(searchParams.get('checkInTime')))
-    setCheckOutTime(parseTimeParam(searchParams.get('checkOutTime')))
-    setSearchQuery(searchParams.get('q') || '')
-    const sem = searchParams.get('semantic')
-    if (sem === '0') setSmartSearchOn(false)
-    else if (sem === '1') setSmartSearchOn(true)
-    setCatalogSort(parseCatalogSortFromParams(searchParams))
-  }, [searchParamsKey])
-
-  useEffect(() => {
-    const total = Math.max(1, parseInt(guests, 10) || 1)
-    const currentTotal =
-      Math.max(1, parseInt(guestsBreakdown?.adults, 10) || 1) +
-      Math.max(0, parseInt(guestsBreakdown?.children, 10) || 0) +
-      Math.max(0, parseInt(guestsBreakdown?.infants, 10) || 0)
-    if (currentTotal === total) return
-    setGuestsBreakdown({ adults: total, children: 0, infants: 0 })
-  }, [guests, guestsBreakdown])
 
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const { data: catalogCategories = [] } = usePublicCategoriesQuery()
@@ -131,27 +52,12 @@ function ListingsContent() {
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const [showMap, setShowMap] = useState(false)
   const [userBookings, setUserBookings] = useState([])
-  const [appliedBbox, setAppliedBbox] = useState(null)
-  const [extraFilters, setExtraFilters] = useState(() => defaultExtraFilters())
+  const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
+  const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '')
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
-  const [smartSearchOn, setSmartSearchOn] = useState(() => {
-    const sem = searchParams.get('semantic')
-    if (sem === '0') return false
-    if (sem === '1') return true
-    if (typeof window !== 'undefined') {
-      try {
-        const ls = localStorage.getItem('gostaylo_smart_search')
-        if (ls === '0') return false
-        if (ls === '1') return true
-      } catch {
-        /* ignore */
-      }
-    }
-    return true
-  })
-  const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
+
+  const searchParamsKey = searchParams.toString()
 
   /** Slug → эффективный `wizard_profile` (колонка или наследование от родителя, Stage 68.0). */
   const wizardProfileBySlug = useMemo(() => {
@@ -163,6 +69,45 @@ function ListingsContent() {
     }
     return m
   }, [catalogCategories])
+
+  const urlCommitExtras = useMemo(
+    () => ({ extraFilters, appliedBbox, catalogSort }),
+    [extraFilters, appliedBbox, catalogSort],
+  )
+
+  const {
+    selectedCategory,
+    setSelectedCategory,
+    where,
+    setWhere,
+    dateRange,
+    setDateRange,
+    checkInTime,
+    setCheckInTime,
+    checkOutTime,
+    setCheckOutTime,
+    guests,
+    setGuests,
+    guestsBreakdown,
+    setGuestsBreakdown,
+    searchQuery,
+    setSearchQuery,
+    smartSearchOn,
+    setSmartSearchOn,
+    semanticSiteEnabled,
+    debouncedWhere,
+    debouncedGuests,
+    debouncedDateRange,
+    debouncedSearchQuery,
+    commitToUrl,
+    markUrlPushSkipped,
+    syncLastPushedQuery,
+  } = usePublicSearchFilters({
+    surface: 'catalog',
+    categoriesFromApi: catalogCategories,
+    wizardProfileBySlug,
+    urlCommitExtras,
+  })
 
   const selectedCategoryWizardProfile = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') return null
@@ -176,7 +121,6 @@ function ListingsContent() {
 
   const lastPushedSearchRef = useRef('')
   const didInitUrlHydrateRef = useRef(false)
-  const skipNextUrlPushRef = useRef(false)
   const catalogSortRef = useRef(catalogSort)
 
   const mapFitResetKey = useMemo(
@@ -211,33 +155,25 @@ function ListingsContent() {
     if (!didInitUrlHydrateRef.current) {
       didInitUrlHydrateRef.current = true
       lastPushedSearchRef.current = incoming
+      syncLastPushedQuery(incoming)
       setExtraFilters(parseExtraFiltersFromParams(searchParams))
       setAppliedBbox(parseBBoxFromParams(searchParams))
-      skipNextUrlPushRef.current = true
+      markUrlPushSkipped()
       return
     }
     if (incoming === lastPushedSearchRef.current) return
     lastPushedSearchRef.current = incoming
+    syncLastPushedQuery(incoming)
     setExtraFilters(parseExtraFiltersFromParams(searchParams))
     setAppliedBbox(parseBBoxFromParams(searchParams))
-  }, [searchParamsKey, searchParams])
+    setCatalogSort(parseCatalogSortFromParams(searchParams))
+  }, [searchParamsKey, searchParams, syncLastPushedQuery, markUrlPushSkipped])
 
   useEffect(() => {
     if (!mapSelectedListingId) return
     const t = setTimeout(() => setMapSelectedListingId(null), 5000)
     return () => clearTimeout(t)
   }, [mapSelectedListingId])
-
-  useEffect(() => {
-    fetch('/api/v2/site-features')
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.data && typeof j.data.semanticSearchOnSite === 'boolean') {
-          setSemanticSiteEnabled(j.data.semanticSearchOnSite)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   const handleSearchThisArea = useCallback((b) => {
     setAppliedBbox(b)
@@ -254,11 +190,6 @@ function ListingsContent() {
   const handleListingCardSelect = useCallback((id) => {
     setMapSelectedListingId(id)
   }, [])
-
-  const debouncedWhere = useDebounce(where)
-  const debouncedGuests = useDebounce(guests)
-  const debouncedDateRange = useDebounce(dateRange)
-  const debouncedSearchQuery = useDebounce(searchQuery, 400)
 
   const [initialSemanticFromUrl] = useState(() => {
     const s = searchParams.get('semantic')
@@ -329,11 +260,12 @@ function ListingsContent() {
   }, [isMobile, showMap])
 
   const handleCatalogSearchSubmit = useCallback(() => {
+    commitToUrl()
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
       setAiSearchPending(true)
     }
     commitSemanticSearch()
-  }, [smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
+  }, [commitToUrl, smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
 
   useEffect(() => {
     if (!loading) setAiSearchPending(false)
@@ -404,50 +336,6 @@ function ListingsContent() {
     window.addEventListener('language-change', handler)
     return () => window.removeEventListener('language-change', handler)
   }, [])
-
-  useEffect(() => {
-    if (skipNextUrlPushRef.current) {
-      skipNextUrlPushRef.current = false
-      return
-    }
-    const params = new URLSearchParams()
-    if (selectedCategory !== 'all') params.set('category', selectedCategory)
-    if (debouncedWhere !== 'all') params.set('where', debouncedWhere)
-    if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
-    if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
-    if (
-      isCatalogTransportIntervalMode(selectedCategory, wizardProfileBySlug) &&
-      debouncedDateRange.from &&
-      debouncedDateRange.to
-    ) {
-      params.set('checkInTime', checkInTime)
-      params.set('checkOutTime', checkOutTime)
-    }
-    if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
-    const qt = debouncedSearchQuery.trim()
-    if (qt.length >= 2) params.set('q', qt)
-    bboxToSearchParams(appliedBbox, params)
-    appendExtraFiltersToParams(params, extraFilters)
-    if (catalogSort && catalogSort !== 'recommended') params.set('sort', catalogSort)
-    const s = params.toString()
-    if (s === lastPushedSearchRef.current) return
-    lastPushedSearchRef.current = s
-    router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false })
-  }, [
-    router,
-    pathname,
-    selectedCategory,
-    debouncedWhere,
-    debouncedDateRange,
-    debouncedGuests,
-    checkInTime,
-    checkOutTime,
-    debouncedSearchQuery,
-    appliedBbox,
-    extraFilters,
-    wizardProfileBySlug,
-    catalogSort,
-  ])
 
   const clearDates = () => setDateRange({ from: null, to: null })
 

@@ -397,3 +397,161 @@ Re-read this file when:
 - Единая геометрия shell на mobile без per-page magic numbers (Airbnb / Stripe pattern).
 - Безопасные зоны (`env(safe-area-inset-bottom)`) учитываются один раз в shell utilities.
 - Sub-navigation не дублирует fixed chrome — ground truth UX для profile hub и partner breadcrumbs.
+
+---
+
+## ADR-101: Public Search Chrome SSOT (Home + Catalog)
+
+**Status:** Approved (normative); **implementation:** staged — см. Migration waves ниже  
+**Date:** 2026-06-20  
+**Author:** Pavel + engineering  
+**Depends on:** ADR-100 (App Shell Contract)  
+**Related:** `docs/SEARCH_FILTERS_QUERY_MAP.md`, ADR-128 (TanStack Query для fetch каталога)
+
+### Context
+
+Публичный поиск (What / Where / When / Who + текст / semantic) — **primary conversion surface** Super-App. На **2026-06-20** реализация **фрагментирована**:
+
+| Surface | Компонент | Scroll → compact |
+|---------|-----------|------------------|
+| Главная hero | `HomeHeroLuxe` — **собственная** разметка полей | — (in-flow, уезжает при scroll) |
+| Главная compact | `StickySearchBar` — **третья** копия полей | `scrollY > 280`, `position: fixed` |
+| Каталог | `FilterBar` → `UnifiedSearchBar variant="filter"` | **нет** — только `sticky`, always expanded |
+| Legacy | `HomeHero` → `UnifiedSearchBar variant="hero"` | не на прод-главной |
+
+**Состояние фильтров:** `useHomeFilters` (главная) vs inline `useState` в `listings-catalog-client.jsx` (каталог) — дублирование контракта URL/debounce/semantic.
+
+**Shell:** ADR-100 покрывает `--app-header-height`, но **не** высоту search chrome. Каталог: `MainContent` даёт `padding-top` под header **и** `FilterBar` sticky под header → двойная геометрия; `SearchMapWrapper` использует hardcode `lg:top-20` вместо shell utilities.
+
+**UX-баг каталога:** expanded sticky bar + ghost placeholder + `lg:items-stretch` list/map → «пропасть» белого пространства при малом числе карточек. Ожидание пользователя (Airbnb-class): **одна** search chrome с фазами **expanded → compact** на home **и** catalog.
+
+### Decision
+
+Вводим **Public Search Chrome** — единый нормативный слой **между** `AppHeader` (nav only) и page content на маршрутах **`/`** и **`/listings`** (+ будущие public discovery surfaces по тому же контракту).
+
+#### 1. Разделение ответственности (3 слоя)
+
+| Слой | SSOT | Запрещено |
+|------|------|-----------|
+| **Navigation chrome** | `AppHeader` — logo, nav, locale, wallet, user menu | Поля What/Where/When/Who в header |
+| **Search chrome** | `PublicSearchChrome` (целевой модуль) | Параллельные `HomeHeroLuxe` fields + `StickySearchBar` + catalog-only hero без compact |
+| **Search state & URL** | `usePublicSearchFilters` (целевой хук) | Дублирующий filter state на страницах |
+| **Search fields UI** | `UnifiedSearchBar` — единственная разметка полей; density через props/`layoutPhase` | Третья inline-разметка Where/Dates/Guests в hero |
+
+**Search chrome ≠ sub-navigation (ADR-100):** pill-чипы подкатегорий, SEO subline, кнопка «Фильтры» — **catalog extensions**, рендерятся **внутри** chrome или adjacent slot, но **scroll-phase** (expanded/compact) управляется **одним** контрактом chrome, не отдельными sticky-блоками.
+
+#### 2. Фазы chrome (`layoutPhase`)
+
+| Phase | Home `/` | Catalog `/listings` |
+|-------|----------|---------------------|
+| **`expanded`** | Hero capsule (tabs + keyword + 4 поля) | Full filter row + optional meta/chips |
+| **`compact`** | Одна строка + summary chips (сейчас `StickySearchBar`) | Одна строка + summary chips + «Фильтры» |
+| **`hidden`** | Только mobile FAB / bottom sheet contexts | Не используется на desktop catalog |
+
+**Переход expanded → compact:**
+
+- **Home:** порог по умолчанию — hero sentinel / `scrollY` ≈ **280px** (сохранить текущий UX baseline).
+- **Catalog:** **IntersectionObserver** на sentinel сразу под expanded chrome (высота FilterBar **динамическая** — chips, SEO, transport time row); не фиксированный `scrollY`.
+- Анимация: **300ms** ease (как `StickySearchBar`); compact на catalog — **`position: fixed`** + `.app-fixed-below-header` **или** sticky с collapsed height — выбор в Wave 1 (предпочтение: **fixed compact** на catalog для parity с home, без ghost placeholder full height).
+
+#### 3. SSOT состояния фильтров
+
+**`usePublicSearchFilters({ surface: 'home' | 'catalog' })`** — единый контракт:
+
+- Поля: `category`, `where`, `dateRange`, `checkInTime`, `checkOutTime`, `guests`, `guestsBreakdown`, `textQuery`, `smartSearchOn`, `semanticSiteEnabled`
+- Debounce: те же интервалы, что `useHomeFilters` / catalog today
+- **URL = source of truth** для shareable state: **`lib/search/listings-page-url.js`** (`parse*` / `append*` / `bbox*`)
+- Home: `handleSearch` → `router.push('/listings?…')`; catalog: `router.replace` без scroll (как сейчас)
+- Transport interval: `effectiveCategoryWizardProfileRaw` + `isCatalogTransportIntervalMode` — без ветвления «только жильё»
+
+**Не вводим** глобальный Redux/Zustand для фильтров на Wave 0–2. Допустим **React context** только для `layoutPhase` + measured chrome height внутри `PublicSearchChrome` provider (локально для public routes).
+
+#### 4. CSS / shell extensions (ADR-100 addendum)
+
+Новые переменные на `<html>` (ResizeObserver на search chrome, аналог header):
+
+| Variable | Writer | Reader |
+|----------|--------|--------|
+| `--app-search-chrome-height` | `PublicSearchChrome` | sticky map, list offsets |
+| `--app-public-top-offset` | derived: `calc(var(--app-header-height) + var(--app-search-chrome-height))` | catalog map sticky, optional content pad |
+
+Новые utilities в `app/globals.css`:
+
+- **`.app-sticky-below-public-chrome`** — `top: var(--app-public-top-offset, var(--app-header-height))`
+- **`.app-fixed-below-public-chrome`** — fixed variant для compact overlay
+
+**MainContent bypass matrix** (обновление `components/main-content.jsx`):
+
+| Route | `skipTop` | Кто компенсирует top |
+|-------|-----------|----------------------|
+| `/` | `true` | Hero / chrome (как сейчас) |
+| `/listings` | **`true`** (новое) | `PublicSearchChrome` + `--app-public-top-offset` |
+
+**Запрещено** на public search surfaces: `lg:top-20`, `top-[5rem]`, ad-hoc `calc(100vh - 6rem)` без ссылки на CSS vars; расширить **`scripts/check-shell-insets.js`** в Wave 3.
+
+#### 5. Компонентная карта (target)
+
+```
+AppHeader (fixed, nav)
+PublicSearchChrome
+  ├─ phase: expanded | compact
+  ├─ UnifiedSearchBar (density from phase + surface)
+  ├─ home: category tabs, keyword row (expanded only)
+  ├─ catalog: filterExtrasSlot (SearchFiltersDialog trigger)
+  └─ catalog: catalogMetaSlot (sr-only h1, subline, subcategory chips — expanded or compact chips row)
+Page content (rails, grid, map)
+```
+
+**Deprecate после миграции:**
+
+- Inline hero fields в `HomeHeroLuxe` → chrome expanded slot
+- `StickySearchBar.jsx` → chrome compact home
+- `FilterBar.jsx` as standalone sticky owner → thin wrapper или merge into `PublicSearchChrome`
+- `HomeHero.jsx` (legacy) — удалить если не referenced
+
+**Сохранить без merge:**
+
+- `SearchFiltersDialog`, `WhereCombobox`, `GuestsPopover`, `SearchCalendar` — primitives
+- `MobileSearchBottomSheet` + FAB — mobile home; FAB scroll threshold унифицировать через `usePublicSearchChrome`
+
+#### 6. Catalog layout invariants (fix white gap)
+
+Независимо от chrome wave, **норматив layout каталога**:
+
+- **Не** использовать `lg:items-stretch` между list column и map, если map height ≈ viewport — list column **не** растягивается под map (`items-start`).
+- Map sticky offset: **`.app-sticky-below-public-chrome`**, height: `calc(100dvh - var(--app-public-top-offset) - var(--catalog-map-bottom-gap, 0px))`.
+- `ForYouRail` / referral strip — **in-flow** между chrome и `#listings-results`; не резервировать под них фиксированный top pad.
+
+### Migration waves (implementation order)
+
+| Wave | Scope | Exit criteria |
+|------|-------|---------------|
+| **0 — ADR + guards** | Этот ADR; passport/manifest; не трогать вёрстку без wave owner | PR checklist ссылается ADR-101 |
+| **1 — State SSOT** | `usePublicSearchFilters`; home + catalog consume; удалить дубли state | ✅ Wave 1 (2026-06-20): hook + URL helpers; home/catalog wired |
+| **2 — Chrome shell** | `PublicSearchChrome` + CSS vars; catalog compact phase; bypass `/listings` skipTop | Catalog scroll: expanded→compact; нет double header pad |
+| **3 — UI merge** | Hero → UnifiedSearchBar expanded; удалить `StickySearchBar` duplicate markup | Один `UnifiedSearchBar` tree для полей |
+| **4 — CI + cleanup** | `check-shell-insets` + e2e scroll chrome | `npm run check:shell` green; Playwright smoke home+catalog scroll |
+
+**До завершения Wave 2** текущие файлы (`HomeHeroLuxe`, `StickySearchBar`, `FilterBar`) остаются **legacy implementation** — новые фичи поиска добавлять **только** в target modules или с явным ticket на перенос в wave.
+
+### Non-goals (этот ADR)
+
+- Partner listing wizard search — отдельный workspace UX
+- Admin global search — `AdminGlobalSearch`
+- PDP booking bar / `ListingPageNav` — см. ADR-100 PDP waves
+- Изменение контракта **`GET /api/v2/search`** / ranking — только UI shell
+
+### Why
+
+- **Airbnb / Booking pattern:** one filter state, two visual densities, URL-synced search — без трёх копий полей.
+- **SSOT с ADR-100:** header height + search chrome height = предсказуемая геометрия карты и sticky элементов.
+- **Масштабируемость Super-App:** новые вертикали и public landing pages подключают `PublicSearchChrome`, не fork hero.
+- **Устранение catalog gap:** compact phase + layout invariants, не точечные padding-хаки.
+
+### Acceptance (Definition of Done)
+
+1. Home и `/listings`: при scroll вниз expanded chrome **сжимается** в compact bar под `AppHeader`.
+2. Фильтры на home и catalog **синхронны** через URL; нет расхождения debounce/semantic между surfaces.
+3. `--app-search-chrome-height` обновляется при смене phase/chips; map/list sticky используют **только** shell utilities.
+4. `npm run check:shell` (расширенный) не находит hardcoded top offsets на `/listings` map chrome.
+5. Документы: этот ADR + актуальные строки в `TECHNICAL_MANIFESTO.md` / `ARCHITECTURAL_PASSPORT.md`.
