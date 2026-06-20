@@ -1,4 +1,10 @@
 {
+  "components\\listing\\ListingMap.jsx -> @/components/listing/ListingMapPin": {
+    "id": "components\\listing\\ListingMap.jsx -> @/components/listing/ListingMapPin",
+    "files": [
+      "static/chunks/_app-pages-browser_components_listing_ListingMapPin_jsx.js"
+    ]
+  },
   "components\\listing\\ListingMap.jsx -> react-leaflet": {
     "id": "components\\listing\\ListingMap.jsx -> react-leaflet",
     "files": [

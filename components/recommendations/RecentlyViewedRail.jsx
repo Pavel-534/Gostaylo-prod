@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useRef } from 'react'
-import Link from 'next/link'
-import { ListingCard } from '@/components/listing-card'
+import { cn } from '@/lib/utils'
+import { RecommendationRailCard } from '@/components/recommendations/RecommendationRailCard'
 import { getUIText } from '@/lib/translations'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 import { RecommendationRailShell } from '@/components/recommendations/RecommendationRailShell'
@@ -57,11 +57,20 @@ export function RecentlyViewedRail({
       className={className}
     >
       {items.map((listing, index) => (
-        <div key={listing.id} className={RECOMMENDATION_RAIL_CARD_CLASS}>
-          <Link
-            href={`/listings/${listing.id}`}
-            className="block"
-            onClick={() =>
+        <div key={listing.id} className={cn(RECOMMENDATION_RAIL_CARD_CLASS, 'h-full')}>
+          <RecommendationRailCard
+            listing={{
+              ...listing,
+              basePriceThb: listing.base_price_thb ?? listing.basePriceThb,
+              guestDisplayPriceThb:
+                listing.guest_display_price_thb ?? listing.guestDisplayPriceThb,
+              coverImage: listing.cover_image ?? listing.coverImage,
+            }}
+            language={language}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            className="h-full"
+            onNavigate={() =>
               trackRecommendationClick({
                 surface,
                 listingId: listing.id,
@@ -69,21 +78,7 @@ export function RecentlyViewedRail({
                 meta: { mode: recentMode, authenticated },
               })
             }
-          >
-            <ListingCard
-              listing={{
-                ...listing,
-                basePriceThb: listing.base_price_thb ?? listing.basePriceThb,
-                guestDisplayPriceThb:
-                  listing.guest_display_price_thb ?? listing.guestDisplayPriceThb,
-                coverImage: listing.cover_image ?? listing.coverImage,
-              }}
-              language={language}
-              currency={currency}
-              exchangeRates={exchangeRates}
-              className="h-full"
-            />
-          </Link>
+          />
         </div>
       ))}
     </RecommendationRailShell>

@@ -322,7 +322,7 @@ export function ChatMessageList({
   return (
     <div
       className={cn(
-        'flex w-full min-w-0 max-w-full flex-col gap-0 px-4 py-3 pb-28 sm:px-5 sm:py-4 sm:pb-24',
+        'flex w-full min-w-0 max-w-full flex-col gap-0 px-4 py-3 pb-4 sm:px-5 sm:py-4',
         className,
       )}
     >

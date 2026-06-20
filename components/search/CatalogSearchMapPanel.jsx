@@ -56,11 +56,12 @@ function CatalogSearchMapPanelComponent({
     return { ...searchKeyParams, bounds: mapQueryBounds, limit: '500' }
   }, [searchKeyParams, mapQueryBounds, boundsReady])
 
-  const { mode, pins, clusters, isLoading } = useMapPinsFetch(mapPinsKeyParams, {
+  const { mode, pins, clusters } = useMapPinsFetch(mapPinsKeyParams, {
     enabled: mapActive && boundsReady,
   })
 
-  const mapPinsUseApi = boundsReady && !isLoading
+  /** Bbox ready → merge API pins with catalog listings (sidebar SSOT); no flip on isLoading. */
+  const mapPinsUseApi = boundsReady
 
   const handleViewportBbox = useCallback(
     (bbox) => {

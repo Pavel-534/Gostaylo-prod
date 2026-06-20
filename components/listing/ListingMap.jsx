@@ -23,7 +23,10 @@ const TileLayer = dynamic(() => import('react-leaflet').then((mod) => mod.TileLa
 
 const Circle = dynamic(() => import('react-leaflet').then((mod) => mod.Circle), { ssr: false })
 
-const Marker = dynamic(() => import('react-leaflet').then((mod) => mod.Marker), { ssr: false })
+const ListingMapPin = dynamic(
+  () => import('@/components/listing/ListingMapPin').then((mod) => mod.ListingMapPin),
+  { ssr: false },
+)
 
 const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), { ssr: false })
 
@@ -117,7 +120,7 @@ export function ListingMap({
           )}
 
           {showExactMarker && (
-            <Marker position={position}>
+            <ListingMapPin position={position}>
               <Popup>
                 <div className="p-2">
                   <h4 className="font-semibold text-slate-900">{title}</h4>
@@ -125,11 +128,11 @@ export function ListingMap({
                   <p className="text-xs text-brand mt-2 font-medium">{t('mapListing_exactPopup')}</p>
                 </div>
               </Popup>
-            </Marker>
+            </ListingMapPin>
           )}
 
           {showPrivacyCircle && (
-            <Marker position={position}>
+            <ListingMapPin position={position} approximate>
               <Popup>
                 <div className="p-2">
                   <h4 className="font-semibold text-slate-900">{title}</h4>
@@ -137,7 +140,7 @@ export function ListingMap({
                   <p className="text-xs text-slate-500 mt-2">{t('mapListing_approximatePopup')}</p>
                 </div>
               </Popup>
-            </Marker>
+            </ListingMapPin>
           )}
         </MapContainer>
       </div>

@@ -23,6 +23,12 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import {
+  LISTING_CARD_CONTENT_MIN_H,
+  LISTING_CARD_SPEC_ROW_MIN_H,
+  LISTING_CARD_TITLE_ROW_MIN_H,
+  LISTING_CARD_TRUST_ROW_MIN_H,
+} from '@/lib/listing/listing-card-layout'
 
 export function ListingCard({
   listing,
@@ -137,7 +143,7 @@ export function ListingCard({
       data-testid={`listing-card-${id}`}
       className={cn(
         // Base
-        'group flex min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
+        'group flex h-full min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
         // Premium hover: lift + deepen shadow + teal border accent
         'transition-all duration-300 ease-out',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
@@ -182,9 +188,14 @@ export function ListingCard({
       />
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
-      <Link href={detailUrl} className="flex flex-1 flex-col p-4">
+      <Link href={detailUrl} className={cn('flex flex-1 flex-col p-4', LISTING_CARD_CONTENT_MIN_H)}>
           {/* Title Row */}
-          <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
+          <div
+            className={cn(
+              'mb-2 flex min-w-0 items-start justify-between gap-2',
+              LISTING_CARD_TITLE_ROW_MIN_H,
+            )}
+          >
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-brand-hover transition-colors">
@@ -199,12 +210,15 @@ export function ListingCard({
                   </Badge>
                 ) : null}
               </div>
-              <div className="mt-1 space-y-0.5">
+              <div className={cn('mt-1 space-y-0.5', LISTING_CARD_TRUST_ROW_MIN_H)}>
                 {categoryLine ? (
                   <p className="text-[11px] font-medium leading-snug text-slate-400">{categoryLine}</p>
                 ) : null}
                 {district ? (
-                  <p className="text-sm text-slate-500">{district}</p>
+                  <p className="flex items-center gap-1 text-sm text-slate-500">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span className="min-w-0 truncate">{district}</span>
+                  </p>
                 ) : null}
               </div>
               <div className="min-w-0 space-y-1 overflow-hidden">
@@ -230,17 +244,11 @@ export function ListingCard({
             )}
           </div>
 
-          <ListingCardSpecsRow listing={listing} language={language} />
+          <div className={LISTING_CARD_SPEC_ROW_MIN_H}>
+            <ListingCardSpecsRow listing={listing} language={language} />
+          </div>
 
-          {/* Location */}
-          {district && (
-            <div className="mb-3 flex items-center gap-1 text-sm text-slate-500">
-              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0">{district}</span>
-            </div>
-          )}
-
-          {/* Price — отдельный слой над trust/specs-wrap (моб. &lt;768: не пересекается с бейджем Verified в ряду спеки). */}
+          {/* Price — pinned to card bottom via flex-1 + mt-auto */}
           <div className="relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3">
             <CardPriceDisplay
               listing={listing}

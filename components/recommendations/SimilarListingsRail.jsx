@@ -1,17 +1,23 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import { ListingCard } from '@/components/listing-card'
-import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
+import { RecommendationRailCard } from '@/components/recommendations/RecommendationRailCard'
 import { getUIText } from '@/lib/translations'
-import { SIMILAR_MIN_RESULTS } from '@/lib/recommendations/constants'
 import { RecommendationRailShell } from '@/components/recommendations/RecommendationRailShell'
 import {
   trackRecommendationClick,
   useRecommendationRailAnalytics,
 } from '@/lib/analytics/recommendation-rail-analytics.js'
+import {
+  SIMILAR_MIN_RESULTS,
+  RECOMMENDATION_RAIL_CARD_CLASS,
+} from '@/lib/recommendations/constants'
 
+/**
+ * PDP «Похожие объявления» — тот же compact rail SSOT, что «Недавно смотрели» / «Для вас».
+ * Без skeleton: грузится в фоне, секция появляется только когда есть ≥ SIMILAR_MIN_RESULTS.
+ */
 export function SimilarListingsRail({
   listingId,
   language = 'ru',
@@ -50,7 +56,10 @@ export function SimilarListingsRail({
     }
   }, [anchorId])
 
-  const railReady = !loading && listings.length >= SIMILAR_MIN_RESULTS
+  const shouldRender = useMemo(
+    () => !loading && listings.length >= SIMILAR_MIN_RESULTS,
+    [loading, listings.length],
+  )
 
   useRecommendationRailAnalytics({
     surface: 'similar_pdp',
@@ -59,23 +68,14 @@ export function SimilarListingsRail({
     anchorListingId: anchorId || null,
     containerRef,
     minVisible: SIMILAR_MIN_RESULTS,
-    enabled: railReady,
+    enabled: shouldRender,
   })
 
   if (loading) {
-    return (
-      <RecommendationRailShell
-        title={getUIText('similarListingsTitle', language)}
-        className={className}
-      >
-        <div className="min-w-[260px] snap-start">
-          <ListingGridSkeleton count={1} />
-        </div>
-      </RecommendationRailShell>
-    )
+    return null
   }
 
-  if (listings.length < SIMILAR_MIN_RESULTS) return null
+  if (!shouldRender) return null
 
   return (
     <RecommendationRailShell
@@ -84,11 +84,14 @@ export function SimilarListingsRail({
       className={className}
     >
       {listings.map((listing, index) => (
-        <div key={listing.id} className="w-[260px] shrink-0 snap-start">
-          <Link
-            href={`/listings/${listing.id}`}
-            className="block"
-            onClick={() =>
+        <div key={listing.id} className={cn(RECOMMENDATION_RAIL_CARD_CLASS, 'h-full')}>
+          <RecommendationRailCard
+            listing={listing}
+            language={language}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            className="h-full"
+            onNavigate={() =>
               trackRecommendationClick({
                 surface: 'similar_pdp',
                 listingId: listing.id,
@@ -97,15 +100,7 @@ export function SimilarListingsRail({
                 anchorListingId: anchorId,
               })
             }
-          >
-            <ListingCard
-              listing={listing}
-              language={language}
-              currency={currency}
-              exchangeRates={exchangeRates}
-              className="h-full"
-            />
-          </Link>
+          />
         </div>
       ))}
     </RecommendationRailShell>

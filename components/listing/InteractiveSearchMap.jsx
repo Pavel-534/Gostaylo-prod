@@ -275,8 +275,27 @@ function listingToPin(listing) {
     id: String(listing.id),
     lat: ll.lat,
     lng: ll.lng,
-    price: Number.isFinite(thb) ? thb : null,
+    price: Number.isFinite(thb) && thb > 0 ? thb : null,
+    isApproximate: listing.isApproximate === true,
   }
+}
+
+/**
+ * Sidebar listings always stay on map; API pins add viewport extras (Stage 170.11).
+ */
+function mergeCatalogMapPins(listings, mapPins, useApiLayer) {
+  const fromListings = (listings || []).map(listingToPin).filter(Boolean)
+  if (!useApiLayer) return fromListings
+
+  const byId = new Map()
+  for (const pin of Array.isArray(mapPins) ? mapPins : []) {
+    if (pin?.id) byId.set(String(pin.id), pin)
+  }
+  for (const pin of fromListings) {
+    const id = String(pin.id)
+    if (!byId.has(id)) byId.set(id, pin)
+  }
+  return [...byId.values()]
 }
 
 function pinPriceLabel(pin, currency, exchangeRates, language, approximate) {
@@ -286,17 +305,6 @@ function pinPriceLabel(pin, currency, exchangeRates, language, approximate) {
       ? formatPrice(Number(thb), currency, exchangeRates, language)
       : '—'
   return (approximate ? '~' : '') + text
-}
-
-function markerVisualFlags(listing, hasConfirmedBookingFn) {
-  if (hasConfirmedBookingFn(listing.id)) {
-    return { approximate: false }
-  }
-  const mode = getListingLocationDisplayMode({
-    categorySlug: listingCategorySlug(listing),
-    categoryId: listing.category_id ?? listing.categoryId,
-  })
-  return { approximate: mode === 'privacy' }
 }
 
 export default function InteractiveSearchMap({
@@ -344,20 +352,11 @@ export default function InteractiveSearchMap({
     [userId, userBookings]
   )
 
-  const priceForMarker = useCallback(
-    (listing) => {
-      const thb = getGuestDisplayPerNight(listing)
-      return formatPrice(thb, currency, exchangeRates, language)
-    },
-    [currency, exchangeRates, language]
-  )
-
   const useServerClusters = mapPinsUseApi && mapMode === 'clusters' && (mapClusters?.length ?? 0) > 0
 
   const effectivePins = useMemo(() => {
     if (useServerClusters) return []
-    if (mapPinsUseApi) return Array.isArray(mapPins) ? mapPins : []
-    return (listings || []).map(listingToPin).filter(Boolean)
+    return mergeCatalogMapPins(listings, mapPins, mapPinsUseApi)
   }, [useServerClusters, mapPinsUseApi, mapPins, listings])
 
   const fitListings = useMemo(() => {
@@ -448,10 +447,10 @@ export default function InteractiveSearchMap({
             animateAddingMarkers={false}
             iconCreateFunction={(cluster) => createSearchMapClusterDivIcon(L, cluster)}
           >
-            {mapPinsUseApi
-              ? effectivePins.map((pin) => {
+            {effectivePins.map((pin) => {
                   const position = [pin.lat, pin.lng]
                   if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
+                  const listingMatch = (listings || []).find((l) => String(l.id) === String(pin.id))
                   const priceText = pinPriceLabel(
                     pin,
                     currency,
@@ -462,6 +461,7 @@ export default function InteractiveSearchMap({
                   return (
                     <ListingPriceMarker
                       key={pin.id}
+                      listing={listingMatch || null}
                       pin={pin}
                       position={position}
                       priceLabel={priceText || '—'}
@@ -472,29 +472,7 @@ export default function InteractiveSearchMap({
                       initialDates={initialDates}
                       currency={currency}
                       exchangeRates={exchangeRates}
-                      lazyPopup
-                    />
-                  )
-                })
-              : listings.map((listing) => {
-                  const position = getListingPosition(listing)
-                  if (!position) return null
-                  const { approximate } = markerVisualFlags(listing, hasConfirmedBooking)
-                  const priceText = (approximate ? '~' : '') + priceForMarker(listing)
-
-                  return (
-                    <ListingPriceMarker
-                      key={listing.id}
-                      listing={listing}
-                      position={position}
-                      priceLabel={priceText || '—'}
-                      approximate={approximate}
-                      selected={selectedListingId === listing.id}
-                      language={language}
-                      onSelect={onListingMarkerClick}
-                      initialDates={initialDates}
-                      currency={currency}
-                      exchangeRates={exchangeRates}
+                      lazyPopup={!listingMatch?.title}
                     />
                   )
                 })}

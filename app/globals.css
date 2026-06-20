@@ -360,6 +360,37 @@ code {
   border-color: #020617;
 }
 
+/* Stage 170.9 — PDP map pin (SVG divIcon, no broken leaflet PNG paths) */
+.leaflet-div-icon.gostaylo-map-pin-icon-root {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.leaflet-marker-icon.leaflet-div-icon.gostaylo-map-pin-icon-root {
+  overflow: visible !important;
+}
+
+.gostaylo-map-pin-slot {
+  display: flex;
+  width: 32px;
+  height: 40px;
+  align-items: flex-end;
+  justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.28));
+  pointer-events: none;
+}
+
+.gostaylo-map-pin-slot svg path {
+  fill: #006666;
+}
+
+.gostaylo-map-pin--approx svg path {
+  fill: #64748b;
+  stroke: #006666;
+  stroke-width: 1.5;
+}
+
 /* Stage 89.0 — search map clusters: density tiers from share of Verified markers (**`ListingPriceMarker`** → **`options.gslVerified`**). */
 .leaflet-marker-icon.gostaylo-map-cluster-wrap {
   background: transparent !important;

@@ -5,108 +5,26 @@
 
 'use client'
 
-import { useMemo } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import {
-  MapPin,
-  Star,
-  Bed,
-  Bath,
-  Users,
-  Square,
-  ShieldCheck,
-  Anchor,
-  Ship,
-  Clock,
-  Route,
-  Car,
-  Cog,
-  Info,
-} from 'lucide-react'
+import { MapPin, Star, ShieldCheck } from 'lucide-react'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
-import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
-import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
-import {
-  isTransportListingCategory,
-  isTourListingCategory,
-  isYachtLikeCategory,
-  showsPropertyInteriorSpecs,
-} from '@/lib/listing-category-slug'
-import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
-import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
+import { getUIText, getListingText } from '@/lib/translations'
+import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import { ListingGuestPolicies } from '@/components/listing/ListingStayPolicies'
+import { listingHasGuestPolicies } from '@/lib/listing/listing-good-to-know'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
-import {
-  getPublicListingMetadataSpecEntries,
-  listingMetadataSpecUiKey,
-} from '@/lib/listing-public-metadata-specs'
-import { formatListingTransmissionLabel } from '@/lib/listing-card-spec-profile'
-
-function useGuestListingModel(listing) {
-  return useMemo(() => {
-    if (!listing) return null
-    const categorySlug = String(listing?.categorySlug || listing?.category?.slug || '').toLowerCase()
-    return {
-      bedrooms: listing?.metadata?.bedrooms || 0,
-      bathrooms: listing?.metadata?.bathrooms || 0,
-      categorySlug,
-      transportListing: isTransportListingCategory(categorySlug),
-      propertyInterior: showsPropertyInteriorSpecs(categorySlug),
-      yachtLike: isYachtLikeCategory(categorySlug),
-      tourLike: isTourListingCategory(categorySlug),
-      maxGuests: resolveListingGuestCapacity(listing),
-      area: listing?.metadata?.area || 0,
-      vehicleYear: normalizeVehicleModelYearForDisplay(listing?.metadata?.vehicle_year),
-      cabins:
-        parseInt(
-          String(listing?.metadata?.cabins ?? listing?.metadata?.cabins_count ?? '').replace(/\D/g, ''),
-          10,
-        ) || 0,
-      durationHours:
-        parseInt(
-          String(
-            listing?.metadata?.duration_hours ?? listing?.metadata?.tour_hours ?? '',
-          ).replace(/\D/g, ''),
-          10,
-        ) || 0,
-      engineCc: parseInt(String(listing?.metadata?.engine_cc ?? '').replace(/\D/g, ''), 10) || 0,
-    }
-  }, [listing])
-}
 
 /**
- * Title, location, rating, and spec row.
+ * Title, location, rating, and spec row (SSOT: `ListingCardSpecsRow`).
  */
 export function GuestListingTitleBlock({ listing, language = 'en' }) {
-  const m = useGuestListingModel(listing)
-  const extraMetadataSpecs = useMemo(
-    () => getPublicListingMetadataSpecEntries(listing?.metadata),
-    [listing?.metadata],
-  )
-  if (!m || !listing) return null
-
-  const transmissionLabel = formatListingTransmissionLabel(listing?.metadata, language)
-
-  const {
-    bedrooms,
-    bathrooms,
-    categorySlug: _categorySlug,
-    transportListing,
-    propertyInterior,
-    yachtLike,
-    tourLike,
-    maxGuests,
-    area,
-    vehicleYear,
-    cabins,
-    durationHours,
-    engineCc,
-  } = m
+  if (!listing) return null
 
   const ownerVerified =
     listing.ownerVerified === true || listing.owner?.is_verified === true
@@ -152,113 +70,19 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 text-slate-700 py-4 border-y border-slate-100 flex-wrap">
-        {propertyInterior && bedrooms > 0 && (
-          <div className="flex items-center gap-2">
-            <Bed className="h-5 w-5 text-slate-400" />
-            <span>
-              {bedrooms} {getUIText('listingInfo_bedroomsWord', language)}
-            </span>
-          </div>
-        )}
-        {propertyInterior && bathrooms > 0 && (
-          <div className="flex items-center gap-2">
-            <Bath className="h-5 w-5 text-slate-400" />
-            <span>
-              {bathrooms} {getUIText('bathrooms', language)}
-            </span>
-          </div>
-        )}
-        {yachtLike && (
-          <div className="flex items-center gap-2">
-            <Anchor className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <span className="font-medium">{getCategoryName('yachts', language, listing?.category?.name)}</span>
-          </div>
-        )}
-        {yachtLike && cabins > 0 && (
-          <div className="flex items-center gap-2">
-            <Ship className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <span>
-              {cabins} {getUIText('listingInfo_cabinsWord', language)}
-            </span>
-          </div>
-        )}
-        {tourLike && (
-          <div className="flex items-center gap-2">
-            <Route className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <span className="font-medium">{getCategoryName('tours', language, listing?.category?.name)}</span>
-          </div>
-        )}
-        {tourLike && durationHours > 0 && (
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <span className="tabular-nums">
-              ~{durationHours} {getUIText('listingInfo_tourHoursUnit', language)}
-            </span>
-          </div>
-        )}
-        {transportListing && !yachtLike && (
-          <div className="flex items-center gap-2">
-            <Car className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-            <span className="font-medium">
-              {getCategoryName('vehicles', language, listing?.category?.name)}
-            </span>
-          </div>
-        )}
-        {transportListing && !yachtLike && engineCc > 0 && (
-          <span className="text-sm tabular-nums text-slate-600">
-            {getUIText('listingInfo_engineCcLabel', language).replace(/\{\{cc\}\}/g, String(engineCc))}
-          </span>
-        )}
-        {transportListing && !yachtLike && transmissionLabel ? (
-          <div className="flex min-w-0 max-w-[220px] items-center gap-2" title={transmissionLabel}>
-            <Cog className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
-            <span className="truncate text-sm">{transmissionLabel}</span>
-          </div>
-        ) : null}
-        {transportListing && !yachtLike && vehicleYear != null && (
-          <div className="flex items-center gap-2 text-slate-700">
-            <span>
-              {getUIText('listingModelYear', language)}:{' '}
-              <span className="font-medium tabular-nums">{vehicleYear}</span>
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-slate-400" />
-          <span>
-            {transportListing && !yachtLike
-              ? `${maxGuests} ${getUIText('seats', language)}`
-              : getUIText('listingUpToGuests', language).replace(/\{\{n\}\}/g, String(maxGuests))}
-          </span>
-        </div>
-        {propertyInterior && area > 0 && (
-          <div className="flex items-center gap-2">
-            <Square className="h-5 w-5 text-slate-400" />
-            <span>{getUIText('listingInfo_areaSqm', language).replace(/\{\{n\}\}/g, String(area))}</span>
-          </div>
-        )}
-        {extraMetadataSpecs.map(({ key, value }) => {
-          const uiKey = listingMetadataSpecUiKey(key)
-          const labelRaw = getUIText(uiKey, language)
-          const label = labelRaw !== uiKey ? labelRaw : key.replace(/_/g, ' ')
-          return (
-            <div key={key} className="flex items-center gap-2 text-slate-700">
-              <Info className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
-              <span className="tabular-nums">
-                <span className="text-slate-500">{label}: </span>
-                {value}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      <ListingCardSpecsRow
+        listing={listing}
+        language={language}
+        variant="pdp"
+        suppressTrustVerifiedMiniBadge
+        className="py-4 border-y border-slate-100"
+      />
     </div>
   )
 }
 
 /**
- * Long description, cancellation, host.
+ * Long description, policies, host.
  */
 export function GuestListingBodyBlock({ listing, language = 'en' }) {
   if (!listing) return null
@@ -271,11 +95,12 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
         </p>
       </div>
 
-      <Separator className="my-8" />
-      <ListingCancellationPolicy
-        policy={listing?.cancellationPolicy ?? listing?.cancellation_policy}
-        language={language}
-      />
+      {listingHasGuestPolicies(listing) ? (
+        <>
+          <Separator className="my-8" />
+          <ListingGuestPolicies listing={listing} language={language} />
+        </>
+      ) : null}
 
       {listing.owner ? (
         <>

@@ -213,14 +213,14 @@ function ListingSidebarComponent({
         ) : null}
         <div 
           className={cn(
-            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 transition-opacity duration-200",
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 items-stretch transition-opacity duration-200",
             isTransitioning ? "opacity-50" : "opacity-100"
           )}
         >
           {listings.map((listing, index) => (
             <div
               key={listing.id}
-              className="animate-in fade-in slide-in-from-bottom-4 duration-300"
+              className="flex h-full flex-col animate-in fade-in slide-in-from-bottom-4 duration-300"
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
               onMouseEnter={() => {
                 onListingPointerEnter?.(listing.id)
@@ -241,6 +241,7 @@ function ListingSidebarComponent({
                 isFavorited={userFavorites.has(listing.id)}
                 isMapHighlighted={highlightedListingId === listing.id}
                 catalogCategories={catalogCategories}
+                className="h-full flex-1"
               />
             </div>
           ))}

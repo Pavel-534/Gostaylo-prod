@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
-import { ListingCard } from '@/components/listing-card'
+import { cn } from '@/lib/utils'
+import { RecommendationRailCard } from '@/components/recommendations/RecommendationRailCard'
 import { getUIText } from '@/lib/translations'
 import { RecommendationRailShell } from '@/components/recommendations/RecommendationRailShell'
 import {
@@ -118,11 +118,14 @@ export function ForYouRail({
       className={className}
     >
       {displayListings.map((listing, index) => (
-        <div key={listing.id} className={RECOMMENDATION_RAIL_CARD_CLASS}>
-          <Link
-            href={`/listings/${listing.id}`}
-            className="block"
-            onClick={() =>
+        <div key={listing.id} className={cn(RECOMMENDATION_RAIL_CARD_CLASS, 'h-full')}>
+          <RecommendationRailCard
+            listing={listing}
+            language={language}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            className="h-full"
+            onNavigate={() =>
               trackRecommendationClick({
                 surface,
                 listingId: listing.id,
@@ -130,15 +133,7 @@ export function ForYouRail({
                 meta: analyticsMeta,
               })
             }
-          >
-            <ListingCard
-              listing={listing}
-              language={language}
-              currency={currency}
-              exchangeRates={exchangeRates}
-              className="h-full"
-            />
-          </Link>
+          />
         </div>
       ))}
     </RecommendationRailShell>

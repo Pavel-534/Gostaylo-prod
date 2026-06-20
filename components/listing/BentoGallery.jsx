@@ -109,12 +109,12 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
         }}
       >
         {displayUrls[0] && (
-          <div className="relative md:col-span-2 md:row-span-2 bg-slate-100">
+          <div className="group relative overflow-hidden bg-slate-100 md:col-span-2 md:row-span-2">
             <Image
               src={displayUrls[0]}
               alt={title}
               fill
-              className="object-cover hover:scale-105 transition-transform duration-300"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               sizes="50vw"
               priority
               placeholder="blur"
@@ -125,12 +125,12 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
         )}
 
         {displayUrls.slice(1, 5).map((img, idx) => (
-          <div key={idx} className="relative bg-slate-100">
+          <div key={idx} className="group relative overflow-hidden bg-slate-100">
             <Image
               src={img}
               alt={`${title} ${idx + 2}`}
               fill
-              className="object-cover hover:scale-105 transition-transform duration-300"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               sizes="25vw"
               placeholder="blur"
               blurDataURL={LISTING_CARD_BLUR_DATA_URL}

@@ -16,11 +16,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/listings/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -30,16 +25,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/listings/[id]/layout.js"
-    ],
-    "/renter/favorites/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/renter/favorites/page.js"
-    ],
-    "/renter/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/renter/layout.js"
     ]
   }
 }

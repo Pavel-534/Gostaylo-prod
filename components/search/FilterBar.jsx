@@ -100,59 +100,60 @@ export function FilterBar({
 
   const showRefineRow = subcategoryChips.length > 0 || parentCategoryObj;
 
+  const hasActiveFilterBadges =
+    (dateRange.from && dateRange.to) ||
+    (selectedCategory && selectedCategory !== 'all') ||
+    (where && where !== 'all') ||
+    guests !== '1';
+
   return (
     <>
-      <div className="bg-gradient-to-r from-brand to-brand-hover text-white py-6">
-        <div className="container mx-auto px-4">
-          <div className="mb-3">
-            <h1 className="text-2xl font-bold leading-tight">
-              {catalogHeadline || getUIText('searchResults', language)}
-            </h1>
-            {catalogSubline ? (
-              <p className="mt-1.5 text-sm font-medium text-white/90">{catalogSubline}</p>
-            ) : null}
-            {catalogParentBlurb ? (
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/80">{catalogParentBlurb}</p>
-            ) : null}
-          </div>
-
-          {(dateRange.from && dateRange.to) || (selectedCategory && selectedCategory !== 'all') || (where && where !== 'all') || guests !== '1' ? (
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="bg-white border-b sticky app-sticky-below-header z-20">
+        <div className="container mx-auto px-4 py-3">
+          <h1 className="sr-only">
+            {catalogHeadline || getUIText('searchResults', language)}
+            {catalogSubline ? ` — ${catalogSubline}` : ''}
+          </h1>
+          {hasActiveFilterBadges ? (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               {selectedCategory && selectedCategory !== 'all' && (
-                <Badge className="bg-white text-brand-hover">
+                <Badge variant="secondary" className="border-brand/20 bg-brand/5 text-brand-hover">
                   <CategoryBadgeIcon className="h-4 w-4 mr-1" />
                   {getCategoryName(selectedCategory, language) || selectedCategory}
                 </Badge>
               )}
-              {(dateRange.from && dateRange.to) && (
-                <Badge className="bg-white text-brand-hover hover:bg-white/90 flex items-center gap-2 px-3 py-1">
-                  <CalendarIcon className="h-4 w-4" />
+              {dateRange.from && dateRange.to ? (
+                <Badge variant="secondary" className="flex items-center gap-2 border-slate-200 bg-slate-50 px-3 py-1">
+                  <CalendarIcon className="h-4 w-4 text-brand" />
                   {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
-                  <span className="text-brand/70">({nights} {getUIText('nightShort', language)})</span>
+                  <span className="text-slate-500">
+                    ({nights} {getUIText('nightShort', language)})
+                  </span>
                   <button type="button" onClick={clearDates} className="ml-1 hover:text-red-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
-              )}
-              {guests !== '1' && (
-                <Badge className="bg-white text-brand-hover">
-                  <Users className="h-4 w-4 mr-1" />
+              ) : null}
+              {guests !== '1' ? (
+                <Badge variant="secondary" className="border-slate-200 bg-slate-50">
+                  <Users className="h-4 w-4 mr-1 text-brand" />
                   {guests} {pluralizeGuests(guests, language)}
                 </Badge>
-              )}
-              {where && where !== 'all' && (
-                <Badge className="bg-white text-brand-hover">
-                  <MapPin className="h-4 w-4 mr-1" />
+              ) : null}
+              {where && where !== 'all' ? (
+                <Badge variant="secondary" className="border-slate-200 bg-slate-50">
+                  <MapPin className="h-4 w-4 mr-1 text-brand" />
                   {where}
                 </Badge>
-              )}
+              ) : null}
             </div>
           ) : null}
-        </div>
-      </div>
-
-      <div className="bg-white border-b sticky app-sticky-below-header z-20">
-        <div className="container mx-auto px-4 py-3">
+          {catalogSubline ? (
+            <p className="mb-2 text-sm font-medium text-slate-600">{catalogSubline}</p>
+          ) : null}
+          {catalogParentBlurb ? (
+            <p className="mb-2 max-w-3xl text-sm leading-relaxed text-slate-500">{catalogParentBlurb}</p>
+          ) : null}
           <div className="flex flex-col gap-2 md:flex-row md:items-stretch md:gap-3">
             <div className="min-w-0 flex-1">
               <UnifiedSearchBar
