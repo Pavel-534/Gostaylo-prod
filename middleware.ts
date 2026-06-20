@@ -33,13 +33,13 @@ const PROTECTED_ROUTES = {
 } as const;
 
 /**
- * Бан и целостность профиля: fail-closed (ошибка сети, 4xx/5xx, пустой ответ → «как забанен»).
- * Критичные операции всё равно перепроверяются на Node в API.
+ * Бан: блокируем только при явном `is_banned === true`.
+ * Ошибки сети / REST / пустой ответ — не рвём сессию (fail-open); API перепроверит на Node.
  */
 async function isUserBanned(userId: string): Promise<boolean> {
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !userId) {
     console.error('[Middleware] Ban check skipped: missing SUPABASE_URL, SERVICE_ROLE_KEY, or userId');
-    return true;
+    return false;
   }
 
   try {
@@ -53,20 +53,20 @@ async function isUserBanned(userId: string): Promise<boolean> {
     });
 
     if (!res.ok) {
-      console.error(`[Middleware] Ban check HTTP ${res.status} for user ${userId}`);
-      return true;
+      console.error(`[Middleware] Ban check HTTP ${res.status} for user ${userId} — allow (fail-open)`);
+      return false;
     }
 
     const rows = (await res.json()) as { is_banned?: boolean }[];
     if (!Array.isArray(rows) || rows.length === 0) {
-      console.error(`[Middleware] Ban check: empty profile row for user ${userId}`);
-      return true;
+      console.error(`[Middleware] Ban check: empty profile row for user ${userId} — allow (fail-open)`);
+      return false;
     }
 
     return rows[0]?.is_banned === true;
   } catch (e) {
-    console.error('[Middleware] Ban check error:', e);
-    return true;
+    console.error('[Middleware] Ban check error (fail-open):', e);
+    return false;
   }
 }
 

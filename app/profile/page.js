@@ -175,7 +175,7 @@ function ProfileContent() {
     }
   }, [user])
 
-  const isPartner = user?.role === 'PARTNER'
+  const isPartner = authUser?.role === 'PARTNER'
   const isRenter = user?.role === 'RENTER' && !isPendingPartner && !isRejectedPartner
 
   function handleLogout() {

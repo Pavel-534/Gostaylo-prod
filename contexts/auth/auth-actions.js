@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy'
-import { signIn, signUp } from '@/lib/auth'
+import { signIn, signUp, getCurrentUser } from '@/lib/auth'
 import { getOAuthBrowserSupabase, getOAuthRedirectOrigin } from '@/lib/supabase/oauth-browser-client'
 import { safeInternalPath } from '@/lib/security/safe-internal-path'
 import {
@@ -151,7 +151,20 @@ export function useAuthActions(params) {
           return
         }
 
-        const normalizedLogin = normalizeAuthUser(result.user)
+        const verified = await getCurrentUser()
+        if (!verified) {
+          localStorage.removeItem('gostaylo_user')
+          setUser(null)
+          setError(
+            language === 'ru'
+              ? 'Сессия не сохранилась. Проверьте cookies для сайта и попробуйте снова.'
+              : 'Session was not saved. Check site cookies and try again.',
+          )
+          setSubmitting(false)
+          return
+        }
+
+        const normalizedLogin = normalizeAuthUser(verified)
         setUser(normalizedLogin)
         localStorage.setItem('gostaylo_user', JSON.stringify(normalizedLogin))
         closeLoginModal('success')

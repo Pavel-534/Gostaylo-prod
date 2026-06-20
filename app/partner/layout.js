@@ -48,11 +48,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { Badge } from '@/components/ui/badge'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
-import { getSiteDisplayName } from '@/lib/site-url'
-import { AirentoLogo } from '@/components/brand/airento-logo'
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
 import { PartnerForegroundNotifications } from '@/components/partner/PartnerForegroundNotifications'
+import {
+  WORKSPACE_FRAME_CLASS,
+  WORKSPACE_MAIN_CLASS,
+  WORKSPACE_MOBILE_TOOLBAR_CLASS,
+  WORKSPACE_SCROLL_CLASS,
+  WORKSPACE_SIDEBAR_CLASS,
+  WORKSPACE_TOOLBAR_CLASS,
+  WORKSPACE_TOOLBAR_ROW_CLASS,
+} from '@/lib/layout/workspace-shell'
 
 const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
@@ -239,30 +246,23 @@ export default function PartnerLayout({ children }) {
         onMenuClick={() => setSidebarOpen((v) => !v)}
       />
 
-      {/* Main Layout */}
-      <div className="flex min-h-0 flex-1">
+      {/* Workspace — fixed below AppHeader (SSOT: workspace-shell.js) */}
+      <div className={WORKSPACE_FRAME_CLASS}>
         {/* Sidebar */}
         <aside
-          className={`${
+          className={`${WORKSPACE_SIDEBAR_CLASS} ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200 transition-all duration-300 ease-out flex flex-col fixed app-workspace-sidebar z-50 lg:z-30 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
+          } bg-white/95 backdrop-blur-sm border-r border-slate-200 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
         >
-          {/* Logo & Close */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <Link href="/partner/dashboard" className="flex items-center gap-2.5">
-              <AirentoLogo compact label={getSiteDisplayName()} />
-              <div className="hidden sm:block">
-                <h1 className="font-bold text-slate-900">{getSiteDisplayName()}</h1>
-                <p className="text-[10px] text-brand font-semibold tracking-wide">
-                  {getUIText('partnerLayout_partnerPortalTagline', language)}
-                </p>
-              </div>
-            </Link>
+          {/* Mobile drawer — close only (logo/title live in AppHeader, Stage 170.13) */}
+          <div className="flex items-center justify-end border-b border-slate-100 p-2 lg:hidden">
             <button
+              type="button"
               onClick={() => setSidebarOpen(false)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg transition-all lg:hidden"
+              className="rounded-lg p-1.5 transition-all hover:bg-slate-100"
+              aria-label={language === 'ru' ? 'Закрыть меню' : 'Close menu'}
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="h-5 w-5 text-slate-400" />
             </button>
           </div>
 
@@ -388,9 +388,9 @@ export default function PartnerLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden pt-[var(--app-header-height,64px)] lg:pt-0">
-          {/* Desktop Top Bar — lg: top-0 in main column (header covers viewport top band) */}
-          <div className="hidden lg:block sticky app-sticky-below-header z-10 bg-white/95 backdrop-blur-sm border-b border-slate-200/80">
+        <main className={WORKSPACE_MAIN_CLASS}>
+          {/* Desktop toolbar */}
+          <div className={WORKSPACE_TOOLBAR_CLASS}>
             {/* Impersonation Banner - Desktop */}
             {isImpersonating && (
               <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">
@@ -414,7 +414,7 @@ export default function PartnerLayout({ children }) {
             )}
             
             {/* Breadcrumbs Bar */}
-            <div className="px-6 py-3 flex items-center justify-between">
+            <div className={WORKSPACE_TOOLBAR_ROW_CLASS}>
               {/* Breadcrumbs */}
               <nav className="flex items-center text-sm" aria-label="Breadcrumb">
                 <Link href="/" className="text-slate-400 hover:text-brand transition-colors">
@@ -450,7 +450,7 @@ export default function PartnerLayout({ children }) {
             </div>
           </div>
           
-          <div className="lg:hidden px-4 py-2 bg-white border-b border-slate-100 flex items-center justify-between gap-2">
+          <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>
             <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label="Breadcrumb">
               {breadcrumbs.slice(-2).map((crumb, index) => (
                 <div key={crumb.href} className="flex items-center whitespace-nowrap">
@@ -469,7 +469,7 @@ export default function PartnerLayout({ children }) {
           </div>
 
           {/* Page Content */}
-          <div className="p-4 lg:p-6 max-w-full overflow-x-hidden">
+          <div className={WORKSPACE_SCROLL_CLASS}>
             {children}
           </div>
         </main>

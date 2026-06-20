@@ -24,7 +24,7 @@ export function UnifiedBalanceSummarySkeleton() {
   return (
     <Card className="border-brand/25 bg-gradient-to-br from-brand/10 to-white" aria-hidden="true">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-lg leading-snug flex items-center gap-2">
           <Wallet className="h-5 w-5 text-brand/40" />
           <span className="h-5 w-40 rounded bg-brand/15 animate-pulse" />
         </CardTitle>
@@ -64,7 +64,7 @@ export function UnifiedBalanceSummary({ walletPayload, t }) {
   return (
     <Card className="border-brand/25 bg-gradient-to-br from-brand/10 to-white">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-lg leading-snug flex items-center gap-2">
           <Wallet className="h-5 w-5 text-brand-hover" />
           {t('referralStage726_unifiedBalanceTitle')}
         </CardTitle>

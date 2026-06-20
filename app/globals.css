@@ -201,7 +201,7 @@ code {
       padding-bottom: 2rem;
     }
   }
-  /** Partner / admin sidebar: mobile below header; desktop full-height with inner inset */
+  /** Partner / admin sidebar: mobile overlay below header; lg in-flow inside workspace frame */
   .app-workspace-sidebar {
     top: var(--app-header-height, 64px);
     height: calc(100dvh - var(--app-header-height, 64px));
@@ -209,10 +209,9 @@ code {
   }
   @screen lg {
     .app-workspace-sidebar {
-      top: 0;
-      height: 100dvh;
-      max-height: 100dvh;
-      padding-top: var(--app-header-height, 64px);
+      top: auto;
+      height: 100%;
+      max-height: none;
     }
   }
   .app-shell-secondary-chrome-pad {

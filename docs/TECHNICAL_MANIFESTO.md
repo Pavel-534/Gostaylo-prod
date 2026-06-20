@@ -44,6 +44,10 @@
 
 **Stage 170.11 (2026-06-20):** Discovery + catalog card SSOT — **`SimilarListingsRail`** → **`RecommendationRailCard`** (без skeleton, фоновая загрузка); **`lib/listing/listing-card-layout.js`** + equal-height grid в **`ListingSidebar`**; map-pins price через **`getGuestDisplayPerNight`**; publish geo gate: **`yacht`** + **`tour`** в **`GEO_REQUIRED_PROFILES`**; карта каталога — **`mergeCatalogMapPins`** (sidebar listings + API bbox, без flip при `isLoading`); убран mint hero «Результаты поиска» в **`FilterBar`**.
 
+**Stage 170.12–170.13 (2026-06-20):** Catalog container split (`lib/layout/catalog-split-view.js`); partner shell — sidebar без дубля logo; middleware ban **fail-open** кроме явного **`is_banned`**; login verify **`getCurrentUser()`**; **`UnifiedBalanceSummary`** title **`leading-snug`**.
+
+**Stage 170.13.1 (2026-06-20):** Partner/admin workspace shell SSOT — **`lib/layout/workspace-shell.js`** (**`WORKSPACE_FRAME_CLASS`**: fixed below **`AppHeader`**, без пустой серой полосы); **`main`** без **`pt-[var(--app-header-height)]`**; desktop toolbar — flex **`shrink-0`** (не **`.app-sticky-below-header`** + двойной offset); scroll только в **`WORKSPACE_SCROLL_CLASS`**; **`.app-workspace-sidebar`** на **lg** — in-flow **`height:100%`**, без **`padding-top`** под header.
+
 **Stage 169.4 (2026-06-19):** Wave G P2 — smart PWA install prompt: **`lib/pwa/`** + **`hooks/use-pwa-install.js`** + **`PwaInstallPrompt`** (mobile only); `beforeinstallprompt` (Android) + iOS A2HS instructions; engagement gates (≥2 visit days OR ≥2 PDP OR map open); 10-day snooze; events `pwa_prompt_shown|accepted|dismissed`; SW fetch handler on **`firebase-messaging-sw.js`** + early register **`register-app-sw.js`**.
 
 **Stage 169.3 (2026-06-19):** Wave G P1 — mobile catalog map full-screen sheet: **`CatalogMobileMapSheet`** + shared **`CatalogSearchMapPanel`**; desktop **`SearchMapWrapper`** unchanged (`max-lg:hidden`); swipe-down / list button close; bbox + map-pins state preserved via shared panel props.

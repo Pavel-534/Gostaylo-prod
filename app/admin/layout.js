@@ -21,6 +21,14 @@ import {
 import { resolveAdminMenuIcon } from '@/lib/admin/admin-menu-icons';
 import { AdminQuickActionsBar } from '@/components/admin/AdminQuickActionsBar';
 import { AdminGlobalSearch } from '@/components/admin/AdminGlobalSearch';
+import {
+  WORKSPACE_FRAME_CLASS,
+  WORKSPACE_MAIN_CLASS,
+  WORKSPACE_SCROLL_CLASS,
+  WORKSPACE_SIDEBAR_CLASS,
+  WORKSPACE_TOOLBAR_CLASS,
+  WORKSPACE_TOOLBAR_ROW_CLASS,
+} from '@/lib/layout/workspace-shell';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -120,11 +128,13 @@ export default function AdminLayout({ children }) {
 
       <AppHeader variant="workspace" onMenuClick={() => setSidebarOpen((v) => !v)} />
 
-      <div className={cn('flex min-h-0 flex-1', isAdminMessagesSection && 'overflow-hidden')}>
+      <div className={WORKSPACE_FRAME_CLASS}>
         <aside
-          className={`${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-out flex flex-col fixed app-workspace-sidebar z-50 lg:z-30 shadow-2xl`}
+          className={cn(
+            WORKSPACE_SIDEBAR_CLASS,
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+            'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl lg:shadow-none',
+          )}
         >
           <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
             <div className={`${!sidebarOpen && 'lg:hidden'}`}>
@@ -233,13 +243,8 @@ export default function AdminLayout({ children }) {
           </div>
         </aside>
 
-        <main
-          className={cn(
-            'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 pt-[var(--app-header-height,64px)] lg:pt-0',
-            isAdminMessagesSection && 'flex min-h-0 flex-col overflow-hidden max-lg:flex-1',
-          )}
-        >
-          <div className="hidden lg:block sticky app-sticky-below-header z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50">
+        <main className={cn(WORKSPACE_MAIN_CLASS, isAdminMessagesSection && 'min-h-0')}>
+          <div className={WORKSPACE_TOOLBAR_CLASS}>
             {isImpersonating && (
               <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 px-6 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -261,7 +266,7 @@ export default function AdminLayout({ children }) {
               </div>
             )}
 
-            <div className="px-6 py-3 flex items-center justify-between">
+            <div className={WORKSPACE_TOOLBAR_ROW_CLASS}>
               <div className="flex items-center gap-4">
                 <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-brand transition-colors">
                   <Home className="w-4 h-4" />
@@ -302,8 +307,8 @@ export default function AdminLayout({ children }) {
             className={cn(
               'w-full overflow-x-hidden',
               isAdminMessagesSection
-                ? 'flex h-full min-h-0 flex-1 flex-col overflow-hidden p-0 lg:p-6'
-                : 'p-4 lg:p-8',
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:p-6'
+                : WORKSPACE_SCROLL_CLASS,
             )}
           >
             <div
