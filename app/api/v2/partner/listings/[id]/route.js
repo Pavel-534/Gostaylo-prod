@@ -267,12 +267,19 @@ export async function PATCH(request, context) {
   }
 
   const nextStatus = body.status !== undefined ? String(body.status).toUpperCase() : null;
-  const isPublishAttempt = nextStatus === 'PENDING' || nextStatus === 'ACTIVE';
+  const mergedMetaForGate =
+    body.metadata !== undefined
+      ? { ...(existing.metadata || {}), ...body.metadata }
+      : existing.metadata || {};
+  const isPartnerUnhide =
+    nextStatus === 'ACTIVE' &&
+    String(existing.status || '').toUpperCase() === 'INACTIVE' &&
+    (existing.metadata?.partner_hidden === true || existing.metadata?.partner_hidden === 'true') &&
+    mergedMetaForGate.partner_hidden === false;
+  const isPublishAttempt =
+    (nextStatus === 'PENDING' || nextStatus === 'ACTIVE') && !isPartnerUnhide;
   if (isPublishAttempt) {
-    const mergedMeta =
-      body.metadata !== undefined
-        ? { ...(existing.metadata || {}), ...body.metadata }
-        : existing.metadata || {};
+    const mergedMeta = mergedMetaForGate;
     const cat = existing.categories || {};
     let categorySlug = cat.slug || '';
     if (!categorySlug && existing.category_id) {

@@ -8,7 +8,7 @@ import { ListingWizardPageInner } from './components/ListingWizardPageInner'
 
 function WizardShellFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-[50vh] items-center justify-center bg-slate-50">
       <div className="text-center">
         <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-brand" />
         <p className="text-slate-600">{getUIText('wizardPageLoading', DEFAULT_UI_LANGUAGE)}</p>

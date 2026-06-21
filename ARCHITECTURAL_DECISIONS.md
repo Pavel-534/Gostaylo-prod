@@ -530,7 +530,7 @@ Page content (rails, grid, map)
 | **1 — State SSOT** | `usePublicSearchFilters`; home + catalog consume; удалить дубли state | ✅ Wave 1 (2026-06-20): hook + URL helpers; home/catalog wired |
 | **2 — Chrome shell** | `PublicSearchChrome` + CSS vars; catalog compact phase; bypass `/listings` skipTop | ✅ Wave 2 (2026-06-20): `PublicSearchChrome`, `PublicCompactSearchBar`, `usePublicSearchChrome`, CSS vars, `/listings` skipTop, map `app-sticky-below-public-chrome` |
 | **3 — UI merge** | Hero → UnifiedSearchBar expanded; удалить `StickySearchBar` duplicate markup | ✅ Wave 3 (2026-06-20): `UnifiedSearchBar` variants `hero` / `filter` / `compact`; удалены `PublicCompactSearchBar`, `StickySearchBar`, `HomeHero.jsx` |
-| **4 — CI + cleanup** | `check-shell-insets` + e2e scroll chrome | `npm run check:shell` green; Playwright smoke home+catalog scroll |
+| **4 — CI + morph SSOT** | Liquid scroll morph home+catalog; `check-shell-insets`; CSS vars interpolate | ✅ Wave 4 (2026-06-20): `computePublicSearchScrollProgress` SSOT; catalog morph start **0.28**; home morph start **0.50**; `--app-search-chrome-height` lerp on scroll; mobile `< md` off |
 
 **До завершения Wave 2** текущие файлы (`HomeHeroLuxe`, `StickySearchBar`, `FilterBar`) остаются **legacy implementation** — новые фичи поиска добавлять **только** в target modules или с явным ticket на перенос в wave.
 

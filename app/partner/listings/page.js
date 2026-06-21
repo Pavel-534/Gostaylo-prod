@@ -26,6 +26,21 @@ import {
   listingQualityInputFromPartnerListing,
 } from '@/lib/partner/listing-quality-gates'
 import { PartnerListingPublishQualityModal } from '@/components/partner/PartnerListingPublishQualityModal'
+import {
+  PartnerListingStatusBadge,
+  partnerListingStatusToTone,
+} from '@/components/partner/PartnerListingStatusBadge'
+import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
+import {
+  usePartnerListings,
+  usePartnerListingPatch,
+  usePartnerListingDelete,
+} from '@/lib/hooks/use-partner-listings'
+
+function isPartnerHiddenMetadata(metadata) {
+  const v = metadata?.partner_hidden
+  return v === true || v === 'true'
+}
 
 /**
  * Partner Listings Page (v2 API)
@@ -40,8 +55,17 @@ export default function PartnerListings() {
   const { toast } = useToast()
   const { language, t } = useI18n()
   const { user, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
-  const [listings, setListings] = useState([])
-  const [loading, setLoading] = useState(true)
+  const partnerId = user?.id
+  const {
+    data: listingsData,
+    isLoading: listingsLoading,
+  } = usePartnerListings(partnerId, {
+    enabled: !authLoading && isAuthenticated && !!partnerId,
+  })
+  const patchListing = usePartnerListingPatch(partnerId)
+  const deleteListingMutation = usePartnerListingDelete(partnerId)
+  const listings = listingsData?.listings ?? []
+  const loading = authLoading || (isAuthenticated && listingsLoading)
   const [deleteId, setDeleteId] = useState(null)
   const [publishingId, setPublishingId] = useState(null)
   const [listFilter, setListFilter] = useState(
@@ -61,68 +85,6 @@ export default function PartnerListings() {
     }
   }, [])
 
-  useEffect(() => {
-    // Wait for auth to load before fetching listings
-    if (!authLoading) {
-      if (isAuthenticated && user?.id) {
-        loadListings(user.id)
-      } else {
-        setLoading(false)
-      }
-    }
-  }, [authLoading, isAuthenticated, user?.id])
-
-  async function loadListings(userId) {
-    try {
-      // Use API route that has server-side access
-      const res = await fetch(`/api/v2/partner/listings?partnerId=${userId}`, {
-        credentials: 'include'
-      })
-      
-      const result = await res.json()
-
-      if (result.success && result.data) {
-        // Transform API response to match expected format
-        const transformedListings = result.data.map(l => ({
-          id: l.id,
-          title: l.title,
-          status: l.status,
-          district: l.district,
-          base_price_thb: l.basePriceThb,
-          commission_rate: l.commissionRate,
-          images: l.images || [],
-          cover_image: l.coverImage,
-          available: l.available,
-          is_featured: l.isFeatured,
-          views: l.views || 0,
-          bookings_count: l.bookingsCount || 0,
-          rating: l.rating || 0,
-          category: l.category,
-          categorySlug: l.categorySlug || l.category?.slug || '',
-          categoryName: l.categoryName || l.category?.name || '',
-          wizardProfile: l.wizardProfile ?? l.category?.wizard_profile ?? null,
-          latitude: l.latitude,
-          longitude: l.longitude,
-          created_at: l.createdAt,
-          updated_at: l.updatedAt,
-          metadata: l.metadata || {},
-          description: l.description ?? '',
-          rejection_reason: l.rejectionReason ?? null,
-          rejected_at: l.rejectedAt ?? null,
-        }))
-        setListings(transformedListings)
-      } else {
-        console.error('[LISTINGS] API error:', result.error)
-        setListings([])
-      }
-      
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to load listings:', error)
-      setLoading(false)
-    }
-  }
-
   function getPublishChecklist(listing) {
     return buildListingPublishQualityChecklist(listingQualityInputFromPartnerListing(listing))
   }
@@ -138,12 +100,9 @@ export default function PartnerListings() {
     setPublishingId(listing.id)
 
     try {
-      // Update via server API
-      const updateRes = await fetch(`/api/v2/partner/listings/${listing.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+      await patchListing.mutateAsync({
+        listingId: listing.id,
+        body: {
           status: 'PENDING',
           metadata: {
             ...(listing.metadata || {}),
@@ -151,16 +110,17 @@ export default function PartnerListings() {
             needs_review: true,
             submitted_at: new Date().toISOString(),
           },
-        })
+        },
+        optimisticPatch: (row) => ({
+          status: 'PENDING',
+          metadata: {
+            ...(row.metadata || {}),
+            is_draft: false,
+            needs_review: true,
+            submitted_at: new Date().toISOString(),
+          },
+        }),
       })
-
-      const result = await updateRes.json()
-      if (!result.success) {
-        if (result.code === 'LISTING_QUALITY_GATE' || result.errors?.length) {
-          setQualityModalListing(listing)
-        }
-        throw new Error(result.error || 'Failed to update listing')
-      }
 
       // Send Telegram notification (optional - don't block on failure)
       try {
@@ -183,22 +143,18 @@ export default function PartnerListings() {
         console.log('Telegram notification failed (non-blocking):', e.message)
       }
 
-      // Update local state
-      setListings(prev => prev.map(l => 
-        l.id === listing.id 
-          ? { ...l, status: 'PENDING', metadata: { ...l.metadata, is_draft: false } }
-          : l
-      ))
-
       toast({
         title: t('partnerListings_toastPublishOkTitle'),
         description: t('partnerListings_toastPublishOkBody'),
       })
     } catch (error) {
       console.error('Failed to publish:', error)
+      if (error.code === 'LISTING_QUALITY_GATE' || error.errors?.length) {
+        setQualityModalListing(listing)
+      }
       toast({
         title: t('partnerListings_toastPublishErrTitle'),
-        description: t('partnerListings_toastPublishErrBody'),
+        description: error.message || t('partnerListings_toastPublishErrBody'),
         variant: 'destructive'
       })
     } finally {
@@ -209,35 +165,22 @@ export default function PartnerListings() {
   // Delete listing with storage cleanup
   async function deleteListing(id) {
     try {
-      // Use server API for deletion (handles storage cleanup too)
-      const res = await fetch(`/api/v2/partner/listings/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-      
-      const result = await res.json()
-      
-      if (result.success) {
-        setListings((prev) => prev.filter((l) => l.id !== id))
-        setDeleteId(null)
-        toast({ title: t('partnerListings_toastDeletedTitle') })
-      } else {
-        throw new Error(result.error || 'Failed to delete')
-      }
+      await deleteListingMutation.mutateAsync({ listingId: id })
+      setDeleteId(null)
+      toast({ title: t('partnerListings_toastDeletedTitle') })
     } catch (error) {
       console.error('Failed to delete:', error)
       toast({ title: t('partnerListings_toastDeleteErrTitle'), variant: 'destructive' })
     }
   }
 
-  // Status config
-  const statusConfig = {
-    ACTIVE: { label: t('partnerListings_statusActive'), color: 'bg-green-100 text-green-700 border-green-200' },
-    PENDING: { label: t('partnerListings_statusPending'), color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    INACTIVE: { label: t('partnerListings_statusDraft'), color: 'bg-slate-100 text-slate-600 border-slate-300 border-dashed' },
-    HIDDEN: { label: t('partnerListings_statusHidden'), color: 'bg-slate-200 text-slate-800 border-slate-300' },
-    REJECTED: { label: t('partnerListings_statusRejected'), color: 'bg-red-100 text-red-700 border-red-200' },
-    BOOKED: { label: t('partnerListings_statusBooked'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  const statusLabels = {
+    ACTIVE: t('partnerListings_statusActive'),
+    PENDING: t('partnerListings_statusPending'),
+    INACTIVE: t('partnerListings_statusDraft'),
+    HIDDEN: t('partnerListings_statusHidden'),
+    REJECTED: t('partnerListings_statusRejected'),
+    BOOKED: t('partnerListings_statusBooked'),
   }
 
   const localeTag = { ru: 'ru-RU', en: 'en-US', zh: 'zh-CN', th: 'th-TH' }[language] || 'ru-RU'
@@ -252,7 +195,7 @@ export default function PartnerListings() {
   function getStatus(listing) {
     const md = listing.metadata || {}
     if (md.is_draft === true || md.is_draft === 'true') return 'INACTIVE'
-    if (listing.status === 'INACTIVE' && md.partner_hidden) return 'HIDDEN'
+    if (listing.status === 'INACTIVE' && isPartnerHiddenMetadata(md)) return 'HIDDEN'
     return listing.status || 'INACTIVE'
   }
 
@@ -285,48 +228,38 @@ export default function PartnerListings() {
     setVisibilityBusyId(listing.id)
     try {
       const md = listing.metadata || {}
-      const res = await fetch(`/api/v2/partner/listings/${listing.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(
-          onSite
-            ? {
-                status: 'ACTIVE',
-                metadata: {
-                  ...md,
-                  partner_hidden: false,
-                  paused_at: null,
-                },
-              }
-            : {
-                status: 'INACTIVE',
-                metadata: {
-                  ...md,
-                  partner_hidden: true,
-                  paused_at: new Date().toISOString(),
-                },
-              }
-        ),
-      })
-      const result = await res.json()
-      if (!result.success) throw new Error(result.error || 'Ошибка')
+      const body = onSite
+        ? {
+            status: 'ACTIVE',
+            available: true,
+            metadata: {
+              ...md,
+              partner_hidden: false,
+              paused_at: null,
+            },
+          }
+        : {
+            status: 'INACTIVE',
+            metadata: {
+              ...md,
+              partner_hidden: true,
+              paused_at: new Date().toISOString(),
+            },
+          }
 
-      setListings((prev) =>
-        prev.map((l) =>
-          l.id === listing.id
-            ? {
-                ...l,
-                status: onSite ? 'ACTIVE' : 'INACTIVE',
-                metadata: {
-                  ...md,
-                  partner_hidden: !onSite,
-                  ...(onSite ? { paused_at: null } : { paused_at: new Date().toISOString() }),
-                },
-              }
-            : l
-        )
-      )
+      await patchListing.mutateAsync({
+        listingId: listing.id,
+        body,
+        optimisticPatch: (row) => ({
+          status: onSite ? 'ACTIVE' : 'INACTIVE',
+          available: onSite ? true : row.available,
+          metadata: {
+            ...(row.metadata || {}),
+            partner_hidden: !onSite,
+            paused_at: onSite ? null : new Date().toISOString(),
+          },
+        }),
+      })
       toast({
         title: onSite
           ? t('partnerListings_toastRestoreOkTitle')
@@ -334,6 +267,9 @@ export default function PartnerListings() {
       })
     } catch (e) {
       console.error(e)
+      if (e.code === 'LISTING_QUALITY_GATE' || e.errors?.length) {
+        setQualityModalListing(listing)
+      }
       toast({
         title: t('partnerListings_toastUpdateErrTitle'),
         description: e.message || undefined,
@@ -378,7 +314,7 @@ export default function PartnerListings() {
   return (
     <div className='max-w-full overflow-x-hidden'>
       {/* Header - Mobile optimized */}
-      <div className='px-4 py-4 bg-white border-b sticky app-sticky-below-header z-10'>
+      <div className={`px-4 py-4 ${WORKSPACE_SCROLL_STICKY_CLASS} z-30`}>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>
@@ -435,7 +371,7 @@ export default function PartnerListings() {
           <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
         </div>
         <div className='bg-white rounded-lg p-3 border'>
-          <div className='text-xl font-bold text-green-600'>{stats.active}</div>
+          <div className='text-xl font-bold text-brand'>{stats.active}</div>
           <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
         </div>
         <div className='bg-white rounded-lg p-3 border'>
@@ -479,14 +415,14 @@ export default function PartnerListings() {
         ) : (
           filteredListings.map((listing) => {
             const status = getStatus(listing)
-            const config = statusConfig[status] || statusConfig.INACTIVE
+            const statusLabel = statusLabels[status] || statusLabels.INACTIVE
             const showPublishCta = status === 'INACTIVE' || status === 'REJECTED'
             const publishChecklist = getPublishChecklist(listing)
             const ready = publishChecklist.ok
             const canHideFromSite =
               listing.status === 'ACTIVE' && listing.metadata?.is_draft !== true
             const canRestoreToSite =
-              listing.metadata?.partner_hidden === true &&
+              isPartnerHiddenMetadata(listing.metadata) &&
               listing.status === 'INACTIVE' &&
               listing.metadata?.is_draft !== true
             
@@ -545,9 +481,12 @@ export default function PartnerListings() {
                           <Eye className='h-3 w-3' />
                           {listing.views || 0}
                         </span>
-                        <Badge className={`text-[10px] px-1.5 py-0 h-5 border ${config.color}`}>
-                          {config.label}
-                        </Badge>
+                        <PartnerListingStatusBadge
+                          tone={partnerListingStatusToTone(status)}
+                          className="text-[10px] px-1.5 py-0 h-5"
+                        >
+                          {statusLabel}
+                        </PartnerListingStatusBadge>
                         {isTelegramDraft(listing) && (
                           <Badge variant='outline' className='text-[10px] px-1.5 py-0 h-5 border-blue-200 text-blue-700 bg-blue-50'>
                             Telegram

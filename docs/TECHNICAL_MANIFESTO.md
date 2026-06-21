@@ -8,6 +8,14 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 171.6 (2026-06-20):** Partner listings workspace polish — **`usePartnerListings`** + **`usePartnerListingPatch`** / **`usePartnerListingDelete`** (optimistic TanStack cache, no refetch storm); **`PartnerListingStatusBadge`** SSOT (Mint/Navy tokens); legacy **`teal-*`** removed from wizard edit/new shells; loading states **`min-h-[50vh]`** inside **`WORKSPACE_SCROLL_CLASS`**.
+
+**Stage 171.5 (2026-06-20):** Partner listings UX — (1) **`PATCH /api/v2/partner/listings/[id]`**: partner **unhide** (`INACTIVE` + `metadata.partner_hidden` → `ACTIVE` + `partner_hidden: false`) **bypasses** `validateListingPublishQuality` (не публикация с нуля); (2) **`app/partner/listings`**: `setListingOnSite` — `available: true` on restore, merge **`result.listing`**, `isPartnerHiddenMetadata()`; quality gate → **`PartnerListingPublishQualityModal`**; (3) sticky inside **`WORKSPACE_SCROLL_CLASS`**: **`WORKSPACE_SCROLL_STICKY_CLASS`** (`sticky top-0 z-40 isolate`) — listings header + wizard step bar (не **`.app-sticky-below-header`**).
+
+**Stage 171.4 (2026-06-20):** ADR-101 Wave 4 — liquid morph SSOT home+catalog: **`computePublicSearchScrollProgress`** / **`computePublicSearchMorphVisualT`** / **`interpolatePublicSearchChromeHeight`**; catalog **`PUBLIC_SEARCH_CHROME_CATALOG_MORPH_START = 0.28`**; home **`PUBLIC_SEARCH_CHROME_HOME_MORPH_START = 0.50`** (hero capsule anchor **`data-public-search-chrome-expanded`**); бинарный home scroll удалён; CSS vars lerp on scroll; mobile `< md` off.
+
+**Stage 171.3.2 (2026-06-20):** Catalog liquid morph — scroll **`morphProgress`** 0→1 (FilterBar bottom → header bottom); visual **`morphT`** from 50%; interpolated **`--app-search-chrome-height`**; compact **opacity + translate-y**; mobile `< md` off.
+
 **Stage 171.3.1 (2026-06-20):** ADR-101 catalog scroll fix — IO **`rootMargin`** = **`-var(--app-header-height)`** (compact when FilterBar bottom crosses header bottom, no blind zone); observe **`expandedRef`**; catalog compact **opacity-only** fade; preemptive **`ResizeObserver`** on compact + expanded for `--app-search-chrome-height`.
 
 **Stage 171.3 (2026-06-20):** ADR-101 Wave 3 — UI merge: **`UnifiedSearchBar`** единственный UI-SSOT полей (`variant`: **`hero`** / **`filter`** / **`compact`**); **`HomeHeroLuxe`** — shell (фон, tabs) + `UnifiedSearchBar variant="hero"`; compact chrome → `variant="compact"`; удалены **`PublicCompactSearchBar`**, **`StickySearchBar`**, legacy **`HomeHero.jsx`**.

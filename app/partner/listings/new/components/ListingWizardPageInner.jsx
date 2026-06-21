@@ -19,7 +19,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
 import { ListingCard } from '@/components/listing-card'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { useListingSave } from '../hooks/useListingSave'
@@ -29,6 +28,11 @@ import { StepPhotos } from './StepPhotos'
 import { StepPricing } from './StepPricing'
 import { StepPreview } from './StepPreview'
 import { PartnerReferralWizardBanner } from '@/components/partner/PartnerReferralWizardBanner'
+import {
+  PartnerListingStatusBadge,
+  partnerWizardListingStatusTone,
+} from '@/components/partner/PartnerListingStatusBadge'
+import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
 
 export function ListingWizardPageInner() {
   const router = useRouter()
@@ -123,8 +127,8 @@ export function ListingWizardPageInner() {
   })()
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="sticky app-sticky-below-header z-40 border-b border-slate-200 bg-white">
+    <div className="min-h-0 bg-slate-50">
+      <div className={WORKSPACE_SCROLL_STICKY_CLASS}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <Button
@@ -139,18 +143,11 @@ export function ListingWizardPageInner() {
             <h1 className="text-center text-lg font-semibold tracking-tight sm:text-xl">{headerTitle}</h1>
             <div className="flex items-center justify-end gap-2">
               {isEditRoute && serverListing && (
-                <Badge
-                  className={`text-xs ${
-                    isDraft ? 'border-amber-300 bg-amber-100 text-amber-700' : ''
-                  } ${
-                    !isDraft && serverListing.status === 'ACTIVE'
-                      ? 'bg-green-100 text-green-700'
-                      : !isDraft && serverListing.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : !isDraft
-                          ? 'bg-slate-100 text-slate-700'
-                          : ''
-                  }`}
+                <PartnerListingStatusBadge
+                  tone={partnerWizardListingStatusTone({
+                    isDraft,
+                    status: serverListing.status,
+                  })}
                 >
                   {isDraft
                     ? t('partnerEdit_statusDraft')
@@ -159,7 +156,7 @@ export function ListingWizardPageInner() {
                       : serverListing.status === 'PENDING'
                         ? t('partnerEdit_statusPending')
                         : t('partnerEdit_statusInactive')}
-                </Badge>
+                </PartnerListingStatusBadge>
               )}
               <Button
                 variant="outline"
@@ -260,7 +257,7 @@ export function ListingWizardPageInner() {
             </Card>
           </div>
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
+            <div className="sticky top-4 z-20 isolate">
               <h3 className="mb-4 text-lg font-semibold tracking-tight text-slate-800">{t('livePreview')}</h3>
               <Card className="border-slate-200 bg-white shadow-sm">
                 <CardContent className="p-4 sm:p-5">

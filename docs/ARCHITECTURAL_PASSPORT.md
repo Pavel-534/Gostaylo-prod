@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.171.3 | **Last Updated**: 2026-06-20 | **Stage 171.3:** UnifiedSearchBar UI-SSOT (hero/filter/compact). | **Stage 171.2:** PublicSearchChrome shell. |
+> **Version**: 12.171.6 | **Last Updated**: 2026-06-20 | **Stage 171.6:** Partner listings RQ + status badge SSOT + Mint palette. | **Stage 171.5:** Partner listings visibility toggle + workspace sticky SSOT. | **Stage 171.4:** Liquid morph SSOT (home 0.50 / catalog 0.28). | **Stage 171.3:** UnifiedSearchBar UI-SSOT. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -839,6 +839,8 @@
 - **Вспомогательно:** `hooks/checkout-constants.js` реэкспорт из **`lib/config/app-constants.js`** (**`GOSTAYLO_WALLET`**, **default methods**), `hooks/interpolate.js` (шаблоны строк).
 
 ### 0.0g Partner listing creation & edit wizard (Stage 4.1 + 4.2)
+- **Stage 171.5 — visibility + sticky:** список **`app/partner/listings/page.js`** — hide/show через **`PATCH`** (`partner_hidden`, `status`, restore → `available: true`); API unhide bypass quality gate; sticky subheader — **`WORKSPACE_SCROLL_STICKY_CLASS`** (`lib/layout/workspace-shell.js`, scrollport **`WORKSPACE_SCROLL_CLASS`**, не **`.app-sticky-below-header`**). Wizard step bar — тот же класс; live preview sidebar — **`sticky top-4 z-20 isolate`**.
+- **Stage 171.6 — data + DS:** **`lib/hooks/use-partner-listings.js`** — **`usePartnerListings`**, **`usePartnerListingPatch`** (optimistic cache), **`usePartnerListingDelete`**; **`components/partner/PartnerListingStatusBadge.jsx`** — badge tones для списка и визарда; wizard/edit/new loading — **`text-brand`**, **`min-h-[50vh]`**.
 - **Создание — маршрут:** `app/partner/listings/new/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider`** (по умолчанию `mode="create"`) + **`ListingWizardPageInner`**.
 - **Редактирование — маршрут:** `app/partner/listings/[id]/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider` с `mode="edit"`** и **`initialListingId` из `params.id`** + **`EditPartnerListingView`**, который рендерит тот же **`ListingWizardPageInner`**, а под визардом (после общих шагов) — **`CalendarSyncManager`**, **`AvailabilityCalendar`**, **`SeasonalPriceManager`** (только не для transport-категории: `isTransportListingCategory` скрывает внешний iCal sync).
 - **SSoT состояния (Stage 109.3):** `ListingWizardContext.js` (~100 строк) — композиция хуков: **`useListingWizardState`**, **`useListingWizardDerived`** + **`listing-wizard-step-validation.js`**, **`useListingWizardActions`** + **`listing-wizard-load-existing.js`**. Публичный API **`useListingWizard()`** без изменений. `formData`, `currentStep` (1–5), `wizardMode`, `canProceed`, upload/geo/AI/import — как раньше.
@@ -905,15 +907,16 @@
 | Search chrome | **`PublicSearchChrome`** + **`UnifiedSearchBar variant="compact"`** | ~~`PublicCompactSearchBar`~~, ~~`StickySearchBar`~~ |
 | Field markup | **`UnifiedSearchBar`** (`hero` / `filter` / `compact`) | inline fields in `HomeHeroLuxe`; duplicate compact row |
 | Filter state | **`usePublicSearchFilters`** (`lib/hooks/use-public-search-filters.js`) | `useHomeFilters` thin wrapper |
-| Scroll phase | **`usePublicSearchChrome`** | home `scrollY`; catalog IO sentinel |
+| Scroll phase | **`usePublicSearchChrome`** — **`computePublicSearchScrollProgress`**; morph start catalog **0.28**, home **0.50** | binary IO / scrollY |
 | CSS height | **`--app-search-chrome-height`**, **`--app-public-top-offset`**, **`.app-sticky-below-public-chrome`**, **`.app-catalog-map-panel`** | removed catalog map `lg:top-20` |
 
-**Фазы:** home compact при scroll ~280px; catalog compact via **IntersectionObserver** sentinel. **MainContent:** `/listings` → `skipTop: true` (как `/`). **Catalog layout:** list/map без `lg:items-stretch`; map sticky offset только shell utilities. Полный контракт — **`ARCHITECTURAL_DECISIONS.md`** § ADR-101.
+**Фазы:** liquid morph **`morphProgress`** 0→1 (expanded bottom → header bottom); visual cross-fade from catalog **0.28** / home **0.50**. **MainContent:** `/listings` → `skipTop: true`. **Mobile `< md`:** morph off.
 
-#### Текущая реализация (code-truth Wave 3)
+#### Текущая реализация (code-truth Wave 4)
 
-- **Главная:** `HomeHeroLuxe` (фон + category tabs + glass capsule) + **`UnifiedSearchBar variant="hero"`**; compact desktop → **`PublicSearchChrome`** + **`UnifiedSearchBar variant="compact"`** (`data-testid="sticky-search-bar"` wrapper); **`MobileSearchFAB`**.
-- **Каталог:** **`PublicSearchChrome`** wraps **`FilterBar`** (`UnifiedSearchBar variant="filter"`) + compact **`UnifiedSearchBar variant="compact"`**; **`MainContent`** `skipTop` on `/listings`.
+- **Morph SSOT:** **`lib/search/public-search-chrome-constants.js`** — progress 0→1 (expanded bottom → header bottom); visual **`morphT`** from surface-specific start; **`interpolatePublicSearchChromeHeight`** for CSS vars.
+- **Главная:** hero anchor **`HomeHeroLuxe`** `[data-public-search-chrome-expanded]`; compact **`PublicSearchChrome surface="home"`** opacity+translate; CSS height **0 → compact** by progress.
+- **Каталог:** expanded **`FilterBar`** fades `1-morphT`; compact cross-fade from progress **0.28**; CSS height **expanded → compact** lerp.
 - **State:** **`usePublicSearchFilters`**. **Layout:** catalog **`lg:items-start`**; map **`.app-sticky-below-public-chrome`**.
 - **Поиск (без дублирования ядра):** **`lib/api/run-listings-search-get.js`** — **единая** реализация **`runListingsSearchGet`**; её вызывают **`GET /api/v2/search`**, **`GET /api/v2/listings/search`** (прокси/сигнатуры) и **SSR ItemList** (`lib/seo/listings-catalog-itemlist.js`). По умолчанию **`isLite: true`**: **`LISTINGS_SELECT_LITE`** (без колонки **`description`** в SELECT), в JSON — до **3** URL изображений, **`metadata`** через **`pickLiteListingMetadata`** (`lib/api/search/listing-search-payload.js`); полная карточка — только **`GET /api/v2/listings/[id]`** (или иной детальный эндпоинт). Для полной выдачи списка (редко): **`runListingsSearchGet(req, { isLite: false })`**. В **`meta.payloadProfile`** — **`lite`** | **`full`**; размер тела логируется как **`[SEARCH API] catalog JSON UTF-8 size`**. При **`checkIn`/`checkOut`** фильтр **`min_price`/`max_price`** и **`meta.priceHistogram`** используют календарную среднюю за период (**`listingMatchesSearchPriceRange`**, **`lib/search/effective-unit-price-for-search.js`**); без дат — SQL по **`base_price_thb`**. API **v1** отдельного движка поиска **нет** в `app/api/v1/`.
 - **Карта query-параметров каталога (онбординг):** **`docs/SEARCH_FILTERS_QUERY_MAP.md`** — таблица «параметр → клиент / сервер / SQL / пост-фильтр / availability» и чеклист при добавлении фильтра.
