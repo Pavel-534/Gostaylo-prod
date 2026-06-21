@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * MobileSearchBottomSheet — FAB + Bottom Sheet поиск для мобильных.
@@ -26,6 +26,7 @@ import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations
 import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
 import { useUserGeo } from '@/lib/hooks/useUserGeo'
 import { cn } from '@/lib/utils'
+import { PUBLIC_SEARCH_CHROME_FAB_SCROLL_PX } from '@/lib/search/public-search-chrome-constants'
 
 /** Популярные направления — синхрон с WhereCombobox (импорт из popular-destinations.js) */
 const ALL_DESTINATION_VALUES = POPULAR_DESTINATION_GROUPS.flatMap((g) => g.items)
@@ -36,7 +37,7 @@ export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = f
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 160)
+    const onScroll = () => setVisible(window.scrollY > PUBLIC_SEARCH_CHROME_FAB_SCROLL_PX)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)

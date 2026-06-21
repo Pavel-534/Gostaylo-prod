@@ -184,6 +184,18 @@ code {
   .app-fixed-below-header {
     top: var(--app-header-height, 64px);
   }
+  /** ADR-101 — sticky/fixed below AppHeader + active public search chrome */
+  .app-sticky-below-public-chrome {
+    position: sticky;
+    top: var(--app-public-top-offset, var(--app-header-height, 64px));
+  }
+  .app-fixed-below-public-chrome {
+    top: var(--app-public-top-offset, var(--app-header-height, 64px));
+  }
+  .app-catalog-map-panel {
+    height: calc(100dvh - var(--app-public-top-offset, var(--app-header-height, 64px)));
+    max-height: calc(100dvh - var(--app-public-top-offset, var(--app-header-height, 64px)));
+  }
   .app-shell-scroll-pad-bottom-nav {
     padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
   }

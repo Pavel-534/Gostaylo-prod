@@ -1,93 +1,149 @@
-﻿'use client'
+'use client'
 
 /**
- * UnifiedSearchBar - Airbnb/Booking style: What | Where | When | Who
- * Where: умное поле с вводом и RU/EN подсказками (см. WhereCombobox).
+ * UnifiedSearchBar — ADR-101 Wave 3 UI-SSOT for public search fields (What/Where/When/Who).
  *
- * variant: 'hero' | 'filter'
- * - hero: Rounded bar on home page
- * - filter: Compact grid on search results page
- *
- * Listings for grid/map: @/lib/search-endpoints LISTINGS_SEARCH_API_PATH (not fetched here).
+ * variant:
+ * - hero: premium 60px row (HomeHeroLuxe capsule — no outer shell)
+ * - filter: catalog expanded grid + text search row
+ * - compact: fixed chrome single row + summary chips (home + catalog scroll)
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, Layers, MapPin, Sparkles } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import {
+  Search,
+  Layers,
+  MapPin,
+  Sparkles,
+  Users,
+  Calendar,
+  X,
+  SlidersHorizontal,
+} from 'lucide-react'
+import { format, isSameDay } from 'date-fns'
+import { ru as ruLocale } from 'date-fns/locale'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
-import { GuestsPopover } from '@/components/search/GuestsPopover'
+import { GuestsPopover, formatGuestsSummaryText } from '@/components/search/GuestsPopover'
 import { TimeSelect } from '@/components/ui/time-select'
 import { getUIText, getCategoryName } from '@/lib/translations'
-import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
+import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { cn } from '@/lib/utils'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
-import { chipIconForCategory } from '@/components/search/category-chip-icon'
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 
+/** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
+export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
+  'flex h-[60px] w-full min-h-[60px] max-h-[60px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium leading-none text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-brand focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
+
+/** Compact chrome inner row */
+const COMPACT_INNER_ROW_CLASS =
+  'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm'
+
+function resolveWhereLabel(whereValue, options) {
+  if (!whereValue || whereValue === 'all') return null
+  const v = String(whereValue).toLowerCase()
+  const match = (options || []).find((o) => String(o.value).toLowerCase() === v)
+  if (match?.label) return match.label
+  return String(whereValue)
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(' ')
+}
+
+function formatDateRangeShort(dateRange, language) {
+  if (!dateRange?.from) return null
+  const locale = language === 'ru' ? ruLocale : undefined
+  if (!dateRange.to || isSameDay(dateRange.from, dateRange.to)) {
+    return format(dateRange.from, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
+  }
+  const sameMonth = dateRange.from.getMonth() === dateRange.to.getMonth()
+  if (sameMonth) {
+    const m = format(dateRange.from, language === 'ru' ? 'MMM' : 'MMM', { locale })
+    return `${format(dateRange.from, 'd')}–${format(dateRange.to, 'd')} ${m}`
+  }
+  const mk = (d) => format(d, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
+  return `${mk(dateRange.from)} – ${mk(dateRange.to)}`
+}
+
+function CompactSummaryChip({ icon: Icon, children, onClick, onClear, testid, clearAriaLabel }) {
+  return (
+    <span
+      className="group inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 pl-2.5 pr-1 py-1 text-xs font-semibold text-brand-hover shadow-sm transition-all hover:border-brand/40 hover:bg-brand/15 hover:shadow"
+      data-testid={testid}
+    >
+      <button type="button" onClick={onClick} className="flex cursor-pointer items-center gap-1.5 focus:outline-none">
+        <Icon className="h-3 w-3 text-brand" aria-hidden />
+        <span>{children}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={clearAriaLabel}
+        className="flex h-5 w-5 items-center justify-center rounded-full text-brand/70 transition-colors hover:bg-brand/20 hover:text-brand"
+      >
+        <X className="h-3 w-3" aria-hidden />
+      </button>
+    </span>
+  )
+}
+
 export function UnifiedSearchBar({
   variant = 'hero',
   language = 'ru',
-  // What (Category)
   category,
   setCategory,
-  // Where (single: city OR district - smart)
   where,
   setWhere,
-  // When
   dateRange,
   setDateRange,
   checkInTime = '07:00',
   setCheckInTime,
   checkOutTime = '07:00',
   setCheckOutTime,
-  // Who
   guests,
   setGuests,
   guestsBreakdown = null,
   setGuestsBreakdown,
   onSearch,
-  /** `categories.wizard_profile` для текущего `category` (SSOT транспортный интервал и т.д.) */
   categoryWizardProfile = null,
-  /** Мобильный hero: мгновенный переход в /listings с выбранной категорией */
-  onQuickCategorySearch,
-  /** Текстовый поиск + умный поиск (semantic=1); если setTextQuery не передан — строка скрыта */
   textQuery = '',
   setTextQuery,
   smartSearchOn = true,
   setSmartSearchOn,
-  /** Сайтовый фича-флаг из /api/v2/site-features */
   semanticSearchFeatureEnabled = true,
-  /** Лупа / Enter / «Найти»: запуск полного поиска с semantic (если включён ИИ на сайте и в переключателе) */
   onSearchSubmit,
-  // Hero-only
   liveCount = null,
   countLoading = false,
   clearDates: _clearDates,
-  nights: _nights = 0
+  nights: _nights = 0,
+  showFiltersButton = false,
+  onFiltersClick,
+  className,
+  innerClassName,
 }) {
   const [categories, setCategories] = useState([])
-  /** Статический seed — только для label fallback выбранного значения (Stage 158: suggest API). */
   const locations = useMemo(() => getStaticLocationsSeed(), [])
-  const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
-  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
-  const [mobileWhereInput, setMobileWhereInput] = useState('')
-  /** Контролируемые Popover на desktop — закрываются после выбора */
-  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
+  const whereRef = useRef(null)
+  const datesRef = useRef(null)
+  const guestsTriggerRef = useRef(null)
 
   useEffect(() => {
+    if (variant !== 'filter') return
     fetchCategories()
       .then((cats) => setCategories(cats || []))
       .catch(() => {})
-  }, [])
+  }, [variant])
 
   const whereOptionsFull = useMemo(
     () => buildWhereOptions(locations, language),
@@ -102,53 +158,60 @@ export function UnifiedSearchBar({
     [language],
   )
 
-  const categoryLabel =
-    category && category !== 'all'
-      ? getCategoryName(category, language) || categories.find((c) => c.slug === category)?.name || category
-      : getUIText('mobileSearchWhatTitle', language)
-
-  const whereLabel =
-    where && where !== 'all' ? getOptionLabel(whereOptionsFull, where) : getUIText('wherePlaceholder', language)
-
-  useEffect(() => {
-    if (locationDrawerOpen) {
-      setMobileWhereInput(
-        where && where !== 'all' ? getOptionLabel(whereOptionsFull, where) : ''
-      )
-    }
-  }, [locationDrawerOpen, where, whereOptionsFull])
-
-  /** Кнопка «Найти» на hero: сначала commit семантики, затем переход/родитель */
-  const handleHeroFindClick = () => {
+  const handleSearchClick = () => {
     onSearchSubmit?.()
     onSearch?.()
   }
 
-  const quickChips = useMemo(() => {
-    return [...(categories || [])]
-      .filter((c) => c && c.slug && !(c.parentId || c.parent_id))
-      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
-      .slice(0, 12)
-      .map((cat) => ({
-        slug: cat.slug,
-        icon: chipIconForCategory(cat),
-        label: getCategoryName(cat.slug, language, cat.name),
-      }))
-  }, [categories, language])
-
-  const orderedCategoryRows = useMemo(() => orderedCategoriesForSearchUi(categories), [categories])
-
-  const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
-  const triggerHero = 'px-6 py-4 border-r border-slate-200/80 min-w-0'
-
   const showTextSearch = typeof setTextQuery === 'function'
+
   const transportIntervalMode = useMemo(() => {
     const eff =
       categoryWizardProfile ?? effectiveCategoryWizardProfileRaw(category, categories)
     return isTransportIntervalWizardProfile(eff, category)
   }, [categoryWizardProfile, category, categories])
 
-  const textSearchRow = showTextSearch ? (
+  const orderedCategoryRows = useMemo(
+    () => orderedCategoriesForSearchUi(categories),
+    [categories],
+  )
+
+  const compactWhereLabel = useMemo(
+    () => resolveWhereLabel(where, whereOptionsFull),
+    [where, whereOptionsFull],
+  )
+  const compactDatesLabel = useMemo(
+    () => formatDateRangeShort(dateRange, language),
+    [dateRange, language],
+  )
+  const compactGuestsLabel = useMemo(() => {
+    const b =
+      guestsBreakdown && typeof guestsBreakdown === 'object'
+        ? guestsBreakdown
+        : { adults: Math.max(1, parseInt(guests, 10) || 1), children: 0, infants: 0 }
+    const total = (b.adults || 0) + (b.children || 0) + (b.infants || 0)
+    if (!total || total <= 1) return null
+    return formatGuestsSummaryText(b, language)
+  }, [guests, guestsBreakdown, language])
+
+  const compactCatLabel =
+    category && category !== 'all'
+      ? getCategoryName(category, language)
+      : getUIText('mobileSearchWhatTitle', language)
+
+  const compactHasAnyFilter = Boolean(compactWhereLabel || compactDatesLabel || compactGuestsLabel)
+
+  const focusCompactField = useCallback((ref, opts = {}) => {
+    const el = ref?.current
+    if (!el) return
+    const focusable = el.querySelector('button, input')
+    if (focusable) {
+      if (focusable.tagName === 'BUTTON') focusable.click()
+      if (opts.focus !== false) focusable.focus({ preventScroll: true })
+    }
+  }, [])
+
+  const textSearchRowFilter = showTextSearch ? (
     <TooltipProvider delayDuration={250}>
       <div
         className={cn(
@@ -223,169 +286,274 @@ export function UnifiedSearchBar({
   if (variant === 'filter') {
     return (
       <div className="flex min-w-0 flex-col overflow-visible rounded-lg border border-slate-200 bg-white shadow-sm">
-        {textSearchRow ? (
-          <div className="overflow-hidden rounded-t-lg">{textSearchRow}</div>
+        {textSearchRowFilter ? (
+          <div className="overflow-hidden rounded-t-lg">{textSearchRowFilter}</div>
         ) : null}
         <div className="grid grid-cols-2 gap-2 border-t-0 p-2 md:grid-cols-4 md:p-2">
-        {/* What - Category */}
-        <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
-          <SelectTrigger className="h-9">
-            <Layers className="h-4 w-4 mr-2 text-brand" />
-            <span className="truncate">
-              {category && category !== 'all' ? (getCategoryName(category, language) || category) : getUIText('whatPlaceholder', language)}
-            </span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
-            {orderedCategoryRows.map(({ cat: c, depth }) => (
-              <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
-                {depth ? '· ' : ''}
-                {getCategoryName(c.slug, language) || c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
+            <SelectTrigger className="h-9">
+              <Layers className="h-4 w-4 mr-2 text-brand" />
+              <span className="truncate">
+                {category && category !== 'all'
+                  ? getCategoryName(category, language) || category
+                  : getUIText('whatPlaceholder', language)}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
+              {orderedCategoryRows.map(({ cat: c, depth }) => (
+                <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
+                  {depth ? '· ' : ''}
+                  {getCategoryName(c.slug, language) || c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Where — умное поле */}
-        <WhereCombobox
-          options={whereOptionsFull}
-          value={where || 'all'}
-          onChange={setWhere}
-          placeholder={getUIText('whereShort', language)}
-          fetchSuggestions={fetchWhereSuggestions}
-          loading={false}
-          variant="compact"
-          language={language}
-          className="min-w-0"
-        />
-
-        {/* When */}
-        <div className="min-w-0 space-y-1">
-          <SearchCalendar
-            value={dateRange}
-            onChange={setDateRange}
-            locale={language}
-            placeholder={getUIText('dates', language)}
-            className="h-9 w-full min-w-0 border rounded-md justify-start px-3"
+          <WhereCombobox
+            options={whereOptionsFull}
+            value={where || 'all'}
+            onChange={setWhere}
+            placeholder={getUIText('whereShort', language)}
+            fetchSuggestions={fetchWhereSuggestions}
+            loading={false}
+            variant="compact"
+            language={language}
+            className="min-w-0"
           />
-          {transportIntervalMode && dateRange?.from && dateRange?.to && (
-            <div className="grid grid-cols-2 gap-1">
-              <TimeSelect
-                value={checkInTime}
-                onChange={setCheckInTime}
-                className="h-8 text-xs"
-              />
-              <TimeSelect
-                value={checkOutTime}
-                onChange={setCheckOutTime}
-                className="h-8 text-xs"
-              />
-            </div>
-          )}
-        </div>
 
-        {/* Who (SSOT Airbnb-style popover) */}
-        <GuestsPopover
-          language={language}
-          guests={guests}
-          setGuests={setGuests}
-          guestsBreakdown={guestsBreakdown}
-          setGuestsBreakdown={setGuestsBreakdown}
-          align="end"
-          triggerClassName="h-9 w-full rounded-md px-3"
-        />
+          <div className="min-w-0 space-y-1">
+            <SearchCalendar
+              value={dateRange}
+              onChange={setDateRange}
+              locale={language}
+              placeholder={getUIText('dates', language)}
+              className="h-9 w-full min-w-0 border rounded-md justify-start px-3"
+            />
+            {transportIntervalMode && dateRange?.from && dateRange?.to && (
+              <div className="grid grid-cols-2 gap-1">
+                <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-8 text-xs" />
+                <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-8 text-xs" />
+              </div>
+            )}
+          </div>
+
+          <GuestsPopover
+            language={language}
+            guests={guests}
+            setGuests={setGuests}
+            guestsBreakdown={guestsBreakdown}
+            setGuestsBreakdown={setGuestsBreakdown}
+            align="end"
+            triggerClassName="h-9 w-full rounded-md px-3"
+          />
         </div>
       </div>
     )
   }
 
-  // Hero variant - 4 fields: What | Where | When | Who
-  return (
-    <div
-      className={cn(
-        'box-border w-full min-w-0 max-w-full overflow-x-hidden border border-slate-200/90 bg-white md:overflow-visible',
-        'rounded-[26px] shadow-[0_32px_64px_rgba(0,102,102,0.16),0_10px_24px_rgba(15,23,42,0.12)]',
-      )}
-    >
-      {textSearchRow ? <div className="overflow-hidden rounded-t-[26px]">{textSearchRow}</div> : null}
-      <div
-        className={cn(
-          // overflow-visible: иначе WhereCombobox (absolute top-full) обрезается и подсказки «Куда» не видны
-          'hidden md:flex items-center overflow-visible',
-          textSearchRow ? 'rounded-b-[26px]' : 'rounded-[26px]',
-        )}
-      >
-        {/* What - Category */}
-        <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className={cn(
-                triggerBase,
-                triggerHero,
-                'flex-1 min-w-[120px]',
-                !textSearchRow && 'rounded-l-[26px]',
-              )}
-            >
-              <Layers className="h-4 w-4 text-brand flex-shrink-0" />
-              <span className="text-[15px] font-medium text-slate-800 truncate">{categoryLabel}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory?.('all')
-                  setCategoryPopoverOpen(false)
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!category || category === 'all') ? 'bg-brand/10 text-brand-hover' : 'hover:bg-slate-100'}`}
-              >
-                {getUIText('allLabel', language)}
-              </button>
-              {orderedCategoryRows.map(({ cat: c, depth }) => (
-                <button
-                  type="button"
-                  key={c.id}
-                  onClick={() => {
-                    setCategory?.(c.slug)
-                    setCategoryPopoverOpen(false)
-                  }}
-                  className={`w-full rounded-md py-2 text-left text-sm ${depth ? 'pl-6 pr-3' : 'px-3'} ${category === c.slug ? 'bg-brand/10 text-brand-hover' : 'hover:bg-slate-100'}`}
-                >
-                  {depth ? '· ' : ''}
-                  {getCategoryName(c.slug, language) || c.name}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+  if (variant === 'compact') {
+    return (
+      <div className={cn('container mx-auto px-4 py-2.5', className)}>
+        <div className={cn(COMPACT_INNER_ROW_CLASS, innerClassName)}>
+          <div className="hidden min-w-0 shrink-0 items-center gap-1.5 border-r border-slate-100 px-3 md:flex">
+            <Layers className="h-4 w-4 shrink-0 text-brand" />
+            <span className="max-w-[140px] truncate text-sm font-medium text-slate-700">{compactCatLabel}</span>
+          </div>
 
-        {/* Where — ввод в строке + подсказки RU/EN */}
+          <div ref={whereRef} className="min-w-[180px] flex-1 border-r border-slate-100 px-2 xl:min-w-[240px]">
+            <WhereCombobox
+              options={whereOptionsFull}
+              value={where || 'all'}
+              onChange={setWhere}
+              placeholder={getUIText('wherePlaceholder', language)}
+              fetchSuggestions={fetchWhereSuggestions}
+              variant="hero"
+              language={language}
+              className="min-h-[36px] min-w-0 [&_button]:h-auto [&_button]:min-h-[36px] [&_button]:rounded-none [&_button]:border-0 [&_button]:px-0 [&_button]:text-sm [&_button]:shadow-none [&_button]:focus:ring-0"
+            />
+          </div>
+
+          <div ref={datesRef} className="min-w-[170px] flex-1 border-r border-slate-100 px-2 xl:min-w-[220px]">
+            <SearchCalendar
+              value={dateRange}
+              onChange={setDateRange}
+              locale={language}
+              placeholder={getUIText('dates', language)}
+              className="min-h-[36px] justify-start border-0 px-0 text-sm shadow-none"
+            />
+          </div>
+
+          <div ref={guestsTriggerRef}>
+            <GuestsPopover
+              language={language}
+              guests={guests}
+              setGuests={setGuests}
+              guestsBreakdown={guestsBreakdown}
+              setGuestsBreakdown={setGuestsBreakdown}
+              align="end"
+              triggerClassName="h-9 w-[clamp(168px,20vw,220px)] min-w-[168px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700"
+            />
+          </div>
+
+          {showFiltersButton ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="hidden h-9 shrink-0 border-slate-300 px-3 md:inline-flex"
+              onClick={onFiltersClick}
+              data-testid="public-compact-filters-button"
+            >
+              <SlidersHorizontal className="h-4 w-4 text-brand" />
+            </Button>
+          ) : null}
+
+          <Button
+            onClick={handleSearchClick}
+            data-testid="sticky-search-submit"
+            className="h-9 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(0,102,102,0.28)] hover:bg-brand-hover"
+          >
+            <Search className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">{getUIText('findButton', language)}</span>
+          </Button>
+        </div>
+
+        {compactHasAnyFilter ? (
+          <div
+            data-testid="public-compact-summary-chips"
+            className="mt-2 flex flex-wrap items-center gap-1.5 px-1"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              {language === 'ru' ? 'Фильтры' : 'Filters'}:
+            </span>
+            {compactWhereLabel ? (
+              <CompactSummaryChip
+                icon={MapPin}
+                testid="public-compact-chip-where"
+                onClick={() => focusCompactField(whereRef)}
+                onClear={(e) => {
+                  e.stopPropagation()
+                  setWhere?.('all')
+                }}
+                clearAriaLabel={language === 'ru' ? 'Убрать локацию' : 'Clear location'}
+              >
+                {compactWhereLabel}
+              </CompactSummaryChip>
+            ) : null}
+            {compactDatesLabel ? (
+              <CompactSummaryChip
+                icon={Calendar}
+                testid="public-compact-chip-dates"
+                onClick={() => focusCompactField(datesRef)}
+                onClear={(e) => {
+                  e.stopPropagation()
+                  setDateRange?.({ from: undefined, to: undefined })
+                }}
+                clearAriaLabel={language === 'ru' ? 'Убрать даты' : 'Clear dates'}
+              >
+                {compactDatesLabel}
+              </CompactSummaryChip>
+            ) : null}
+            {compactGuestsLabel ? (
+              <CompactSummaryChip
+                icon={Users}
+                testid="public-compact-chip-guests"
+                onClick={() => guestsTriggerRef.current?.querySelector('button')?.click()}
+                onClear={(e) => {
+                  e.stopPropagation()
+                  setGuests?.('1')
+                  setGuestsBreakdown?.({ adults: 1, children: 0, infants: 0 })
+                }}
+                clearAriaLabel={language === 'ru' ? 'Сбросить гостей' : 'Clear guests'}
+              >
+                {compactGuestsLabel}
+              </CompactSummaryChip>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  // hero — premium 60px fields embedded in HomeHeroLuxe glass capsule
+  return (
+    <div className={cn('min-w-0', className)}>
+      {showTextSearch ? (
+        <div className="mb-3 flex h-[60px] min-h-[60px] max-h-[60px] items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 pl-3 pr-2 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={handleSearchClick}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand-hover"
+            aria-label={getUIText('findButton', language)}
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <Input
+            type="search"
+            value={textQuery}
+            onChange={(e) => setTextQuery?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleSearchClick()
+              }
+            }}
+            placeholder={getUIText('catalogTextSearchPlaceholder', language)}
+            className="h-full min-h-0 min-w-0 flex-1 border-0 bg-transparent text-base font-medium leading-none text-slate-900 placeholder:text-slate-500 shadow-none focus-visible:ring-0"
+            aria-label={getUIText('catalogTextSearchPlaceholder', language)}
+          />
+          <button
+            type="button"
+            disabled={!semanticSearchFeatureEnabled}
+            aria-pressed={smartSearchOn && semanticSearchFeatureEnabled}
+            onClick={() => {
+              if (!semanticSearchFeatureEnabled || !setSmartSearchOn) return
+              const next = !smartSearchOn
+              setSmartSearchOn(next)
+              try {
+                localStorage.setItem('gostaylo_smart_search', next ? '1' : '0')
+              } catch {
+                /* ignore */
+              }
+            }}
+            className={cn(
+              'flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 transition-colors',
+              !semanticSearchFeatureEnabled
+                ? 'cursor-not-allowed opacity-50'
+                : smartSearchOn
+                  ? 'border-violet-300 bg-violet-50 text-violet-700'
+                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50',
+            )}
+          >
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span className="text-xs font-semibold tracking-tight">{getUIText('aiBadge', language)}</span>
+          </button>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 items-stretch gap-2 overflow-visible md:grid-cols-[minmax(190px,1.4fr)_minmax(170px,1.2fr)_minmax(170px,0.95fr)_minmax(132px,0.72fr)] xl:grid-cols-[minmax(240px,1.5fr)_minmax(220px,1.3fr)_220px_148px]">
         <WhereCombobox
           options={whereOptionsFull}
           value={where || 'all'}
           onChange={setWhere}
           placeholder={getUIText('wherePlaceholder', language)}
           fetchSuggestions={fetchWhereSuggestions}
-          loading={false}
-          variant="hero"
+          variant="flat"
           language={language}
-          className="min-w-[180px] flex-[1.2] xl:min-w-[220px]"
+          className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'px-0')}
         />
 
-        {/* When */}
-        <div className="min-w-[180px] border-r border-slate-200 xl:min-w-[220px]">
-          <SearchCalendar
-            value={dateRange}
-            onChange={setDateRange}
-            locale={language}
-            placeholder={getUIText('dates', language)}
-            liveCount={liveCount}
-            countLoading={countLoading}
-          />
-        </div>
+        <SearchCalendar
+          value={dateRange}
+          onChange={setDateRange}
+          locale={language}
+          placeholder={getUIText('dates', language)}
+          liveCount={liveCount}
+          countLoading={countLoading}
+          className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'cursor-pointer')}
+        />
 
-        {/* Who (SSOT Airbnb-style popover) */}
         <GuestsPopover
           language={language}
           guests={guests}
@@ -393,208 +561,32 @@ export function UnifiedSearchBar({
           guestsBreakdown={guestsBreakdown}
           setGuestsBreakdown={setGuestsBreakdown}
           align="start"
-          triggerClassName={`${triggerBase} ${triggerHero} w-[clamp(170px,22vw,220px)] min-w-[170px] max-w-[220px]`}
+          triggerClassName={cn(
+            UNIFIED_SEARCH_HERO_FIELD_CLASS,
+            'w-full min-w-0 max-w-full xl:min-w-[220px] xl:max-w-[220px] cursor-pointer',
+          )}
         />
 
         <Button
-          onClick={handleHeroFindClick}
-          className={cn(
-            'h-[54px] px-8 m-1.5 bg-brand hover:bg-brand-hover text-[15px] font-semibold shadow-[0_12px_24px_rgba(0,102,102,0.28)]',
-            textSearchRow ? 'rounded-br-[22px] rounded-tr-[22px]' : 'rounded-[20px]',
-          )}
+          onClick={handleSearchClick}
+          className="!h-[60px] min-h-[60px] max-h-[60px] min-w-[148px] shrink-0 rounded-2xl bg-brand px-6 text-base font-semibold leading-none text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-brand-hover hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
           data-testid="unified-search-button"
         >
-          <Search className="h-4 w-4 mr-2" />{getUIText('findButton', language)}
-        </Button>
-      </div>
-
-      {/* Mobile Hero — stack Where + Guests (2-col row overflows narrow Android viewports) */}
-      <div className="flex min-w-0 flex-col gap-2 p-4 md:hidden">
-        <button
-          type="button"
-          onClick={() => setCategoryDrawerOpen(true)}
-          className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3.5 text-left hover:bg-slate-50"
-          data-testid="mobile-category-trigger"
-        >
-          <Layers className="h-4 w-4 shrink-0 text-brand" />
-          <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{categoryLabel}</span>
-        </button>
-        <div className="rounded-2xl border border-slate-200 overflow-hidden">
-          <SearchCalendar
-            value={dateRange}
-            onChange={setDateRange}
-            locale={language}
-            placeholder={getUIText('dates', language)}
-            liveCount={liveCount}
-            countLoading={countLoading}
-            className="w-full justify-start px-3 py-3"
-          />
-        </div>
-        {transportIntervalMode && dateRange?.from && dateRange?.to && (
-          <div className="grid grid-cols-2 gap-2">
-            <TimeSelect
-              value={checkInTime}
-              onChange={setCheckInTime}
-              className="h-10 rounded-xl border-slate-200"
-            />
-            <TimeSelect
-              value={checkOutTime}
-              onChange={setCheckOutTime}
-              className="h-10 rounded-xl border-slate-200"
-            />
-          </div>
-        )}
-        <div className="flex min-w-0 flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => setLocationDrawerOpen(true)}
-          className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-left hover:bg-slate-50"
-            data-testid="mobile-where-trigger"
-          >
-            <MapPin className="h-4 w-4 shrink-0 text-brand" />
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{whereLabel}</span>
-          </button>
-          <div className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-0 py-0 text-left hover:bg-slate-50">
-            <GuestsPopover
-              language={language}
-              guests={guests}
-              setGuests={setGuests}
-              guestsBreakdown={guestsBreakdown}
-              setGuestsBreakdown={setGuestsBreakdown}
-              align="start"
-              triggerClassName="min-h-[44px] w-full rounded-2xl border-0 px-4 py-2.5 text-sm"
-              contentClassName="z-[90]"
-            />
-          </div>
-        </div>
-        <Button
-          onClick={handleHeroFindClick}
-          className="h-12 w-full rounded-2xl bg-brand hover:bg-brand-hover text-[15px] font-semibold shadow-[0_10px_22px_rgba(0,102,102,0.25)]"
-          data-testid="unified-search-button"
-        >
-          <Search className="mr-2 h-4 w-4" />
+          <Search className="mr-2 h-5 w-5" />
           {getUIText('findButton', language)}
         </Button>
-
-        {variant === 'hero' && onQuickCategorySearch && quickChips.length > 0 ? (
-          <div
-            className="-mx-0 flex min-w-0 gap-2 overflow-x-auto pb-1 pt-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-3"
-            role="list"
-            aria-label={getUIText('categories', language)}
-          >
-            {quickChips.map((chip) => {
-              const Icon = chip.icon
-              const active = category === chip.slug
-              return (
-                <button
-                  key={chip.slug}
-                  type="button"
-                  role="listitem"
-                  onClick={() => {
-                    setCategory?.(chip.slug)
-                    onQuickCategorySearch(chip.slug)
-                  }}
-                  className={cn(
-                    'flex snap-start shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors',
-                    active
-                      ? 'border-brand bg-brand/10 text-brand'
-                      : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50'
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0 text-brand" aria-hidden />
-                  {chip.label}
-                </button>
-              )
-            })}
-          </div>
-        ) : null}
       </div>
 
-      {/* Mobile category drawer */}
-      <Drawer open={categoryDrawerOpen} onOpenChange={setCategoryDrawerOpen}>
-        <DrawerContent className="max-h-[min(70vh,520px)]">
-          <DrawerHeader className="border-b pb-4">
-            <DrawerTitle>{getUIText('mobileSearchWhatTitle', language)}</DrawerTitle>
-            <DrawerClose asChild>
-              <Button variant="ghost" size="icon">
-                <span className="sr-only">Close</span>
-              </Button>
-            </DrawerClose>
-          </DrawerHeader>
-          <div className="max-h-[55vh] overflow-y-auto p-4 space-y-1">
-            <button
-              type="button"
-              onClick={() => {
-                setCategory?.('all')
-                setCategoryDrawerOpen(false)
-              }}
-              className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
-                !category || category === 'all'
-                  ? 'border-brand bg-brand/10 text-brand'
-                  : 'border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {getUIText('allLabel', language)}
-            </button>
-            {orderedCategoryRows.map(({ cat: c, depth }) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  setCategory?.(c.slug)
-                  setCategoryDrawerOpen(false)
-                }}
-                className={`w-full rounded-lg border py-3 text-left text-sm ${
-                  depth ? 'border-slate-200 pl-6 pr-3' : 'border-slate-200 px-3'
-                } ${
-                  category === c.slug
-                    ? 'border-brand bg-brand/10 text-brand'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {depth ? '· ' : ''}
-                {getCategoryName(c.slug, language) || c.name}
-              </button>
-            ))}
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Mobile Location Drawer */}
-      <Drawer open={locationDrawerOpen} onOpenChange={setLocationDrawerOpen}>
-        <DrawerContent className="h-[70vh] max-h-[70vh]">
-          <DrawerHeader className="border-b pb-4">
-            <DrawerTitle>{getUIText('whereShort', language)}</DrawerTitle>
-            <DrawerClose asChild><Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button></DrawerClose>
-          </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            <Input
-              placeholder={getUIText('cityOrAreaHint', language)}
-              value={mobileWhereInput}
-              onChange={(e) => setMobileWhereInput(e.target.value)}
-              className="mb-2"
-            />
-            <div className="space-y-1">
-              {filterWhereOptions(whereOptionsFull, mobileWhereInput).map((opt) => (
-                <button
-                  key={`${opt.type}-${opt.value}`}
-                  type="button"
-                  onClick={() => {
-                    setWhere?.(opt.value)
-                    setLocationDrawerOpen(false)
-                  }}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm border ${
-                    where === opt.value ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
-
+      {!dateRange?.from ? (
+        <p className="mt-3 hidden items-center gap-1.5 px-1 text-xs text-white/75 md:flex">
+          <Calendar className="h-3.5 w-3.5 text-white/70" aria-hidden />
+          {language === 'ru'
+            ? 'Выберите даты, чтобы увидеть точные цены и доступность'
+            : 'Pick dates to see live pricing and availability'}
+        </p>
+      ) : null}
     </div>
   )
 }
+
+export default UnifiedSearchBar

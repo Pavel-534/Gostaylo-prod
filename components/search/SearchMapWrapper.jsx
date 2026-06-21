@@ -32,7 +32,7 @@ function SearchMapWrapperComponent({
   return (
     <div
       className={cn(
-        'w-full min-w-0 max-lg:hidden lg:block lg:w-[40%] lg:max-w-[40%] lg:flex-shrink-0 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]',
+        'w-full min-w-0 max-lg:hidden lg:block lg:w-[40%] lg:max-w-[40%] lg:flex-shrink-0 lg:sticky lg:app-sticky-below-public-chrome lg:app-catalog-map-panel',
         className,
       )}
     >

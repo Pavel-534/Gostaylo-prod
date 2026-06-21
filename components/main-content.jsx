@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
  */
 const SHELL_INSET_BYPASS = [
   { prefix: '/', exact: true, skipTop: true },
+  /** ADR-101 Wave 2 — catalog owns top inset via PublicSearchChrome */
+  { prefix: '/listings', exact: true, skipTop: true },
   { prefix: '/messages', skipTop: true, skipBottom: true },
   { prefix: '/admin', skipTop: true, skipBottom: true },
   { prefix: '/partner', skipTop: true, skipBottom: true },

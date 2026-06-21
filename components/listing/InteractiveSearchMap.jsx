@@ -225,6 +225,17 @@ function MapSizeInvalidator({ layoutResetKey = 0 }) {
   return null
 }
 
+function resolvePinLatLng(pin) {
+  if (!pin || typeof pin !== 'object') return null
+  const lat = pin.lat ?? pin.latitude
+  const lng = pin.lng ?? pin.longitude
+  if (lat == null || lng == null) return null
+  const la = typeof lat === 'number' ? lat : parseFloat(String(lat))
+  const ln = typeof lng === 'number' ? lng : parseFloat(String(lng))
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return null
+  return { lat: la, lng: ln }
+}
+
 function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
   const map = useMap()
   const lastPanIdRef = useRef(null)
@@ -237,9 +248,10 @@ function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
     let lng = null
 
     const pin = (pins || []).find((p) => String(p.id) === id)
-    if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng)) {
-      lat = pin.lat
-      lng = pin.lng
+    const pinLl = pin ? resolvePinLatLng(pin) : null
+    if (pinLl) {
+      lat = pinLl.lat
+      lng = pinLl.lng
     } else {
       const listing = (listings || []).find((l) => String(l.id) === id)
       const ll = listing ? extractListingLatLng(listing) : null
@@ -252,7 +264,15 @@ function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
 
     lastPanIdRef.current = id
-    map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { animate: true, duration: 0.45 })
+    try {
+      const zoom = map.getZoom()
+      map.flyTo([lat, lng], Number.isFinite(zoom) ? Math.max(zoom, 14) : 14, {
+        animate: true,
+        duration: 0.45,
+      })
+    } catch {
+      lastPanIdRef.current = null
+    }
   }, [selectedListingId, pins, listings, map])
 
   return null

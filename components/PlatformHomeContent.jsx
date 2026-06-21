@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
@@ -9,7 +9,8 @@ import { getUIText, getCategoryName } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { usePlatformHomePage } from '@/hooks/home/use-platform-home-page'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
-import { StickySearchBar } from '@/components/home/StickySearchBar'
+import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
+import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
@@ -178,19 +179,27 @@ export function PlatformHomeContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Sticky search — появляется при скролле, поверх контента */}
-      <StickySearchBar
-        language={language}
-        category={selectedCategory}
-        where={where}
-        setWhere={setWhere}
-        dateRange={dateRange}
-        setDateRange={handleDateChange}
-        guests={guests}
-        setGuests={setGuests}
-        guestsBreakdown={guestsBreakdown}
-        setGuestsBreakdown={setGuestsBreakdown}
-        onSearch={handleSearch}
+      {/* ADR-101 Wave 2 — compact search chrome (desktop); hero = expanded */}
+      <PublicSearchChrome
+        surface="home"
+        compactTestId="sticky-search-bar"
+        compact={
+          <UnifiedSearchBar
+            variant="compact"
+            language={language}
+            category={selectedCategory}
+            where={where}
+            setWhere={setWhere}
+            dateRange={dateRange}
+            setDateRange={handleDateChange}
+            guests={guests}
+            setGuests={setGuests}
+            guestsBreakdown={guestsBreakdown}
+            setGuestsBreakdown={setGuestsBreakdown}
+            onSearch={handleSearch}
+            onSearchSubmit={handleHomeSearchSubmit}
+          />
+        }
       />
 
       <div className="gsl-page-container max-w-6xl space-y-8 py-8">

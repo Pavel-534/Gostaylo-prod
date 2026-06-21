@@ -528,8 +528,8 @@ Page content (rails, grid, map)
 |------|-------|---------------|
 | **0 — ADR + guards** | Этот ADR; passport/manifest; не трогать вёрстку без wave owner | PR checklist ссылается ADR-101 |
 | **1 — State SSOT** | `usePublicSearchFilters`; home + catalog consume; удалить дубли state | ✅ Wave 1 (2026-06-20): hook + URL helpers; home/catalog wired |
-| **2 — Chrome shell** | `PublicSearchChrome` + CSS vars; catalog compact phase; bypass `/listings` skipTop | Catalog scroll: expanded→compact; нет double header pad |
-| **3 — UI merge** | Hero → UnifiedSearchBar expanded; удалить `StickySearchBar` duplicate markup | Один `UnifiedSearchBar` tree для полей |
+| **2 — Chrome shell** | `PublicSearchChrome` + CSS vars; catalog compact phase; bypass `/listings` skipTop | ✅ Wave 2 (2026-06-20): `PublicSearchChrome`, `PublicCompactSearchBar`, `usePublicSearchChrome`, CSS vars, `/listings` skipTop, map `app-sticky-below-public-chrome` |
+| **3 — UI merge** | Hero → UnifiedSearchBar expanded; удалить `StickySearchBar` duplicate markup | ✅ Wave 3 (2026-06-20): `UnifiedSearchBar` variants `hero` / `filter` / `compact`; удалены `PublicCompactSearchBar`, `StickySearchBar`, `HomeHero.jsx` |
 | **4 — CI + cleanup** | `check-shell-insets` + e2e scroll chrome | `npm run check:shell` green; Playwright smoke home+catalog scroll |
 
 **До завершения Wave 2** текущие файлы (`HomeHeroLuxe`, `StickySearchBar`, `FilterBar`) остаются **legacy implementation** — новые фичи поиска добавлять **только** в target modules или с явным ticket на перенос в wave.

@@ -11,6 +11,8 @@ import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { FilterBar } from '@/components/search/FilterBar'
+import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
+import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
@@ -56,6 +58,7 @@ function ListingsContent() {
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const searchParamsKey = searchParams.toString()
 
@@ -446,40 +449,66 @@ function ListingsContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <FilterBar
-        language={language}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        checkInTime={checkInTime}
-        setCheckInTime={setCheckInTime}
-        checkOutTime={checkOutTime}
-        setCheckOutTime={setCheckOutTime}
-        categoriesForHierarchy={catalogCategories}
-        catalogHeadline={catalogHeadlines.h1}
-        catalogSubline={catalogHeadlines.sub}
-        catalogParentBlurb={catalogHeadlines.parentBlurb}
-        selectedCategory={selectedCategory}
-        selectedCategoryWizardProfile={selectedCategoryWizardProfile}
-        setSelectedCategory={setSelectedCategory}
-        where={where}
-        setWhere={setWhere}
-        guests={guests}
-        setGuests={setGuests}
-        guestsBreakdown={guestsBreakdown}
-        setGuestsBreakdown={setGuestsBreakdown}
-        clearDates={clearDates}
-        nights={nights}
-        extraFilters={extraFilters}
-        onExtraFiltersChange={setExtraFilters}
-        listingsForFiltersHistogram={allListings}
-        priceHistogram={meta?.priceHistogram ?? null}
-        filterResultCount={allListings.length}
-        textQuery={searchQuery}
-        setTextQuery={setSearchQuery}
-        smartSearchOn={smartSearchOn}
-        setSmartSearchOn={setSmartSearchOn}
-        semanticSearchFeatureEnabled={semanticSiteEnabled}
-        onSearchSubmit={handleCatalogSearchSubmit}
+      <PublicSearchChrome
+        surface="catalog"
+        expanded={
+          <FilterBar
+            shellWrapper={false}
+            filtersOpen={filtersOpen}
+            onFiltersOpenChange={setFiltersOpen}
+            language={language}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            checkInTime={checkInTime}
+            setCheckInTime={setCheckInTime}
+            checkOutTime={checkOutTime}
+            setCheckOutTime={setCheckOutTime}
+            categoriesForHierarchy={catalogCategories}
+            catalogHeadline={catalogHeadlines.h1}
+            catalogSubline={catalogHeadlines.sub}
+            catalogParentBlurb={catalogHeadlines.parentBlurb}
+            selectedCategory={selectedCategory}
+            selectedCategoryWizardProfile={selectedCategoryWizardProfile}
+            setSelectedCategory={setSelectedCategory}
+            where={where}
+            setWhere={setWhere}
+            guests={guests}
+            setGuests={setGuests}
+            guestsBreakdown={guestsBreakdown}
+            setGuestsBreakdown={setGuestsBreakdown}
+            clearDates={clearDates}
+            nights={nights}
+            extraFilters={extraFilters}
+            onExtraFiltersChange={setExtraFilters}
+            listingsForFiltersHistogram={allListings}
+            priceHistogram={meta?.priceHistogram ?? null}
+            filterResultCount={allListings.length}
+            textQuery={searchQuery}
+            setTextQuery={setSearchQuery}
+            smartSearchOn={smartSearchOn}
+            setSmartSearchOn={setSmartSearchOn}
+            semanticSearchFeatureEnabled={semanticSiteEnabled}
+            onSearchSubmit={handleCatalogSearchSubmit}
+          />
+        }
+        compact={
+          <UnifiedSearchBar
+            variant="compact"
+            language={language}
+            category={selectedCategory}
+            where={where}
+            setWhere={setWhere}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            guests={guests}
+            setGuests={setGuests}
+            guestsBreakdown={guestsBreakdown}
+            setGuestsBreakdown={setGuestsBreakdown}
+            onSearchSubmit={handleCatalogSearchSubmit}
+            showFiltersButton
+            onFiltersClick={() => setFiltersOpen(true)}
+          />
+        }
       />
 
       <div className="container mx-auto px-4 pt-4">
@@ -497,7 +526,7 @@ function ListingsContent() {
       </div>
 
       <div id="listings-results" className="container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
           <div className="w-full min-w-0 lg:w-[60%] lg:max-w-[60%] lg:flex-shrink-0">
             <ListingSidebar
               listings={listings}

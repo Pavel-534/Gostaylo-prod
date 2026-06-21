@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.171.1 | **Last Updated**: 2026-06-20 | **Stage 171.1:** Wave 1 — **`usePublicSearchFilters`** + URL SSOT in **`listings-page-url.js`**. | **Stage 171.0:** Public Search Chrome ADR-101 (normative). |
+> **Version**: 12.171.3 | **Last Updated**: 2026-06-20 | **Stage 171.3:** UnifiedSearchBar UI-SSOT (hero/filter/compact). | **Stage 171.2:** PublicSearchChrome shell. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -902,19 +902,19 @@
 | Слой | Target SSOT | Legacy (до Wave 2) |
 |------|-------------|---------------------|
 | Nav chrome | `AppHeader` | — |
-| Search chrome | **`PublicSearchChrome`** (`expanded` / `compact`) | `HomeHeroLuxe` + `StickySearchBar` (home); `FilterBar` (catalog) |
-| Filter state | **`usePublicSearchFilters`** (`lib/hooks/use-public-search-filters.js`) | ~~`useHomeFilters`~~ thin wrapper; catalog inline state removed Wave 1 |
-| Field markup | **`UnifiedSearchBar`** | Inline fields in `HomeHeroLuxe`; duplicate in `StickySearchBar` |
-| URL contract | **`lib/search/listings-page-url.js`** | partial overlap today |
-| CSS height | **`--app-search-chrome-height`**, **`--app-public-top-offset`**, **`.app-sticky-below-public-chrome`** | catalog map `lg:top-20` (violates ADR-101) |
+| Search chrome | **`PublicSearchChrome`** + **`UnifiedSearchBar variant="compact"`** | ~~`PublicCompactSearchBar`~~, ~~`StickySearchBar`~~ |
+| Field markup | **`UnifiedSearchBar`** (`hero` / `filter` / `compact`) | inline fields in `HomeHeroLuxe`; duplicate compact row |
+| Filter state | **`usePublicSearchFilters`** (`lib/hooks/use-public-search-filters.js`) | `useHomeFilters` thin wrapper |
+| Scroll phase | **`usePublicSearchChrome`** | home `scrollY`; catalog IO sentinel |
+| CSS height | **`--app-search-chrome-height`**, **`--app-public-top-offset`**, **`.app-sticky-below-public-chrome`**, **`.app-catalog-map-panel`** | removed catalog map `lg:top-20` |
 
 **Фазы:** home compact при scroll ~280px; catalog compact via **IntersectionObserver** sentinel. **MainContent:** `/listings` → `skipTop: true` (как `/`). **Catalog layout:** list/map без `lg:items-stretch`; map sticky offset только shell utilities. Полный контракт — **`ARCHITECTURAL_DECISIONS.md`** § ADR-101.
 
-#### Текущая реализация (code-truth до миграции)
+#### Текущая реализация (code-truth Wave 3)
 
-- **Главная — `components/PlatformHomeContent.jsx`:** тонкий оркестратор; **`components/home/`** — **`HomeHeroLuxe`** (Airy Premium hero, единая 60-px геометрия `Where/Dates/Guests/CTA`, env-копии через **`lib/config/home-page-copy.js`** с поддержкой токена `'AUTO'`), **`StickySearchBar`** (fixed compact при `scrollY > 280`), **`TopListingsGrid`**, **`useHomeFilters.js`**. **`MobileSearchBottomSheet`** + FAB (`scrollY > 160`).
-- **Каталог — `app/listings/listings-catalog-client.jsx`:** **`FilterBar`** → **`UnifiedSearchBar variant="filter"`** + **`SearchFiltersDialog`**; sticky **`.app-sticky-below-header`** без compact phase; **`SearchMapWrapper`** sticky `lg:top-20`.
-- **Shared primitives:** **`WhereCombobox`**, **`GuestsPopover`**, **`SearchCalendar`**, **`UnifiedSearchBar`**. Overlay: portal popovers, z-index above content; mobile drawers for where/guests/dates.
+- **Главная:** `HomeHeroLuxe` (фон + category tabs + glass capsule) + **`UnifiedSearchBar variant="hero"`**; compact desktop → **`PublicSearchChrome`** + **`UnifiedSearchBar variant="compact"`** (`data-testid="sticky-search-bar"` wrapper); **`MobileSearchFAB`**.
+- **Каталог:** **`PublicSearchChrome`** wraps **`FilterBar`** (`UnifiedSearchBar variant="filter"`) + compact **`UnifiedSearchBar variant="compact"`**; **`MainContent`** `skipTop` on `/listings`.
+- **State:** **`usePublicSearchFilters`**. **Layout:** catalog **`lg:items-start`**; map **`.app-sticky-below-public-chrome`**.
 - **Поиск (без дублирования ядра):** **`lib/api/run-listings-search-get.js`** — **единая** реализация **`runListingsSearchGet`**; её вызывают **`GET /api/v2/search`**, **`GET /api/v2/listings/search`** (прокси/сигнатуры) и **SSR ItemList** (`lib/seo/listings-catalog-itemlist.js`). По умолчанию **`isLite: true`**: **`LISTINGS_SELECT_LITE`** (без колонки **`description`** в SELECT), в JSON — до **3** URL изображений, **`metadata`** через **`pickLiteListingMetadata`** (`lib/api/search/listing-search-payload.js`); полная карточка — только **`GET /api/v2/listings/[id]`** (или иной детальный эндпоинт). Для полной выдачи списка (редко): **`runListingsSearchGet(req, { isLite: false })`**. В **`meta.payloadProfile`** — **`lite`** | **`full`**; размер тела логируется как **`[SEARCH API] catalog JSON UTF-8 size`**. При **`checkIn`/`checkOut`** фильтр **`min_price`/`max_price`** и **`meta.priceHistogram`** используют календарную среднюю за период (**`listingMatchesSearchPriceRange`**, **`lib/search/effective-unit-price-for-search.js`**); без дат — SQL по **`base_price_thb`**. API **v1** отдельного движка поиска **нет** в `app/api/v1/`.
 - **Карта query-параметров каталога (онбординг):** **`docs/SEARCH_FILTERS_QUERY_MAP.md`** — таблица «параметр → клиент / сервер / SQL / пост-фильтр / availability» и чеклист при добавлении фильтра.
 - **Профиль — `app/profile/page.js`:** секции **`ProfileInfo`**, **`ProfileSecurity`**, **`ProfilePreferences`** (`app/profile/components/`), сети и PATCH заявок/дока — **`app/profile/hooks/useProfileUpdate.js`**. Модалки «заявка партнёра» + welcome остаются в `page.js`.
