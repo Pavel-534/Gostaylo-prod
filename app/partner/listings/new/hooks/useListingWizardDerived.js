@@ -12,7 +12,7 @@ import {
 } from '@/lib/partner/listing-quality-gates.js'
 import { categorySlugMatchesListingServiceType } from '@/lib/partner/listing-service-type'
 import { resolveCategoryDisplayName } from '@/lib/category-display-name'
-import { WIZARD_DISTRICTS } from '../wizard-constants'
+import { WIZARD_DISTRICTS, LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 import {
   computeWizardCanProceed,
   computeWizardPricingPreview,
@@ -135,7 +135,10 @@ export function useListingWizardDerived(state) {
     [formData.basePriceThb, formData.baseCurrency, pricingPolicy, state.storefrontExchangeRates],
   )
 
-  const progress = useMemo(() => ((currentStep - 1) / 4) * 100, [currentStep])
+  const progress = useMemo(
+    () => ((currentStep - 1) / (LISTING_WIZARD_STEP_COUNT - 1)) * 100,
+    [currentStep],
+  )
 
   return {
     SEASON_TYPES,

@@ -341,7 +341,7 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   }
 
   return (
-    <Card id="partner-calendar-sync" className="border-2 border-brand/20 shadow-md scroll-mt-24 overflow-hidden">
+    <Card id="partner-calendar-sync" className="overflow-hidden rounded-2xl border border-brand/20 shadow-sm scroll-mt-28">
       <CardHeader className="pb-2 bg-gradient-to-r from-brand/10 to-white border-b border-brand/20">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex items-start gap-3">

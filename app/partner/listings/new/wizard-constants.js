@@ -1,5 +1,8 @@
 export { PHUKET_DISTRICTS_CANON as WIZARD_DISTRICTS } from '@/lib/locations/phuket-districts-canonical'
 
+/** SSOT step count for wizard navigation and validation. */
+export const LISTING_WIZARD_STEP_COUNT = 5
+
 export function getDefaultWizardFormData() {
   return {
     /** @type {'' | 'stay' | 'transport' | 'service' | 'tour'} Stage 26.0 */

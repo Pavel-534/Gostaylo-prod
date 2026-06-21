@@ -22,6 +22,7 @@ import { applyDurationDiscountField } from '@/lib/partner/duration-discount-help
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { ensureWizardDraftListing } from '@/lib/partner/ensure-wizard-draft-listing'
 import { buildWizardFormDataFromListing } from './listing-wizard-load-existing'
+import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 
 /**
  * Stage 109.3 — wizard mutations (form, steps, upload, geo, AI, import).
@@ -133,7 +134,7 @@ export function useListingWizardActions(state, derived) {
   )
 
   const goNext = useCallback(() => {
-    if (canProceed && currentStep < 5) {
+    if (canProceed && currentStep < LISTING_WIZARD_STEP_COUNT) {
       setCurrentStep((p) => p + 1)
     }
   }, [canProceed, currentStep, setCurrentStep])

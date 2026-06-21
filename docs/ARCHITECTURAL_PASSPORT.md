@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.171.6 | **Last Updated**: 2026-06-20 | **Stage 171.6:** Partner listings RQ + status badge SSOT + Mint palette. | **Stage 171.5:** Partner listings visibility toggle + workspace sticky SSOT. | **Stage 171.4:** Liquid morph SSOT (home 0.50 / catalog 0.28). | **Stage 171.3:** UnifiedSearchBar UI-SSOT. |
+> **Version**: 12.171.9 | **Last Updated**: 2026-06-20 | **Stage 171.9:** Wizard desktop header polish + mobile UX audit gates. | **Stage 171.8:** Liquid Compact Header + useWorkspaceScrollTrigger. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -840,6 +840,9 @@
 
 ### 0.0g Partner listing creation & edit wizard (Stage 4.1 + 4.2)
 - **Stage 171.5 — visibility + sticky:** список **`app/partner/listings/page.js`** — hide/show через **`PATCH`** (`partner_hidden`, `status`, restore → `available: true`); API unhide bypass quality gate; sticky subheader — **`WORKSPACE_SCROLL_STICKY_CLASS`** (`lib/layout/workspace-shell.js`, scrollport **`WORKSPACE_SCROLL_CLASS`**, не **`.app-sticky-below-header`**). Wizard step bar — тот же класс; live preview sidebar — **`sticky top-4 z-20 isolate`**.
+- **Stage 171.9 — desktop polish + mobile gates:** compact header shadow/border (**`ListingWizardPageInner`**, `isScrolled`); mobile audit зафиксирован в манифесте §171.9 — до fixed bottom bar обязательны **visualViewport**, **safe-area**, collapse preview **`< lg`**, scrollport pad; handlers не трогать.
+- **Stage 171.8 — liquid compact header:** **`useWorkspaceScrollTrigger`**, **`WORKSPACE_SCROLL_ATTR`**, wizard header collapse + preview sticky sync.
+- **Stage 171.7 — wizard scroll SSOT:** **`StepCalendarSection`** + **`ListingWizardStepNav`** в **`ListingWizardPageInner`**; **`EditPartnerListingView`** — только auth gates; deep-link **`?highlight=calendar`** → **`#partner-calendar-sync`**.
 - **Stage 171.6 — data + DS:** **`lib/hooks/use-partner-listings.js`** — **`usePartnerListings`**, **`usePartnerListingPatch`** (optimistic cache), **`usePartnerListingDelete`**; **`components/partner/PartnerListingStatusBadge.jsx`** — badge tones для списка и визарда; wizard/edit/new loading — **`text-brand`**, **`min-h-[50vh]`**.
 - **Создание — маршрут:** `app/partner/listings/new/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider`** (по умолчанию `mode="create"`) + **`ListingWizardPageInner`**.
 - **Редактирование — маршрут:** `app/partner/listings/[id]/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider` с `mode="edit"`** и **`initialListingId` из `params.id`** + **`EditPartnerListingView`**, который рендерит тот же **`ListingWizardPageInner`**, а под визардом (после общих шагов) — **`CalendarSyncManager`**, **`AvailabilityCalendar`**, **`SeasonalPriceManager`** (только не для transport-категории: `isTransportListingCategory` скрывает внешний iCal sync).

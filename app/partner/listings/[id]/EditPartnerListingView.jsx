@@ -1,17 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'sonner'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
-import CalendarSyncManager from '@/components/calendar-sync-manager'
-import AvailabilityCalendar from '@/components/availability-calendar'
-import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import { useListingWizard } from '../new/context/ListingWizardContext'
 import { ListingWizardPageInner } from '../new/components/ListingWizardPageInner'
 
@@ -23,27 +17,14 @@ function EditViewLoading() {
   )
 }
 
+/**
+ * Edit route shell — auth gates only. Wizard + calendar SSOT: ListingWizardPageInner (Stage 171.7).
+ */
 export function EditPartnerListingView() {
   const { loading: authLoading, isAuthenticated } = useAuth()
   const { language } = useI18n()
   const t = (key) => getUIText(key, language)
-  const w = useListingWizard()
-  const { editId, loading, listingNotFound, serverListing, formData, listingCategorySlug } = w
-  const transport = isTransportListingCategory(listingCategorySlug)
-  const showExternalCalendarSync = !transport
-  const basePrice = parseFloat(String(formData?.basePriceThb || '').replace(',', '.')) || 0
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !serverListing) return
-    const sp = new URLSearchParams(window.location.search)
-    if (sp.get('highlight') !== 'calendar') return
-    const timer = setTimeout(() => {
-      document.getElementById('partner-calendar-sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      toast.success(getUIText('partnerCal_toastScroll', language))
-      window.history.replaceState({}, '', window.location.pathname)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [serverListing, language])
+  const { loading, listingNotFound } = useListingWizard()
 
   if (authLoading) {
     return <EditViewLoading />
@@ -84,16 +65,5 @@ export function EditPartnerListingView() {
     )
   }
 
-  return (
-    <div>
-      <ListingWizardPageInner />
-      {editId && serverListing ? (
-        <div className="container mx-auto max-w-4xl space-y-5 px-3 py-5 sm:px-4 lg:space-y-8 lg:py-8">
-          {showExternalCalendarSync ? <CalendarSyncManager listingId={editId} onSync={() => {}} /> : null}
-          <AvailabilityCalendar listingId={editId} syncErrors={[]} />
-          <SeasonalPriceManager listingId={editId} basePriceThb={basePrice} />
-        </div>
-      ) : null}
-    </div>
-  )
+  return <ListingWizardPageInner />
 }

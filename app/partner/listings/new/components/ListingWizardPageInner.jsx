@@ -3,21 +3,17 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
   ArrowRight,
   Save,
   CheckCircle2,
-  Home,
-  Map as MapIcon,
-  DollarSign,
-  ImageIcon,
   Loader2,
   Send,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { ListingCard } from '@/components/listing-card'
 import { useListingWizard } from '../context/ListingWizardContext'
@@ -27,12 +23,28 @@ import { StepLocation } from './StepLocation'
 import { StepPhotos } from './StepPhotos'
 import { StepPricing } from './StepPricing'
 import { StepPreview } from './StepPreview'
+import { StepCalendarSection } from './StepCalendarSection'
+import { ListingWizardStepNav, ListingWizardProgressTrack } from './ListingWizardStepNav'
 import { PartnerReferralWizardBanner } from '@/components/partner/PartnerReferralWizardBanner'
 import {
   PartnerListingStatusBadge,
   partnerWizardListingStatusTone,
 } from '@/components/partner/PartnerListingStatusBadge'
-import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
+import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
+import { useWorkspaceScrollTrigger } from '@/lib/hooks/use-workspace-scroll-trigger'
+import {
+  LISTING_WIZARD_STICKY_TOP_EXPANDED,
+} from '@/lib/layout/workspace-shell'
+
+/** h-9 (36px) + 2px progress track — compact step indicator (Stage 171.10). */
+const WIZARD_COMPACT_STEP_INDICATOR_HEIGHT = '2.375rem'
+
+/**
+ * Flush under partner breadcrumb toolbar (outside scrollport).
+ * Mobile toolbar ≈2.5rem (py-2); desktop row ≈3rem (py-3) — see WORKSPACE_*_TOOLBAR in layout.
+ */
+const WIZARD_COMPACT_STEP_BAR_POSITION_CLASS =
+  'fixed left-0 right-0 top-[calc(var(--app-header-height,64px)+2.5rem)] z-50 w-full lg:left-64 lg:top-[calc(var(--app-header-height,64px)+3rem)]'
 
 export function ListingWizardPageInner() {
   const router = useRouter()
@@ -42,14 +54,15 @@ export function ListingWizardPageInner() {
     t,
     isEditMode,
     wizardMode,
+    editId,
     serverListing,
     currentStep,
+    setCurrentStep,
     loading,
     savingDraft,
     formData,
     language,
     listingCategorySlug,
-    progress,
     canProceed,
     goNext,
     goBack,
@@ -58,7 +71,6 @@ export function ListingWizardPageInner() {
     draftRestored,
   } = w
 
-  /** Stage 140.1 — warn before losing an unsaved new-listing draft. */
   useEffect(() => {
     if (!isDirty) return undefined
     const onBeforeUnload = (e) => {
@@ -70,7 +82,6 @@ export function ListingWizardPageInner() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [isDirty])
 
-  /** Stage 140.1 — let the host know their progress was recovered (once). */
   const restoreToastShownRef = useRef(false)
   useEffect(() => {
     if (draftRestored && !restoreToastShownRef.current) {
@@ -78,6 +89,19 @@ export function ListingWizardPageInner() {
       toast.success(t('wizardDraftRestored'))
     }
   }, [draftRestored, t])
+
+  /** Deep-link: /partner/listings/[id]?highlight=calendar */
+  useEffect(() => {
+    if (typeof window === 'undefined' || wizardMode !== 'edit' || !serverListing) return
+    const sp = new URLSearchParams(window.location.search)
+    if (sp.get('highlight') !== 'calendar') return
+    const timer = setTimeout(() => {
+      document.getElementById('partner-calendar-sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      toast.success(t('partnerCal_toastScroll'))
+      window.history.replaceState({}, '', window.location.pathname)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [serverListing, wizardMode, t])
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
@@ -93,11 +117,11 @@ export function ListingWizardPageInner() {
 
   const STEPS = useMemo(
     () => [
-      { id: 1, label: t('basics'), icon: Home },
-      { id: 2, label: t('location'), icon: MapIcon },
-      { id: 3, label: t('gallery'), icon: ImageIcon },
-      { id: 4, label: t('pricing'), icon: DollarSign },
-      { id: 5, label: t('livePreview'), icon: CheckCircle2 },
+      { id: 1, label: t('basics') },
+      { id: 2, label: t('location') },
+      { id: 3, label: t('gallery') },
+      { id: 4, label: t('pricing') },
+      { id: 5, label: t('livePreview') },
     ],
     [t],
   )
@@ -126,28 +150,66 @@ export function ListingWizardPageInner() {
     return t('publishListing')
   })()
 
+  const { isScrolled, anchorRef } = useWorkspaceScrollTrigger({ threshold: 20 })
+
+  const stepMarker = t('wizardStepMarker')
+    .replace('{current}', String(currentStep))
+    .replace('{total}', String(LISTING_WIZARD_STEP_COUNT))
+
+  const currentStepLabel = STEPS.find((s) => s.id === currentStep)?.label ?? ''
+  const compactStepLine = `${stepMarker}: ${currentStepLabel}`
+
+  const previewStickyTop = isScrolled
+    ? WIZARD_COMPACT_STEP_INDICATOR_HEIGHT
+    : LISTING_WIZARD_STICKY_TOP_EXPANDED
+
   return (
-    <div className="min-h-0 bg-slate-50">
-      <div className={WORKSPACE_SCROLL_STICKY_CLASS}>
+    <div ref={anchorRef} className="w-full bg-slate-50">
+      <div
+        className={cn(
+          WIZARD_COMPACT_STEP_BAR_POSITION_CLASS,
+          isScrolled ? 'block' : 'hidden',
+        )}
+        role="status"
+        aria-live="polite"
+        aria-hidden={!isScrolled}
+      >
+        <div className="relative h-9 bg-white shadow-sm">
+          <div className="mx-auto flex h-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+            <p className="truncate text-xs font-medium tracking-wide text-slate-600 sm:text-sm">
+              {compactStepLine}
+            </p>
+          </div>
+          <ListingWizardProgressTrack steps={STEPS} currentStep={currentStep} isScrolled />
+        </div>
+      </div>
+
+      <header className="relative border-b border-slate-200/80 bg-white pb-0.5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between gap-3 py-3">
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => router.push('/partner/listings')}
-              className="gap-2"
+              className="gap-1.5 px-2 text-slate-600 hover:text-slate-900"
               type="button"
             >
               <ArrowLeft className="h-4 w-4" />
-              {t('exit')}
+              <span className="hidden sm:inline">{t('exit')}</span>
             </Button>
-            <h1 className="text-center text-lg font-semibold tracking-tight sm:text-xl">{headerTitle}</h1>
-            <div className="flex items-center justify-end gap-2">
-              {isEditRoute && serverListing && (
+            <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+              <h1 className="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+                {headerTitle}
+              </h1>
+            </div>
+            <div className="flex shrink-0 items-center justify-end gap-2">
+              {isEditRoute && serverListing ? (
                 <PartnerListingStatusBadge
                   tone={partnerWizardListingStatusTone({
                     isDraft,
                     status: serverListing.status,
                   })}
+                  className="hidden sm:inline-flex"
                 >
                   {isDraft
                     ? t('partnerEdit_statusDraft')
@@ -157,80 +219,72 @@ export function ListingWizardPageInner() {
                         ? t('partnerEdit_statusPending')
                         : t('partnerEdit_statusInactive')}
                 </PartnerListingStatusBadge>
-              )}
+              ) : null}
               <Button
                 variant="outline"
+                size="sm"
                 onClick={saveDraft}
                 disabled={saveBusy}
-                className="gap-2"
+                className="gap-1.5"
                 type="button"
               >
                 {saveBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isEditRoute ? t('partnerEdit_save') : t('saveDraft')}
+                <span className="hidden sm:inline">
+                  {isEditRoute ? t('partnerEdit_save') : t('saveDraft')}
+                </span>
               </Button>
-              {isEditRoute && isDraft && (
+              {isEditRoute && isDraft ? (
                 <Button
                   onClick={publishListing}
                   disabled={!canProceed || lastStepBusy}
                   variant="brand"
-                  className="hidden gap-2 sm:inline-flex"
+                  size="sm"
+                  className="hidden gap-1.5 sm:inline-flex"
                   type="button"
                 >
                   {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {t('partnerEdit_publish')}
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
-          <div className="pb-4">
-            <Progress value={progress} className="h-2" />
-            <div className="mt-3 flex items-center justify-between">
-              {STEPS.map((step) => {
-                const Icon = step.icon
-                const isActive = currentStep === step.id
-                const isComplete = currentStep > step.id
-                return (
-                  <div key={step.id} className="flex flex-col items-center">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
-                        isComplete
-                          ? 'border-brand bg-brand text-white'
-                          : isActive
-                            ? 'border-brand bg-white text-brand'
-                            : 'border-slate-300 bg-white text-slate-400'
-                      }`}
-                    >
-                      {isComplete ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                    </div>
-                    <span className={`mt-1 text-xs font-medium ${isActive ? 'text-brand' : 'text-slate-500'}`}>
-                      {step.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+
+          <ListingWizardStepNav
+            steps={STEPS}
+            currentStep={currentStep}
+            onStepSelect={setCurrentStep}
+          />
         </div>
-      </div>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {!isScrolled ? (
+          <ListingWizardProgressTrack steps={STEPS} currentStep={currentStep} />
+        ) : null}
+      </header>
+
+      <div className="relative z-0 mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
         {!isEditRoute ? <PartnerReferralWizardBanner className="mb-6" /> : null}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="rounded-2xl border-slate-200/90 bg-white shadow-sm">
               <CardContent className="p-5 sm:p-8">
-                {stepContent}
+                <div className="relative z-0">{stepContent}</div>
                 <Separator className="my-8" />
-                <div className="flex items-center justify-between">
-                  <Button variant="outline" onClick={goBack} disabled={currentStep === 1} className="gap-2" type="button">
+                <div className="flex items-center justify-between gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={goBack}
+                    disabled={currentStep === 1}
+                    className="gap-2 rounded-xl"
+                    type="button"
+                  >
                     <ArrowLeft className="h-4 w-4" />
                     {t('back')}
                   </Button>
-                  {currentStep < 5 ? (
+                  {currentStep < LISTING_WIZARD_STEP_COUNT ? (
                     <Button
                       onClick={goNext}
                       disabled={!canProceed}
                       variant="brand"
-                      className="gap-2"
+                      className="gap-2 rounded-xl"
                       type="button"
                     >
                       {t('next')}
@@ -241,7 +295,7 @@ export function ListingWizardPageInner() {
                       onClick={publishListing}
                       disabled={!canProceed || lastStepBusy}
                       variant="brand"
-                      className="gap-2"
+                      className="gap-2 rounded-xl"
                       type="button"
                     >
                       {lastStepBusy ? (
@@ -255,11 +309,19 @@ export function ListingWizardPageInner() {
                 </div>
               </CardContent>
             </Card>
+
+            {isEditRoute && editId && serverListing ? <StepCalendarSection /> : null}
           </div>
+
           <div className="lg:col-span-1">
-            <div className="sticky top-4 z-20 isolate">
-              <h3 className="mb-4 text-lg font-semibold tracking-tight text-slate-800">{t('livePreview')}</h3>
-              <Card className="border-slate-200 bg-white shadow-sm">
+            <div
+              className="sticky z-10 isolate transition-[top] duration-300 ease-in-out"
+              style={{ top: previewStickyTop }}
+            >
+              <h3 className="mb-3 text-sm font-semibold tracking-tight text-slate-800 sm:text-base">
+                {t('livePreview')}
+              </h3>
+              <Card className="rounded-2xl border-slate-200/90 bg-white shadow-sm">
                 <CardContent className="p-4 sm:p-5">
                   <ListingCard
                     listing={{
@@ -274,8 +336,10 @@ export function ListingWizardPageInner() {
                         pricingPreview?.storefrontGuestDisplayThb ??
                         pricingPreview?.sitePriceSameCurrency ??
                         0,
-                      coverImage: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
-                      cover_image: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
+                      coverImage:
+                        formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
+                      cover_image:
+                        formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
                       images:
                         formData.images.length > 0
                           ? formData.images

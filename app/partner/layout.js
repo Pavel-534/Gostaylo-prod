@@ -56,6 +56,7 @@ import {
   WORKSPACE_MAIN_CLASS,
   WORKSPACE_MOBILE_TOOLBAR_CLASS,
   WORKSPACE_SCROLL_CLASS,
+  WORKSPACE_SCROLL_ATTR,
   WORKSPACE_SIDEBAR_CLASS,
   WORKSPACE_TOOLBAR_CLASS,
   WORKSPACE_TOOLBAR_ROW_CLASS,
@@ -469,7 +470,7 @@ export default function PartnerLayout({ children }) {
           </div>
 
           {/* Page Content */}
-          <div className={WORKSPACE_SCROLL_CLASS}>
+          <div className={WORKSPACE_SCROLL_CLASS} {...{ [WORKSPACE_SCROLL_ATTR]: '' }}>
             {children}
           </div>
         </main>

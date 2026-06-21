@@ -25,6 +25,7 @@ import {
   WORKSPACE_FRAME_CLASS,
   WORKSPACE_MAIN_CLASS,
   WORKSPACE_SCROLL_CLASS,
+  WORKSPACE_SCROLL_ATTR,
   WORKSPACE_SIDEBAR_CLASS,
   WORKSPACE_TOOLBAR_CLASS,
   WORKSPACE_TOOLBAR_ROW_CLASS,
@@ -310,6 +311,7 @@ export default function AdminLayout({ children }) {
                 ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:p-6'
                 : WORKSPACE_SCROLL_CLASS,
             )}
+            {...(!isAdminMessagesSection ? { [WORKSPACE_SCROLL_ATTR]: '' } : {})}
           >
             <div
               className={cn(
