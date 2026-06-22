@@ -17,7 +17,8 @@ import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
 import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
-import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt'
+import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
+import { PwaInstallProvider } from '@/hooks/use-pwa-install'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
 import { cookies, headers } from 'next/headers'
@@ -122,6 +123,7 @@ button{font:inherit}
           <GeoProvider initialIsRussia={initialIsRussia}>
           <AuthProvider>
             <AppQueryProvider>
+              <PwaInstallProvider>
               <SupabaseRealtimeAuthSync />
               <PushClientInit />
               <Suspense fallback={null}>
@@ -132,7 +134,7 @@ button{font:inherit}
                   <AppHeader />
                   <MainContent>{children}</MainContent>
                 <MobileBottomNav />
-                <PwaInstallPrompt />
+                <PwaInstallChrome />
                 <GeoSuggestToast />
                 <Toaster
                   position="top-center"
@@ -153,6 +155,7 @@ button{font:inherit}
                 />
                 </ChatProvider>
               </PresenceProvider>
+              </PwaInstallProvider>
             </AppQueryProvider>
           </AuthProvider>
           </GeoProvider>

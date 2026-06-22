@@ -7,6 +7,11 @@ import { ListingCard } from '@/components/listing-card'
 import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
 import { WizardFinancialRecap } from '@/components/partner/wizard/WizardFinancialRecap'
 import { useListingWizard } from '../context/ListingWizardContext'
+import {
+  WIZARD_STEP_ROOT_CLASS,
+  WIZARD_STEP_SUBTITLE_CLASS,
+  WIZARD_STEP_TITLE_CLASS,
+} from './wizard-step-layout'
 
 function StepPreviewInner() {
   const w = useListingWizard()
@@ -32,10 +37,10 @@ function StepPreviewInner() {
   }, [formData.basePriceThb, partnerCommissionRate])
 
   return (
-    <div className="space-y-6">
+    <div className={WIZARD_STEP_ROOT_CLASS}>
       <div>
-        <h2 className="mb-2 text-2xl font-semibold">{t('livePreview')}</h2>
-        <p className="text-slate-600">{t('listingQuality_previewHint', t('continueFilling'))}</p>
+        <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>{t('livePreview')}</h2>
+        <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('listingQuality_previewHint', t('continueFilling'))}</p>
       </div>
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />

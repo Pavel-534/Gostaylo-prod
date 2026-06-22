@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Overridden in build.gradle resValue for SSOT; kept for local Studio preview -->
+    <string name="appName">Airento</string>
+    <string name="launchUrl">https://airento.ru/</string>
+    <string name="hostName">airento.ru</string>
+    <string name="assetStatements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://airento.ru\"
+            }
+        }]
+    </string>
+</resources>

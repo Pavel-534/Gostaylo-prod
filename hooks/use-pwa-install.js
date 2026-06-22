@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { PWA_PROMPT_DELAY_MS } from '@/lib/pwa/constants.js'
+import { PWA_INSTALL_OVERLAY_TIMEOUT_MS, PWA_PROMPT_DELAY_MS } from '@/lib/pwa/constants.js'
 import {
   markPwaPromptShown,
   markPwaPromptShownThisSession,
@@ -26,6 +26,8 @@ import {
   trackProductEvent,
 } from '@/lib/analytics/product-analytics.js'
 
+const PwaInstallContext = createContext(null)
+
 function isExcludedPath(pathname) {
   if (!pathname) return true
   const normalized = pathname.replace(/\/+$/, '') || '/'
@@ -36,16 +38,39 @@ function isExcludedPath(pathname) {
 }
 
 /**
- * Smart PWA install prompt — beforeinstallprompt + iOS A2HS (Stage 169.4).
+ * PWA install controller — beforeinstallprompt, overlay, home banner direct install (Stage 169.4+).
  */
-export function usePwaInstall() {
+export function usePwaInstallController() {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
   const [platform, setPlatform] = useState('unsupported')
   const [canNativeInstall, setCanNativeInstall] = useState(false)
   const deferredPromptRef = useRef(null)
   const scheduledRef = useRef(null)
+  const installingTimeoutRef = useRef(null)
+
+  const clearInstallingTimeout = useCallback(() => {
+    if (installingTimeoutRef.current) {
+      clearTimeout(installingTimeoutRef.current)
+      installingTimeoutRef.current = null
+    }
+  }, [])
+
+  const stopInstallingOverlay = useCallback(() => {
+    setIsInstalling(false)
+    clearInstallingTimeout()
+  }, [clearInstallingTimeout])
+
+  const startInstallingOverlay = useCallback(() => {
+    setIsInstalling(true)
+    clearInstallingTimeout()
+    installingTimeoutRef.current = setTimeout(() => {
+      setIsInstalling(false)
+      installingTimeoutRef.current = null
+    }, PWA_INSTALL_OVERLAY_TIMEOUT_MS)
+  }, [clearInstallingTimeout])
 
   useEffect(() => {
     if (!isMobile) return
@@ -64,6 +89,7 @@ export function usePwaInstall() {
     }
 
     const onInstalled = () => {
+      stopInstallingOverlay()
       deferredPromptRef.current = null
       setCanNativeInstall(false)
       setIsOpen(false)
@@ -75,30 +101,42 @@ export function usePwaInstall() {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)
       window.removeEventListener('appinstalled', onInstalled)
     }
-  }, [isMobile])
+  }, [isMobile, stopInstallingOverlay])
 
-  const buildAnalyticsProps = useCallback(() => {
-    const engagement = readPwaEngagement()
-    return {
-      platform: detectPwaInstallPlatform(),
-      visit_days: engagement.visitDays,
-      pdp_views: engagement.pdpViews,
-      map_opens: engagement.mapOpens,
-      shown_count: readPwaPromptShownCount(),
-      native_available: Boolean(deferredPromptRef.current),
-    }
-  }, [])
+  useEffect(() => () => clearInstallingTimeout(), [clearInstallingTimeout])
+
+  const buildAnalyticsProps = useCallback(
+    (extra = {}) => {
+      const engagement = readPwaEngagement()
+      return {
+        platform: detectPwaInstallPlatform(),
+        visit_days: engagement.visitDays,
+        pdp_views: engagement.pdpViews,
+        map_opens: engagement.mapOpens,
+        shown_count: readPwaPromptShownCount(),
+        native_available: Boolean(deferredPromptRef.current),
+        ...extra,
+      }
+    },
+    [],
+  )
 
   const closePrompt = useCallback(() => {
     setIsOpen(false)
   }, [])
 
-  const openPrompt = useCallback(() => {
-    markPwaPromptShown()
-    markPwaPromptShownThisSession()
-    setIsOpen(true)
-    void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_SHOWN, buildAnalyticsProps())
-  }, [buildAnalyticsProps])
+  const openPrompt = useCallback(
+    (source = 'engagement') => {
+      markPwaPromptShown()
+      markPwaPromptShownThisSession()
+      setIsOpen(true)
+      void trackProductEvent(
+        ProductAnalyticsEvents.PWA_PROMPT_SHOWN,
+        buildAnalyticsProps({ source }),
+      )
+    },
+    [buildAnalyticsProps],
+  )
 
   useEffect(() => {
     if (scheduledRef.current) {
@@ -114,13 +152,6 @@ export function usePwaInstall() {
     const eligibility = readPwaPromptEligibility()
     if (!eligibility.eligible) return
 
-    // Android: wait for native prompt when possible; iOS always eligible on engagement.
-    const plat = detectPwaInstallPlatform()
-    if (plat === 'android' && !deferredPromptRef.current) {
-      // Still allow showing after delay if engagement met — user may get manual browser menu hint
-      // but primarily we wait for beforeinstallprompt; schedule recheck.
-    }
-
     scheduledRef.current = setTimeout(() => {
       if (isPwaPromptDeferred()) return
       if (isStandaloneDisplayMode()) return
@@ -128,7 +159,7 @@ export function usePwaInstall() {
       if (!again.eligible) return
       const currentPlatform = detectPwaInstallPlatform()
       if (currentPlatform === 'android' && !deferredPromptRef.current) return
-      openPrompt()
+      openPrompt('engagement')
     }, PWA_PROMPT_DELAY_MS)
 
     return () => {
@@ -139,7 +170,6 @@ export function usePwaInstall() {
     }
   }, [isMobile, isOpen, pathname, canNativeInstall, openPrompt])
 
-  // Re-run scheduling when beforeinstallprompt arrives
   useEffect(() => {
     if (!canNativeInstall || !isMobile) return
     if (isOpen || isStandaloneDisplayMode()) return
@@ -149,7 +179,7 @@ export function usePwaInstall() {
     if (scheduledRef.current) clearTimeout(scheduledRef.current)
     scheduledRef.current = setTimeout(() => {
       if (isPwaPromptDeferred()) return
-      openPrompt()
+      openPrompt('engagement')
     }, PWA_PROMPT_DELAY_MS)
     return () => {
       if (scheduledRef.current) {
@@ -159,42 +189,64 @@ export function usePwaInstall() {
     }
   }, [canNativeInstall, isMobile, isOpen, pathname, openPrompt])
 
-  const install = useCallback(async () => {
-    const plat = detectPwaInstallPlatform()
-    if (plat === 'android' && deferredPromptRef.current) {
-      try {
-        await deferredPromptRef.current.prompt()
-        const choice = await deferredPromptRef.current.userChoice
-        if (choice?.outcome === 'accepted') {
-          void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_ACCEPTED, {
-            ...buildAnalyticsProps(),
-            native: true,
-          })
-          closePrompt()
-        } else {
-          void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_DISMISSED, {
-            ...buildAnalyticsProps(),
-            reason: 'native_declined',
-          })
-          snoozePwaPrompt()
-          closePrompt()
-        }
-      } catch {
-        snoozePwaPrompt()
-        closePrompt()
-      }
-      deferredPromptRef.current = null
-      setCanNativeInstall(false)
-      return
-    }
+  const install = useCallback(
+    async (options = {}) => {
+      const direct = options?.direct === true
+      const plat = detectPwaInstallPlatform()
 
-    // iOS — instructions only; count as accepted intent
-    void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_ACCEPTED, {
-      ...buildAnalyticsProps(),
-      native: false,
-    })
-    closePrompt()
-  }, [buildAnalyticsProps, closePrompt])
+      if (plat === 'android' && deferredPromptRef.current) {
+        closePrompt()
+        startInstallingOverlay()
+        try {
+          await deferredPromptRef.current.prompt()
+          const choice = await deferredPromptRef.current.userChoice
+          if (choice?.outcome === 'accepted') {
+            void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_ACCEPTED, {
+              ...buildAnalyticsProps({ source: direct ? 'home_banner' : 'sheet' }),
+              native: true,
+            })
+          } else {
+            stopInstallingOverlay()
+            void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_DISMISSED, {
+              ...buildAnalyticsProps({ source: direct ? 'home_banner' : 'sheet' }),
+              reason: 'native_declined',
+            })
+            if (!direct) {
+              snoozePwaPrompt()
+              closePrompt()
+            }
+          }
+        } catch {
+          stopInstallingOverlay()
+          if (!direct) {
+            snoozePwaPrompt()
+            closePrompt()
+          }
+        }
+        deferredPromptRef.current = null
+        setCanNativeInstall(false)
+        return
+      }
+
+      if (plat === 'ios') {
+        if (direct) {
+          openPrompt('home_banner')
+          return
+        }
+        void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_ACCEPTED, {
+          ...buildAnalyticsProps({ source: 'sheet' }),
+          native: false,
+        })
+        closePrompt()
+        return
+      }
+
+      if (direct) {
+        openPrompt('home_banner')
+      }
+    },
+    [buildAnalyticsProps, closePrompt, openPrompt, startInstallingOverlay, stopInstallingOverlay],
+  )
 
   const dismissSnooze = useCallback(
     (reason = 'snooze') => {
@@ -219,6 +271,7 @@ export function usePwaInstall() {
 
   return {
     isOpen,
+    isInstalling,
     platform,
     canNativeInstall,
     install,
@@ -226,4 +279,18 @@ export function usePwaInstall() {
     dismissForever,
     closePrompt,
   }
+}
+
+export function PwaInstallProvider({ children }) {
+  const value = usePwaInstallController()
+  return <PwaInstallContext.Provider value={value}>{children}</PwaInstallContext.Provider>
+}
+
+/** @returns {ReturnType<typeof usePwaInstallController>} */
+export function usePwaInstall() {
+  const ctx = useContext(PwaInstallContext)
+  if (!ctx) {
+    throw new Error('usePwaInstall must be used within PwaInstallProvider')
+  }
+  return ctx
 }

@@ -17,6 +17,11 @@ import { getWizardStep1TransportFields } from '@/lib/config/category-form-schema
 import { useListingWizard } from '../context/ListingWizardContext'
 import { WizardSpecsSection } from './WizardSpecsSection'
 import { PartnerCategoryPickerTwoStep } from '@/components/partner/PartnerCategoryPickerTwoStep'
+import {
+  WIZARD_STEP_ROOT_CLASS,
+  WIZARD_STEP_SUBTITLE_CLASS,
+  WIZARD_STEP_TITLE_CLASS,
+} from './wizard-step-layout'
 
 function pickupInstructionsPlaceholder(listingServiceType, t) {
   switch (listingServiceType) {
@@ -49,7 +54,6 @@ function StepGeneralInfoInner() {
     listingCategorySlug,
     listingCategoryWizardProfile,
     resolveListingIdForUpload,
-    getCategoryName,
     getCategoryDisplayName,
     aiDescriptionLoading,
     aiDescQuota,
@@ -63,10 +67,10 @@ function StepGeneralInfoInner() {
   const [checkInPhotosUploading, setCheckInPhotosUploading] = useState(false)
 
   return (
-    <div className="space-y-6">
+    <div className={WIZARD_STEP_ROOT_CLASS}>
       <div>
-        <h2 className="mb-2 text-2xl font-semibold">{t('tellUsAboutListing')}</h2>
-        <p className="text-slate-600">{t('startWithBasics')}</p>
+        <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>{t('tellUsAboutListing')}</h2>
+        <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('startWithBasics')}</p>
       </div>
       <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
         <Label className="text-base font-medium">{t('wizardServiceTypeLabel')}</Label>

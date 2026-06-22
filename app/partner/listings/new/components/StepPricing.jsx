@@ -16,6 +16,12 @@ import { PartnerCancellationPolicyPreview } from '@/components/partner/wizard/Pa
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
+import { cn } from '@/lib/utils'
+import {
+  WIZARD_STEP_ROOT_CLASS,
+  WIZARD_STEP_SUBTITLE_CLASS,
+  WIZARD_STEP_TITLE_CLASS,
+} from './wizard-step-layout'
 
 function StepPricingInner() {
   const w = useListingWizard()
@@ -65,10 +71,10 @@ function StepPricingInner() {
   )
 
   return (
-    <div className="space-y-8">
+    <div className={cn(WIZARD_STEP_ROOT_CLASS, 'space-y-8')}>
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">{t('pricingAndBooking')}</h2>
-        <p className="leading-relaxed text-slate-600">{t('setRates')}</p>
+        <h2 className={WIZARD_STEP_TITLE_CLASS}>{t('pricingAndBooking')}</h2>
+        <p className={`leading-relaxed ${WIZARD_STEP_SUBTITLE_CLASS}`}>{t('setRates')}</p>
       </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
@@ -250,10 +256,10 @@ function StepPricingInner() {
         <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
         <p className="text-sm leading-relaxed text-slate-500">{t('seasonalPricingDesc')}</p>
         <div className="mt-1 space-y-5">
-          <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90 p-2 sm:p-4">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4">
             <Label className="mb-2 block text-sm font-medium text-slate-800">{t('wizardDateRange')}</Label>
-            <div className="-mx-1 w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain sm:mx-0 [scrollbar-gutter:stable]">
-              <div className="inline-flex min-w-full justify-center px-1 pb-1 sm:px-0">
+            <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+              <div className="inline-flex min-w-full justify-center px-0.5 pb-1 sm:px-0">
                 <DayPicker
                   mode="range"
                   selected={newSeason.dateRange}
@@ -269,8 +275,8 @@ function StepPricingInner() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
               <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('seasonLabel')}</Label>
               <Input
                 placeholder={t('seasonLabelExamplePlaceholder')}
@@ -279,7 +285,7 @@ function StepPricingInner() {
                 className="h-11"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
               <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('seasonTypeLabel')}</Label>
               <Select
                 value={newSeason.seasonType}
@@ -297,7 +303,7 @@ function StepPricingInner() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
               <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('pricePerDayShort')}</Label>
               <Input
                 inputMode="numeric"
@@ -308,7 +314,7 @@ function StepPricingInner() {
                 className="h-11"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
               <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('pricePerMonthOptional')}</Label>
               <Input
                 inputMode="numeric"

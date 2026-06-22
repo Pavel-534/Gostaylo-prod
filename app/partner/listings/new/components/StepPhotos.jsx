@@ -8,6 +8,11 @@ import { ImageIcon, Loader2 } from 'lucide-react'
 import { ProxiedImage } from '@/components/proxied-image'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import { useListingWizard } from '../context/ListingWizardContext'
+import {
+  WIZARD_STEP_ROOT_CLASS,
+  WIZARD_STEP_SUBTITLE_CLASS,
+  WIZARD_STEP_TITLE_CLASS,
+} from './wizard-step-layout'
 
 function StepPhotosInner() {
   const w = useListingWizard()
@@ -22,10 +27,10 @@ function StepPhotosInner() {
     transportWizard,
   } = w
   return (
-    <div className="space-y-6">
+    <div className={WIZARD_STEP_ROOT_CLASS}>
       <div>
-        <h2 className="mb-2 text-2xl font-semibold">{t('addPhotos')}</h2>
-        <p className="text-slate-600">{t('showcasePhotos')}</p>
+        <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>{t('addPhotos')}</h2>
+        <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('showcasePhotos')}</p>
       </div>
       <input
         ref={fileInputRef}
@@ -36,7 +41,7 @@ function StepPhotosInner() {
         onChange={(e) => handleImageUpload(e.target.files)}
       />
       <div
-        className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 p-12 text-center transition-colors hover:border-brand"
+        className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 p-8 text-center transition-colors hover:border-brand sm:p-12"
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
         role="button"
@@ -56,7 +61,7 @@ function StepPhotosInner() {
         </div>
       )}
       {formData.images.length > 0 && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-4">
           {formData.images.map((img, idx) => (
             <div
               key={`${img}-${idx}`}

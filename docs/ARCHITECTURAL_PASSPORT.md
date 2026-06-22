@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.171.9 | **Last Updated**: 2026-06-20 | **Stage 171.9:** Wizard desktop header polish + mobile UX audit gates. | **Stage 171.8:** Liquid Compact Header + useWorkspaceScrollTrigger. |
+> **Version**: 12.171.12 | **Last Updated**: 2026-06-22 | **Stage 171.12:** Wizard step mobile polish. | **Stage 171.11:** Mobile chrome + preview sheet + fixed action bar. | **Stage 171.10:** Chrome module extract. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -839,22 +839,28 @@
 - **Вспомогательно:** `hooks/checkout-constants.js` реэкспорт из **`lib/config/app-constants.js`** (**`GOSTAYLO_WALLET`**, **default methods**), `hooks/interpolate.js` (шаблоны строк).
 
 ### 0.0g Partner listing creation & edit wizard (Stage 4.1 + 4.2)
-- **Stage 171.5 — visibility + sticky:** список **`app/partner/listings/page.js`** — hide/show через **`PATCH`** (`partner_hidden`, `status`, restore → `available: true`); API unhide bypass quality gate; sticky subheader — **`WORKSPACE_SCROLL_STICKY_CLASS`** (`lib/layout/workspace-shell.js`, scrollport **`WORKSPACE_SCROLL_CLASS`**, не **`.app-sticky-below-header`**). Wizard step bar — тот же класс; live preview sidebar — **`sticky top-4 z-20 isolate`**.
-- **Stage 171.9 — desktop polish + mobile gates:** compact header shadow/border (**`ListingWizardPageInner`**, `isScrolled`); mobile audit зафиксирован в манифесте §171.9 — до fixed bottom bar обязательны **visualViewport**, **safe-area**, collapse preview **`< lg`**, scrollport pad; handlers не трогать.
-- **Stage 171.8 — liquid compact header:** **`useWorkspaceScrollTrigger`**, **`WORKSPACE_SCROLL_ATTR`**, wizard header collapse + preview sticky sync.
-- **Stage 171.7 — wizard scroll SSOT:** **`StepCalendarSection`** + **`ListingWizardStepNav`** в **`ListingWizardPageInner`**; **`EditPartnerListingView`** — только auth gates; deep-link **`?highlight=calendar`** → **`#partner-calendar-sync`**.
+- **Stage 171.12 — step mobile polish (`< sm`):** **`wizard-step-layout.js`** (заголовки/отступы); **`MapPicker.cooperativeTouch`** + фикс. высота в **`StepLocation`**; сезонные поля/calendar scroll в **`StepPricing`**; **`StepPhotos`** grid **`grid-cols-3`**; **`StepCalendarSection`** overflow guard; форма **`CardContent p-4 sm:p-8`**.
+- **Stage 171.11 — mobile App-UX:** **`components/chrome/`** — slim fixed header (step label, **`PartnerNotificationFeed`**, save), dot step indicator, **`ListingWizardMobileActionBar`** (Back · Preview · Next, safe-area); **`components/preview/`** — desktop panel + mobile **`ListingWizardPreviewSheet`**; partner layout скрывает mobile breadcrumbs на wizard routes; desktop Liquid Compact (§171.8) на **`sm+`**.
+- **Stage 171.10 — chrome extract:** **`ListingWizardPageInner`** → **`chrome/`** (header, step nav, footer) без смены UX.
+- **Stage 171.5 — visibility + sticky:** список **`app/partner/listings/page.js`** — hide/show через **`PATCH`** (`partner_hidden`, `status`, restore → `available: true`); API unhide bypass quality gate; sticky subheader — **`WORKSPACE_SCROLL_STICKY_CLASS`** (`lib/layout/workspace-shell.js`, scrollport **`WORKSPACE_SCROLL_CLASS`**, не **`.app-sticky-below-header`**).
+- **Stage 171.9 — desktop polish + mobile audit (plan):** gates зафиксированы в манифесте; реализация — §171.11–171.12 (**`visualViewport`** keyboard guard — backlog).
+- **Stage 171.8 — liquid compact header (desktop `sm+`):** **`useWorkspaceScrollTrigger`**, **`WORKSPACE_SCROLL_ATTR`**, compact step bar при scroll + preview sticky sync (**`LISTING_WIZARD_STICKY_TOP_*`**).
+- **Stage 171.7 — wizard scroll SSOT:** **`StepCalendarSection`** внутри **`ListingWizardPageInner`**; **`EditPartnerListingView`** — только auth gates; deep-link **`?highlight=calendar`** → **`#partner-calendar-sync`**.
 - **Stage 171.6 — data + DS:** **`lib/hooks/use-partner-listings.js`** — **`usePartnerListings`**, **`usePartnerListingPatch`** (optimistic cache), **`usePartnerListingDelete`**; **`components/partner/PartnerListingStatusBadge.jsx`** — badge tones для списка и визарда; wizard/edit/new loading — **`text-brand`**, **`min-h-[50vh]`**.
 - **Создание — маршрут:** `app/partner/listings/new/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider`** (по умолчанию `mode="create"`) + **`ListingWizardPageInner`**.
-- **Редактирование — маршрут:** `app/partner/listings/[id]/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider` с `mode="edit"`** и **`initialListingId` из `params.id`** + **`EditPartnerListingView`**, который рендерит тот же **`ListingWizardPageInner`**, а под визардом (после общих шагов) — **`CalendarSyncManager`**, **`AvailabilityCalendar`**, **`SeasonalPriceManager`** (только не для transport-категории: `isTransportListingCategory` скрывает внешний iCal sync).
+- **Редактирование — маршрут:** `app/partner/listings/[id]/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider` с `mode="edit"`** и **`initialListingId` из `params.id`** + **`EditPartnerListingView`** → **`ListingWizardPageInner`**; календарь/iCal/сезоны — **`StepCalendarSection`** внутри визарда (**`CalendarSyncManager`**, **`AvailabilityCalendar`**, **`SeasonalPriceManager`**; transport — без внешнего iCal sync).
+- **Оркестратор UI (Stage 171.10+):** **`ListingWizardPageInner`** — chrome + grid формы/preview + mobile action bar. **Chrome:** `app/partner/listings/new/components/chrome/` — **`listing-wizard-layout.js`** (геометрия), **`ListingWizardChrome`**, mobile/desktop headers, **`ListingWizardStepNav`**, **`ListingWizardStepActions`**. **Preview:** `components/preview/` — **`ListingWizardPreviewPanel`** (`sm+`), **`ListingWizardPreviewSheet`** (`< sm`), **`ListingWizardPreviewContent`**.
 - **SSoT состояния (Stage 109.3):** `ListingWizardContext.js` (~100 строк) — композиция хуков: **`useListingWizardState`**, **`useListingWizardDerived`** + **`listing-wizard-step-validation.js`**, **`useListingWizardActions`** + **`listing-wizard-load-existing.js`**. Публичный API **`useListingWizard()`** без изменений. `formData`, `currentStep` (1–5), `wizardMode`, `canProceed`, upload/geo/AI/import — как раньше.
 - **Сохранение:** `app/partner/listings/new/hooks/useListingSave.js` — для **`mode="create"`** по-прежнему черновик (POST/PUT) и публикация; для **`mode="edit"`** — **`PATCH`** списка полей (сохранение без смены `status`/`available` у активного листинга) и отдельный сценарий **публикации черновика** (как в старом flow: `PENDING`, нормализованный `metadata`); миграция внешних фото — после успешного сохранения; сезонные периоды в визарде — POST после публикации **create**-потока, как раньше.
 - **Константы по умолчанию:** `app/partner/listings/new/wizard-constants.js` — `WIZARD_DISTRICTS`, `getDefaultWizardFormData()`.
 - **Шаги (UI, `React.memo` на тяжёлых):** `app/partner/listings/new/components/`
+  - **`wizard-step-layout.js`** — SSOT классов заголовков/корня шага (Stage 171.12).
   - **`StepGeneralInfo.jsx`** — категория, импорт Airbnb (если не transport/tour), заголовок, описание, AI; **`WizardSpecsSection.jsx`** (спеки + удобства).
-  - **`StepLocation.jsx`** — район, геокод, `MapPicker`, координаты.
-  - **`StepPhotos.jsx`** — загрузка, сетка, `PartnerCalendarEducationCard`.
-  - **`StepPricing.jsx`** — база, валюта, **политика отмены**, превью «цена на сайте», min/max (или тур-группы), duration discount, сезонные периоды, `react-day-picker`.
+  - **`StepLocation.jsx`** — каскад адреса, геокод, **`MapPicker`** (`cooperativeTouch`, фикс. высота), координаты, IANA TZ.
+  - **`StepPhotos.jsx`** — загрузка, сетка (mobile **`grid-cols-3`**), `PartnerCalendarEducationCard`.
+  - **`StepPricing.jsx`** — база, валюта, политика отмены, превью цены, min/max, duration discount, сезонные периоды (`react-day-picker`, mobile cards + horizontal scroll).
   - **`StepPreview.jsx`** — чек-лист и предпросмотр.
+  - **`StepCalendarSection.jsx`** — edit-only: sync, availability, seasonal manager (под карточкой шагов).
 - **Порядок шагов:** **basics+specs** → **location** → **gallery** → **pricing** → **live preview**; данные не сбрасываются при переходах.
 - **Тексты (Stage 4.2 / 109.1):** партнёрский визард — merge **`lib/translations/listings-partner.js`** из слайсов **`listings-partner-{core,wizard,finances,calendar}.js`**; профиль — **`slices/profile-app.js`** ← **`profile-app-{core,partner,renter,referral}.js`**; re-export **`lib/translations/index.js`**.
 

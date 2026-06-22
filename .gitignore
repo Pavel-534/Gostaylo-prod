@@ -25,6 +25,10 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+*.keystore
+*.jks
+keystore.properties
+airento-release.keystore
 
 # Logs
 npm-debug.log*

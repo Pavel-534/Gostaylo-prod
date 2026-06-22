@@ -13,6 +13,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Button } from '@/components/ui/button'
 import { Lock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { isPrivacyLocationMode } from '@/lib/listing-location-privacy'
 
@@ -75,15 +76,19 @@ export default function MapPicker({
   longitude,
   onSelect,
   height = 280,
+  mapClassName = '',
   fetchAddressOnClick = true,
   categoryId = null,
   categorySlug = null,
   lockable = true,
   language = 'ru',
+  /** Mobile scrollport: require tap before map captures touch (Leaflet cooperative gesture). */
+  cooperativeTouch = false,
 }) {
   const t = (key) => getUIText(key, language)
   const [mounted, setMounted] = useState(false)
   const [position, setPosition] = useState(null)
+  const [mapGestureActive, setMapGestureActive] = useState(!cooperativeTouch)
   const privacyMode = isPrivacyLocationMode({ categorySlug, categoryId })
 
   const hasInitialPin =
@@ -93,6 +98,10 @@ export default function MapPicker({
   const hadPinRef = useRef(false)
 
   useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    if (!cooperativeTouch) setMapGestureActive(true)
+  }, [cooperativeTouch])
 
   useEffect(() => {
     if (hasInitialPin) {
@@ -132,13 +141,18 @@ export default function MapPicker({
     void applySelection(lat, lng)
   }
 
+  const mapHeightStyle = typeof height === 'number' ? { height } : { height: height || '100%' }
+
   if (!mounted) {
     return (
       <div
-        className="flex w-full items-center justify-center rounded-lg bg-slate-100 animate-pulse"
-        style={{ height }}
+        className={cn(
+          'flex w-full animate-pulse items-center justify-center rounded-lg bg-slate-100',
+          mapClassName,
+        )}
+        style={mapHeightStyle}
       >
-        <span className="text-slate-400 text-sm">{t('mapPicker_loading')}</span>
+        <span className="text-sm text-slate-400">{t('mapPicker_loading')}</span>
       </div>
     )
   }
@@ -148,6 +162,7 @@ export default function MapPicker({
   const markerDraggable = lockable ? unlocked : true
   const mapClicksEnabled = lockable ? unlocked : true
   const lockedVisual = lockable && !unlocked && !!position
+  const mapGesturesEnabled = cooperativeTouch ? mapGestureActive : true
 
   return (
     <div className="space-y-2">
@@ -182,8 +197,35 @@ export default function MapPicker({
         </div>
       ) : null}
 
-      <div className="w-full rounded-lg overflow-hidden border border-slate-200" style={{ height }}>
-        <MapContainer center={center} zoom={zoom} className="w-full h-full" scrollWheelZoom>
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-lg border border-slate-200',
+          cooperativeTouch && !mapGestureActive && 'touch-pan-y',
+          mapClassName,
+        )}
+        style={mapHeightStyle}
+      >
+        {cooperativeTouch && !mapGestureActive ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-[1000] flex items-end justify-center bg-slate-900/[0.03] pb-3"
+            onClick={() => setMapGestureActive(true)}
+            aria-label={t('mapPicker_cooperativeTap')}
+          >
+            <span className="rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              {t('mapPicker_cooperativeTap')}
+            </span>
+          </button>
+        ) : null}
+        <MapContainer
+          center={center}
+          zoom={zoom}
+          className="h-full w-full"
+          scrollWheelZoom={mapGesturesEnabled}
+          dragging={mapGesturesEnabled && mapClicksEnabled}
+          touchZoom={mapGesturesEnabled}
+          doubleClickZoom={mapGesturesEnabled}
+        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

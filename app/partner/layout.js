@@ -86,6 +86,7 @@ export default function PartnerLayout({ children }) {
   const allowedRoles = ['PARTNER', 'ADMIN', 'MODERATOR']
   const accessDenied = !authLoading && (!isAuthenticated || !allowedRoles.includes(String(user?.role || '').toUpperCase()))
   const isNotLoggedIn = !authLoading && !isAuthenticated
+  const isListingWizardRoute = /^\/partner\/listings\/(new|[^/]+)$/.test(pathname || '')
 
   useEffect(() => {
     const initial = detectLanguage()
@@ -451,23 +452,25 @@ export default function PartnerLayout({ children }) {
             </div>
           </div>
           
-          <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>
-            <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label="Breadcrumb">
-              {breadcrumbs.slice(-2).map((crumb, index) => (
-                <div key={crumb.href} className="flex items-center whitespace-nowrap">
-                  {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
-                  {crumb.isLast ? (
-                    <span className="font-medium text-slate-900">{crumb.name}</span>
-                  ) : (
-                    <Link href={crumb.href} className="text-slate-500">
-                      {crumb.name}
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </nav>
-            <PartnerNotificationFeed language={language} className="shrink-0" />
-          </div>
+          {!isListingWizardRoute ? (
+            <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>
+              <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label="Breadcrumb">
+                {breadcrumbs.slice(-2).map((crumb, index) => (
+                  <div key={crumb.href} className="flex items-center whitespace-nowrap">
+                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
+                    {crumb.isLast ? (
+                      <span className="font-medium text-slate-900">{crumb.name}</span>
+                    ) : (
+                      <Link href={crumb.href} className="text-slate-500">
+                        {crumb.name}
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </nav>
+              <PartnerNotificationFeed language={language} className="shrink-0" />
+            </div>
+          ) : null}
 
           {/* Page Content */}
           <div className={WORKSPACE_SCROLL_CLASS} {...{ [WORKSPACE_SCROLL_ATTR]: '' }}>

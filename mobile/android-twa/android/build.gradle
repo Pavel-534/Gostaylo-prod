@@ -1,0 +1,15 @@
+buildscript {
+    apply from: 'variables.gradle'
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:${androidGradlePluginVersion}"
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

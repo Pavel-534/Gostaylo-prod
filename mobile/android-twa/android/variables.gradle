@@ -1,0 +1,13 @@
+/**
+ * Android SDK SSOT — TWA shell (Airento).
+ * Bump here when Google Play raises target API requirements.
+ */
+ext {
+    airentoMinSdk = 23
+    airentoCompileSdk = 35
+    airentoTargetSdk = 35
+
+    androidxBrowserHelperVersion = '2.5.0'
+    gradleVersion = '8.7'
+    androidGradlePluginVersion = '8.5.2'
+}

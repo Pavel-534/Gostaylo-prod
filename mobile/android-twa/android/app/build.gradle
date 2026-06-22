@@ -1,0 +1,82 @@
+plugins {
+    id 'com.android.application'
+}
+
+apply from: '../variables.gradle'
+
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasReleaseKeystore = false
+def releaseKeystoreFile = null
+
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { stream ->
+        keystoreProperties.load(new InputStreamReader(stream, 'UTF-8'))
+    }
+    def storeFilePath = keystoreProperties.getProperty('storeFile')?.trim()
+    if (storeFilePath) {
+        releaseKeystoreFile = rootProject.file(storeFilePath)
+        hasReleaseKeystore = releaseKeystoreFile.exists()
+    }
+}
+
+if (!hasReleaseKeystore && keystorePropertiesFile.exists()) {
+    logger.warn("keystore.properties found but release keystore file is missing: ${releaseKeystoreFile}")
+}
+
+android {
+    namespace 'ru.airento.app'
+    compileSdk rootProject.ext.airentoCompileSdk
+
+    defaultConfig {
+        applicationId 'ru.airento.app'
+        minSdk rootProject.ext.airentoMinSdk
+        targetSdk rootProject.ext.airentoTargetSdk
+        versionCode 1
+        versionName '1.0.0'
+
+        // TWA — SSOT prod origin (must match assetlinks.json + twa-manifest host)
+        resValue 'string', 'appName', 'Airento'
+        resValue 'string', 'launchUrl', 'https://airento.ru/'
+        resValue 'string', 'hostName', 'airento.ru'
+    }
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile releaseKeystoreFile
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:${rootProject.ext.androidxBrowserHelperVersion}"
+}

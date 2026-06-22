@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner';
 import { PlatformHomeContent } from '@/components/PlatformHomeContent';
 import { HomePageSkeleton } from '@/components/home-page-skeleton';
 
@@ -6,8 +7,11 @@ import { HomePageSkeleton } from '@/components/home-page-skeleton';
 
 export default function Page() {
   return (
-    <Suspense fallback={<HomePageSkeleton />}>
-      <PlatformHomeContent />
-    </Suspense>
+    <>
+      <MobileSmartInstallBanner />
+      <Suspense fallback={<HomePageSkeleton />}>
+        <PlatformHomeContent />
+      </Suspense>
+    </>
   );
 }

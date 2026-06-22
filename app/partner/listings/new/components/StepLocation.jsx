@@ -11,6 +11,11 @@ import { useListingWizard } from '../context/ListingWizardContext'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { WIZARD_IANA_TIMEZONES } from '@/lib/geo/wizard-iana-timezones'
 import {
+  WIZARD_STEP_ROOT_CLASS,
+  WIZARD_STEP_SUBTITLE_CLASS,
+  WIZARD_STEP_TITLE_CLASS,
+} from './wizard-step-layout'
+import {
   COUNTRY_PRESETS,
   findCountry,
   findRegion,
@@ -77,12 +82,12 @@ function StepLocationInner() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={WIZARD_STEP_ROOT_CLASS}>
       <div>
-        <h2 className="mb-2 text-2xl font-semibold">
+        <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>
           {transportWizard ? t('whereIsListingTransport') : t('whereIsListing')}
         </h2>
-        <p className="text-slate-600">
+        <p className={WIZARD_STEP_SUBTITLE_CLASS}>
           {transportWizard ? t('helpGuestsFindTransport') : t('helpGuestsFind')}
         </p>
       </div>
@@ -154,7 +159,7 @@ function StepLocationInner() {
       </div>
       <div>
         <Label className="text-base font-medium">{t('searchAddress')}</Label>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <Input
             placeholder={t('searchAddressPlaceholder')}
             value={geocodeQuery}
@@ -162,7 +167,13 @@ function StepLocationInner() {
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleGeocode())}
             className="flex-1"
           />
-          <Button variant="outline" onClick={handleGeocode} disabled={geocoding} type="button">
+          <Button
+            variant="outline"
+            onClick={handleGeocode}
+            disabled={geocoding}
+            type="button"
+            className="shrink-0 sm:w-auto"
+          >
             {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : t('search')}
           </Button>
         </div>
@@ -188,7 +199,7 @@ function StepLocationInner() {
         <p className="mt-1 text-xs text-slate-500">
           {transportWizard ? t('clickToPinTransport') : t('clickToPin')}
         </p>
-        <div className="mt-2">
+        <div className="mt-2 h-[280px] max-sm:h-[260px]">
           <MapPicker
             categoryId={formData.categoryId}
             categorySlug={listingCategorySlug}
@@ -196,7 +207,9 @@ function StepLocationInner() {
             latitude={formData.latitude}
             longitude={formData.longitude}
             onSelect={handleMapSelect}
-            height={280}
+            height="100%"
+            mapClassName="h-full"
+            cooperativeTouch
           />
         </div>
       </div>
@@ -233,7 +246,7 @@ function StepLocationInner() {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label className="text-sm">{t('latitude')}</Label>
           <Input
