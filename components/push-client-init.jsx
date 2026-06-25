@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseAppSafe, getFirebaseVapidKey } from '@/lib/firebase-web'
 import { postPushAction } from '@/lib/api/push-client'
+import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
 
 const PUSH_UID_KEY = 'gostaylo_push_registered_uid'
 
@@ -91,7 +92,7 @@ export function PushClientInit() {
           return
         }
 
-        await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        await registerAppServiceWorker()
         if (!aliveRef.current) return
 
         const reg = await navigator.serviceWorker.ready

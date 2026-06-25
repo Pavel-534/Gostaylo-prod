@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName, getListingText } from '@/lib/translations'
 import { buildListingCategoryLineLabel } from '@/lib/category-display-name'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
-import { getListingCardImageUrls } from '@/lib/listing-display-images'
+import { getListingCardImageUrls } from '@/lib/media/image-delivery'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +43,8 @@ export function ListingCard({
   isMapHighlighted = false,
   /** Stage 69.0 — плоский список из `/api/v2/categories` для строки «Родитель • Подтип» */
   catalogCategories = null,
+  /** Stage 171.18 — LCP for first catalog cards only. */
+  imagePriority = false,
 }) {
   const [isFavorite, setIsFavorite] = useState(isFavorited)
   
@@ -164,6 +166,7 @@ export function ListingCard({
         onShareClick={handleShare}
         shareLabel={getUIText('shareListing', language)}
         blurDataURL={getListingCardBlurDataURL(listing)}
+        priority={imagePriority}
         topLeftBadge={
           promoBadgeLabel ? (
             <Badge className="border-0 bg-gradient-to-r from-rose-600 to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">

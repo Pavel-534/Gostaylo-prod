@@ -1,8 +1,8 @@
 {
-  "name": "Platform — Rentals Worldwide",
-  "short_name": "Platform",
-  "description": "Rent villas, cars, yachts and tours worldwide. Book with Platform.",
-  "_note": "Static fallback only. Runtime SSOT: app/manifest.js (getSiteDisplayName).",
+  "name": "Airento — Rentals Worldwide",
+  "short_name": "Airento",
+  "description": "Rent villas, cars, yachts and tours worldwide. Book with Airento.",
+  "_note": "Static fallback. Runtime SSOT: app/manifest.js (getSiteDisplayName).",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

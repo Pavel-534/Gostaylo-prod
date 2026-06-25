@@ -3,7 +3,7 @@
  * Desktop: list ~60% / map ~40%; price pills; viewport bounds sync.
  * Stage 89.0 — кластеризация (**`leaflet.markercluster`**): ниже масштаба **zoom 13** маркеры группируются; цвет кластера по доле Verified (**`options.gslVerified`**).
  *
- * Приватность: getListingLocationDisplayMode — «примерная» зона без круга, пилюля с пунктиром / ~.
+ * Приватность (ADR-163): fitBounds и маркеры — только server-serialized coords + `isApproximate`; без client-side 500m inflation.
  */
 
 'use client'
@@ -20,44 +20,27 @@ import { Button } from '@/components/ui/button'
 import { ListingPriceMarker } from '@/components/listing/ListingPriceMarker'
 import { MapServerClusterMarker } from '@/components/listing/MapServerClusterMarker'
 import { getUIText } from '@/lib/translations'
-import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 import { formatPrice } from '@/lib/currency'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
-import {
-  extractListingLatLng,
-  leafletBoundsAroundPointMeters,
-} from '@/lib/maps/map-provider-adapter'
+import { extractListingLatLng } from '@/lib/maps/map-provider-adapter'
+import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
 
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+configureLeafletDefaultIcons(L)
 
 function getListingPosition(listing) {
   const ll = extractListingLatLng(listing)
   return ll ? [ll.lat, ll.lng] : null
 }
 
-function listingCategorySlug(listing) {
-  return listing.categorySlug ?? listing.category?.slug ?? null
-}
-
-function listingLocationBounds(listing, hasConfirmedBookingFn) {
+/**
+ * Catalog map fitBounds — server SSOT only (`latitude`/`longitude` already public-serialized).
+ * Approximate (`isApproximate` / `locationPrivacyMode: fuzz`): center on fuzzed point, no 500m client pad.
+ *
+ * @param {object} listing — search row or pin-shaped `{ latitude, longitude, isApproximate?, locationPrivacyMode? }`
+ */
+function listingLocationBounds(listing) {
   const pos = getListingPosition(listing)
   if (!pos) return null
-  const booked = hasConfirmedBookingFn(listing.id)
-  if (booked) {
-    return L.latLngBounds(pos, pos)
-  }
-  const mode = getListingLocationDisplayMode({
-    categorySlug: listingCategorySlug(listing),
-    categoryId: listing.category_id ?? listing.categoryId,
-  })
-  if (mode === 'privacy') {
-    return leafletBoundsAroundPointMeters(L, { lat: pos[0], lng: pos[1] }, 500)
-  }
   return L.latLngBounds(pos, pos)
 }
 
@@ -144,7 +127,6 @@ function MapSearchThisAreaButton({
 
 function InitialListingBoundsFit({
   listings,
-  hasConfirmedBookingFn,
   suppressBoundsUntilRef,
   mapFitResetKey,
 }) {
@@ -163,7 +145,7 @@ function InitialListingBoundsFit({
     if (!listings?.length || didFitRef.current) return
     let bounds = null
     for (const listing of listings) {
-      const b = listingLocationBounds(listing, hasConfirmedBookingFn)
+      const b = listingLocationBounds(listing)
       if (!b || !b.isValid()) continue
       bounds = bounds ? bounds.extend(b) : b
     }
@@ -172,7 +154,7 @@ function InitialListingBoundsFit({
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
       didFitRef.current = true
     }
-  }, [listings, map, hasConfirmedBookingFn, suppressBoundsUntilRef, mapFitResetKey])
+  }, [listings, map, suppressBoundsUntilRef, mapFitResetKey])
 
   return null
 }
@@ -284,6 +266,8 @@ function pinToFitListing(pin) {
     id: pin.id,
     latitude: pin.lat,
     longitude: pin.lng,
+    isApproximate: pin.isApproximate === true,
+    locationPrivacyMode: pin.locationPrivacyMode ?? null,
   }
 }
 
@@ -297,11 +281,13 @@ function listingToPin(listing) {
     lng: ll.lng,
     price: Number.isFinite(thb) && thb > 0 ? thb : null,
     isApproximate: listing.isApproximate === true,
+    locationPrivacyMode: listing.locationPrivacyMode ?? null,
   }
 }
 
 /**
  * Sidebar listings always stay on map; API pins add viewport extras (Stage 170.11).
+ * Cluster mode: only selected listing pin is merged (Stage 171.14).
  */
 function mergeCatalogMapPins(listings, mapPins, useApiLayer) {
   const fromListings = (listings || []).map(listingToPin).filter(Boolean)
@@ -316,6 +302,22 @@ function mergeCatalogMapPins(listings, mapPins, useApiLayer) {
     if (!byId.has(id)) byId.set(id, pin)
   }
   return [...byId.values()]
+}
+
+/**
+ * @param {string | null | undefined} selectedId
+ * @param {object[]} listings
+ * @param {object[] | null} mapPins
+ */
+function resolveSelectedCatalogPin(selectedId, listings, mapPins) {
+  const id = String(selectedId || '').trim()
+  if (!id) return null
+
+  const apiPin = (mapPins || []).find((p) => String(p.id) === id)
+  if (apiPin) return apiPin
+
+  const listing = (listings || []).find((l) => String(l.id) === id)
+  return listing ? listingToPin(listing) : null
 }
 
 function pinPriceLabel(pin, currency, exchangeRates, language, approximate) {
@@ -374,10 +376,63 @@ export default function InteractiveSearchMap({
 
   const useServerClusters = mapPinsUseApi && mapMode === 'clusters' && (mapClusters?.length ?? 0) > 0
 
+  const listingsById = useMemo(() => {
+    const byId = new Map()
+    for (const listing of listings || []) {
+      if (listing?.id != null) byId.set(String(listing.id), listing)
+    }
+    return byId
+  }, [listings])
+
   const effectivePins = useMemo(() => {
-    if (useServerClusters) return []
-    return mergeCatalogMapPins(listings, mapPins, mapPinsUseApi)
-  }, [useServerClusters, mapPinsUseApi, mapPins, listings])
+    if (!useServerClusters) {
+      return mergeCatalogMapPins(listings, mapPins, mapPinsUseApi)
+    }
+    const selectedPin = resolveSelectedCatalogPin(selectedListingId, listings, mapPins)
+    return selectedPin ? [selectedPin] : []
+  }, [useServerClusters, mapPinsUseApi, mapPins, listings, selectedListingId])
+
+  const renderCatalogPriceMarker = useCallback(
+    (pin, { zIndexOffset = 0 } = {}) => {
+      const position = [pin.lat, pin.lng]
+      if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
+      const listingMatch = listingsById.get(String(pin.id)) ?? null
+      const priceText = pinPriceLabel(
+        pin,
+        currency,
+        exchangeRates,
+        language,
+        pin.isApproximate === true,
+      )
+      return (
+        <ListingPriceMarker
+          key={pin.id}
+          listing={listingMatch}
+          pin={pin}
+          position={position}
+          priceLabel={priceText || '—'}
+          approximate={pin.isApproximate === true}
+          selected={selectedListingId === pin.id}
+          language={language}
+          onSelect={onListingMarkerClick}
+          initialDates={initialDates}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          lazyPopup={!listingMatch?.title}
+          zIndexOffset={zIndexOffset}
+        />
+      )
+    },
+    [
+      listingsById,
+      currency,
+      exchangeRates,
+      language,
+      selectedListingId,
+      onListingMarkerClick,
+      initialDates,
+    ],
+  )
 
   const fitListings = useMemo(() => {
     if (effectivePins.length > 0) {
@@ -387,7 +442,7 @@ export default function InteractiveSearchMap({
   }, [effectivePins, listings])
 
   const markersCount = useServerClusters
-    ? mapClusters.length
+    ? mapClusters.length + effectivePins.length
     : effectivePins.length || listings.length
 
   if (!mounted) {
@@ -432,7 +487,6 @@ export default function InteractiveSearchMap({
         />
         <InitialListingBoundsFit
           listings={fitListings}
-          hasConfirmedBookingFn={hasConfirmedBooking}
           suppressBoundsUntilRef={suppressBoundsUntilRef}
           mapFitResetKey={mapFitResetKey}
         />
@@ -444,15 +498,18 @@ export default function InteractiveSearchMap({
         />
 
         {useServerClusters ? (
-          mapClusters.map((cluster) => (
-            <MapServerClusterMarker
-              key={`cluster-${cluster.clusterId}`}
-              cluster={cluster}
-              language={language}
-              currency={currency}
-              exchangeRates={exchangeRates}
-            />
-          ))
+          <>
+            {mapClusters.map((cluster) => (
+              <MapServerClusterMarker
+                key={`cluster-${cluster.clusterId}`}
+                cluster={cluster}
+                language={language}
+                currency={currency}
+                exchangeRates={exchangeRates}
+              />
+            ))}
+            {effectivePins.map((pin) => renderCatalogPriceMarker(pin, { zIndexOffset: 2000 }))}
+          </>
         ) : (
           <MarkerClusterGroup
             chunkedLoading
@@ -467,35 +524,7 @@ export default function InteractiveSearchMap({
             animateAddingMarkers={false}
             iconCreateFunction={(cluster) => createSearchMapClusterDivIcon(L, cluster)}
           >
-            {effectivePins.map((pin) => {
-                  const position = [pin.lat, pin.lng]
-                  if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
-                  const listingMatch = (listings || []).find((l) => String(l.id) === String(pin.id))
-                  const priceText = pinPriceLabel(
-                    pin,
-                    currency,
-                    exchangeRates,
-                    language,
-                    pin.isApproximate === true,
-                  )
-                  return (
-                    <ListingPriceMarker
-                      key={pin.id}
-                      listing={listingMatch || null}
-                      pin={pin}
-                      position={position}
-                      priceLabel={priceText || '—'}
-                      approximate={pin.isApproximate === true}
-                      selected={selectedListingId === pin.id}
-                      language={language}
-                      onSelect={onListingMarkerClick}
-                      initialDates={initialDates}
-                      currency={currency}
-                      exchangeRates={exchangeRates}
-                      lazyPopup={!listingMatch?.title}
-                    />
-                  )
-                })}
+            {effectivePins.map((pin) => renderCatalogPriceMarker(pin))}
           </MarkerClusterGroup>
         )}
       </MapContainer>

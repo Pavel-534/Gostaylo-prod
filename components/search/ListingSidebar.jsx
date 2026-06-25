@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { getUIText } from '@/lib/translations';
 import { isTransportListingCategory } from '@/lib/listing-category-slug';
 import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
+import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
+import { useNetworkQuality } from '@/hooks/use-network-quality';
 
 function ListingSidebarComponent({
   listings = [],
@@ -55,6 +57,8 @@ function ListingSidebarComponent({
   onCatalogSortChange = null,
   catalogSortDistanceAvailable = false,
 }) {
+  const networkQuality = useNetworkQuality()
+
   useEffect(() => {
     if (!highlightedListingId) return;
     const el = document.getElementById(`listing-card-${highlightedListingId}`);
@@ -241,6 +245,7 @@ function ListingSidebarComponent({
                 isFavorited={userFavorites.has(listing.id)}
                 isMapHighlighted={highlightedListingId === listing.id}
                 catalogCategories={catalogCategories}
+                imagePriority={resolveListingCardImagePriority({ cardIndex: index }, networkQuality)}
                 className="h-full flex-1"
               />
             </div>

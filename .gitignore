@@ -18,6 +18,9 @@ next-env.d.ts
 /build
 dist/
 
+# Generated Service Worker (SSOT template: src/pwa/sw.template.js; npm run prebuild)
+/public/sw.js
+
 # Environment files - NEVER commit secrets!
 .env
 .env.*

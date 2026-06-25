@@ -9,6 +9,7 @@ import { memo, useCallback, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { boundsParamsReady } from '@/lib/catalog/build-catalog-search-params'
+import { quantizeMapBbox } from '@/lib/geo/quantize-map-bbox'
 import { useMapPinsFetch } from '@/lib/hooks/useMapPinsFetch'
 
 const InteractiveSearchMap = dynamic(
@@ -48,11 +49,16 @@ function CatalogSearchMapPanelComponent({
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
 
-  const mapQueryBounds = appliedBbox ?? viewportBbox
+  const quantizedAppliedBbox = useMemo(
+    () => (appliedBbox ? quantizeMapBbox(appliedBbox) : null),
+    [appliedBbox],
+  )
+
+  const mapQueryBounds = quantizedAppliedBbox ?? viewportBbox
   const boundsReady = boundsParamsReady(mapQueryBounds)
 
   const mapPinsKeyParams = useMemo(() => {
-    if (!searchKeyParams || !boundsReady) return null
+    if (!searchKeyParams || !boundsReady || !mapQueryBounds) return null
     return { ...searchKeyParams, bounds: mapQueryBounds, limit: '500' }
   }, [searchKeyParams, mapQueryBounds, boundsReady])
 
@@ -66,7 +72,20 @@ function CatalogSearchMapPanelComponent({
   const handleViewportBbox = useCallback(
     (bbox) => {
       if (appliedBbox) return
-      setViewportBbox(bbox)
+      const quantized = quantizeMapBbox(bbox)
+      if (!quantized) return
+      setViewportBbox((prev) => {
+        if (
+          prev &&
+          prev.south === quantized.south &&
+          prev.north === quantized.north &&
+          prev.west === quantized.west &&
+          prev.east === quantized.east
+        ) {
+          return prev
+        }
+        return quantized
+      })
     },
     [appliedBbox],
   )

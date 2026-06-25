@@ -1,5 +1,17 @@
 /* global self, clients, registration */
-importScripts('/push-visibility-policy.js')
+/**
+ * FCM push handlers — imported by `/sw.js` (unified dispatcher).
+ * Do not register install/activate/fetch here (owned by sw.js).
+ *
+ * Legacy direct registration: importScripts push policy only (handlers below).
+ */
+if (typeof self.GostayloPushPolicy === 'undefined') {
+  try {
+    importScripts('/push-visibility-policy.js')
+  } catch {
+    /* sw.js loads policy first */
+  }
+}
 
 function parseConversationId(link, data) {
   if (data && data.conversationId) return String(data.conversationId)
@@ -18,19 +30,9 @@ async function postToClients(payload) {
   return windows
 }
 
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
-
-// Stage 169.4 — fetch handler required for Chrome beforeinstallprompt / installability.
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return
-  event.respondWith(fetch(event.request))
-})
-
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
-      // Remote debug: Chrome → remote device → inspect SW → Console.
       try {
         console.log('[SW Debug] push event (raw)', {
           hasData: !!event.data,
@@ -72,7 +74,6 @@ self.addEventListener('push', (event) => {
         typeof self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage === 'function' &&
         self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage(windows, self.location.origin)
 
-      // Premium Quiet (v3): видима любая вкладка нашего origin — без postMessage и без OS-баннера (Realtime).
       if (suppressPremiumQuiet) return
 
       for (const c of windows) c.postMessage({ type: 'gostaylo_push', payload: data })

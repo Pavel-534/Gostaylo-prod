@@ -16,6 +16,7 @@ import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { isPrivacyLocationMode } from '@/lib/listing-location-privacy'
+import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
 
 const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false })
@@ -23,12 +24,7 @@ const Marker = dynamic(() => import('react-leaflet').then((m) => m.Marker), { ss
 const Tooltip = dynamic(() => import('react-leaflet').then((m) => m.Tooltip), { ssr: false })
 
 if (typeof window !== 'undefined') {
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
+  configureLeafletDefaultIcons(L)
 }
 
 const PHUKET_CENTER = [7.8804, 98.3923]

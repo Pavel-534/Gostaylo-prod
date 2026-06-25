@@ -27,6 +27,7 @@ import { ListingMapPopupLazy } from '@/components/listing/ListingMapPopupLazy'
  * @param {string} [props.currency]
  * @param {Record<string, number>} [props.exchangeRates]
  * @param {boolean} [props.lazyPopup]
+ * @param {number} [props.zIndexOffset] — extra stack above clusters (Stage 171.14)
  */
 export function ListingPriceMarker({
   listing = null,
@@ -41,6 +42,7 @@ export function ListingPriceMarker({
   currency = 'THB',
   exchangeRates = { THB: 1 },
   lazyPopup = false,
+  zIndexOffset = 0,
 }) {
   const map = useMap()
   const [popupOpen, setPopupOpen] = useState(false)
@@ -60,7 +62,7 @@ export function ListingPriceMarker({
       position={position}
       icon={icon}
       gslVerified={gslVerified}
-      zIndexOffset={selected ? 1100 : 0}
+      zIndexOffset={(selected ? 1100 : 0) + zIndexOffset}
       eventHandlers={{
         click: () => {
           if (listingId) onSelect?.(listingId)

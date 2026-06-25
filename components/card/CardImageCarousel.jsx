@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronRight, Heart, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import { resolveListingCardImageSizes } from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -31,7 +33,11 @@ export function CardImageCarousel({
   topLeftBadge = null,
   /** Низкокачественный плейсхолдер (LQIP), иначе нейтральный blur. */
   blurDataURL = LISTING_CARD_BLUR_DATA_URL,
+  /** LCP: only first visible cards in catalog (Stage 171.18). */
+  priority = false,
 }) {
+  const networkQuality = useNetworkQuality()
+  const imageSizes = resolveListingCardImageSizes(networkQuality)
   const imagesProxied = useMemo(() => mapPublicImageUrls(images), [images])
 
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -75,7 +81,7 @@ export function CardImageCarousel({
         src={displaySrc}
         alt={`${title} - Photo ${currentIndex + 1}`}
         fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        sizes={imageSizes}
         placeholder="blur"
         blurDataURL={blurDataURL}
         unoptimized={unoptimized}
@@ -89,7 +95,7 @@ export function CardImageCarousel({
           setFailed((f) => ({ ...f, [currentIndex]: true }))
           setImageLoaded(true)
         }}
-        priority={currentIndex === 0}
+        priority={priority && currentIndex === 0}
       />
       {detailHref ? (
         <Link

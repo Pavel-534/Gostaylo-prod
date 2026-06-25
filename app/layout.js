@@ -19,6 +19,7 @@ import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
+import { SwRegister } from '@/components/sw-register'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
 import { cookies, headers } from 'next/headers'
@@ -124,6 +125,7 @@ button{font:inherit}
           <AuthProvider>
             <AppQueryProvider>
               <PwaInstallProvider>
+              <SwRegister />
               <SupabaseRealtimeAuthSync />
               <PushClientInit />
               <Suspense fallback={null}>

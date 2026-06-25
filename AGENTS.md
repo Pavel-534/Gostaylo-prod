@@ -47,7 +47,7 @@
 - Сквозной продуктовый поток + backlog PR — **`docs/PRODUCT_FLOW_MAP.md`**
 - Phase D итог + roadmap 2–3 мес. — **`docs/PHASE_D_CLOSURE_AND_ROADMAP.md`**
 - Каталог: query-параметры поиска → файлы — **`docs/SEARCH_FILTERS_QUERY_MAP.md`**
-- Пуши: `lib/services/push.service.js`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`
+- Пуши / PWA SW: `lib/services/push.service.js`, `components/push-client-init.jsx`, **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (gitignored; `npm run prebuild` / `postbuild`)
 - Критичная телеметрия: `lib/critical-telemetry.js`
 - Бронирования: `lib/services/booking.service.js` (оркестратор) + модули в `lib/services/booking/` (Stage 2.1)
 - **Resend в тестах:** `lib/email/resend-transport-guard.js` — smoke/E2E/тестовые адреса не вызывают Resend API; правило `.cursor/rules/gostaylo-resend-transport-guard.mdc`

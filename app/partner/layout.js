@@ -235,14 +235,6 @@ export default function PartnerLayout({ children }) {
     <PartnerNotificationProvider>
       <PartnerForegroundNotifications />
       <div className="min-h-screen bg-brand-surface flex flex-col">
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       <AppHeader
         variant="workspace"
         onMenuClick={() => setSidebarOpen((v) => !v)}
@@ -250,11 +242,20 @@ export default function PartnerLayout({ children }) {
 
       {/* Workspace — fixed below AppHeader (SSOT: workspace-shell.js) */}
       <div className={WORKSPACE_FRAME_CLASS}>
+        {/* Mobile backdrop — inside frame so z-50 sidebar stacks above z-40 (not under viewport overlay). */}
+        {sidebarOpen ? (
+          <div
+            className="fixed inset-x-0 bottom-0 top-[var(--app-header-height,64px)] z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden
+          />
+        ) : null}
+
         {/* Sidebar */}
         <aside
           className={`${WORKSPACE_SIDEBAR_CLASS} ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } bg-white/95 backdrop-blur-sm border-r border-slate-200 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
+          } border-r border-slate-200 bg-white shadow-lg max-lg:backdrop-blur-none lg:bg-white/95 lg:backdrop-blur-sm lg:shadow-sm lg:shadow-brand/5`}
         >
           {/* Mobile drawer — close only (logo/title live in AppHeader, Stage 170.13) */}
           <div className="flex items-center justify-end border-b border-slate-100 p-2 lg:hidden">

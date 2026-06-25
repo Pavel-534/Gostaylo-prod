@@ -1,0 +1,28 @@
+---
+description: PWA SW template → generated public/sw.js; never commit sw.js; image-delivery SSOT
+globs: src/pwa/**,public/sw.js,scripts/bump-sw-cache.mjs,scripts/generate-sw-precache.mjs,lib/media/image-delivery.js
+---
+
+# PWA Service Worker — Git + build pipeline (Stage 171.20)
+
+## SSOT
+
+- **Edit only** `src/pwa/sw.template.js` (placeholders: `__AIRENTO_SW_CACHE_NAME__`, `AIRENTO_PRECACHE_START` / `END`).
+- **`public/sw.js` is generated** — listed in `.gitignore`. **Never commit** it.
+
+## Build hooks (`package.json`)
+
+| Hook | Script | Effect |
+|------|--------|--------|
+| `predev` / `prebuild` | `scripts/bump-sw-cache.mjs` | template → `public/sw.js`, inject `CACHE_NAME` (Vercel SHA or local id) |
+| `postbuild` | `scripts/generate-sw-precache.mjs` | inject `/listings` shell `/_next/static/*` into `PRECACHE_URLS` |
+
+Paths: `scripts/lib/sw-build-paths.mjs`.
+
+## After clone / clean checkout
+
+Run `npm run build` or `npm run predev` once so `public/sw.js` exists locally.
+
+## Media delivery (catalog)
+
+Guest catalog `sizes` / LCP priority: **`lib/media/image-delivery.js`** + **`hooks/use-network-quality.js`**. Upload profiles stay in **`lib/services/media/media-profiles.js`**.
