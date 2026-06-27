@@ -19,7 +19,6 @@ export function ListingGallery({ listing, language, onImageClick }) {
   return (
     <BentoGallery
       images={heroUrls}
-      listingId={listing?.id}
       title={listing?.title || ''}
       language={language}
       onImageClick={onImageClick}
