@@ -9,8 +9,8 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { format, formatDistanceToNow } from 'date-fns'
-import { ru as ruLocale } from 'date-fns/locale'
+import { formatDistanceToNow } from 'date-fns'
+import { ru as ruLocale, enUS, th as thLocale, zhCN } from 'date-fns/locale'
 import {
   Archive,
   ArchiveRestore,
@@ -48,38 +48,54 @@ const LIST_FILTER_ALL = 'all'
 const LIST_FILTER_UNREAD = 'unread'
 const LIST_FILTER_STARRED = 'starred'
 
-// ─── Статус-бейдж ────────────────────────────────────────────────────────────
+function tx(key, lang, extras) {
+  const raw = getUIText(key, lang)
+  if (!extras || typeof extras !== 'object') return raw
+  return Object.entries(extras).reduce(
+    (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v ?? '')),
+    raw,
+  )
+}
 
-const STATUS_CFG = {
-  PENDING: { ru: 'Ожидает', en: 'Pending', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
-  CONFIRMED: { ru: 'Подтверждено', en: 'Confirmed', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
-  PAID: { ru: 'Оплачено', en: 'Paid', cls: 'bg-green-100 text-green-800 border-green-200' },
-  PAID_ESCROW: { ru: 'Эскроу', en: 'Escrow', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  CHECKED_IN: { ru: 'Заезд', en: 'Checked in', cls: 'bg-sky-100 text-sky-800 border-sky-200' },
-  DISPUTED: { ru: 'Спор', en: 'Dispute', cls: 'bg-amber-100 text-amber-900 border-amber-300' },
-  COMPLETED: { ru: 'Завершено', en: 'Completed', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
-  CANCELLED: { ru: 'Отменено', en: 'Cancelled', cls: 'bg-red-100 text-red-700 border-red-200' },
-  REFUNDED: { ru: 'Возврат', en: 'Refunded', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
+function dateFnsLocaleForLang(lang) {
+  if (lang === 'th') return thLocale
+  if (lang === 'zh') return zhCN
+  if (lang === 'en') return enUS
+  return ruLocale
+}
+
+const STATUS_BADGE_CLS = {
+  PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
+  CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
+  PAID: 'bg-green-100 text-green-800 border-green-200',
+  PAID_ESCROW: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  CHECKED_IN: 'bg-sky-100 text-sky-800 border-sky-200',
+  DISPUTED: 'bg-amber-100 text-amber-900 border-amber-300',
+  COMPLETED: 'bg-slate-100 text-slate-600 border-slate-200',
+  CANCELLED: 'bg-red-100 text-red-700 border-red-200',
+  REFUNDED: 'bg-purple-100 text-purple-700 border-purple-200',
 }
 
 function statusBadgeLabel(statusKey, lang = 'ru') {
   const key = String(statusKey || '').toUpperCase()
-  const cfg = STATUS_CFG[key]
-  if (!cfg) return null
   const i18nKey = `chatBookingStatus_${key}`
   const translated = getUIText(i18nKey, lang)
-  if (translated !== i18nKey) return translated
-  if (lang === 'en') return cfg.en
-  if (lang === 'zh' || lang === 'th') return cfg.en
-  return cfg.ru
+  return translated !== i18nKey ? translated : null
+}
+
+function defaultPeerDisplayName(conv, showGuestName, lang) {
+  const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
+  if (isAdminChat) return conv.adminName || getUIText('messengerThread_labelSupport', lang)
+  if (showGuestName) return conv.renterName || getUIText('messengerThread_labelGuest', lang)
+  return conv.partnerName || getUIText('messengerThread_labelHost', lang)
 }
 
 function StatusBadge({ statusLabel, lang = 'ru' }) {
   if (!statusLabel) return null
   const key = String(statusLabel).toUpperCase()
-  const cfg = STATUS_CFG[key]
+  const cls = STATUS_BADGE_CLS[key]
   const label = statusBadgeLabel(key, lang)
-  if (!cfg || !label) return null
+  if (!cls || !label) return null
   return (
     <span
       className={cn(
@@ -150,20 +166,36 @@ function DealStatusBadge({ conv, lang = 'ru' }) {
 
 function LastMessagePreview({ conv, lang = 'ru' }) {
   const last = conv.lastMessage
-  if (!last) return <span className="italic text-slate-400">{lang === 'ru' ? 'Нет сообщений' : 'No messages'}</span>
+  if (!last) {
+    return <span className="italic text-slate-400">{getUIText('chatListPreview_noMessages', lang)}</span>
+  }
 
   const type = String(last.type || '').toLowerCase()
-  if (type === 'image') return <span className="text-slate-500">📷 {lang === 'ru' ? 'Фото' : 'Photo'}</span>
-  if (type === 'voice') return <span className="text-slate-500">🎤 {lang === 'ru' ? 'Голосовое' : 'Voice'}</span>
+  if (type === 'image') {
+    return (
+      <span className="text-slate-500">
+        📷 {getUIText('chatListPreview_photo', lang)}
+      </span>
+    )
+  }
+  if (type === 'voice') {
+    return (
+      <span className="text-slate-500">
+        🎤 {getUIText('chatListPreview_voice', lang)}
+      </span>
+    )
+  }
   if (type === 'invoice') {
     return <span className="text-slate-500">{getUIText('chatListPreview_invoice', lang)}</span>
   }
-  if (type === 'system') return <span className="text-slate-400 italic">{lang === 'ru' ? 'Системное' : 'System'}</span>
+  if (type === 'system') {
+    return <span className="text-slate-400 italic">{getUIText('chatListPreview_system', lang)}</span>
+  }
   if (['rejection', 'REJECTION'].includes(last.type)) {
     return (
       <span className="flex items-center gap-1 text-red-500">
         <AlertTriangle className="h-3 w-3 shrink-0" />
-        {last.content || last.message || (lang === 'ru' ? 'Отклонено' : 'Declined')}
+        {last.content || last.message || getUIText('chatListPreview_declined', lang)}
       </span>
     )
   }
@@ -172,26 +204,29 @@ function LastMessagePreview({ conv, lang = 'ru' }) {
   return (
     <span className="flex items-center gap-1 truncate">
       {last._masked && (
-        <Lock className="h-3 w-3 text-amber-500 shrink-0" aria-label={lang === 'ru' ? 'Контакт скрыт' : 'Contact hidden'} />
+        <Lock
+          className="h-3 w-3 text-amber-500 shrink-0"
+          aria-label={getUIText('chatListPreview_contactHidden', lang)}
+        />
       )}
-      <span className="truncate">{text || (lang === 'ru' ? 'Новое сообщение' : 'New message')}</span>
+      <span className="truncate">{text || getUIText('chatListPreview_newMessage', lang)}</span>
     </span>
   )
 }
 
 function PresenceLabel({ peerOnline, peerLastSeenAt, lang = 'ru' }) {
   if (peerOnline) {
-    return <span className="text-[11px] text-emerald-600">{lang === 'ru' ? 'В сети' : 'Online'}</span>
+    return <span className="text-[11px] text-emerald-600">{getUIText('chatOnline', lang)}</span>
   }
   if (!peerLastSeenAt) return null
   try {
     const rel = formatDistanceToNow(new Date(peerLastSeenAt), {
       addSuffix: true,
-      locale: lang === 'en' ? undefined : ruLocale,
+      locale: dateFnsLocaleForLang(lang),
     })
     return (
       <span className="text-[11px] text-slate-400">
-        {lang === 'ru' ? `Был(а) в сети ${rel}` : `Last seen ${rel}`}
+        {tx('chatListPreview_lastSeen', lang, { time: rel })}
       </span>
     )
   } catch {
@@ -200,12 +235,7 @@ function PresenceLabel({ peerOnline, peerLastSeenAt, lang = 'ru' }) {
 }
 
 function conversationSearchHaystack(conv, showGuestName, lang) {
-  const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
-  const displayName = isAdminChat
-    ? (conv.adminName || (lang === 'ru' ? 'Администратор' : 'Administrator'))
-    : showGuestName
-      ? (conv.renterName || (lang === 'ru' ? 'Клиент' : 'Guest'))
-      : (conv.partnerName || (lang === 'ru' ? 'Хозяин' : 'Host'))
+  const displayName = defaultPeerDisplayName(conv, showGuestName, lang)
   const parts = [displayName, conv.listing?.title, conv.listing?.slug]
   const last = conv.lastMessage
   if (last?.content) parts.push(String(last.content))
@@ -237,11 +267,7 @@ function ConversationRow({
     ? resolveImageThumbDisplayUrl(conv.listing.images[0]) || conv.listing.images[0]
     : null
 
-  const displayName = isAdminChat
-    ? (conv.adminName || (lang === 'ru' ? 'Администратор' : 'Administrator'))
-    : showGuestName
-      ? (conv.renterName || (lang === 'ru' ? 'Клиент' : 'Guest'))
-      : (conv.partnerName || (lang === 'ru' ? 'Хозяин' : 'Host'))
+  const displayName = defaultPeerDisplayName(conv, showGuestName, lang)
 
   return (
     <div
@@ -280,7 +306,7 @@ function ConversationRow({
               {peerOnline ? (
                 <span
                   className="ml-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle shadow-[0_0_0_2px_rgba(16,185,129,0.22)]"
-                  aria-label={lang === 'ru' ? 'Собеседник в сети' : 'Peer online'}
+                  aria-label={getUIText('chatList_ariaPeerOnline', lang)}
                 />
               ) : null}
             </p>
@@ -299,11 +325,11 @@ function ConversationRow({
                   size="icon"
                   disabled={favoriteSaving}
                   className={cn(
-                    'h-7 w-7',
+                    'min-h-[44px] min-w-[44px] h-11 w-11',
                     isFavorite ? 'text-amber-500 hover:text-amber-600' : 'text-slate-300 hover:text-amber-500',
                   )}
-                  title={lang === 'ru' ? 'В избранное' : 'Favorite'}
-                  aria-label={lang === 'ru' ? 'Избранное' : 'Favorite'}
+                  title={getUIText('chatList_favoriteTitle', lang)}
+                  aria-label={getUIText('chatList_ariaFavorite', lang)}
                   onClick={(e) => {
                     e.stopPropagation()
                     if (!favoriteSaving) onToggleFavorite(conv.id)
@@ -321,8 +347,8 @@ function ConversationRow({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-slate-400 hover:text-brand"
-                  title={unarchiveLabel || (lang === 'ru' ? 'Вернуть в инбокс' : 'Restore to inbox')}
+                  className="min-h-[44px] min-w-[44px] h-11 w-11 text-slate-400 hover:text-brand"
+                  title={unarchiveLabel || getUIText('chatList_restoreInbox', lang)}
                   onClick={(e) => {
                     e.stopPropagation()
                     onUnarchive(conv.id)
@@ -336,8 +362,8 @@ function ConversationRow({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-slate-400 hover:text-slate-600"
-                  title={archiveLabel || (lang === 'ru' ? 'Скрыть' : 'Archive')}
+                  className="min-h-[44px] min-w-[44px] h-11 w-11 text-slate-400 hover:text-slate-600"
+                  title={archiveLabel || getUIText('chatList_archive', lang)}
                   onClick={(e) => {
                     e.stopPropagation()
                     onArchive(conv.id)
@@ -357,7 +383,7 @@ function ConversationRow({
 
           {typingName ? (
             <p className="text-xs text-brand truncate animate-pulse">
-              {lang === 'ru' ? `${typingName} печатает…` : `${typingName} is typing…`}
+              {tx('chatList_typing', lang, { name: typingName })}
             </p>
           ) : (
             <p className="flex items-center gap-1.5 truncate text-xs text-slate-500">
@@ -382,11 +408,10 @@ function InboxSearchFilterBar({
   language,
   showStarredOption = true,
 }) {
-  const isRu = language !== 'en'
-  const labels = {
-    [LIST_FILTER_ALL]: isRu ? 'Все' : 'All',
-    [LIST_FILTER_UNREAD]: isRu ? 'Непрочитанные' : 'Unread',
-    [LIST_FILTER_STARRED]: isRu ? 'Избранные' : 'Starred',
+  const filterLabelKey = {
+    [LIST_FILTER_ALL]: 'chatInbox_filterAll',
+    [LIST_FILTER_UNREAD]: 'chatInbox_filterUnread',
+    [LIST_FILTER_STARRED]: 'chatInbox_filterStarred',
   }
 
   const filterKeys = showStarredOption
@@ -404,10 +429,10 @@ function InboxSearchFilterBar({
           type="search"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={isRu ? 'Поиск…' : 'Search…'}
+          placeholder={getUIText('chatInbox_searchPlaceholder', language)}
           className="h-9 pl-8 pr-2 text-sm border-slate-200 bg-slate-50/80 focus-visible:bg-white"
           autoComplete="off"
-          aria-label={isRu ? 'Поиск по диалогам' : 'Search conversations'}
+          aria-label={getUIText('chatInbox_searchAria', language)}
         />
       </div>
       <DropdownMenu>
@@ -418,7 +443,7 @@ function InboxSearchFilterBar({
             size="sm"
             className="h-9 shrink-0 gap-1 border-slate-200 px-2.5 text-xs font-medium text-slate-700"
           >
-            {labels[listFilter] || labels[LIST_FILTER_ALL]}
+            {getUIText(filterLabelKey[listFilter] || filterLabelKey[LIST_FILTER_ALL], language)}
             <ChevronDown className="h-3.5 w-3.5 opacity-70" />
           </Button>
         </DropdownMenuTrigger>
@@ -429,7 +454,7 @@ function InboxSearchFilterBar({
               className="text-sm cursor-pointer"
               onClick={() => onListFilterChange(key)}
             >
-              {labels[key]}
+              {getUIText(filterLabelKey[key], language)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -488,16 +513,16 @@ export function ConversationListPanel({
     return () => obs.disconnect()
   }, [onLoadMore, hasMore, isLoadingMore])
 
-  const isRu = language !== 'en'
-  const emptyDefault = isRu ? 'Диалогов пока нет' : 'No conversations yet'
-  const emptyFiltered = isRu ? 'Нет подходящих диалогов' : 'No matching conversations'
-  const emptyStarred = isRu ? 'Нет избранных диалогов' : 'No starred conversations'
-
-  let emptyText = emptyDefault
-  if (listFilter === LIST_FILTER_STARRED) emptyText = emptyStarred
+  let emptyText = getUIText('chatInbox_emptyDefault', language)
+  if (listFilter === LIST_FILTER_STARRED) emptyText = getUIText('chatInbox_emptyStarred', language)
   else if (listFilter === LIST_FILTER_UNREAD || (searchQuery && searchQuery.trim())) {
-    emptyText = emptyFiltered
+    emptyText = getUIText('chatInbox_emptyFiltered', language)
   }
+
+  const conversationCountLabel =
+    conversations.length === 1
+      ? getUIText('chatInbox_conversationOne', language)
+      : getUIText('chatInbox_conversationMany', language)
 
   return (
     <div className={cn('flex min-h-0 h-full flex-col', className)}>
@@ -512,18 +537,17 @@ export function ConversationListPanel({
                 G
               </span>
               <House className="h-4 w-4 shrink-0 text-brand-hover" aria-hidden />
-              <span className="truncate">{isRu ? 'Каталог и поиск' : 'Browse & search'}</span>
+              <span className="truncate">{getUIText('chatInbox_catalogLink', language)}</span>
             </Link>
           </div>
         ) : null}
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold leading-tight text-slate-900">
-              {title || (isRu ? 'Сообщения' : 'Messages')}
+              {title || getUIText('chatInbox_title', language)}
             </h2>
             <p className="text-[11px] leading-tight text-slate-500">
-              {conversations.length}{' '}
-              {isRu ? (conversations.length === 1 ? 'диалог' : 'диалогов') : 'conversations'}
+              {conversations.length} {conversationCountLabel}
             </p>
           </div>
           {headerActionHref ? (
@@ -531,7 +555,7 @@ export function ConversationListPanel({
               href={headerActionHref}
               className="shrink-0 text-sm font-medium text-brand-hover hover:text-brand-hover"
             >
-              {headerActionLabel || (isRu ? 'Архив' : 'Archive')}
+              {headerActionLabel || getUIText('chatInbox_archiveLink', language)}
             </Link>
           ) : null}
         </div>
@@ -602,7 +626,7 @@ export function ConversationListPanel({
         )}
         {!hasMore && conversations.length > 0 && (
           <p className="py-3 text-center text-[11px] text-slate-400">
-            {isRu ? 'Все диалоги загружены' : 'All conversations loaded'}
+            {getUIText('chatAllLoaded', language)}
           </p>
         )}
       </div>

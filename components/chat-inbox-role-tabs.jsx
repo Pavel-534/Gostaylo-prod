@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { INBOX_TAB_HOSTING, INBOX_TAB_TRAVELING } from '@/lib/chat-inbox-tabs'
+import { getUIText } from '@/lib/translations'
 
 /**
  * Переключатель Hosting / Traveling с бейджами непрочитанного по вкладкам.
@@ -16,13 +17,7 @@ export function ChatInboxRoleTabs({
   className,
   dense = false,
 }) {
-  const isRu = language !== 'en'
-  const hostingLabel = isRu ? 'Сдаю' : 'Hosting'
-  const travelingLabel = isRu ? 'Снимаю' : 'Traveling'
-  const hostingHint = isRu ? 'Сдаю объекты — диалоги по моим объявлениям' : 'Hosting — conversations about my listings'
-  const travelingHint = isRu ? 'Снимаю — я интересуюсь чужими объявлениями' : 'Traveling — inquiries on others’ listings'
-
-  const TabBtn = ({ tab, label, title, unread }) => {
+  const TabBtn = ({ tab, labelKey, hintKey, unread }) => {
     const active = value === tab
     const n = unread > 99 ? '99+' : unread > 0 ? String(unread) : null
     return (
@@ -30,7 +25,7 @@ export function ChatInboxRoleTabs({
         type="button"
         role="tab"
         aria-selected={active}
-        title={title}
+        title={getUIText(hintKey, language)}
         onClick={() => onChange?.(tab)}
         className={cn(
           'relative flex min-h-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-lg px-2 text-center font-semibold transition-colors',
@@ -40,7 +35,7 @@ export function ChatInboxRoleTabs({
             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
         )}
       >
-        <span className="truncate">{label}</span>
+        <span className="truncate">{getUIText(labelKey, language)}</span>
         {n != null ? (
           <span
             className={cn(
@@ -57,9 +52,23 @@ export function ChatInboxRoleTabs({
   }
 
   return (
-    <div className={cn('flex gap-2', className)} role="tablist" aria-label={isRu ? 'Режим диалогов' : 'Conversation mode'}>
-      <TabBtn tab={INBOX_TAB_HOSTING} label={hostingLabel} title={hostingHint} unread={hostingUnread} />
-      <TabBtn tab={INBOX_TAB_TRAVELING} label={travelingLabel} title={travelingHint} unread={travelingUnread} />
+    <div
+      className={cn('flex gap-2', className)}
+      role="tablist"
+      aria-label={getUIText('chatInbox_roleModeAria', language)}
+    >
+      <TabBtn
+        tab={INBOX_TAB_HOSTING}
+        labelKey="chatInbox_tabHosting"
+        hintKey="chatInbox_tabHostingHint"
+        unread={hostingUnread}
+      />
+      <TabBtn
+        tab={INBOX_TAB_TRAVELING}
+        labelKey="chatInbox_tabTraveling"
+        hintKey="chatInbox_tabTravelingHint"
+        unread={travelingUnread}
+      />
     </div>
   )
 }

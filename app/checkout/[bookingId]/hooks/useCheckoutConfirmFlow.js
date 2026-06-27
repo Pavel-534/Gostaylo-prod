@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { interpolateTemplate } from '../hooks/interpolate.js'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
@@ -178,16 +179,16 @@ export function useCheckoutConfirmFlow({
             booking_id: bookingId,
             method: 'CRYPTO',
           })
-          toast.success(language === 'ru' ? 'Платёж и эскроу обновлены' : 'Payment and escrow updated')
+          toast.success(getUIText('checkout_toast_escrowUpdated', language))
           setPaymentSuccess(true)
           setCryptoModalOpen(false)
           void loadPaymentStatus()
           void refreshWalletEverywhere()
         } else if (data.paymentSettled && data.paymentSettled.success === false && data.paymentSettled.error) {
           toast.error(
-            language === 'ru'
-              ? `Платёж не проведён: ${data.paymentSettled.error}`
-              : `Payment not settled: ${data.paymentSettled.error}`,
+            interpolateTemplate(getUIText('checkout_toast_paymentNotSettled', language), {
+              error: data.paymentSettled.error,
+            }),
           )
         }
       } else if (data.status === 'PENDING') {

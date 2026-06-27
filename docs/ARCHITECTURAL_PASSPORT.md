@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.172.5.0 | **Last Updated**: 2026-06-22 | **Stage 172.5.0:** payment dialog i18n + inbox deal badges; ADR-172 epic closed. |
+> **Version**: 12.174.1.0 | **Last Updated**: 2026-06-27 | **Stage 174.1.0:** inbox i18n sweep (4 langs) + E2E golden path fixture isolation. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -894,7 +894,7 @@
   - **`BookingInfoSidebar.jsx`** — правая колонка: **`DealDetailsCard`** (`next/dynamic`).
   - **`ThreadDealDetailsSheet.jsx`**, **`DeclineBookingDialog.jsx`** — мобильный sheet «детали сделки» и отклонение брони.
 - **Архив диалога:** **`app/messages/[id]/hooks/useThreadArchive.js`** (тосты и навигация).
-- **i18n треда:** ключи **`messengerThread_*`**, превью счёта в списке — **`chatListPreview_invoice`** в **`lib/translations/ui.js`**.
+- **i18n треда:** ключи **`messengerThread_*`**, превью в списке — **`chatListPreview_*`** / **`chatInbox_*`** в **`lib/translations/slices/chat-ui.js`**.
 
 ### 0.0f Performance + i18n (Stage 3.1)
 - **Язык (единый дефолт RU):** `DEFAULT_UI_LANGUAGE` = **`ru`** в **`lib/translations/index.js`**. **`setLanguage` / I18nProvider** сохраняют выбор в **`localStorage`** и в cookie **`gostaylo_language`** (path=/, SameSite=Lax, max-age long-lived). Клиент **`detectLanguage`**: localStorage → cookie → `navigator` → **RU**. **SSR/SEO:** **`getLangFromRequest(cookies, headers)`** — **сначала cookie** `gostaylo_language`, затем **Accept-Language** (нормализация `en-US` → `en`), иначе **`ru`**. **`app/layout.js`:** `<html lang="ru">` и глобально **без** `leaflet.css` (см. ниже).
@@ -1032,6 +1032,8 @@
 - **DB hard guard against race condition:** миграция **`037_vehicle_booking_overlap_guard.sql`** добавляет trigger-level блокировку overlapping insert/update для `vehicles` (`VEHICLE_INTERVAL_CONFLICT`), что закрывает двойное бронирование при одновременных кликах.
 - **Chat confirmed copy split by role:** в milestone `booking_confirmed` для партнёра показывается отдельный CTA-текст про выставление счёта, для гостя остаётся текст про оплату счёта.
 - **Invoice consistency layer:** чат-обогащение бесед включает `bookings.price_thb/currency/guests_count` (префилл счёта из заказа), `GET /api/v2/chat/invoice?id=` поддерживает адресный доступ к одному счёту с проверкой участника, checkout при `invoiceId` подтягивает invoice-метаданные и выставляет предпочтительный метод оплаты.
+- **Stage 173.1.0 — Stabilization sprint (ADR-173):** chat invoice = Special Offer — `syncBookingForPayableChatInvoice` on successful invoice insert (`INQUIRY` → `AWAITING_PAYMENT`, sync `price_thb` + `pricing_snapshot.chat_invoice_quote`); iCal `SUSPICIOUS_EMPTY_FEED` skips replace when parsed 0 events but active blocks exist; E2E `tests/e2e/chat-invoice-payment-golden-path.spec.ts`. iCal prod trigger: **cron-job.org ~30 min** → `/api/cron/ical-sync` (Vercel `vercel.json` daily — fallback only).
+- **Stage 174.1.0 — i18n sweep (ADR-174):** inbox/checkout/PDP → `getUIText` (RU/EN/TH/ZH); `chatListPreview_*` keys in `chat-ui.js`; E2E golden path → `promote-booking-paid-escrow` fixture; inbox action buttons 44px touch targets.
 - **Stage 172.5.0 — Payment UI i18n + inbox deal badges (ADR-172 Wave 5 / epic closure):** `InvoiceBubble` payment-method dialog — `invoiceBubble_paymentMethod*` / `invoiceBubble_pay*` (ru/en/th/zh); `ConversationList` compact badges (`inboxBadge_invoicePending`, `inboxBadge_invoicePaid`, `inboxBadge_inquiryDates`) via `resolveConversationDealBadge` (`lib/chat/conversation-inbox-status.js`); enrich `GET /api/v2/chat/conversations?enrich=1` — `latestInvoice` + `lastMessage.metadata`. Wave 4 (`deal_context` JSONB) cancelled.
 - **Stage 172.3.0 — sessionStorage liquidation (ADR-172 Wave 3):** удалены writes `gostaylo_chat_prefill_*` / `gostaylo_chat_context_listing_*` из `hooks/useListingChat.js` (reads в репо не было). Contact-only без дат — `POST /api/v2/chat/conversations` (`sendIntro: false`), пустой тред; с датами — Wave 2 inquiry SSOT.
 - **Stage 172.2.0 — PDP contact → inquiry (ADR-172 Wave 2):** при выбранных датах на PDP кнопка «Написать» → `POST /api/v2/bookings` с `contactInquiry: true` → `createInquiryBooking` + system message в чате; dedup `findReusablePdpContactInquiry`; без дат — `POST /api/v2/chat/conversations` (contact-only). Клиент: `hooks/useListingChat.js`, `lib/booking/pdp-contact-inquiry.js`.

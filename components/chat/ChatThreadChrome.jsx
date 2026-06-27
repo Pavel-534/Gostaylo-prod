@@ -35,6 +35,7 @@
 
 import { cn } from '@/lib/utils'
 import { MessageSquare } from 'lucide-react'
+import { getUIText } from '@/lib/translations'
 
 // ─── Компонент ────────────────────────────────────────────────────────────────
 
@@ -167,12 +168,10 @@ function DefaultEmptyState({ language = 'ru' }) {
       </div>
       <div>
         <p className="text-base font-semibold text-slate-700">
-          {language === 'ru' ? 'Выберите диалог' : 'Select a conversation'}
+          {getUIText('chatInbox_selectConversation', language)}
         </p>
         <p className="text-sm text-slate-400 mt-1">
-          {language === 'ru'
-            ? 'Нажмите на любой диалог слева, чтобы открыть переписку'
-            : 'Click any conversation on the left to open the chat'}
+          {getUIText('chatInbox_selectConversationHint', language)}
         </p>
       </div>
     </div>
@@ -183,7 +182,7 @@ function DefaultSidebarEmpty({ language = 'ru' }) {
   return (
     <div className="flex-1 flex items-center justify-center p-6">
       <p className="text-sm text-slate-400">
-        {language === 'ru' ? 'Загрузка…' : 'Loading…'}
+        {getUIText('chatInbox_loading', language)}
       </p>
     </div>
   )

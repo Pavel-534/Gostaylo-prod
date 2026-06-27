@@ -12,11 +12,13 @@ import { Bookmark, BookmarkPlus, Loader2, Quote, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import {
-  deleteChatTemplate,
-  fetchChatTemplates,
-  saveChatTemplate,
-} from '@/lib/chat/chat-ui-api-client'
+import { getUIText } from '@/lib/translations'
+
+function quickReplyPick(q, lang, field) {
+  if (lang === 'en') return q[`${field}En`]
+  if (lang === 'ru') return q[`${field}Ru`]
+  return q[`${field}En`]
+}
 
 const QUICK_REPLIES = [
   {
@@ -63,7 +65,7 @@ export function QuickRepliesScrollablePanel({
   disabled,
   active = true,
 }) {
-  const isRu = language !== 'en'
+  const tx = (key) => getUIText(key, language)
 
   const [savedTemplates, setSavedTemplates] = useState([])
   const [tplLoaded, setTplLoaded] = useState(false)
@@ -98,14 +100,14 @@ export function QuickRepliesScrollablePanel({
       })
       if (ok) {
         setSavedTemplates(json.data || [])
-        toast.success(isRu ? 'Шаблон сохранён!' : 'Template saved!')
+        toast.success(tx('chatTemplateSaved'))
         setShowSaveInput(false)
         setNewTplLabel('')
       } else {
-        toast.error(json.error || 'Ошибка')
+        toast.error(json.error || tx('chatGenericError'))
       }
     } catch {
-      toast.error('Ошибка')
+      toast.error(tx('chatGenericError'))
     } finally {
       setSavingTemplate(false)
     }
@@ -129,7 +131,7 @@ export function QuickRepliesScrollablePanel({
     <div className="flex max-h-[min(50dvh,22rem)] flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] p-1">
         <SectionTitle icon={Zap} iconClass="text-amber-500">
-          {isRu ? 'Быстрые ответы' : 'Quick replies'}
+          {tx('chatQuickReplies')}
         </SectionTitle>
         <div className="flex flex-col gap-0.5 pt-1">
           {QUICK_REPLIES.map((q, i) => (
@@ -138,14 +140,16 @@ export function QuickRepliesScrollablePanel({
               type="button"
               disabled={disabled}
               className="flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl px-2 py-2.5 text-left outline-none hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand/30 disabled:pointer-events-none disabled:opacity-50"
-              onClick={() => pick(isRu ? q.textRu : q.textEn)}
+              onClick={() => pick(quickReplyPick(q, language, 'text'))}
             >
               <span className="flex w-full items-center gap-2">
                 <Quote className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                <span className="text-sm font-medium text-slate-800">{isRu ? q.shortRu : q.shortEn}</span>
+                <span className="text-sm font-medium text-slate-800">
+                  {quickReplyPick(q, language, 'short')}
+                </span>
               </span>
               <span className="line-clamp-2 pl-[1.375rem] text-xs leading-snug text-slate-500">
-                {isRu ? q.textRu : q.textEn}
+                {quickReplyPick(q, language, 'text')}
               </span>
             </button>
           ))}
@@ -155,7 +159,7 @@ export function QuickRepliesScrollablePanel({
           <>
             <div className="my-2 h-px bg-slate-100" />
             <SectionTitle icon={Bookmark} iconClass="text-brand/70">
-              {isRu ? 'Мои шаблоны' : 'My templates'}
+              {tx('chatMyTemplates')}
             </SectionTitle>
             <div className="flex flex-col gap-0.5 pt-1">
               {savedTemplates.map((tpl) => (
@@ -179,7 +183,7 @@ export function QuickRepliesScrollablePanel({
                       e.stopPropagation()
                       void deleteTemplate(tpl.id)
                     }}
-                    title={isRu ? 'Удалить' : 'Delete'}
+                    title={tx('chatTemplateDelete')}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -198,7 +202,7 @@ export function QuickRepliesScrollablePanel({
                   type="text"
                   value={newTplLabel}
                   onChange={(e) => setNewTplLabel(e.target.value)}
-                  placeholder={isRu ? 'Название шаблона…' : 'Template name…'}
+                  placeholder={tx('chatTemplateNamePlaceholder')}
                   className="mb-2 w-full rounded border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-brand/40"
                   autoFocus
                   onKeyDown={(e) => {
@@ -214,10 +218,10 @@ export function QuickRepliesScrollablePanel({
                     disabled={savingTemplate}
                     onClick={() => void saveCurrentAsTemplate()}
                   >
-                    {savingTemplate ? <Loader2 className="h-3 w-3 animate-spin" /> : isRu ? 'Сохранить' : 'Save'}
+                    {savingTemplate ? <Loader2 className="h-3 w-3 animate-spin" /> : tx('chatTemplateSave')}
                   </Button>
                   <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowSaveInput(false)}>
-                    {isRu ? 'Отмена' : 'Cancel'}
+                    {tx('chatTemplateCancel')}
                   </Button>
                 </div>
               </div>
@@ -228,7 +232,7 @@ export function QuickRepliesScrollablePanel({
                 onClick={() => setShowSaveInput(true)}
               >
                 <BookmarkPlus className="h-3.5 w-3.5 shrink-0" />
-                <span className="text-xs font-medium">{isRu ? 'Сохранить как шаблон' : 'Save as template'}</span>
+                <span className="text-xs font-medium">{tx('chatSaveTemplate')}</span>
               </button>
             )}
           </>

@@ -366,7 +366,7 @@ export function MobileBookingBar({
           {availabilityLoading && (
             <span className="flex items-center gap-1">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {language === 'ru' ? 'Места…' : 'Spots…'}
+              {tx('listingDetail_spotsLoading')}
             </span>
           )}
           {!availabilityLoading && onPrivateTripClick && (
@@ -375,7 +375,7 @@ export function MobileBookingBar({
               className="text-brand-hover font-medium underline-offset-2 hover:underline"
               onClick={onPrivateTripClick}
             >
-              {language === 'ru' ? 'Приват / цена' : 'Private / quote'}
+              {tx('listingDetail_privateTrip')}
             </button>
           )}
           {!availabilityLoading && onSpecialPriceClick && (
@@ -384,7 +384,7 @@ export function MobileBookingBar({
               className="text-slate-600 underline-offset-2 hover:underline"
               onClick={onSpecialPriceClick}
             >
-              {language === 'ru' ? 'Особая цена' : 'Special price'}
+              {tx('listingDetail_specialPrice')}
             </button>
           )}
         </div>
@@ -416,7 +416,7 @@ export function MobileBookingBar({
             >
               <MessageCircle className="h-5 w-5 sm:mr-1" />
               <span className="hidden sm:inline">
-                {language === 'ru' ? 'В чат' : 'Chat'}
+                {tx('listingDetail_openChat')}
               </span>
             </Button>
           )}
@@ -450,9 +450,7 @@ export function MobileBookingBar({
             className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base"
           >
             {exclusiveDatesUnavailable
-              ? language === 'ru'
-                ? 'Недоступно'
-                : 'Unavailable'
+              ? tx('listingDetail_unavailable')
               : tx('bookNow')}
           </Button>
         </div>

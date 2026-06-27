@@ -55,7 +55,8 @@ const productionSmokeProjects =
  * Accountant Bot: `tests/e2e/bots/accountant-math.spec.ts` — проект `accountant-bot`.
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
- * Stage 72.4 referral cashflow: `tests/e2e/stage72-referral-cashflow.spec.ts` — проект `stage72-referral-cashflow` (Supabase + E2E_FIXTURE_SECRET).
+ * Guest golden path: `tests/e2e/guest-inquiry-golden-path.spec.ts` — проект `guest-inquiry-golden-path`.
+ * Chat invoice golden path: `tests/e2e/chat-invoice-payment-golden-path.spec.ts` — проект `chat-invoice-payment-golden-path`.
  * Stage 133 referral dashboard visual: `tests/e2e/referral-dashboard-visual.spec.js` — проект `referral-dashboard-visual` (fixture + snapshots).
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
  * Stage 9 API Guard: `tests/e2e/stage9-api-guard.spec.ts` — проект `stage9-api-guard` (depends on setup).
@@ -171,6 +172,16 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH.user,
+      },
+    },
+    {
+      name: 'chat-invoice-payment-golden-path',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/chat-invoice-payment-golden-path.spec.ts',
+      timeout: 300_000,
+      use: {
+        ...devices['Desktop Chrome'],
       },
     },
     {

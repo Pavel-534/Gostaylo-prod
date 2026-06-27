@@ -103,7 +103,7 @@ async function runSync() {
 
       const result = await syncSource(supabase, listing.id, source)
 
-      if (result.status === 'success') {
+      if (result.status === 'success' || result.status === 'skipped') {
         results.synced++
       } else {
         results.errors++

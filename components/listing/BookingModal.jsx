@@ -13,9 +13,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TimeSelect } from '@/components/ui/time-select'
 import { Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, th as thLocale, zhCN } from 'date-fns/locale'
 import { formatPrice } from '@/lib/currency'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { getUIText } from '@/lib/translations'
+
+function dateFnsLocaleForLang(language) {
+  if (language === 'th') return thLocale
+  if (language === 'zh') return zhCN
+  if (language === 'en') return enUS
+  return ru
+}
+
+function modalTitleKey(modalIntent) {
+  if (modalIntent === 'private') return 'bookingModal_titlePrivate'
+  if (modalIntent === 'special') return 'bookingModal_titleSpecial'
+  return 'bookingModal_titleBook'
+}
 
 export function BookingModal({
   open,
@@ -44,6 +58,9 @@ export function BookingModal({
   setVehicleEndTime,
 }) {
   const isVehicle = isTransportListingCategory(listingCategorySlug)
+  const tx = (key) => getUIText(key, language)
+  const dateLocale = dateFnsLocaleForLang(language)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -53,32 +70,13 @@ export function BookingModal({
         }
       >
         <DialogHeader className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-2 pr-12 text-left sm:px-6 sm:pb-4 sm:pt-4 sm:pr-12">
-          <DialogTitle>
-            {modalIntent === 'book'
-              ? language === 'ru'
-                ? 'Подтвердите бронирование'
-                : 'Confirm booking'
-              : modalIntent === 'private'
-                ? language === 'ru'
-                  ? 'Запрос приватного тура'
-                  : 'Private trip request'
-                : language === 'ru'
-                  ? 'Запрос особой цены'
-                  : 'Special price request'}
-          </DialogTitle>
+          <DialogTitle>{tx(modalTitleKey(modalIntent))}</DialogTitle>
           {modalIntent !== 'book' && (
-            <p className="text-sm text-slate-500 font-normal mt-1 pr-2">
-              {language === 'ru'
-                ? 'Мы создадим чат с хозяином и запрос цены. Итоговая сумма по счёту в чате.'
-                : 'We will open a chat with the host for a custom quote. Final amount via invoice in chat.'}
-            </p>
+            <p className="text-sm text-slate-500 font-normal mt-1 pr-2">{tx('bookingModal_inquiryHint')}</p>
           )}
         </DialogHeader>
 
-        <form
-          onSubmit={onSubmit}
-          className="flex min-h-0 flex-1 flex-col"
-        >
+        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
           <div
             className={
               'min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-3 ' +
@@ -86,7 +84,7 @@ export function BookingModal({
             }
           >
             <div>
-              <Label>{language === 'ru' ? 'Имя' : 'Name'}</Label>
+              <Label>{tx('bookingModal_name')}</Label>
               <Input
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
@@ -95,7 +93,7 @@ export function BookingModal({
               />
             </div>
             <div>
-              <Label>{language === 'ru' ? 'Email' : 'Email'}</Label>
+              <Label>{tx('bookingModal_email')}</Label>
               <Input
                 type="email"
                 value={guestEmail}
@@ -105,7 +103,7 @@ export function BookingModal({
               />
             </div>
             <div>
-              <Label>{language === 'ru' ? 'Телефон' : 'Phone'}</Label>
+              <Label>{tx('bookingModal_phone')}</Label>
               <Input
                 type="tel"
                 value={guestPhone}
@@ -115,7 +113,7 @@ export function BookingModal({
               />
             </div>
             <div>
-              <Label>{language === 'ru' ? 'Особые пожелания' : 'Special Requests'}</Label>
+              <Label>{tx('bookingModal_specialRequests')}</Label>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -127,18 +125,12 @@ export function BookingModal({
             {isVehicle && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>{language === 'ru' ? 'Время начала' : 'Start time'}</Label>
-                  <TimeSelect
-                    value={vehicleStartTime}
-                    onChange={setVehicleStartTime}
-                  />
+                  <Label>{tx('bookingModal_startTime')}</Label>
+                  <TimeSelect value={vehicleStartTime} onChange={setVehicleStartTime} />
                 </div>
                 <div>
-                  <Label>{language === 'ru' ? 'Время окончания' : 'End time'}</Label>
-                  <TimeSelect
-                    value={vehicleEndTime}
-                    onChange={setVehicleEndTime}
-                  />
+                  <Label>{tx('bookingModal_endTime')}</Label>
+                  <TimeSelect value={vehicleEndTime} onChange={setVehicleEndTime} />
                 </div>
               </div>
             )}
@@ -146,20 +138,20 @@ export function BookingModal({
             {priceCalc && dateRange?.from && dateRange?.to && (
               <div className="space-y-1 rounded-lg bg-slate-50 p-4">
                 <div className="flex justify-between text-sm">
-                  <span>{language === 'ru' ? 'Даты' : 'Dates'}:</span>
+                  <span>{tx('bookingModal_dates')}:</span>
                   <span>
-                    {format(dateRange.from, 'd MMM', { locale: ru })} -{' '}
-                    {format(dateRange.to, 'd MMM', { locale: ru })}
+                    {format(dateRange.from, 'd MMM', { locale: dateLocale })} -{' '}
+                    {format(dateRange.to, 'd MMM', { locale: dateLocale })}
                   </span>
                 </div>
                 {modalIntent === 'book' ? (
                   <div className="flex justify-between text-sm font-semibold">
-                    <span>{language === 'ru' ? 'Итого' : 'Total'}:</span>
+                    <span>{tx('bookingModal_total')}:</span>
                     <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}</span>
                   </div>
                 ) : (
                   <p className="text-xs text-slate-600 pt-1">
-                    {language === 'ru' ? 'Ориентир' : 'Guide price'}:{' '}
+                    {tx('bookingModal_guidePrice')}:{' '}
                     <span className="font-semibold">
                       {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
                     </span>
@@ -185,18 +177,12 @@ export function BookingModal({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {language === 'ru' ? 'Отправка...' : 'Submitting...'}
+                  {tx('bookingModal_submitting')}
                 </>
               ) : modalIntent === 'book' ? (
-                language === 'ru' ? (
-                  'Подтвердить'
-                ) : (
-                  'Confirm booking'
-                )
-              ) : language === 'ru' ? (
-                'Отправить запрос'
+                tx('bookingModal_confirmBook')
               ) : (
-                'Send request'
+                tx('bookingModal_sendRequest')
               )}
             </Button>
           </div>

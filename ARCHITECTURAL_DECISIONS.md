@@ -258,7 +258,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 - **Календарные даты листингов (день без времени):** канонический TZ — **таймзона листинга** (приоритет: `listings.metadata.timezone` IANA → fallback по стране/региону → env default `LISTING_DATE_TZ` / `NEXT_PUBLIC_LISTING_DATE_TZ`). JS и SQL-расчёты доступности обязаны использовать один и тот же резолвер (Stage 45.2: `lib/geo/listing-timezone-ssot.js` + SQL `resolve_listing_timezone_v1`).
 - **Доступность и блокировки:** единая модель **`calendar_blocks`** + `CalendarService` (см. Golden rule §8); устаревший путь **`availability_blocks`** не использовать для записи из партнёрских API.
-- **iCal (прод, синхронизация внешних календарей → `calendar_blocks`):** единый модуль **`lib/services/ical-calendar-blocks-sync.js`** (разбор VEVENT с unfold строк, all-day и datetime, запись в **`calendar_blocks`**, логи **`ical_sync_logs`**). Его вызывают **`GET/POST /api/cron/ical-sync`** (Vercel Cron по **`vercel.json`**), **`app/api/ical/sync/route.js`**, **`app/api/v2/admin/ical/route.js`**; включение источников — **`isIcalSyncSourceEnabled`**. **Экспорт** подписного `.ics` для гостя: **`app/api/v2/listings/[id]/ical/route.js`** (`X-WR-TIMEZONE:Asia/Bangkok`). Файл **`lib/services/ical-sync.service.js`** **удалён** (был не подключён к роутам; дублировал логику).
+- **iCal (прод, синхронизация внешних календарей → `calendar_blocks`):** единый модуль **`lib/services/ical-calendar-blocks-sync.js`** (разбор VEVENT с unfold строк, all-day и datetime, запись в **`calendar_blocks`**, логи **`ical_sync_logs`**; **Stage 173.1** — `SUSPICIOUS_EMPTY_FEED` guard). Его вызывают **`GET/POST /api/cron/ical-sync`** (внешний **cron-job.org ~30 min** + Vercel Cron daily в **`vercel.json`**), **`app/api/ical/sync/route.js`**, **`app/api/v2/admin/ical/route.js`**; включение источников — **`isIcalSyncSourceEnabled`**. **Экспорт** подписного `.ics` для гостя: **`app/api/v2/listings/[id]/ical/route.js`** (`X-WR-TIMEZONE:Asia/Bangkok`). Файл **`lib/services/ical-sync.service.js`** **удалён** (был не подключён к роутам; дублировал логику).
 - **Операционные кроны** (время в комментариях к route): payouts / check-in reminder завязаны на **Bangkok** как продуктовый локальный день.
 - **Реферальная статистика (кабинет пользователя):** календарные месяц/год, sparklines и прогресс **цели месяца** по заработанным бонусам — в **IANA-таймзоне профиля** `profiles.iana_timezone`, с нормализованным fallback **`UTC`** при пустом/невалидном значении. Резолвер SSOT: **`resolveReferralStatsTimeZone`** в **`lib/referral/resolve-referral-stats-timezone.js`**. Не путать с таймзоной листинга (см. абзац о календарных датах листинга выше). Лимит регистраций по коду (**`ReferralGuardService`**, «текущий месяц») использует **тот же** календарь, что и статистика реферера (начало месяца в TZ реферера). **Админ-аналитика cohort ROI** (`ReferralPnlService.buildCohortRoiSeries`) по-прежнему бьёт когорты по **UTC**-месяцу — глобальная сопоставимость рядов; не смешивать с кабинетом пользователя.
 - **Тихая подстановка TZ на реферальной странице:** если **`iana_timezone`** пуста, клиент **`/profile/referral`** один раз (без тостов) записывает **`Intl.DateTimeFormat().resolvedOptions().timeZone`** через **`PATCH /api/v2/profile/me`**, затем перезагружает данные; серверная логика остаётся на **`resolveReferralStatsTimeZone`** после появления валидного значения в профиле.
@@ -680,3 +680,45 @@ Page content (rails, grid, map)
 4. Existing inquiry → confirm → invoice → pay smoke path **unchanged**. ✅
 5. Docs: passport `conversations` columns include `booking_id`, `listing_category`, `status_label`; manifest Stage 172.x. ✅
 6. Payment method dialog and host inbox deal badges fully i18n (ru/en/th/zh). ✅ Wave 5
+
+---
+
+## ADR-173: Stabilization Sprint — Payment FSM + iCal Safety (Stage 173.1.0)
+
+**Status:** Accepted (2026-06-27) — implements audit P0/P1 from post–ADR-172 review.
+
+### Decision
+
+1. **Chat invoice = Special Offer (Airbnb):** successful `POST /api/v2/chat/invoice` on an **`INQUIRY`** booking atomically transitions **`INQUIRY → AWAITING_PAYMENT`** and syncs **`bookings.price_thb`** + **`pricing_snapshot`** (`chat_invoice_quote`, `fee_split_v2`) to the quoted invoice amount. SSOT: **`lib/chat/sync-booking-for-chat-invoice.server.js`** (called from **`post-chat-invoice.server.js`** after `invoices` insert). Extension intent (`intent=extension`) unchanged.
+
+2. **iCal empty-feed guard:** if a valid iCal document parses to **0** future ranges but **active** `calendar_blocks` exist for that `source` URL → **skip** `replace_calendar_blocks_for_source_v1`, log **`SUSPICIOUS_EMPTY_FEED`**, **`notifySystemAlert`**. SSOT: **`lib/services/ical-calendar-blocks-sync.js`**.
+
+3. **iCal scheduling (infra):** production sync is triggered by **external cron-job.org every ~30 minutes** hitting **`GET/POST /api/cron/ical-sync`**. Vercel Cron in **`vercel.json`** remains **daily** (Hobby compatibility / fallback); **do not** rely on Vercel alone for 30-minute OTA sync.
+
+4. **E2E:** **`tests/e2e/chat-invoice-payment-golden-path.spec.ts`** — PDP contact inquiry → host invoice → guest checkout initiate → acquiring webhook → **`PAID_ESCROW`**.
+
+### Non-goals
+
+- Changing `vercel.json` cron schedule.
+- `BOOKING_PAYABLE_STATUSES` expansion without invoice gate (transition on invoice is preferred).
+
+---
+
+## ADR-174: International UI/i18n Sweep + E2E Stabilization (Stage 174.1.0)
+
+**Status:** Accepted (2026-06-27) — closes post-audit P0/P1 for inbox, checkout, PDP, and golden-path E2E.
+
+### Decision
+
+1. **Inbox i18n (P0):** remove `language !== 'en'` anti-pattern (`isRu`) from **`ConversationList.jsx`**, **`chat-inbox-role-tabs.jsx`**, **`partner-chat-composer.jsx`**, **`QuickReplies.jsx`**, **`VoiceRecorder.jsx`**. All user-facing strings → **`getUIText`** with keys in **`lib/translations/slices/chat-ui.js`** (RU/EN/TH/ZH). Remove duplicate **`STATUS_CFG`** text map; SSOT for booking status labels → **`chatBookingStatus_*`**. Add missing **`chatListPreview_*`** / **`chatInbox_*`** keys.
+
+2. **Checkout + PDP (P1):** binary ru/en strings in **`PaymentMethods.jsx`**, checkout **`page.js`** / **`useCheckoutConfirmFlow.js`**, **`BookingModal.jsx`**, mobile **`BookingWidget.jsx`** → **`lib/translations/checkout.js`** / **`listings-public.js`**.
+
+3. **Touch targets (P1):** inbox row actions (favorite, archive) → **`min-h-[44px] min-w-[44px]`** in **`ConversationList.jsx`**.
+
+4. **E2E:** **`tests/e2e/chat-invoice-payment-golden-path.spec.ts`** — hybrid isolation: real inquiry + invoice + `payment/initiate`; **`PAID_ESCROW`** via **`POST /api/v2/internal/e2e/promote-booking-paid-escrow`** (no **`YOOKASSA_WEBHOOK_SECRET`** dependency).
+
+### Non-goals
+
+- Full TH/ZH translation of canned **`QUICK_REPLIES`** body text (TH/ZH fall back to EN for preset snippets).
+- `messages/page.js` archive toasts (follow-up sweep).

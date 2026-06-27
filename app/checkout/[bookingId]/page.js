@@ -244,7 +244,7 @@ function CheckoutPageInner({ params: paramsProp }) {
           language={c.language}
           onCancelled={() => {
             p.loadPaymentStatus()
-            toast.success(c.language === 'ru' ? 'Бронирование отменено' : 'Booking cancelled')
+            toast.success(getUIText('renterCancel_toastSuccess', c.language))
           }}
         />
       </div>

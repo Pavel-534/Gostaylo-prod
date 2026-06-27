@@ -51,9 +51,9 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
           <CardTitle>{getUIText('checkout_selectMethod', c.language)}</CardTitle>
           {p.invoice?.payment_method && (
             <p className="text-xs text-slate-500">
-              {c.language === 'ru'
-                ? `Рекомендуемый способ по счёту: ${String(p.invoice.payment_method).toUpperCase()}`
-                : `Invoice-preferred method: ${String(p.invoice.payment_method).toUpperCase()}`}
+              {c.interpolateTemplate(getUIText('checkout_invoicePreferredMethod', c.language), {
+                method: String(p.invoice.payment_method).toUpperCase(),
+              })}
             </p>
           )}
         </CardHeader>

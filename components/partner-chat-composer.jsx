@@ -45,7 +45,7 @@ export function PartnerChatComposer({
   invoiceDialogOpen,
   onInvoiceDialogOpenChange,
 }) {
-  const isRu = language !== 'en'
+  const tx = (key) => getUIText(key, language)
   const [passportLoading, setPassportLoading] = useState(false)
   const [voiceActive, setVoiceActive] = useState(false)
   const [attachBusy, setAttachBusy] = useState(false)
@@ -64,13 +64,13 @@ export function PartnerChatComposer({
     setPassportLoading(true)
     try {
       await onSendPassportRequest()
-      toast.success(isRu ? 'Запрос отправлен' : 'Request sent')
+      toast.success(tx('chatComposer_passportRequestSent'))
     } catch (e) {
-      toast.error(e?.message || (isRu ? 'Не удалось отправить' : 'Failed to send'))
+      toast.error(e?.message || tx('chatComposer_passportRequestFailed'))
     } finally {
       setPassportLoading(false)
     }
-  }, [onSendPassportRequest, isRu])
+  }, [onSendPassportRequest, language])
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -92,7 +92,7 @@ export function PartnerChatComposer({
           variant="outline"
           size="icon"
           className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
-          aria-label={isRu ? 'Вложения и действия' : 'Attachments & actions'}
+          aria-label={tx('chatComposer_attachmentsAria')}
           disabled={disabled}
         >
           <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -112,7 +112,7 @@ export function PartnerChatComposer({
             ) : (
               <Paperclip className="h-4 w-4 text-slate-600" />
             )}
-            {isRu ? 'Фото или файл' : 'Photo or file'}
+            {tx('chatComposer_photoOrFile')}
           </DropdownMenuItem>
         ) : null}
 
@@ -125,7 +125,7 @@ export function PartnerChatComposer({
             }}
           >
             <Receipt className="h-4 w-4 text-amber-600" />
-            {isRu ? 'Выставить счёт' : 'Send invoice'}
+            {tx('chatComposer_sendInvoice')}
           </DropdownMenuItem>
         ) : null}
 
@@ -143,7 +143,7 @@ export function PartnerChatComposer({
             ) : (
               <IdCard className="h-4 w-4 text-brand" />
             )}
-            {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
+            {tx('chatComposer_requestPassport')}
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
@@ -160,7 +160,7 @@ export function PartnerChatComposer({
         size="icon"
         className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
         disabled={disabled || attachBusy}
-        aria-label={isRu ? 'Прикрепить файл' : 'Attach file'}
+        aria-label={tx('chatComposer_attachFile')}
         onClick={() => fileRef.current?.click()}
       >
         {attachBusy ? <Loader2 className="h-5 w-5 animate-spin sm:h-6 sm:w-6" /> : <Paperclip className="h-5 w-5 sm:h-6 sm:w-6" />}
@@ -198,9 +198,9 @@ export function PartnerChatComposer({
                     variant="outline"
                     size="icon"
                     className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:h-11 sm:w-11"
-                    aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
+                    aria-label={tx('chatQuickReplies')}
                     disabled={disabled}
-                    title={isRu ? 'Быстрые ответы' : 'Quick replies'}
+                    title={tx('chatQuickReplies')}
                   >
                     <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
