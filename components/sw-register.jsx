@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
 import { SW_MESSAGE_SKIP_WAITING } from '@/lib/pwa/service-worker-messages.js'
+import { shouldShowSwUpdatePrompt } from '@/lib/pwa/client-display-channel.js'
 import { PwaSwUpdateToast } from '@/components/pwa/PwaSwUpdateToast'
 
 const SW_UPDATE_TOAST_ID = 'airento-sw-update'
@@ -37,6 +38,12 @@ export function SwRegister() {
 
     const showUpdateToast = (/** @type {ServiceWorker} */ waitingWorker) => {
       if (disposed || updateToastShownRef.current) return
+
+      if (!shouldShowSwUpdatePrompt()) {
+        // Desktop browser: refresh cache silently; new SW activates on next full navigation.
+        return
+      }
+
       updateToastShownRef.current = true
 
       const lang = languageRef.current

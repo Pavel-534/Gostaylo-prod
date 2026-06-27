@@ -115,9 +115,11 @@ Carousel.displayName = "Carousel"
 
 const CarouselContent = React.forwardRef(({ className, ...props }, ref) => {
   const { carouselRef, orientation } = useCarousel()
+  const contentFullHeight =
+    typeof className === 'string' && /\bh-full\b/.test(className)
 
   return (
-    <div ref={carouselRef} className="overflow-hidden">
+    <div ref={carouselRef} className={cn('overflow-hidden', contentFullHeight && 'h-full')}>
       <div
         ref={ref}
         className={cn(
