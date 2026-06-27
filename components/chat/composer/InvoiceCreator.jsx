@@ -20,7 +20,14 @@
 import { useState } from 'react'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
 
-export function InvoiceCreator({ booking, listing, onSend, open: openProp, onOpenChange: onOpenChangeProp }) {
+export function InvoiceCreator({
+  booking,
+  listing,
+  language = 'ru',
+  onSend,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}) {
   const [openInternal, setOpenInternal] = useState(false)
   const open = openProp !== undefined ? openProp : openInternal
   const setOpen = onOpenChangeProp ?? setOpenInternal
@@ -31,10 +38,8 @@ export function InvoiceCreator({ booking, listing, onSend, open: openProp, onOpe
       onOpenChange={setOpen}
       booking={booking}
       listing={listing}
-      onSend={async (data) => {
-        await onSend?.(data)
-        setOpen(false)
-      }}
+      language={language}
+      onSend={onSend}
     />
   )
 }

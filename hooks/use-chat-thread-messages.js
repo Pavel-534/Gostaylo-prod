@@ -437,11 +437,13 @@ export function useChatThreadMessages({
         return await postChatInvoice({
           conversationId,
           ...invoiceData,
-          bookingId: invoiceData?.bookingId ?? booking?.id,
-          listingId: invoiceData?.listingId ?? listing?.id,
-          listingTitle: invoiceData?.listingTitle ?? listing?.title,
-          checkIn: invoiceData?.checkIn ?? booking?.check_in,
-          checkOut: invoiceData?.checkOut ?? booking?.check_out,
+          bookingId: invoiceData?.bookingId ?? invoiceData?.booking_id ?? booking?.id,
+          listingId: invoiceData?.listingId ?? invoiceData?.listing_id ?? listing?.id,
+          listingTitle: invoiceData?.listingTitle ?? invoiceData?.listing_title ?? listing?.title,
+          checkIn: invoiceData?.checkIn ?? invoiceData?.check_in ?? booking?.check_in,
+          checkOut: invoiceData?.checkOut ?? invoiceData?.check_out ?? booking?.check_out,
+          check_in: invoiceData?.check_in ?? invoiceData?.checkIn ?? booking?.check_in,
+          check_out: invoiceData?.check_out ?? invoiceData?.checkOut ?? booking?.check_out,
         })
       } catch {
         return { ok: false, data: null, error: 'Network error' }

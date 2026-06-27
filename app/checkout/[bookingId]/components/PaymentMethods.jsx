@@ -12,25 +12,43 @@ import { getUIText } from '@/lib/translations'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 import { QRCodeSVG } from 'qrcode.react'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
+import { cn } from '@/lib/utils'
+import { RU_PAYMENT_METHODS, INTL_PAYMENT_METHODS } from '@/lib/payment/checkout-method-groups.js'
+
+function PaymentMethodOptionRow({ opt }) {
+  const Icon = opt.icon
+  return (
+    <div className="flex items-center space-x-3 rounded-lg border border-slate-200/80 bg-white p-3 transition-colors hover:bg-slate-50 cursor-pointer">
+      <RadioGroupItem value={opt.value} id={opt.id} />
+      <Label htmlFor={opt.id} className="flex flex-1 cursor-pointer items-center gap-3">
+        <Icon className={cn('h-5 w-5 shrink-0', opt.iconClassName)} />
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900">{opt.title}</p>
+          <p className="text-sm text-slate-500 leading-snug">{opt.description}</p>
+        </div>
+      </Label>
+    </div>
+  )
+}
 
 /**
  * @param {object} p — useCheckoutPayment
  * @param {object} c — useCheckoutPricing
- * @param {Array} paymentMethodOptions — built in page (icons + i18n labels)
+ * @param {Array} paymentMethodOptions — filtered by server allowedMethods only (page.js)
  */
 export function PaymentMethods({ p, c, paymentMethodOptions }) {
+  const ruOptions = paymentMethodOptions.filter((opt) => RU_PAYMENT_METHODS.has(opt.value))
+  const intlOptions = paymentMethodOptions.filter((opt) => INTL_PAYMENT_METHODS.has(opt.value))
+
   return (
     <div className="md:col-span-2 space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader
+          data-testid={
+            p.paymentIntent?.id ? `checkout-payment-intent-${p.paymentIntent.id}` : undefined
+          }
+        >
           <CardTitle>{getUIText('checkout_selectMethod', c.language)}</CardTitle>
-          {p.paymentIntent?.id && (
-            <p className="text-xs text-slate-500">
-              {c.language === 'ru'
-                ? `Методы из Payment Intent ${p.paymentIntent.id}`
-                : `Methods from Payment Intent ${p.paymentIntent.id}`}
-            </p>
-          )}
           {p.invoice?.payment_method && (
             <p className="text-xs text-slate-500">
               {c.language === 'ru'
@@ -39,26 +57,44 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
             </p>
           )}
         </CardHeader>
-        <CardContent>
-          <RadioGroup value={p.paymentMethod} onValueChange={p.setPaymentMethod}>
-            {paymentMethodOptions.map((opt) => {
-              const Icon = opt.icon
-              return (
-                <div
-                  key={opt.value}
-                  className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer"
-                >
-                  <RadioGroupItem value={opt.value} id={opt.id} />
-                  <Label htmlFor={opt.id} className="flex items-center gap-3 cursor-pointer flex-1">
-                    <Icon className={`h-5 w-5 ${opt.iconClassName}`} />
-                    <div>
-                      <p className="font-semibold">{opt.title}</p>
-                      <p className="text-sm text-slate-500">{opt.description}</p>
-                    </div>
-                  </Label>
+        <CardContent className="space-y-4">
+          <RadioGroup value={p.paymentMethod} onValueChange={p.setPaymentMethod} className="space-y-4">
+            {ruOptions.length > 0 ? (
+              <section
+                className="rounded-2xl border border-sky-200/90 bg-gradient-to-br from-sky-50/90 to-white p-4 space-y-3"
+                data-testid="checkout-payment-group-ru"
+              >
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold tracking-tight text-slate-900">
+                    {getUIText('checkout_paymentGroupRuTitle', c.language)}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-slate-600">
+                    {getUIText('checkout_paymentGroupRuHint', c.language)}
+                  </p>
                 </div>
-              )
-            })}
+                <div className="space-y-2">
+                  {ruOptions.map((opt) => (
+                    <PaymentMethodOptionRow key={opt.value} opt={opt} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {intlOptions.length > 0 ? (
+              <section
+                className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3"
+                data-testid="checkout-payment-group-intl"
+              >
+                <h3 className="text-sm font-semibold tracking-tight text-slate-900">
+                  {getUIText('checkout_paymentGroupIntlTitle', c.language)}
+                </h3>
+                <div className="space-y-2">
+                  {intlOptions.map((opt) => (
+                    <PaymentMethodOptionRow key={opt.value} opt={opt} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </RadioGroup>
         </CardContent>
       </Card>

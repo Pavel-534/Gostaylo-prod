@@ -1,6 +1,6 @@
 /**
- * GalleryModal Component
- * Full-screen image gallery with navigation
+ * GalleryModal — full-screen image gallery with navigation.
+ * Lightbox URLs + sizes from `lib/media/image-delivery.js` (Stage 171.21).
  */
 
 'use client'
@@ -9,6 +9,10 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import { resolvePdpImageSizes } from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 export function GalleryModal({
   open,
@@ -16,16 +20,21 @@ export function GalleryModal({
   images,
   currentIndex,
   onIndexChange,
-  listingTitle
+  listingTitle,
+  blurDataURL = LISTING_CARD_BLUR_DATA_URL,
 }) {
+  const networkQuality = useNetworkQuality()
+  const lightboxSizes = resolvePdpImageSizes('lightbox', networkQuality)
+  const currentSrc = images[currentIndex]
+
   const handlePrev = () => {
     onIndexChange((currentIndex - 1 + images.length) % images.length)
   }
-  
+
   const handleNext = () => {
     onIndexChange((currentIndex + 1) % images.length)
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -55,17 +64,23 @@ export function GalleryModal({
               <X className="h-5 w-5" />
             </Button>
           </DialogClose>
-          
+
           <div className="relative w-full h-full flex items-center justify-center">
-            <Image
-              src={images[currentIndex]}
-              alt={`${listingTitle} ${currentIndex + 1}`}
-              fill
-              className="object-contain"
-              sizes="100vw"
-            />
+            {currentSrc ? (
+              <Image
+                key={currentSrc}
+                src={currentSrc}
+                alt={`${listingTitle} ${currentIndex + 1}`}
+                fill
+                className="object-contain"
+                sizes={lightboxSizes}
+                placeholder="blur"
+                blurDataURL={blurDataURL}
+                unoptimized={isRemoteHttpImageSrc(currentSrc)}
+              />
+            ) : null}
           </div>
-          
+
           {images.length > 1 && (
             <>
               <Button
@@ -88,7 +103,7 @@ export function GalleryModal({
               </Button>
             </>
           )}
-          
+
           <div
             className="absolute left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1.5 text-sm text-white"
             style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}

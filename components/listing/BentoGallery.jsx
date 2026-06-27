@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * BentoGallery - Airbnb-style image grid (desktop) + swipe carousel (mobile).
+ * BentoGallery — Airbnb-style image grid (desktop) + swipe carousel (mobile).
+ * Image delivery SSOT: `lib/media/image-delivery.js` (Stage 171.21).
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -9,24 +10,50 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
 import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
-import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import {
+  resolvePdpHeroImagePriority,
+  resolvePdpImageSizes,
+  shouldMountPdpBentoSecondary,
+  shouldMountPdpCarouselSlide,
+} from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
+import { listingHeroTransitionStyle } from '@/lib/navigation/listing-hero-transition'
 import { getUIText } from '@/lib/translations'
+import {
+  PDP_HERO_DESKTOP_CLASS,
+  PDP_HERO_MOBILE_CLASS,
+  PDP_HERO_SECTION_MB,
+} from '@/lib/listing/pdp-hero-layout'
 
-export function BentoGallery({ images, title, language = 'en', onImageClick }) {
-  const displayUrls = useMemo(
-    () => (images || []).map((u) => resolveImageThumbDisplayUrl(u) || u).filter(Boolean),
-    [images],
-  )
+const MOBILE_GALLERY_CLASS = PDP_HERO_MOBILE_CLASS
+
+export function BentoGallery({
+  images,
+  title,
+  language = 'en',
+  onImageClick,
+  blurDataURL = LISTING_CARD_BLUR_DATA_URL,
+  /** Stage 171.22 — shared element morph from catalog card. */
+  listingId = null,
+}) {
+  const networkQuality = useNetworkQuality()
+  const heroTransitionStyle = listingHeroTransitionStyle(listingId)
+  const displayUrls = useMemo(() => (images || []).filter(Boolean), [images])
   const [carouselApi, setCarouselApi] = useState(null)
   const [carouselIndex, setCarouselIndex] = useState(0)
+
+  const carouselSizes = resolvePdpImageSizes('carousel', networkQuality)
+  const bentoLeadSizes = resolvePdpImageSizes('bento-lead', networkQuality)
+  const bentoSecondarySizes = resolvePdpImageSizes('bento-secondary', networkQuality)
+  const showBentoSecondary = shouldMountPdpBentoSecondary(networkQuality)
 
   const openAt = useCallback(
     (index) => {
       const i = Math.max(0, Math.min(index, (displayUrls?.length || 1) - 1))
       onImageClick?.(i)
     },
-    [displayUrls?.length, onImageClick]
+    [displayUrls?.length, onImageClick],
   )
 
   useEffect(() => {
@@ -46,10 +73,10 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
   return (
     <>
       {/* Mobile: swipeable gallery */}
-      <div className="md:hidden relative mb-12 rounded-2xl overflow-hidden h-[50vh] min-h-[280px] max-h-[520px]">
+      <div className={`md:hidden relative ${PDP_HERO_SECTION_MB} rounded-2xl overflow-hidden ${MOBILE_GALLERY_CLASS}`}>
         <Carousel
           setApi={setCarouselApi}
-          opts={{ align: 'start', loop: displayUrls.length > 1 }}
+          opts={{ align: 'start', loop: displayUrls.length > 1 && !networkQuality.constrained }}
           className="h-full w-full"
         >
           <CarouselContent className="-ml-0 h-full">
@@ -57,20 +84,27 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
               <CarouselItem key={idx} className="pl-0 basis-full h-full">
                 <button
                   type="button"
-                  className="relative block w-full h-[50vh] min-h-[280px] max-h-[520px] bg-slate-100"
+                  className={`relative block w-full ${MOBILE_GALLERY_CLASS} bg-slate-100`}
                   onClick={() => openAt(idx)}
                 >
-                  <Image
-                    src={src}
-                    alt={idx === 0 ? title : `${title} ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="100vw"
-                    priority={idx === 0}
-                    placeholder="blur"
-                    blurDataURL={LISTING_CARD_BLUR_DATA_URL}
-                    unoptimized={isRemoteHttpImageSrc(src)}
-                  />
+                  {shouldMountPdpCarouselSlide(idx, carouselIndex, networkQuality) ? (
+                    <div
+                      className="absolute inset-0"
+                      style={idx === 0 ? heroTransitionStyle : undefined}
+                    >
+                      <Image
+                        src={src}
+                        alt={idx === 0 ? title : `${title} ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes={carouselSizes}
+                        priority={resolvePdpHeroImagePriority({ index: idx }, networkQuality)}
+                        placeholder="blur"
+                        blurDataURL={blurDataURL}
+                        unoptimized={isRemoteHttpImageSrc(src)}
+                      />
+                    </div>
+                  ) : null}
                 </button>
               </CarouselItem>
             ))}
@@ -97,7 +131,7 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
 
       {/* Desktop: bento grid */}
       <div
-        className="hidden md:grid grid-cols-4 gap-2 h-[50vh] min-h-[400px] max-h-[600px] rounded-2xl overflow-hidden mb-12 cursor-pointer"
+        className={`hidden md:grid grid-cols-4 gap-2 ${PDP_HERO_DESKTOP_CLASS} rounded-2xl overflow-hidden ${PDP_HERO_SECTION_MB} cursor-pointer`}
         onClick={() => openAt(0)}
         role="button"
         tabIndex={0}
@@ -109,42 +143,54 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
         }}
       >
         {displayUrls[0] && (
-          <div className="group relative overflow-hidden bg-slate-100 md:col-span-2 md:row-span-2">
+          <div
+            className={`group relative overflow-hidden bg-slate-100 md:col-span-2 md:row-span-2 ${
+              showBentoSecondary ? '' : 'md:col-span-4'
+            }`}
+            style={heroTransitionStyle}
+          >
             <Image
               src={displayUrls[0]}
               alt={title}
               fill
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-              sizes="50vw"
-              priority
+              sizes={bentoLeadSizes}
+              priority={resolvePdpHeroImagePriority({ index: 0 }, networkQuality)}
               placeholder="blur"
-              blurDataURL={LISTING_CARD_BLUR_DATA_URL}
+              blurDataURL={blurDataURL}
               unoptimized={isRemoteHttpImageSrc(displayUrls[0])}
             />
+            {!showBentoSecondary && displayUrls.length > 1 ? (
+              <div className="absolute bottom-3 right-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white">
+                +{displayUrls.length - 1} {getUIText('listingGallery_morePhotos', language)}
+              </div>
+            ) : null}
           </div>
         )}
 
-        {displayUrls.slice(1, 5).map((img, idx) => (
-          <div key={idx} className="group relative overflow-hidden bg-slate-100">
-            <Image
-              src={img}
-              alt={`${title} ${idx + 2}`}
-              fill
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-              sizes="25vw"
-              placeholder="blur"
-              blurDataURL={LISTING_CARD_BLUR_DATA_URL}
-              unoptimized={isRemoteHttpImageSrc(img)}
-            />
-            {idx === 3 && displayUrls.length > 5 && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <Button variant="secondary" size="sm" type="button">
-                  +{displayUrls.length - 5} {getUIText('listingGallery_morePhotos', language)}
-                </Button>
+        {showBentoSecondary
+          ? displayUrls.slice(1, 5).map((img, idx) => (
+              <div key={idx} className="group relative overflow-hidden bg-slate-100">
+                <Image
+                  src={img}
+                  alt={`${title} ${idx + 2}`}
+                  fill
+                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                  sizes={bentoSecondarySizes}
+                  placeholder="blur"
+                  blurDataURL={blurDataURL}
+                  unoptimized={isRemoteHttpImageSrc(img)}
+                />
+                {idx === 3 && displayUrls.length > 5 && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Button variant="secondary" size="sm" type="button">
+                      +{displayUrls.length - 5} {getUIText('listingGallery_morePhotos', language)}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            ))
+          : null}
       </div>
     </>
   )

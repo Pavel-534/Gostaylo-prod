@@ -241,6 +241,21 @@ code {
   top: calc(var(--app-header-height, 64px) + 8px) !important;
 }
 
+/* Catalog → PDP hero morph (Stage 171.22) */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(*) {
+    animation-duration: 0.42s;
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    height: 100%;
+    object-fit: cover;
+    mix-blend-mode: normal;
+  }
+}
+
 /* Stage 115.0 / 129.0 — Product UI cohesion (SSOT: lib/theme/tokens.cjs, product-ui.js) */
 @layer components {
   .gsl-page {

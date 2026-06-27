@@ -18,14 +18,8 @@ import { fetchExchangeRates } from '@/lib/client-data'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 import { cancelChatInvoice } from '@/lib/chat/post-chat-invoice'
 import { getUIText } from '@/lib/translations'
+import { resolveInvoiceStatusPresentation } from '@/components/chat-invoice'
 import { isBookingPaid } from '@/lib/mask-contacts'
-
-const STATUS_LABEL = {
-  PENDING: { en: 'Pending', ru: 'Ожидает оплаты' },
-  PAID: { en: 'Paid', ru: 'Оплачен' },
-  EXPIRED: { en: 'Expired', ru: 'Истёк' },
-  CANCELLED: { en: 'Cancelled', ru: 'Отменён' },
-}
 
 const PAID_BOOKING_STATUSES = new Set([
   'PAID',
@@ -62,7 +56,7 @@ export function InvoiceBubble({
   const [navigating, setNavigating] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [rateMap, setRateMap] = useState({ THB: 1 })
-  const isEn = language === 'en'
+  const tx = (key, extras) => getUIText(key, language, extras)
 
   useEffect(() => {
     fetchExchangeRates({ retail: true }).then((m) => {
@@ -89,7 +83,7 @@ export function InvoiceBubble({
   const rawStatus = bookingPaid
     ? 'PAID'
     : String(invoice.status || 'PENDING').toUpperCase()
-  const statusInfo = STATUS_LABEL[rawStatus] || STATUS_LABEL.PENDING
+  const statusInfo = resolveInvoiceStatusPresentation(rawStatus, language)
   const isPaid = rawStatus === 'PAID'
   const canPay =
     showPay &&
@@ -118,13 +112,13 @@ export function InvoiceBubble({
     try {
       const { ok, error } = await cancelChatInvoice(messageId)
       if (!ok) {
-        toast.error(error || (isEn ? 'Could not cancel invoice' : 'Не удалось отменить счёт'))
+        toast.error(error || tx('invoiceBubble_cancelFailed'))
         return
       }
-      toast.success(isEn ? 'Invoice cancelled' : 'Счёт отменён')
+      toast.success(tx('invoiceBubble_cancelSuccess'))
       onInvoiceCancelled?.()
     } catch {
-      toast.error(isEn ? 'Network error' : 'Ошибка сети')
+      toast.error(tx('listingDetail_networkError'))
     } finally {
       setCancelling(false)
     }
@@ -148,7 +142,7 @@ export function InvoiceBubble({
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                {isEn ? 'Invoice' : 'Счёт'}
+                {tx('invoiceBubble_title')}
               </p>
               <p className="truncate font-mono text-xs font-semibold text-slate-800">
                 #{String(invoice.id || messageId || '').slice(-8)}
@@ -160,15 +154,15 @@ export function InvoiceBubble({
               'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase',
               isPaid ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-950'
             )}
-            title={statusInfo.ru}
+            title={statusInfo.label}
           >
-            {isEn ? statusInfo.en : statusInfo.ru}
+            {statusInfo.label}
           </span>
         </div>
 
         <div className="mb-3 rounded-xl bg-slate-50 px-3 py-3">
           <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-            {isEn ? 'Amount' : 'Сумма'}
+            {tx('invoiceBubble_amountLabel')}
           </p>
           <p className="text-2xl font-bold tabular-nums text-slate-900">
             {presentation?.primary?.label ?? `${Number(invoice.amount ?? 0).toLocaleString()}`}
@@ -203,7 +197,7 @@ export function InvoiceBubble({
             {navigating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <>Оплатить</>
+              <>{tx('invoiceBubble_payButton')}</>
             )}
           </Button>
         )}
@@ -217,7 +211,7 @@ export function InvoiceBubble({
         {isOwn && rawStatus === 'PENDING' && !bookingPaid ? (
           <div className="flex flex-col gap-2">
             <p className="text-center text-xs font-medium text-slate-600">
-              {isEn ? 'Awaiting payment' : 'Ожидаем оплату'}
+              {tx('invoiceBubble_awaitingPayment')}
             </p>
             {messageId ? (
               <Button
@@ -227,7 +221,7 @@ export function InvoiceBubble({
                 disabled={cancelling}
                 onClick={cancelInvoice}
               >
-                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : isEn ? 'Cancel invoice' : 'Отменить счёт'}
+                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : tx('invoiceBubble_cancelButton')}
               </Button>
             ) : null}
           </div>
@@ -243,10 +237,8 @@ export function InvoiceBubble({
       <Dialog open={methodOpen} onOpenChange={setMethodOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Способ оплаты</DialogTitle>
-            <DialogDescription>
-              Выберите, как удобнее оплатить счёт. Вы останетесь в потоке чата после перехода.
-            </DialogDescription>
+            <DialogTitle>{tx('invoiceBubble_paymentMethodTitle')}</DialogTitle>
+            <DialogDescription>{tx('invoiceBubble_paymentMethodDescription')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 pt-2">
             <Button
@@ -260,8 +252,8 @@ export function InvoiceBubble({
             >
               <Wallet className="h-5 w-5 text-amber-600" />
               <span className="text-left">
-                <span className="block font-medium">Криптовалюта</span>
-                <span className="text-xs text-slate-500">USDT (TRC-20) и др.</span>
+                <span className="block font-medium">{tx('invoiceBubble_payCrypto')}</span>
+                <span className="text-xs text-slate-500">{tx('invoiceBubble_payCryptoHint')}</span>
               </span>
             </Button>
             <Button
@@ -275,8 +267,8 @@ export function InvoiceBubble({
             >
               <CreditCard className="h-5 w-5 text-brand" />
               <span className="text-left">
-                <span className="block font-medium">Банковская карта</span>
-                <span className="text-xs text-slate-500">Visa, Mastercard, МИР</span>
+                <span className="block font-medium">{tx('invoiceBubble_payCard')}</span>
+                <span className="text-xs text-slate-500">{tx('invoiceBubble_payCardHint')}</span>
               </span>
             </Button>
             <Button
@@ -290,8 +282,8 @@ export function InvoiceBubble({
             >
               <CreditCard className="h-5 w-5 text-blue-600" />
               <span className="text-left">
-                <span className="block font-medium">Карта МИР</span>
-                <span className="text-xs text-slate-500">Банки РФ</span>
+                <span className="block font-medium">{tx('invoiceBubble_payMir')}</span>
+                <span className="text-xs text-slate-500">{tx('invoiceBubble_payMirHint')}</span>
               </span>
             </Button>
           </div>

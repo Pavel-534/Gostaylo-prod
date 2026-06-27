@@ -227,10 +227,25 @@ function ListingSidebarComponent({
               className="flex h-full flex-col animate-in fade-in slide-in-from-bottom-4 duration-300"
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
               onMouseEnter={() => {
-                onListingPointerEnter?.(listing.id)
+                onListingPointerEnter?.(listing.id, { intent: 'hover' })
                 onListingCardSelect?.(listing.id)
               }}
               onMouseLeave={() => onListingPointerLeave?.(listing.id)}
+              onPointerDown={(e) => {
+                if (e.pointerType === 'touch') {
+                  onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
+                }
+              }}
+              onTouchStart={() => {
+                onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
+              }}
+              onPointerUp={(e) => {
+                if (e.pointerType === 'touch') {
+                  onListingPointerLeave?.(listing.id)
+                }
+              }}
+              onTouchEnd={() => onListingPointerLeave?.(listing.id)}
+              onTouchCancel={() => onListingPointerLeave?.(listing.id)}
               onClick={() => onListingCardSelect?.(listing.id)}
               role="presentation"
             >

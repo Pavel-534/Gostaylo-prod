@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.171.20 | **Last Updated**: 2026-06-22 | **Stage 171.20:** SW template gitignore + image-delivery SSOT + network-aware catalog. |
+> **Version**: 12.172.5.0 | **Last Updated**: 2026-06-22 | **Stage 172.5.0:** payment dialog i18n + inbox deal badges; ADR-172 epic closed. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -203,7 +203,9 @@
 | **Discovery analytics (169.0)** | `lib/analytics/recommendation-rail-analytics.js`; events `recommendation_impression`, `recommendation_click`, `catalog_sort_change` via `product-analytics.js` | Ad-hoc `trackProductEvent` в rail-компонентах |
 | **PWA install (169.4)** | Smart prompt mobile only: **`PwaInstallPrompt`**, **`hooks/use-pwa-install.js`**, **`lib/pwa/`**; events `pwa_prompt_*`; manifest **`app/manifest.js`** | Desktop prompt; first-visit nag |
 | **Service Worker (171.13 → 171.20)** | SSOT template **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (**.gitignore**); **`prebuild`** `bump-sw-cache.mjs` + **`postbuild`** `generate-sw-precache.mjs`; push module + SWR; **`sw-register.jsx`** update toast | Коммитить **`public/sw.js`** |
-| **Media delivery (171.20)** | Guest catalog images: **`lib/media/image-delivery.js`** (URLs + `sizes` + LCP); **`hooks/use-network-quality.js`** (save-data / 2g–3g); upload SSOT **`media-profiles.js`** | Дубли `sizes` в карточках |
+| **Media delivery (171.20 → 171.21)** | Guest images: **`lib/media/image-delivery.js`** — catalog cards + **PDP hero/lightbox** (`getPdpHeroImageUrls`, `getPdpLightboxImageUrls`, connection-aware carousel/bento); **`hooks/use-network-quality.js`** | Дубли `sizes`/URL в карточках и `BentoGallery` |
+| **PDP navigation (171.21 → 171.23)** | **`loading.js`** shell; RQ sync init; touch prefetch + **`hero-image-warmup.js`**; View Transitions; **`pdp-hero-layout.js`** CLS; **`ListingGalleryEmptyFallback`**; map viewport gate; **`useListingPublicCalendarQuery`** + **`useListingAvailabilityQuery`**; **`ListingPdpDetailsColumn`** memo | Hover-only prefetch; map eager load; calendar fetch in component state |
+| **PWA SW update (171.22)** | **`PwaSwUpdateToast`** branded UI; `SKIP_WAITING` + **`location.reload()`** (controllerchange + 2.5s fallback) | Dismiss toast before reload |
 | **Guest personalization (169.5)** | Cookie **`guest_viewed_listings`** → For You `guest_personalized` + similar category boost; merge on login | Fingerprinting; oversized cookies |
 | **Не путать** | Партнёрская база, ledger, payout FX, FinTech-пульт — отдельные домены; на FinTech-пульте для владельца — подсказка «суммы для гостя (с сервисным сбором)» где применимо. | ADR / **`docs/FINANCIAL_FLOW_MAP.md`** |
 
@@ -1030,6 +1032,13 @@
 - **DB hard guard against race condition:** миграция **`037_vehicle_booking_overlap_guard.sql`** добавляет trigger-level блокировку overlapping insert/update для `vehicles` (`VEHICLE_INTERVAL_CONFLICT`), что закрывает двойное бронирование при одновременных кликах.
 - **Chat confirmed copy split by role:** в milestone `booking_confirmed` для партнёра показывается отдельный CTA-текст про выставление счёта, для гостя остаётся текст про оплату счёта.
 - **Invoice consistency layer:** чат-обогащение бесед включает `bookings.price_thb/currency/guests_count` (префилл счёта из заказа), `GET /api/v2/chat/invoice?id=` поддерживает адресный доступ к одному счёту с проверкой участника, checkout при `invoiceId` подтягивает invoice-метаданные и выставляет предпочтительный метод оплаты.
+- **Stage 172.5.0 — Payment UI i18n + inbox deal badges (ADR-172 Wave 5 / epic closure):** `InvoiceBubble` payment-method dialog — `invoiceBubble_paymentMethod*` / `invoiceBubble_pay*` (ru/en/th/zh); `ConversationList` compact badges (`inboxBadge_invoicePending`, `inboxBadge_invoicePaid`, `inboxBadge_inquiryDates`) via `resolveConversationDealBadge` (`lib/chat/conversation-inbox-status.js`); enrich `GET /api/v2/chat/conversations?enrich=1` — `latestInvoice` + `lastMessage.metadata`. Wave 4 (`deal_context` JSONB) cancelled.
+- **Stage 172.3.0 — sessionStorage liquidation (ADR-172 Wave 3):** удалены writes `gostaylo_chat_prefill_*` / `gostaylo_chat_context_listing_*` из `hooks/useListingChat.js` (reads в репо не было). Contact-only без дат — `POST /api/v2/chat/conversations` (`sendIntro: false`), пустой тред; с датами — Wave 2 inquiry SSOT.
+- **Stage 172.2.0 — PDP contact → inquiry (ADR-172 Wave 2):** при выбранных датах на PDP кнопка «Написать» → `POST /api/v2/bookings` с `contactInquiry: true` → `createInquiryBooking` + system message в чате; dedup `findReusablePdpContactInquiry`; без дат — `POST /api/v2/chat/conversations` (contact-only). Клиент: `hooks/useListingChat.js`, `lib/booking/pdp-contact-inquiry.js`.
+- **Stage 172.1.6 — Invoice i18n polish + date validation (ADR-172 Wave 1.6):** `resolveInvoiceStatusPresentation` — статусы `invoiceStatus_*` (ru/en/th/zh) в `InvoiceCard` и `InvoiceBubble`; остальные строки карточки — `invoiceCard_*` / `invoiceBubble_*`; `SendInvoiceDialog` блокирует send при `check_out <= check_in` + `chatInvoice_stayDatesInvalid`. Файлы: `components/chat-invoice.jsx`, `components/invoice-bubble.jsx`, `lib/translations/slices/chat-ui.js`.
+- **Stage 172.1.5 — SendInvoiceDialog UI/i18n (ADR-172 Wave 1.5):** без `booking` в треде — обязательный выбор `check_in`/`check_out` (`PlatformCalendar` при `listing.id`, иначе native date); с бронью — даты read-only; payload в `POST /api/v2/chat/invoice` — camelCase + snake_case; ошибка **400** `INVOICE_BOOKING_REQUIRED` → toast `chatInvoice_bookingRequired`. Файлы: `components/chat-invoice.jsx`, `useUnifiedMessagesOutbound.js`, `lib/translations/slices/chat-ui.js`.
+- **Stage 172.1 — Chat invoice booking gate (ADR-172 Wave 1):** `POST /api/v2/chat/invoice` — `booking_id` обязателен для новых счетов (из body, `conversations.booking_id`, или lazy `ensureInquiryBookingForChatInvoice` → `createInquiryBooking` с `negotiationRequest: true`); без дат и без брони → **400** `INVOICE_BOOKING_REQUIRED`; insert в `invoices` fail-hard (без message в чат при ошибке БД). SSOT: `lib/chat/ensure-inquiry-booking-for-invoice.server.js`, `lib/chat/post-chat-invoice.server.js`.
+- **Stage 172.0 — Deal Context SSOT (ADR-172):** аудит «Listing → Chat → Invoice». **Сильный путь:** PDP inquiry → `ensureInquiryConversation` → `conversations.booking_id` → system message → invoice → checkout. **Wave 2 (172.2.0):** contact с датами на PDP — inquiry SSOT. **Wave 3 (172.3.0):** orphan `sessionStorage` prefill удалён. См. **`ARCHITECTURAL_DECISIONS.md`** § ADR-172.
 - **Stage 3 — Payment adapters over Intent:** добавлен adapter registry `lib/services/payment-adapters`: `CARD_INTL` (Mandarin-ready scaffold) и `MIR_RU` (YooKassa-ready scaffold). `PaymentIntentService.initiate` выбирает адаптер по методу оплаты, сохраняет `external_ref` + `provider_payload` в `payment_intents`, а checkout больше не рендерит «лишние» способы вне `allowedMethods`.
 - **Checkout intent prefetch API:** `GET /api/v2/bookings/[id]/payment-intent` (session + owner check) резолвит/создаёт intent до initiate, чтобы UI методов оплаты соответствовал конкретному платежному контракту.
 - **Stage 3.1 — Production hardening:** `POST /api/webhooks/payments/confirm` валидирует подпись отдельно по адаптеру (`x-mandarin-signature`/`MANDARIN_WEBHOOK_SECRET`, `x-yookassa-signature`/`YOOKASSA_WEBHOOK_SECRET`, fallback `x-webhook-signature`/`PAYMENT_ACQUIRING_WEBHOOK_SECRET`) и нормализует внешние статусы PSP в внутренний map `payment_intents` (`CREATED/INITIATED/PAID/FAILED/CANCELLED/EXPIRED`) до запуска escrow/ledger.
@@ -1524,13 +1533,23 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | TEXT | NO | Primary key |
-| `listing_id` | TEXT | YES | Associated listing |
+| `listing_id` | TEXT | YES | Associated listing (dedup key with partner + renter) |
+| `listing_category` | TEXT | YES | `categories.id` snapshot at create |
+| `booking_id` | TEXT | YES | FK → `bookings.id` — **deal SSOT** for invoice/checkout (ADR-172) |
 | `owner_id` | TEXT | YES | Listing owner |
 | `partner_id` | TEXT | YES | Partner in conversation |
 | `renter_id` | TEXT | YES | Renter in conversation |
 | `admin_id` | TEXT | YES | Admin in conversation |
-| `type` | TEXT | YES | `INQUIRY`, `SUPPORT`, `MODERATION` |
+| `type` | TEXT | YES | `INQUIRY`, `BOOKING`, `SUPPORT`, … |
 | `status` | TEXT | YES | `OPEN`, `CLOSED` |
+| `status_label` | TEXT | YES | Inbox badge: `INQUIRY`, `PENDING`, … |
+| `partner_name` / `renter_name` | TEXT | YES | Display snapshot |
+| `last_message_at` | TIMESTAMPTZ | YES | Sort key for inbox |
+| `renter_archived_at` / `partner_archived_at` | TIMESTAMPTZ | YES | Per-user archive |
+
+**Dedup SSOT:** one thread per `(listing_id, partner_id, renter_id)` — `POST /api/v2/chat/conversations`, `ensureInquiryConversation`. Different listings → separate threads.
+
+**Deal context (ADR-172):** monetizable flows must set `booking_id` (inquiry row). Bare contact (no dates) may have `booking_id = null` — pre-sales only; payable invoice requires booking (Waves 1–2). Orphan `sessionStorage` prefill keys removed **Stage 172.3.0**.
 
 #### `messages`
 | Column | Type | Nullable | Description |

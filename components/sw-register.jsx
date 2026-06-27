@@ -5,12 +5,12 @@ import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
 import { SW_MESSAGE_SKIP_WAITING } from '@/lib/pwa/service-worker-messages.js'
-import { getUIText } from '@/lib/translations'
+import { PwaSwUpdateToast } from '@/components/pwa/PwaSwUpdateToast'
 
 const SW_UPDATE_TOAST_ID = 'airento-sw-update'
 
 /**
- * Early unified SW registration (push + static cache) + non-intrusive update prompt (Stage 171.17).
+ * Early unified SW registration (push + static cache) + branded update prompt (Stage 171.22).
  */
 export function SwRegister() {
   const { language } = useI18n()
@@ -40,32 +40,31 @@ export function SwRegister() {
       updateToastShownRef.current = true
 
       const lang = languageRef.current
-      toast(getUIText('pwaSwUpdate_message', lang), {
-        id: SW_UPDATE_TOAST_ID,
-        description: getUIText('pwaSwUpdate_subtitle', lang),
-        position: 'bottom-center',
-        duration: Infinity,
-        classNames: {
-          toast:
-            'group rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-lg shadow-slate-900/10 mb-20 sm:mb-4',
-          title: 'text-slate-900 font-semibold',
-          description: 'text-slate-600 text-sm',
-        },
-        action: {
-          label: getUIText('pwaSwUpdate_action', lang),
-          onClick: () => {
-            pendingReloadRef.current = true
-            waitingWorker.postMessage({ type: SW_MESSAGE_SKIP_WAITING })
-            toast.dismiss(SW_UPDATE_TOAST_ID)
+
+      toast.custom(
+        (toastId) => (
+          <PwaSwUpdateToast
+            toastId={toastId}
+            language={lang}
+            waitingWorker={waitingWorker}
+            onDismiss={() => {
+              updateToastShownRef.current = false
+            }}
+            onUpdateStart={() => {
+              pendingReloadRef.current = true
+            }}
+          />
+        ),
+        {
+          id: SW_UPDATE_TOAST_ID,
+          position: 'bottom-center',
+          duration: Infinity,
+          unstyled: true,
+          classNames: {
+            toast: '!bg-transparent !border-0 !shadow-none !p-0 mb-20 sm:mb-4',
           },
         },
-        cancel: {
-          label: getUIText('pwaSwUpdate_dismiss', lang),
-          onClick: () => {
-            updateToastShownRef.current = false
-          },
-        },
-      })
+      )
     }
 
     const watchWorker = (/** @type {ServiceWorker | null} */ worker) => {

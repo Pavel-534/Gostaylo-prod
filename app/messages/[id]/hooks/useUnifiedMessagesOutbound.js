@@ -89,15 +89,25 @@ export function useUnifiedMessagesOutbound({
 
   const handleSendInvoice = useCallback(
     async (invoiceData) => {
-      if (!selectedConv || !user) return
-      const { ok, data, error } = await sendInvoice(invoiceData)
+      if (!selectedConv || !user) return { ok: false, error: 'no_conversation' }
+      const result = await sendInvoice(invoiceData)
+      const { ok, data, error, message } = result || {}
       if (ok && data) {
         appendMessage(data)
         toast.success(getUIText('messengerThread_invoiceSent', language))
         afterOutbound()
+        return { ok: true }
+      }
+      if (error === 'INVOICE_BOOKING_REQUIRED') {
+        toast.error(
+          message || getUIText('chatInvoice_bookingRequired', language),
+        )
+      } else if (message) {
+        toast.error(message)
       } else {
         toast.error(error || getUIText('messengerThread_invoiceError', language))
       }
+      return { ok: false, error, message }
     },
     [selectedConv, user, sendInvoice, appendMessage, afterOutbound, language],
   )

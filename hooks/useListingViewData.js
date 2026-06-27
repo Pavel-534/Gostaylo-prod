@@ -11,15 +11,41 @@ import { queryKeys } from '@/lib/query-keys'
 import { useFavoriteState } from '@/lib/hooks/useFavoriteState'
 
 /**
+ * @param {import('@tanstack/react-query').QueryClient} queryClient
+ * @param {string} listingId
+ */
+function readListingViewCacheSnapshot(queryClient, listingId) {
+  const id = String(listingId || '').trim()
+  if (!id) {
+    return { listing: null, loading: false, moderationPending: false }
+  }
+  const cached = queryClient.getQueryData(queryKeys.listing.detail(id))
+  if (!cached) {
+    return { listing: null, loading: true, moderationPending: false }
+  }
+  if (cached.moderationPending) {
+    return { listing: null, loading: false, moderationPending: true }
+  }
+  return { listing: cached, loading: false, moderationPending: false }
+}
+
+/**
  * PDP primary view data: listing + reviews load, locale/currency, favorites, recently viewed.
- * Booking URL sync, availability, and chat pre-check stay on the page (or dedicated hooks).
+ * Stage 171.21 — sync React Query cache on init to avoid skeleton flash after prefetch.
  */
 export function useListingViewData(listingId, { user, openLoginModal, addToRecent }) {
   const queryClient = useQueryClient()
-  const [listing, setListing] = useState(null)
+
+  const [listing, setListing] = useState(
+    () => readListingViewCacheSnapshot(queryClient, listingId).listing,
+  )
   const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [moderationPending, setModerationPending] = useState(false)
+  const [loading, setLoading] = useState(
+    () => readListingViewCacheSnapshot(queryClient, listingId).loading,
+  )
+  const [moderationPending, setModerationPending] = useState(
+    () => readListingViewCacheSnapshot(queryClient, listingId).moderationPending,
+  )
   const [language, setLanguage] = useState('ru')
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
@@ -92,11 +118,17 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     } catch {
       /* ignore */
     }
-    setLoading(true)
-    setModerationPending(false)
-    loadListing()
+
+    const snapshot = readListingViewCacheSnapshot(queryClient, listingId)
+    setListing(snapshot.listing)
+    setModerationPending(snapshot.moderationPending)
+    setLoading(snapshot.loading)
+
+    if (snapshot.loading) {
+      void loadListing()
+    }
     loadReviews()
-  }, [listingId, loadListing, loadReviews])
+  }, [listingId, queryClient, loadListing, loadReviews])
 
   useEffect(() => {
     const handler = (e) => {

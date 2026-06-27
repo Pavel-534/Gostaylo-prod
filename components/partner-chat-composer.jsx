@@ -300,6 +300,7 @@ export function PartnerChatComposer({
         <InvoiceCreator
           booking={booking}
           listing={listing}
+          language={language}
           onSend={onSendInvoice}
           open={invoiceOpen}
           onOpenChange={setInvoiceOpen}

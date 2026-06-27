@@ -8,6 +8,26 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 172.5.0 (2026-06-22):** ADR-172 Wave 5 (epic closure) — `InvoiceBubble` payment-method dialog i18n (`invoiceBubble_paymentMethod*` / `invoiceBubble_pay*`); host inbox deal badges (`inboxBadge_*`) in `ConversationList` via `resolveConversationDealBadge`; enrich API adds `latestInvoice` + message `metadata`. Wave 4 (`deal_context` JSONB) cancelled.
+
+**Stage 172.3.0 (2026-06-22):** ADR-172 Wave 3 — ликвидация orphan `sessionStorage` (`gostaylo_chat_prefill_*`, `gostaylo_chat_context_listing_*`) в `useListingChat`; deal-context SSOT только `bookings` + `conversations.booking_id` / `createInquiryBooking`.
+
+**Stage 172.2.0 (2026-06-22):** ADR-172 Wave 2 — PDP «Написать хозяину» с датами: `useListingChat` → `POST /api/v2/bookings` (`contactInquiry: true`) → `createInquiryBooking` + `ensureInquiryConversation`; dedup `findReusablePdpContactInquiry`; занятые даты → **409** `DATES_CONFLICT`; без дат — contact-only тред (legacy).
+
+**Stage 172.1.6 (2026-06-22):** ADR-172 Wave 1.6 — invoice UX polish: `resolveInvoiceStatusPresentation` + `invoiceStatus_*` i18n (`InvoiceCard`, `InvoiceBubble`); `InvoiceCard`/`invoiceBubble_*` strings via `getUIText`; `SendInvoiceDialog` client validation `check_out` > `check_in` (`chatInvoice_stayDatesInvalid`, disabled send).
+
+**Stage 172.1.5 (2026-06-22):** ADR-172 Wave 1.5 — UI/i18n: `SendInvoiceDialog` (`components/chat-invoice.jsx`) — без `booking` обязательные `check_in`/`check_out` (`PlatformCalendar` или native date); с бронью даты read-only; payload camelCase + snake_case; `useUnifiedMessagesOutbound` toast на **400** `INVOICE_BOOKING_REQUIRED` (`chatInvoice_bookingRequired`); ключи `chatInvoice_*` в `lib/translations/slices/chat-ui.js`.
+
+**Stage 172.1 (2026-06-22):** ADR-172 Wave 1 — chat invoice gate: `ensureInquiryBookingForChatInvoice` (`lib/chat/ensure-inquiry-booking-for-invoice.server.js`) lazy `INQUIRY` via `createInquiryBooking` (`negotiationRequest: true`); `post-chat-invoice.server.js` requires `booking_id` (request, conversation, or lazy); fail-hard `invoices` insert; structured `logStructured` on 400/409.
+
+**Stage 172.0 (2026-06-22):** ADR-172 **Deal Context SSOT** — normative target for Listing → Chat → Invoice. Audit + migration waves in **`ARCHITECTURAL_DECISIONS.md`** § ADR-172.
+
+**Stage 171.23 (2026-06-25):** PDP CLS SSOT (`pdp-hero-layout.js`), empty gallery fallback, viewport-gated map, RQ calendar + availability, memoized details column.
+
+**Stage 171.22 (2026-06-22):** PWA update toast redesign + lifecycle reload; hero thumb warmup on touch-prefetch; View Transitions API catalog→PDP (`listing-hero-transition.js`).
+
+**Stage 171.21 (2026-06-22):** PDP instant shell + media SSOT — **`app/listings/[id]/loading.js`**; **`useListingViewData`** sync RQ cache init; touch prefetch (`onTouchStart`/`onPointerDown`); **`image-delivery.js`** PDP hero/lightbox URLs + connection-aware bento/carousel.
+
 **Stage 171.20 (2026-06-22):** SW template + Media Delivery SSOT — **`src/pwa/sw.template.js`** (Git) → **`public/sw.js`** (gitignored, `prebuild`/`postbuild`); **`lib/media/image-delivery.js`** + **`hooks/use-network-quality.js`** (save-data / 2g–3g → lighter `sizes`, no LCP priority). Upload SSOT unchanged: **`media-profiles.js`**.
 
 **Stage 171.18–171.19 (2026-06-22):** PWA app shell + CI cache — **`scripts/bump-sw-cache.mjs`** (prebuild: `CACHE_NAME` ← `VERCEL_GIT_COMMIT_SHA`); **`scripts/generate-sw-precache.mjs`** (postbuild: `/listings` shell chunks → `PRECACHE_URLS`); catalog image hints (superseded by **`image-delivery.js`** in 171.20).

@@ -7,8 +7,10 @@
 import { useState, useMemo, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { getListingDisplayImageUrls } from '@/lib/listing-display-images'
+import {
+  getPdpLightboxImageUrls,
+  resolvePdpHeroBlurDataURL,
+} from '@/lib/media/image-delivery'
 import { useListingViewData } from '@/hooks/useListingViewData'
 import { useListingBookingFlow } from '@/hooks/useListingBookingFlow'
 import { useListingChat } from '@/hooks/useListingChat'
@@ -18,18 +20,16 @@ import { GalleryModal } from '@/components/listing/GalleryModal'
 import { getUIText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
-import { ListingHeroGallery, ListingHeroHeadline } from '@/components/listing/pdp/ListingHero'
-import { ListingDescription } from '@/components/listing/pdp/ListingDescription'
-import { ListingReviews } from '@/components/listing/pdp/ListingReviews'
-import { ListingMap } from '@/components/listing/pdp/ListingMap'
+import { ListingHeroGallery } from '@/components/listing/pdp/ListingHero'
 import { ListingBookingSection } from '@/components/listing/pdp/ListingBookingSection'
 import { ListingMobileActions } from '@/components/listing/pdp/ListingMobileActions'
-import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
-import { SimilarListingsRail } from '@/components/recommendations/SimilarListingsRail'
-import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
+import {
+  ListingPdpDetailsColumn,
+  useListingPdpGalleryClickHandler,
+} from '@/components/listing/pdp/ListingPdpDetailsColumn'
 
 function PremiumListingContent({ params }) {
   const router = useRouter()
@@ -49,13 +49,45 @@ function PremiumListingContent({ params }) {
     exchangeRates,
   })
 
-  const chat = useListingChat({ listing, user, openLoginModal, language })
+  const chat = useListingChat({
+    listing,
+    user,
+    openLoginModal,
+    language,
+    dateRange: booking.dateRange,
+    guests: booking.guests,
+    exclusiveDatesUnavailable: booking.exclusiveDatesUnavailable,
+    isVehicleListing: booking.isVehicleListing,
+    vehicleStartTime: booking.vehicleStartTime,
+    vehicleEndTime: booking.vehicleEndTime,
+    priceCalc: booking.priceCalc,
+  })
 
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
 
+  const galleryImageUrls = useMemo(() => getPdpLightboxImageUrls(listing), [listing])
+  const galleryBlurDataURL = useMemo(() => resolvePdpHeroBlurDataURL(listing), [listing])
+  const handleGalleryImageClick = useListingPdpGalleryClickHandler(setGalleryIndex, setGalleryOpen)
+
+  const chatPreviewProps = useMemo(
+    () => ({
+      language,
+      listing,
+      showContactPartner: chat.showContactPartner,
+      lastMessagePreview: chat.lastMessagePreview,
+      hasUnreadFromHost: chat.hasUnreadFromHost,
+    }),
+    [
+      language,
+      listing,
+      chat.showContactPartner,
+      chat.lastMessagePreview,
+      chat.hasUnreadFromHost,
+    ],
+  )
+
   const amenities = listing?.metadata?.amenities || []
-  const galleryImageUrls = useMemo(() => getListingDisplayImageUrls(listing), [listing])
   const postInquiryChatHref = booking.postInquiryBooking?.conversationId
     ? `/messages/${encodeURIComponent(booking.postInquiryBooking.conversationId)}`
     : null
@@ -173,48 +205,21 @@ function PremiumListingContent({ params }) {
           <ListingHeroGallery
             listing={listing}
             language={language}
-            onImageClick={(index) => {
-              setGalleryIndex(typeof index === 'number' ? index : 0)
-              setGalleryOpen(true)
-            }}
+            onImageClick={handleGalleryImageClick}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-8">
-              <ListingHeroHeadline listing={listing} language={language} />
-              <Separator />
-              <ListingDescription listing={listing} language={language} amenities={amenities} belowDescription={mobileBelow} />
-
-              <Separator />
-              <ListingMap listing={listing} language={language} />
-
-              <ListingChatPreview
-                language={language}
-                listing={listing}
-                showContactPartner={chat.showContactPartner}
-                lastMessagePreview={chat.lastMessagePreview}
-                hasUnreadFromHost={chat.hasUnreadFromHost}
-              />
-
-              <Separator />
-              <ListingReviews listing={listing} reviews={reviews} language={language} />
-
-              <Separator />
-              <SimilarListingsRail
-                listingId={listing.id}
-                language={language}
-                currency={currency}
-                exchangeRates={exchangeRates}
-              />
-
-              <RecentlyViewedRail
-                currentListingId={listing.id}
-                userId={user?.id}
-                language={language}
-                currency={currency}
-                exchangeRates={exchangeRates}
-              />
-            </div>
+            <ListingPdpDetailsColumn
+              listing={listing}
+              reviews={reviews}
+              language={language}
+              currency={currency}
+              exchangeRates={exchangeRates}
+              userId={user?.id}
+              amenities={amenities}
+              mobileBelow={mobileBelow}
+              chatPreviewProps={chatPreviewProps}
+            />
 
             <div className="lg:col-span-1">
               <ListingBookingSection
@@ -283,6 +288,7 @@ function PremiumListingContent({ params }) {
           currentIndex={galleryIndex}
           onIndexChange={setGalleryIndex}
           listingTitle={listing.title}
+          blurDataURL={galleryBlurDataURL}
         />
       </div>
     </>

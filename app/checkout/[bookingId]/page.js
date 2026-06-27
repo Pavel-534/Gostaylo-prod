@@ -21,7 +21,6 @@ import {
 } from '@/lib/booking/payout-release-config.js'
 import {
   CheckoutFullPageSpinner,
-  CheckoutCommissionSpinner,
   CheckoutAccessDeniedView,
   CheckoutUnavailableView,
   CheckoutSuccessView,
@@ -186,10 +185,6 @@ function CheckoutPageInner({ params: paramsProp }) {
       />
     )
   }
-  if (c.commissionLoading) {
-    return <CheckoutCommissionSpinner />
-  }
-
   const tCheckout = (key) => getUIText(key, c.language, checkoutUiCtx)
 
   const flowT = (key) => getUIText(key, c.language)

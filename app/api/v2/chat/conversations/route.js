@@ -200,13 +200,14 @@ async function enrichConversationRows(rows, viewerUserId) {
 
   const lastById = {}
   const unreadById = {}
+  const latestInvoiceById = {}
   const viewerUid = String(viewerUserId)
   const convById = new Map(rows.map((c) => [String(c.id), c]))
   const conversationIds = [...convById.keys()]
   if (conversationIds.length > 0) {
     const inConversations = conversationIds.map((id) => encodeURIComponent(id)).join(',')
     const msgRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inConversations})&order=created_at.desc&select=id,conversation_id,content,message,type,created_at,sender_id,read_at_renter,read_at_partner,is_read`,
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inConversations})&order=created_at.desc&select=id,conversation_id,content,message,type,metadata,created_at,sender_id,read_at_renter,read_at_partner,is_read`,
       { headers: hdr, cache: 'no-store' }
     )
     const msgRows = await msgRes.json()
@@ -220,8 +221,19 @@ async function enrichConversationRows(rows, viewerUserId) {
             content: m.content ?? m.message,
             message: m.message ?? m.content,
             type: m.type,
+            metadata: m.metadata ?? null,
             createdAt: m.created_at,
             created_at: m.created_at,
+          }
+        }
+        if (latestInvoiceById[cid] == null) {
+          const type = String(m.type || '').toLowerCase()
+          if (type === 'invoice') {
+            const inv = m.metadata?.invoice || {}
+            latestInvoiceById[cid] = {
+              status: String(inv.status || 'PENDING').toUpperCase(),
+              id: inv.id || m.metadata?.invoice_id || null,
+            }
           }
         }
         const c = convById.get(cid)
@@ -256,6 +268,7 @@ async function enrichConversationRows(rows, viewerUserId) {
       renterLastSeenAt: c.renter_id ? participantLastSeenById[String(c.renter_id)] ?? null : null,
       adminLastSeenAt: c.admin_id ? participantLastSeenById[String(c.admin_id)] ?? null : null,
       lastMessage: lastById[c.id] ?? null,
+      latestInvoice: latestInvoiceById[c.id] ?? null,
       unreadCount: unreadById[c.id] ?? 0,
     }
   })

@@ -42,6 +42,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { getUIText } from '@/lib/translations'
+import { resolveConversationDealBadge } from '@/lib/chat/conversation-inbox-status'
 
 const LIST_FILTER_ALL = 'all'
 const LIST_FILTER_UNREAD = 'unread'
@@ -111,6 +112,39 @@ function DealPreviewLine({ conv, lang = 'ru' }) {
     <p className="text-[11px] text-slate-600 truncate mb-0.5 leading-tight" title={parts.join(' · ')}>
       {parts.join(' · ')}
     </p>
+  )
+}
+
+function DealStatusBadge({ conv, lang = 'ru' }) {
+  const kind = resolveConversationDealBadge(conv)
+  if (!kind) return null
+
+  const cfgByKind = {
+    invoice_pending: {
+      key: 'inboxBadge_invoicePending',
+      cls: 'bg-amber-100 text-amber-800 border-amber-200',
+    },
+    invoice_paid: {
+      key: 'inboxBadge_invoicePaid',
+      cls: 'bg-green-100 text-green-800 border-green-200',
+    },
+    inquiry_dates: {
+      key: 'inboxBadge_inquiryDates',
+      cls: 'bg-blue-100 text-blue-800 border-blue-200',
+    },
+  }
+  const cfg = cfgByKind[kind]
+  if (!cfg) return null
+
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center rounded-2xl border px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+        cfg.cls,
+      )}
+    >
+      {getUIText(cfg.key, lang)}
+    </span>
   )
 }
 
@@ -326,8 +360,11 @@ function ConversationRow({
               {lang === 'ru' ? `${typingName} печатает…` : `${typingName} is typing…`}
             </p>
           ) : (
-            <p className="text-xs text-slate-500 truncate">
-              <LastMessagePreview conv={conv} lang={lang} />
+            <p className="flex items-center gap-1.5 truncate text-xs text-slate-500">
+              <DealStatusBadge conv={conv} lang={lang} />
+              <span className="min-w-0 truncate">
+                <LastMessagePreview conv={conv} lang={lang} />
+              </span>
             </p>
           )}
           <PresenceLabel peerOnline={peerOnline} peerLastSeenAt={peerLastSeenAt} lang={lang} />

@@ -24,6 +24,8 @@ import { resolveBookingCreateSession } from '@/lib/api/booking-create-guard';
 import { assertListingBookableForGuest } from '@/lib/listing/listing-booking-eligibility';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
+import { findReusablePdpContactInquiry } from '@/lib/services/booking/inquiry.service';
+import { resolveListingTimeZoneFromMetadata } from '@/lib/geo/listing-timezone-ssot';
 
 export async function GET(request) {
   try {
@@ -100,6 +102,7 @@ export async function POST(request) {
       negotiationRequest,
       clientQuotedSubtotalThb,
       clientQuotedGuestTotalThb,
+      contactInquiry,
     } = parseResult.data;
 
     const checkInDate = new Date(checkIn);
@@ -210,17 +213,67 @@ export async function POST(request) {
     }
 
     const minRem = availabilityCheck.min_remaining_spots ?? 0;
+
+    if (contactInquiry === true && !availabilityCheck.available) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Sorry, these dates were JUST taken by another user. Please select different dates.',
+          code: 'DATES_CONFLICT',
+          conflicts: availabilityCheck.conflicts,
+        },
+        { status: 409 },
+      );
+    }
+
     const instantBookingEnforced =
       listingData?.instant_booking === true &&
       privateTrip !== true &&
-      negotiationRequest !== true;
+      negotiationRequest !== true &&
+      contactInquiry !== true;
     const needsInquiry =
-      !instantBookingEnforced && (
+      contactInquiry === true ||
+      (!instantBookingEnforced && (
       privateTrip === true ||
       negotiationRequest === true ||
-      (!isVehicleListing && guestsCount > minRem));
+      (!isVehicleListing && guestsCount > minRem)));
 
     if (needsInquiry) {
+      if (contactInquiry === true) {
+        const listingTimeZone = resolveListingTimeZoneFromMetadata(listingData?.metadata || {});
+        const reused = await findReusablePdpContactInquiry({
+          listingId,
+          renterId: sessionRenterId,
+          partnerId: listingData.owner_id,
+          checkIn,
+          checkOut,
+          listingTimeZone,
+        });
+        if (reused?.bookingId) {
+          const { data: reusedBooking } = await supabaseAdmin
+            .from('bookings')
+            .select('*')
+            .eq('id', reused.bookingId)
+            .maybeSingle();
+          return NextResponse.json({
+            success: true,
+            inquiry: true,
+            reused: true,
+            booking: reusedBooking || { id: reused.bookingId },
+            conversationId: reused.conversationId ?? null,
+            code: 'INQUIRY_REUSED',
+          });
+        }
+      }
+
+      const contactTag = 'Тип заявки: контакт с карточки объявления (PDP).';
+      const mergedSpecialRequests = contactInquiry
+        ? specialRequests
+          ? `${specialRequests}\n\n${contactTag}`
+          : contactTag
+        : specialRequests;
+
       const result = await BookingService.createInquiryBooking({
         listingId,
         renterId: sessionRenterId,
@@ -229,7 +282,7 @@ export async function POST(request) {
         guestName,
         guestPhone,
         guestEmail,
-        specialRequests,
+        specialRequests: mergedSpecialRequests,
         currency,
         promoCode,
         guestsCount,

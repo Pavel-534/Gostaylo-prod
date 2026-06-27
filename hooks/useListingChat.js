@@ -6,6 +6,11 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 import { useChatContext } from '@/lib/context/ChatContext'
+import { getBookingApiUserMessage } from '@/lib/booking-error-message'
+import {
+  attachPdpInquiryPriceAttestation,
+  buildPdpContactInquiryPayload,
+} from '@/lib/booking/pdp-contact-inquiry'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000
 
@@ -34,10 +39,27 @@ function writeChatCache(listingId, userId, data) {
   } catch {}
 }
 
+function hasPdpStayDates(dateRange) {
+  return !!(dateRange?.from && dateRange?.to)
+}
+
 /**
  * PDP: conversation preview for listing, cache, and "contact host" navigation.
+ * ADR-172 Wave 2: with PDP dates → POST /api/v2/bookings (contactInquiry) → INQUIRY + chat.
  */
-export function useListingChat({ listing, user, openLoginModal, language }) {
+export function useListingChat({
+  listing,
+  user,
+  openLoginModal,
+  language,
+  dateRange = null,
+  guests = 1,
+  exclusiveDatesUnavailable = false,
+  isVehicleListing = false,
+  vehicleStartTime = '07:00',
+  vehicleEndTime = '07:00',
+  priceCalc = null,
+}) {
   const router = useRouter()
   const { getConversationForListing, loaded: chatLoaded } = useChatContext()
 
@@ -53,6 +75,8 @@ export function useListingChat({ listing, user, openLoginModal, language }) {
 
   const showContactPartner =
     !!listingPartnerId && String(user?.id || '') !== String(listingPartnerId)
+
+  const pdpHasDates = hasPdpStayDates(dateRange)
 
   useEffect(() => {
     if (!user?.id || !listing?.id || String(user.id) === String(listingPartnerId)) {
@@ -115,26 +139,8 @@ export function useListingChat({ listing, user, openLoginModal, language }) {
       .catch(() => {})
   }, [user?.id, listing?.id, listingPartnerId, chatLoaded, getConversationForListing])
 
-  const handleContactPartner = useCallback(async () => {
-    const partnerId = listing?.ownerId ?? listing?.owner?.id
-    if (!partnerId) {
-      toast.error(getUIText('listingDetail_listingUnavailable', language))
-      return
-    }
-    if (!user) {
-      openLoginModal()
-      return
-    }
-    if (String(user.id) === String(partnerId)) return
-
-    if (existingConvId) {
-      setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
-      router.push(`/messages/${encodeURIComponent(existingConvId)}`)
-      return
-    }
-
-    setContactPartnerLoading(true)
-    try {
+  const openContactOnlyThread = useCallback(
+    async (partnerId) => {
       const res = await fetch('/api/v2/chat/conversations', {
         method: 'POST',
         credentials: 'include',
@@ -148,40 +154,138 @@ export function useListingChat({ listing, user, openLoginModal, language }) {
       const json = await res.json()
       if (!res.ok || !json.success) {
         toast.error(json.error || getUIText('listingDetail_chatOpenError', language))
-        return
+        return null
       }
       const id = json.data?.id
-      if (id) {
-        const title = listing.title || getUIText('listingDetail_listingNameFallback', language)
-        const draft = getUIText('listingDetail_chatIntro', language).replace(
-          /\{\{title\}\}/g,
-          String(title).replace(/</g, '').slice(0, 200),
-        )
-        try {
-          setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
-          sessionStorage.setItem(`gostaylo_chat_prefill_${id}`, draft)
-          sessionStorage.setItem(
-            `gostaylo_chat_context_listing_${id}`,
-            JSON.stringify({
-              listingId: listing.id,
-              title: listing.title || null,
-              images: listing.images,
-              district: listing.district || null,
-            }),
-          )
-        } catch {
-          /* ignore */
-        }
-        setExistingConvId(id)
-        router.push(`/messages/${encodeURIComponent(id)}`)
+      if (!id) return null
+
+      setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
+      setExistingConvId(id)
+      router.push(`/messages/${encodeURIComponent(id)}`)
+      return id
+    },
+    [listing, language, router],
+  )
+
+  const openPdpContactInquiry = useCallback(async () => {
+    if (exclusiveDatesUnavailable) {
+      toast.error(getBookingApiUserMessage({ code: 'DATES_CONFLICT' }, language))
+      return
+    }
+
+    const basePayload = buildPdpContactInquiryPayload({
+      listing,
+      dateRange,
+      guests,
+      isVehicleListing,
+      vehicleStartTime,
+      vehicleEndTime,
+      user,
+    })
+    if (!basePayload) {
+      toast.error(getUIText('listingDetail_selectDates', language))
+      return
+    }
+
+    const payload = await attachPdpInquiryPriceAttestation(basePayload, {
+      listing,
+      guests,
+      priceCalc,
+    })
+    payload.uiLocale = language
+
+    const res = await fetch('/api/v2/bookings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+      cache: 'no-store',
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+
+    if (!res.ok || !data.success) {
+      toast.error(getBookingApiUserMessage(data, language))
+      return
+    }
+
+    const cid = data.conversationId || existingConvId
+    if (!cid) {
+      toast.error(getUIText('listingDetail_chatOpenError', language))
+      return
+    }
+
+    setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
+    setExistingConvId(cid)
+    writeChatCache(listing.id, user.id, { id: cid, preview: null, hasUnread: false })
+
+    if (data.reused) {
+      toast.success(getUIText('listingToast_bookingInquiry', language))
+    } else if (data.inquiry) {
+      toast.success(getUIText('listingToast_bookingInquiry', language))
+    }
+
+    router.push(`/messages/${encodeURIComponent(cid)}`)
+  }, [
+    exclusiveDatesUnavailable,
+    listing,
+    dateRange,
+    guests,
+    isVehicleListing,
+    vehicleStartTime,
+    vehicleEndTime,
+    user,
+    priceCalc,
+    language,
+    existingConvId,
+    router,
+  ])
+
+  const handleContactPartner = useCallback(async () => {
+    const partnerId = listing?.ownerId ?? listing?.owner?.id
+    if (!partnerId) {
+      toast.error(getUIText('listingDetail_listingUnavailable', language))
+      return
+    }
+    if (!user) {
+      openLoginModal()
+      return
+    }
+    if (String(user.id) === String(partnerId)) return
+
+    if (!pdpHasDates && existingConvId) {
+      setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
+      router.push(`/messages/${encodeURIComponent(existingConvId)}`)
+      return
+    }
+
+    setContactPartnerLoading(true)
+    try {
+      if (pdpHasDates) {
+        await openPdpContactInquiry()
+        return
       }
+      await openContactOnlyThread(partnerId)
     } catch (e) {
       console.error(e)
       toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       setContactPartnerLoading(false)
     }
-  }, [listing, user, existingConvId, language, openLoginModal, router])
+  }, [
+    listing,
+    user,
+    existingConvId,
+    pdpHasDates,
+    language,
+    openLoginModal,
+    router,
+    openContactOnlyThread,
+    openPdpContactInquiry,
+  ])
 
   return {
     listingPartnerId,

@@ -1,5 +1,7 @@
 'use client'
 
+import { memo } from 'react'
+
 /**
  * PDP hero band: gallery + flash/urgency (full content width).
  * Headline stays a separate export so the page can keep it inside the lg:col-span-2 column.
@@ -10,7 +12,11 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 
-export function ListingHeroGallery({ listing, language, onImageClick }) {
+export const ListingHeroGallery = memo(function ListingHeroGallery({
+  listing,
+  language,
+  onImageClick,
+}) {
   return (
     <>
       <ListingGallery listing={listing} language={language} onImageClick={onImageClick} />
@@ -32,7 +38,7 @@ export function ListingHeroGallery({ listing, language, onImageClick }) {
       />
     </>
   )
-}
+})
 
 export function ListingHeroHeadline({ listing, language }) {
   return <ListingHeader listing={listing} language={language} />

@@ -11,7 +11,7 @@ import { getUIText } from "@/lib/translations"
 import { formatRentalSpanLabel } from "@/lib/rental-period-labels"
 import { toListingDate } from "@/lib/listing-date"
 import { formatDisplayDate } from "@/lib/date-display-format"
-import { fetchPublicListingCalendar } from "@/lib/api/partner-calendar-client"
+import { useListingPublicCalendarQuery } from '@/hooks/use-listing-public-calendar-query'
 import {
   Drawer,
   DrawerContent,
@@ -28,12 +28,7 @@ import {
 
 const locales = { ru, en: enUS, th, zh: zhCN }
 
-function isAbortError(err) {
-  return err?.name === 'AbortError' || err?.code === 20
-}
-
 /**
- * PlatformCalendar — календарь выбора дат для бронирования.
  * 
  * Features:
  * - Fetches data once from /api/v2/listings/[id]/calendar
@@ -262,12 +257,6 @@ export function PlatformCalendar({
   /** 'night' — жильё; 'day' — транспорт (сутки) */
   rentalPeriodMode = "night",
 }) {
-  const [calendarData, setCalendarData] = React.useState(new Map())
-  const [loading, setLoading] = React.useState(true)
-  /** Фоновое обновление при уже показанной сетке (SWR) */
-  const [backgroundRefreshing, setBackgroundRefreshing] = React.useState(false)
-  const [error, setError] = React.useState(null)
-  // Initialize currentMonth from value.from if provided (for URL params)
   const [currentMonth, setCurrentMonth] = React.useState(() => {
     if (value?.from) {
       return startOfMonth(value.from)
@@ -298,70 +287,17 @@ export function PlatformCalendar({
 
   const guestsQueryParam = partyAffectsCalendarGrid ? debouncedPartyGuests : 1
 
-  const prevListingIdRef = React.useRef(listingId)
-  const calendarHydratedRef = React.useRef(false)
+  const {
+    calendarData,
+    isLoading: loading,
+    isRefreshing: backgroundRefreshing,
+    error: calendarQueryError,
+  } = useListingPublicCalendarQuery(listingId, {
+    guests: guestsQueryParam,
+    enabled: !!listingId,
+  })
 
-  // Fetch calendar — без «серого» поля при фоновом обновлении (stale-while-revalidate)
-  React.useEffect(() => {
-    if (!listingId) return
-
-    const listingChanged = prevListingIdRef.current !== listingId
-    if (listingChanged) {
-      prevListingIdRef.current = listingId
-      calendarHydratedRef.current = false
-      setCalendarData(new Map())
-    }
-
-    let cancelled = false
-    const ac = new AbortController()
-
-    async function fetchCalendar() {
-      const blockUi = !calendarHydratedRef.current
-      if (blockUi) {
-        setLoading(true)
-        setBackgroundRefreshing(false)
-      } else {
-        setBackgroundRefreshing(true)
-      }
-      setError(null)
-
-      try {
-        const { ok, calendar, error: calErr } = await fetchPublicListingCalendar(listingId, {
-          days: 180,
-          guests: guestsQueryParam,
-          signal: ac.signal,
-        })
-        if (cancelled) return
-
-        if (ok) {
-          const dataMap = new Map()
-          for (const day of calendar) {
-            if (day?.date) dataMap.set(day.date, day)
-          }
-          setCalendarData(dataMap)
-          calendarHydratedRef.current = true
-        } else {
-          setError(calErr || 'Failed to load calendar')
-        }
-      } catch (err) {
-        if (cancelled || isAbortError(err)) return
-        setError(err.message)
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-          setBackgroundRefreshing(false)
-        }
-      }
-    }
-
-    fetchCalendar()
-    return () => {
-      cancelled = true
-      ac.abort()
-      setLoading(false)
-      setBackgroundRefreshing(false)
-    }
-  }, [listingId, guestsQueryParam])
+  const error = calendarQueryError?.message || null
   
   // Calculate price when selection changes
   React.useEffect(() => {

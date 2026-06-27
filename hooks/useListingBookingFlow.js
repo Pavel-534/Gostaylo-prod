@@ -22,6 +22,9 @@ import { getBookingApiUserMessage } from '@/lib/booking-error-message'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { useAuthModalState } from '@/hooks/useAuthModalState'
+import { useListingAvailabilityQuery } from '@/hooks/use-listing-availability-query'
+import { resolveListingTimeZoneFromMetadata } from '@/lib/geo/listing-timezone-ssot'
+import { listingYmdLocalWallTimeToUtcIso } from '@/lib/listing-date'
 
 const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
 const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
@@ -110,8 +113,6 @@ export function useListingBookingFlow({
   const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
   const [message, setMessage] = useState('')
   const [calendarKey, _setCalendarKey] = useState(0)
-  const [availabilitySnapshot, setAvailabilitySnapshot] = useState(null)
-  const [availabilityFetchLoading, setAvailabilityFetchLoading] = useState(false)
   const [bookingModalIntent, setBookingModalIntent] = useState('book')
   const [postInquiryBooking, setPostInquiryBooking] = useState(null)
 
@@ -123,12 +124,63 @@ export function useListingBookingFlow({
     listing?.categorySlug || listing?.category?.slug,
   )
 
+  const listingTimeZone = useMemo(
+    () => resolveListingTimeZoneFromMetadata(listing?.metadata || {}),
+    [listing?.metadata],
+  )
+
   const listingPartnerId = useMemo(
     () => listing?.ownerId ?? listing?.owner?.id ?? listing?.owner_id ?? null,
     [listing?.ownerId, listing?.owner?.id, listing?.owner_id],
   )
 
   const commissionHook = useCommission(listingPartnerId)
+
+  const AVAILABILITY_GUESTS_DEBOUNCE_MS = 420
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedGuestsAvail(guests), AVAILABILITY_GUESTS_DEBOUNCE_MS)
+    return () => clearTimeout(t)
+  }, [guests])
+
+  const guestsAvailabilityPendingSync = debouncedGuestsAvail !== guests
+
+  const buildVehicleInstantIso = useCallback(
+    (dateObj, hhmm) => {
+      if (!dateObj) return null
+      const ymd = format(dateObj, 'yyyy-MM-dd')
+      const t = /^\d{2}:\d{2}$/.test(String(hhmm || '')) ? String(hhmm) : '07:00'
+      const [hourRaw, minuteRaw] = t.split(':')
+      const hour = Math.max(0, Math.min(23, parseInt(hourRaw, 10) || 0))
+      const minute = Math.max(0, Math.min(59, parseInt(minuteRaw, 10) || 0))
+      return listingYmdLocalWallTimeToUtcIso(ymd, hour, minute, listingTimeZone)
+    },
+    [listingTimeZone],
+  )
+
+  const availabilityStartDateTime = isVehicleListing
+    ? buildVehicleInstantIso(dateRange?.from, vehicleStartTime)
+    : null
+  const availabilityEndDateTime = isVehicleListing
+    ? buildVehicleInstantIso(dateRange?.to, vehicleEndTime)
+    : null
+
+  const availabilityQuery = useListingAvailabilityQuery({
+    listingId: listing?.id,
+    dateRange,
+    guests: debouncedGuestsAvail,
+    startDateTime: availabilityStartDateTime,
+    endDateTime: availabilityEndDateTime,
+    enabled:
+      !!listing?.id &&
+      !!dateRange?.from &&
+      !!dateRange?.to &&
+      !guestsAvailabilityPendingSync,
+  })
+
+  const availabilitySnapshot = availabilityQuery.data ?? null
+  const availabilityFetchLoading = availabilityQuery.isFetching
+  const availabilityLoading = availabilityFetchLoading || guestsAvailabilityPendingSync
 
   const availabilitySyncPricing = useMemo(() => {
     if (!availabilitySnapshot?.success || availabilitySnapshot?.pricing == null) return null
@@ -149,23 +201,6 @@ export function useListingBookingFlow({
     taxRatePercent: commissionHook.loading ? 0 : Number(commissionHook.taxRatePercent) || 0,
     syncPricing: availabilitySyncPricing,
   })
-
-  const AVAILABILITY_GUESTS_DEBOUNCE_MS = 420
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedGuestsAvail(guests), AVAILABILITY_GUESTS_DEBOUNCE_MS)
-    return () => clearTimeout(t)
-  }, [guests])
-
-  const guestsAvailabilityPendingSync = debouncedGuestsAvail !== guests
-  const availabilityLoading = availabilityFetchLoading || guestsAvailabilityPendingSync
-
-  const buildVehicleInstantIso = useCallback((dateObj, hhmm) => {
-    if (!dateObj) return null
-    const d = format(dateObj, 'yyyy-MM-dd')
-    const t = /^\d{2}:\d{2}$/.test(String(hhmm || '')) ? String(hhmm) : '07:00'
-    return `${d}T${t}:00+07:00`
-  }, [])
 
   const parseCalendarDay = useCallback((raw) => {
     const s = String(raw || '').trim()
@@ -263,58 +298,6 @@ export function useListingBookingFlow({
     isVehicleListing,
     vehicleStartTime,
     vehicleEndTime,
-  ])
-
-  useEffect(() => {
-    if (!listing?.id || !dateRange?.from || !dateRange?.to) {
-      setAvailabilitySnapshot(null)
-      setAvailabilityFetchLoading(false)
-      return
-    }
-    if (guestsAvailabilityPendingSync) {
-      return
-    }
-    const start = format(dateRange.from, 'yyyy-MM-dd')
-    const end = format(dateRange.to, 'yyyy-MM-dd')
-    const startDateTime = isVehicleListing ? buildVehicleInstantIso(dateRange.from, vehicleStartTime) : null
-    const endDateTime = isVehicleListing ? buildVehicleInstantIso(dateRange.to, vehicleEndTime) : null
-    const ac = new AbortController()
-    setAvailabilityFetchLoading(true)
-    const qs = new URLSearchParams({
-      startDate: start,
-      endDate: end,
-      guests: String(debouncedGuestsAvail),
-    })
-    if (startDateTime && endDateTime) {
-      qs.set('startDateTime', startDateTime)
-      qs.set('endDateTime', endDateTime)
-    }
-    fetch(`/api/v2/listings/${encodeURIComponent(listing.id)}/availability?${qs.toString()}`, {
-      signal: ac.signal,
-      credentials: 'omit',
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setAvailabilitySnapshot(data)
-        else setAvailabilitySnapshot(null)
-      })
-      .catch(() => {
-        if (!ac.signal.aborted) setAvailabilitySnapshot(null)
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setAvailabilityFetchLoading(false)
-      })
-    return () => ac.abort()
-  }, [
-    listing?.id,
-    dateRange?.from,
-    dateRange?.to,
-    isVehicleListing,
-    vehicleStartTime,
-    vehicleEndTime,
-    buildVehicleInstantIso,
-    debouncedGuestsAvail,
-    guestsAvailabilityPendingSync,
   ])
 
   useEffect(() => {

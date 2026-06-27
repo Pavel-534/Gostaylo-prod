@@ -8,12 +8,17 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Heart, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { resolveListingCardImageSizes } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
+import {
+  listingHeroTransitionStyle,
+  navigateWithListingHeroTransition,
+} from '@/lib/navigation/listing-hero-transition'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -35,7 +40,10 @@ export function CardImageCarousel({
   blurDataURL = LISTING_CARD_BLUR_DATA_URL,
   /** LCP: only first visible cards in catalog (Stage 171.18). */
   priority = false,
+  /** Stage 171.22 — shared element morph → PDP hero. */
+  listingId = null,
 }) {
+  const router = useRouter()
   const networkQuality = useNetworkQuality()
   const imageSizes = resolveListingCardImageSizes(networkQuality)
   const imagesProxied = useMemo(() => mapPublicImageUrls(images), [images])
@@ -70,6 +78,16 @@ export function CardImageCarousel({
   const rawSrc = imagesProxied[currentIndex]
   const displaySrc = failed[currentIndex] ? PLACEHOLDER : rawSrc
   const unoptimized = isRemoteHttpImageSrc(displaySrc)
+  const heroTransitionStyle = listingHeroTransitionStyle(listingId)
+
+  const handleDetailNavigate = useCallback(
+    (e) => {
+      if (!detailHref) return
+      e.preventDefault()
+      navigateWithListingHeroTransition(() => router.push(detailHref), listingId)
+    },
+    [detailHref, listingId, router],
+  )
 
   return (
     <div 
@@ -77,29 +95,32 @@ export function CardImageCarousel({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Image
-        src={displaySrc}
-        alt={`${title} - Photo ${currentIndex + 1}`}
-        fill
-        sizes={imageSizes}
-        placeholder="blur"
-        blurDataURL={blurDataURL}
-        unoptimized={unoptimized}
-        className={cn(
-          'object-cover transition-transform duration-500 ease-out will-change-transform',
-          imageLoaded ? 'opacity-100' : 'opacity-0',
-          'group-hover:scale-[1.06]'
-        )}
-        onLoad={handleLoad}
-        onError={() => {
-          setFailed((f) => ({ ...f, [currentIndex]: true }))
-          setImageLoaded(true)
-        }}
-        priority={priority && currentIndex === 0}
-      />
+      <div className="absolute inset-0" style={heroTransitionStyle}>
+        <Image
+          src={displaySrc}
+          alt={`${title} - Photo ${currentIndex + 1}`}
+          fill
+          sizes={imageSizes}
+          placeholder="blur"
+          blurDataURL={blurDataURL}
+          unoptimized={unoptimized}
+          className={cn(
+            'object-cover transition-transform duration-500 ease-out will-change-transform',
+            imageLoaded ? 'opacity-100' : 'opacity-0',
+            'group-hover:scale-[1.06]',
+          )}
+          onLoad={handleLoad}
+          onError={() => {
+            setFailed((f) => ({ ...f, [currentIndex]: true }))
+            setImageLoaded(true)
+          }}
+          priority={priority && currentIndex === 0}
+        />
+      </div>
       {detailHref ? (
         <Link
           href={detailHref}
+          onClick={handleDetailNavigate}
           className="absolute inset-0 z-[1]"
           aria-label={title ? String(title) : 'Open listing'}
           tabIndex={-1}

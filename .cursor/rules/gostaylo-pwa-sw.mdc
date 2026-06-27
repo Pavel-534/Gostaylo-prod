@@ -25,4 +25,4 @@ Run `npm run build` or `npm run predev` once so `public/sw.js` exists locally.
 
 ## Media delivery (catalog)
 
-Guest catalog `sizes` / LCP priority: **`lib/media/image-delivery.js`** + **`hooks/use-network-quality.js`**. Upload profiles stay in **`lib/services/media/media-profiles.js`**.
+Guest catalog `sizes` / LCP priority / **PDP hero + lightbox**: **`lib/media/image-delivery.js`** + **`hooks/use-network-quality.js`**. Upload profiles stay in **`lib/services/media/media-profiles.js`**. PDP shell: **`app/listings/[id]/loading.js`**.

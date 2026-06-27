@@ -11,12 +11,39 @@ function canRenterCancelCheckout(status) {
   return !RENTER_CHECKOUT_NO_CANCEL_STATUSES.has(String(status || '').toUpperCase())
 }
 
+function CheckoutPriceBreakdownSkeleton() {
+  return (
+    <div
+      className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2.5 min-h-[10.5rem]"
+      aria-busy="true"
+      aria-label="Loading price breakdown"
+    >
+      <div className="h-3 w-28 rounded gsl-shimmer" />
+      <div className="flex justify-between gap-3">
+        <div className="h-3 w-36 rounded gsl-shimmer" />
+        <div className="h-3 w-16 rounded gsl-shimmer" />
+      </div>
+      <div className="flex justify-between gap-3">
+        <div className="h-3 w-24 rounded gsl-shimmer" />
+        <div className="h-3 w-14 rounded gsl-shimmer" />
+      </div>
+      <div className="flex justify-between gap-3 pt-1 border-t border-slate-200/80">
+        <div className="h-4 w-14 rounded gsl-shimmer" />
+        <div className="h-4 w-20 rounded gsl-shimmer" />
+      </div>
+    </div>
+  )
+}
+
 /**
  * @param {object} p — useCheckoutPayment result
  * @param {object} c — useCheckoutPricing result
  * @param {() => void} onOpenCancel
  */
 export function CheckoutSummary({ p, c, onOpenCancel }) {
+  const showPriceSkeleton =
+    Boolean(c.commissionLoading) && Boolean(c.promoDiscount || c.promoLoading)
+
   return (
     <div>
       <Card>
@@ -67,7 +94,8 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
           ) : null}
 
           <div className="border-t pt-4 space-y-2">
-            {!c.hasInvoiceCheckout && c.guestCheckoutBreakdown?.hasDetail ? (
+            {!c.hasInvoiceCheckout && showPriceSkeleton ? <CheckoutPriceBreakdownSkeleton /> : null}
+            {!c.hasInvoiceCheckout && !showPriceSkeleton && c.guestCheckoutBreakdown?.hasDetail ? (
               <div
                 data-test-checkout-breakdown
                 data-test-subtotal-value={c.priceRawForTest(p.booking.priceThb, 'THB')}
@@ -105,9 +133,13 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
             {!c.hasInvoiceCheckout ? (
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>{getUIText('checkout_total', c.language)}</span>
-                <span className="text-teal-600">
-                  {c.formatDisplayPrice(c.totalWithFee, p.booking?.currency || 'THB')}
-                </span>
+                {showPriceSkeleton ? (
+                  <span className="h-6 w-24 rounded gsl-shimmer" aria-hidden />
+                ) : (
+                  <span className="text-teal-600">
+                    {c.formatDisplayPrice(c.totalWithFee, p.booking?.currency || 'THB')}
+                  </span>
+                )}
               </div>
             ) : null}
             {canRenterCancelCheckout(p.booking.status) && (

@@ -156,6 +156,7 @@ export function ListingCard({
       )}
     >
       <CardImageCarousel
+        listingId={id}
         detailHref={detailUrl}
         images={allImages}
         title={title}

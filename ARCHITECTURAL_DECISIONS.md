@@ -555,3 +555,128 @@ Page content (rails, grid, map)
 3. `--app-search-chrome-height` обновляется при смене phase/chips; map/list sticky используют **только** shell utilities.
 4. `npm run check:shell` (расширенный) не находит hardcoded top offsets на `/listings` map chrome.
 5. Документы: этот ADR + актуальные строки в `TECHNICAL_MANIFESTO.md` / `ARCHITECTURAL_PASSPORT.md`.
+
+---
+
+## ADR-172: Deal Context SSOT — Listing → Chat → Invoice (Stage 172.0)
+
+**Status:** Accepted (2026-06-22) — **implemented** Waves 0–3, 5; Wave 4 cancelled (2026-06-22). Epic **closed** at Stage **172.5.0**.  
+**Supersedes:** ad-hoc `sessionStorage` prefill keys (`gostaylo_chat_prefill_*`, `gostaylo_chat_context_listing_*`) as deal-context SSOT — **removed Stage 172.3.0**.  
+**Related:** inquiry bootstrap — `lib/services/booking/inquiry.service.js` (`ensureInquiryConversation`); invoice — `lib/chat/post-chat-invoice.server.js`; checkout — `/checkout/[bookingId]?invoiceId=`.
+
+### Context (audit 2026-06-22)
+
+Сценарий **Listing → Chat → Invoice** уже работает end-to-end, когда гость создаёт **inquiry-бронь** (`POST /api/v2/bookings`, `inquiry: true`): `conversations.booking_id` заполнен, system message несёт даты/цену, инвойс префиллится из `bookings`, оплата идёт через checkout.
+
+Разрыв SSOT возникает на пути **«Написать хозяину»** (`useListingChat.handleContactPartner`):
+
+1. В API уходит только `{ listingId, partnerId }` — **даты с PDP (URL `checkIn`/`checkOut`) не передаются**.
+2. Intro-draft писался в **`sessionStorage`**, но **ни один модуль его не читал** (orphan) — **удалено Wave 3 (172.3.0)**.
+3. Хост может выставить инвойс **без `booking_id`**; гость видит сумму, но **оплата заблокирована** (`invoice-bubble.jsx` → `invoiceBubble_noBookingLinked`).
+4. Checkout SSOT требует **`/checkout/[bookingId]`** — инвойс без брони не замыкает сделку.
+
+Это не «сломанный продукт целиком», а **два параллельных пути**: inquiry (сильный, Airbnb-like) и contact-only (слабый, dead-end на оплате).
+
+### Decision (normative)
+
+**Единый deal-context SSOT для monetizable chat flows — строка `bookings` (status `INQUIRY` / `PENDING`) + `conversations.booking_id`.**
+
+| Слой | SSOT | Запрещено как единственный источник |
+|------|------|-------------------------------------|
+| Даты, гости, quoted price | `bookings.check_in`, `check_out`, `guests_count`, `pricing_snapshot` | URL PDP без записи в БД; `sessionStorage` |
+| Связь чат ↔ сделка | `conversations.booking_id` | «Голый» invoice message без booking |
+| Оплата из чата | `invoices.booking_id` → checkout | Invoice-only checkout без booking row |
+| Dedup треда | `(listing_id, partner_id, renter_id)` | Один тред на пару людей без listing |
+
+**Правило продукта (Super-App, референс Airbnb / Booking request):**
+
+> Любой monetizable intent (contact с выбранными датами, unavailable dates, special price, invoice) **обязан** иметь или создавать **inquiry booking** до или в момент выставления счёта.
+
+**Contact без дат** остаётся допустимым для pre-sales Q&A, но:
+
+- UI **не** обещает оплату до появления booking;
+- хост **не может** отправить оплачиваемый invoice без `booking_id` (server guard + guided UX).
+
+### Options considered
+
+| Option | Описание | Verdict |
+|--------|----------|---------|
+| **A — `conversations.deal_context` JSONB** | Snapshot дат/гостей на conversation без booking | Допустим как **кэш intent** (Wave 2), но **не** заменяет booking для checkout |
+| **B — Always inquiry when PDP has dates** ✅ | Contact / unavailable → тот же `createInquiryBooking` / PATCH existing conv | **Recommended primary** — reuse существующий SSOT |
+| **C — Invoice creates booking lazily** | `POST /chat/invoice` создаёт INQUIRY если dates в payload | **Required fallback** в Wave 1 для host-initiated quote |
+| **D — sessionStorage prefill only** | Текущий orphan keys | **Reject** as SSOT; удалить или one-shot UX fix |
+
+**Выбранная комбинация: B + C**, с optional A позже для UX (шапка чата до commit inquiry).
+
+### Backward compatibility (мы **улучшаем**, не ломаем)
+
+| Существующее поведение | После ADR-172 |
+|------------------------|---------------|
+| Inquiry через модал → chat + booking | **Без изменений** (уже канон) |
+| Dedup `(listing_id, partner_id, renter_id)` | **Сохраняется**; inquiry **upgrade** существующий contact-тред |
+| Instant book → checkout без чата | **Без изменений** |
+| Старые contact-треды без booking | **Не удаляются**; read-only история; новые invoice **требуют** booking |
+| Оплаченные invoice + PAID_ESCROW flows | **Без изменений** |
+| Extension invoice (`intent=extension`) | **Без изменений** (уже требует booking) |
+
+**Единственное «ужесточение» (намеренное):** хост больше не сможет отправить **оплачиваемый** счёт в тред без брони — вместо silent dead-end для гостя будет **guided flow** (создать inquiry / попросить гостя выбрать даты). Это **исправление бага revenue**, не регресс inquiry-пути.
+
+### Migration waves
+
+| Wave | Scope | Files (target) | Exit criteria |
+|------|-------|------------------|---------------|
+| **0 — ADR + docs** | Этот ADR; passport §conversations; manifest Stage 172 | `ARCHITECTURAL_DECISIONS.md`, passport, manifest | PR checklist ссылается ADR-172 |
+| **1 — Invoice gate + lazy inquiry** | ✅ Server **172.1** + UI **172.1.5** + polish **172.1.6**: gate; `SendInvoiceDialog` даты/i18n; client date validation (`check_out` > `check_in`); `invoiceStatus_*` / `invoiceCard_*` / `invoiceBubble_*` i18n (без RU-хардкода в ленте) | `post-chat-invoice.server.js`, `chat-invoice.jsx`, `invoice-bubble.jsx`, `lib/translations/slices/chat-ui.js` | E2E: inquiry thread → pay; bare chat → dates → lazy inquiry; invalid dates blocked client-side |
+| **2 — PDP contact → inquiry when dates set** | ✅ **172.2.0**: `useListingChat` + `contactInquiry` on `POST /api/v2/bookings` → `createInquiryBooking` + `ensureInquiryConversation`; dedup `findReusablePdpContactInquiry`; без дат — contact-only тред | `useListingChat.js`, `pdp-contact-inquiry.js`, `inquiry.service.js`, `bookings/route.js` | Contact with PDP dates → `booking_id` + system inquiry message; unavailable dates → `DATES_CONFLICT`; no dates unchanged |
+| **3 — Remove sessionStorage SSOT lie** | ✅ **172.3.0**: удалены orphan writes `gostaylo_chat_prefill_*` / `gostaylo_chat_context_listing_*` из `useListingChat`; reads в чате отсутствовали; contact-only → пустой тред (`sendIntro: false`) | `useListingChat.js` | Нет записей/чтений deal-context в `sessionStorage`; inquiry SSOT — `createInquiryBooking` |
+| **4 — Optional `deal_context` JSONB** | ❌ **Cancelled** (2026-06-22): избыточен при фокусе на вертикали недвижимости; SSOT остаётся `bookings` + `conversations.booking_id` | — | Не реализуется |
+| **5 — Payment UI i18n + host inbox badges** | ✅ **172.5.0**: `InvoiceBubble` payment-method dialog — `invoiceBubble_paymentMethod*` / `invoiceBubble_pay*` (ru/en/th/zh); host inbox `ConversationList` — compact deal badges (`inboxBadge_*`) via `resolveConversationDealBadge`; enrich API `latestInvoice` + message `metadata` | `invoice-bubble.jsx`, `ConversationList.jsx`, `conversation-inbox-status.js`, `chat-ui.js`, `conversations/route.js` | No RU hardcode in payment dialog; inbox shows invoice pending/paid + inquiry-with-dates badges |
+
+**Wave 1–3 + 5 — полный цикл ADR-172 для недвижимости закрыт.** Wave 4 отменена.
+
+### API / UI contracts (target)
+
+**`POST /api/v2/chat/conversations`** (optional extension, Wave 2):
+
+```json
+{
+  "listingId": "...",
+  "partnerId": "...",
+  "dealContext": {
+    "checkIn": "2026-07-01",
+    "checkOut": "2026-07-05",
+    "guestsCount": 2,
+    "source": "pdp_contact"
+  }
+}
+```
+
+Если `dealContext` present → server **must** call inquiry bootstrap (same as booking create), not only insert bare conversation.
+
+**`POST /api/v2/chat/invoice`:**
+
+- `effectiveBookingId = bookingId || conversation.booking_id` (unchanged).
+- If missing and `checkIn`+`checkOut` present → **`ensureInquiryFromInvoiceContext`** (new helper, Wave 1) → then insert invoice.
+- If missing and no dates → **400** `INVOICE_BOOKING_REQUIRED` + UI copy (host asks guest for dates / uses inquiry modal).
+
+### Non-goals (this ADR)
+
+- Merge all host–guest threads into one (per-listing dedup stays).
+- Replace instant book with chat-first checkout.
+- Host inbox «trips view» (Wave 5 optional).
+- Change payment rails / escrow / ledger.
+
+### Why (world-class reference)
+
+- **Airbnb:** messaging tied to **reservation request** with dates; payment always on a reservation object.
+- **Booking.com:** inquiry carries stay parameters; host quote links to bookable entity.
+- **SSOT alignment:** reuse `bookings` + `pricing_snapshot` + `createInquiryBooking` instead of parallel deal state in browser storage.
+
+### Acceptance (Definition of Done — full ADR-172) ✅ Stage 172.5.0
+
+1. Guest with PDP dates who contacts host → thread has **`booking_id`** and system inquiry message (or equivalent). ✅ Wave 2
+2. Host invoice in any monetizable thread → **`invoices.booking_id` set**; guest can open checkout. ✅ Wave 1
+3. No payable invoice dead-end (`invoiceBubble_noBookingLinked`) without explicit pre-sales-only mode. ✅ Wave 1
+4. Existing inquiry → confirm → invoice → pay smoke path **unchanged**. ✅
+5. Docs: passport `conversations` columns include `booking_id`, `listing_category`, `status_label`; manifest Stage 172.x. ✅
+6. Payment method dialog and host inbox deal badges fully i18n (ru/en/th/zh). ✅ Wave 5
