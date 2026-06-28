@@ -4,12 +4,12 @@ import { AirentoMark } from '@/components/brand/airento-mark'
 import { getUIText } from '@/lib/translations'
 import {
   PDP_HERO_DESKTOP_CLASS,
-  PDP_HERO_MOBILE_CLASS,
+  PDP_HERO_MOBILE_ASPECT_CLASS,
   PDP_HERO_SECTION_MB,
 } from '@/lib/listing/pdp-hero-layout'
 
 /**
- * Zero-photo listing hero — fixed height, branded placeholder (Stage 171.23).
+ * Zero-photo listing hero — fixed aspect / height, branded placeholder.
  */
 export function ListingGalleryEmptyFallback({ language = 'ru', className = '' }) {
   return (
@@ -18,7 +18,7 @@ export function ListingGalleryEmptyFallback({ language = 'ru', className = '' })
       aria-hidden
     >
       <div
-        className={`flex md:hidden w-full flex-col items-center justify-center gap-3 ${PDP_HERO_MOBILE_CLASS}`}
+        className={`flex md:hidden w-full flex-col items-center justify-center gap-3 ${PDP_HERO_MOBILE_ASPECT_CLASS}`}
       >
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80">
           <AirentoMark size={34} />
