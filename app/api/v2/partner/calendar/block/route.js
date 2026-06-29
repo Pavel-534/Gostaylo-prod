@@ -12,6 +12,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
 import { CalendarService } from '@/lib/services/calendar.service'
+import { MANUAL_BLOCK_SOURCE } from '@/lib/calendar/block-source-display.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,7 +148,7 @@ export async function POST(request) {
         start_date: startDate,
         end_date: endDate,
         reason: reasonText,
-        source: 'manual',
+        source: MANUAL_BLOCK_SOURCE,
         units_blocked: unitsBlocked,
       })
       .select()

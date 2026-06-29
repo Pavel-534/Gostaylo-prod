@@ -8,7 +8,7 @@
 import { format, parseISO, addDays } from 'date-fns'
 import { ru as ruLocale, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { 
-  Lock, User, Check, Loader2, X, DollarSign 
+  Lock, User, Check, Loader2, X, DollarSign, Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,8 +31,21 @@ import {
 } from '@/components/ui/select'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
+import {
+  buildBlockedCellTitle,
+  formatBlockExpiresAt,
+  isSoftHoldDisplayKind,
+} from '@/lib/calendar/calendar-cell-presentation.js'
 
 const DF_LOCALE = { ru: ruLocale, en: enUS, zh: zhCN, th: thLocale }
+
+function trTpl(template, vars) {
+  let s = String(template || '')
+  for (const [k, v] of Object.entries(vars || {})) {
+    s = s.split(`{{${k}}}`).join(String(v))
+  }
+  return s
+}
 
 export function ActionModals({
   actionModal,
@@ -317,6 +330,42 @@ export function ActionModals({
               </DialogFooter>
             </>
           )}
+
+          {actionModal.type === 'hold-info' && actionModal.cellData ? (
+            <>
+              <DialogHeader className="space-y-2 pr-8 text-left">
+                <DialogTitle className="leading-snug">{t('partnerCal_holdInfoTitle')}</DialogTitle>
+                <DialogDescription className="break-words text-left leading-snug">
+                  {actionModal.listing?.title} •{' '}
+                  {actionModal.date && format(parseISO(actionModal.date), 'd MMMM yyyy', { locale: dfLoc })}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-4 text-sm text-slate-700">
+                <p className="leading-relaxed">
+                  {buildBlockedCellTitle(actionModal.cellData, t, trTpl, language)}
+                </p>
+                {actionModal.cellData.blockExpiresAt ? (
+                  <p className="flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-slate-600">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+                    <span>
+                      {trTpl(t('partnerCal_holdExpiresAt'), {
+                        expires: formatBlockExpiresAt(actionModal.cellData.blockExpiresAt, language),
+                      })}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  className="min-h-11 w-full sm:w-auto"
+                  onClick={() => setActionModal({ open: false, type: null, listing: null, date: null, cellData: null })}
+                >
+                  {t('partnerCal_holdInfoClose')}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
         </DialogContent>
       </Dialog>
       

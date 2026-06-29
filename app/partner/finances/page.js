@@ -237,7 +237,7 @@ function PartnerFinancesV2Content() {
         onRefetchPayouts={refetchPayouts}
       />
 
-      <PartnerFinancesLedger t={t} balanceBreakdown={balanceBreakdown} />
+      <PartnerFinancesLedger t={t} balanceBreakdown={balanceBreakdown} language={language} />
 
       <PartnerFinancesPayoutMathCard
         t={t}

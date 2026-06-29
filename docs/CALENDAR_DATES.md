@@ -16,11 +16,19 @@
 - JS: **`lib/booking/status-sets.js`** → `OCCUPYING_BOOKING_STATUSES` (вкл. **`AWAITING_PAYMENT`**, **`THAWED`**).
 - SQL: **`create_booking_atomic_v1`**, **`batch_check_listing_availability`** — дефолтные массивы синхронизированы (`migrations/stage152_01_thawed_occupying_ssot.sql` добавил **`THAWED`**); ночной overlap броней — per-listing TZ (**`stage152_03`**).
 
-## Checkout hold TTL (Stage 152.1)
+## Checkout hold TTL (Stage 152.1 → 175.4)
 
-- Брошенный checkout в **`AWAITING_PAYMENT`** автоматически отменяется cron **`/api/cron/cleanup-drafts`** через **`processExpiredAwaitingPaymentCheckouts`** (`lib/booking/checkout-hold-expiry.js`).
-- TTL по умолчанию **30 мин** (`CHECKOUT_HOLD_TTL_MINUTES` env, минимум 5).
-- Якорь: `max(payment_intents.initiated_at | payment_intents.created_at, bookings.created_at)` — **без** `updated_at` (случайные touch не продлевают hold).
+- Брошенный checkout в **`AWAITING_PAYMENT`** автоматически отменяется cron **`/api/cron/cleanup-drafts`** через **`processExpiredAwaitingPaymentCheckouts`** (`lib/booking/checkout-hold-expiry.js` + **`checkout-hold-policy.js`**).
+- **Chat-invoice:** deadline = invoice **`expires_at`** (20m transport / 3h housing) — **не** дефолтные 30m.
+- **Прочие checkout:** TTL **30 мин** (`CHECKOUT_HOLD_TTL_MINUTES` env, минимум 5); якорь = `max(payment_intents.initiated_at | created_at, bookings.created_at)`.
+
+## Invoice payment window (Stage 175.3 → 175.4)
+
+- SSOT: **`lib/booking/payment-window-policy.js`** — transport **20 min**, housing/other **3 h** после chat-invoice.
+- Checkout hold SSOT: **`lib/booking/checkout-hold-policy.js`**; **`payment/initiate`** пишет **`checkout_hold_expires_at`** в metadata брони.
+- Persist: **`invoices.metadata.expires_at`**; cron сравнивает ISO (минутная/секундная точность) → **`processExpiredPendingInvoices`** + **`processExpiredAwaitingPaymentCheckouts`**.
+- UI: **`InvoiceBubble`** countdown `MM:SS`; system notice **`invoice_payment_window_notice`** — i18n ru/en/zh/th.
+- Inquiry **`inquiry_hold`** **не** уменьшает availability (JS + SQL `stage175_3`); first paid wins.
 
 ## iCal (all-day + timezone)
 

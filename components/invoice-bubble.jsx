@@ -31,6 +31,38 @@ const PAID_BOOKING_STATUSES = new Set([
   'COMPLETED',
 ])
 
+const COUNTDOWN_WARN_MS = 5 * 60 * 1000
+
+function formatCountdownMmSs(remainingMs) {
+  const totalSec = Math.max(0, Math.floor(remainingMs / 1000))
+  const minutes = Math.floor(totalSec / 60)
+  const seconds = totalSec % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function useInvoicePaymentCountdown(expiresAt, active) {
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!active || !expiresAt) return undefined
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [active, expiresAt])
+
+  const expiryMs = Date.parse(String(expiresAt || ''))
+  if (!active || !expiresAt || !Number.isFinite(expiryMs)) {
+    return { remainingMs: 0, expired: false, mmss: '00:00', show: false }
+  }
+
+  const remainingMs = Math.max(0, expiryMs - nowMs)
+  return {
+    remainingMs,
+    expired: remainingMs <= 0,
+    mmss: formatCountdownMmSs(remainingMs),
+    show: true,
+  }
+}
+
 /**
  * Компактная карточка счёта в ленте чата (in-app billing).
  */
@@ -77,6 +109,14 @@ export function InvoiceBubble({
     [invoice, guestUiCurrency, rateMap, language],
   )
 
+  const expiresAt = invoice?.expires_at || invoice?.expiresAt || null
+  const countdownActive =
+    Boolean(invoice) &&
+    !PAID_BOOKING_STATUSES.has(String(bookingStatus || '').toUpperCase()) &&
+    String(invoice?.status || 'PENDING').toUpperCase() === 'PENDING' &&
+    Boolean(expiresAt)
+  const countdown = useInvoicePaymentCountdown(expiresAt, countdownActive)
+
   if (!invoice) return null
 
   const bookingPaid = PAID_BOOKING_STATUSES.has(String(bookingStatus || '').toUpperCase())
@@ -85,6 +125,7 @@ export function InvoiceBubble({
     : String(invoice.status || 'PENDING').toUpperCase()
   const statusInfo = resolveInvoiceStatusPresentation(rawStatus, language)
   const isPaid = rawStatus === 'PAID'
+  const isExpired = rawStatus === 'EXPIRED'
   const canPay =
     showPay &&
     !isOwn &&
@@ -177,6 +218,22 @@ export function InvoiceBubble({
         {invoice.description && (
           <p className="mb-3 line-clamp-3 text-sm font-medium leading-snug text-slate-700">
             {invoice.description}
+          </p>
+        )}
+
+        {countdown.show && (
+          <p
+            className={cn(
+              'mb-3 text-sm font-semibold tabular-nums',
+              countdown.expired
+                ? 'text-slate-500'
+                : countdown.remainingMs < COUNTDOWN_WARN_MS
+                  ? 'text-amber-600'
+                  : 'text-slate-700',
+            )}
+            data-testid="invoice-bubble-countdown"
+          >
+            {tx('invoiceBubble_countdownRemaining', { time: countdown.mmss })}
           </p>
         )}
 

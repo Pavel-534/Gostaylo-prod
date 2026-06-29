@@ -8,6 +8,16 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 175.4.0 (2026-06-22):** Timer sync — **`checkout-hold-policy.js`** aligns `AWAITING_PAYMENT` with invoice `expires_at` (not default 30m); **`payment/initiate`** rejects expired invoices + writes `checkout_hold_expires_at`; **`InvoiceBubble`** live MM:SS countdown; **`invoice_payment_window_notice`** i18n (ru/en/zh/th) via guest `resolveGuestNotifyLocale`.
+
+**Stage 175.3.0 (2026-06-22):** Payment windows SSOT — **`lib/booking/payment-window-policy.js`**: transport **20 min**, housing/other **3 h** after chat invoice; **`metadata.expires_at`** + **`hold_minutes`** on `invoices` insert; cron **`resolveInvoiceExpiryIso`** reads `expires_at` first; expired invoice → **`invoice_hold`** release + booking **`CANCELLED`** (`auto_expired_invoice_payment_window`). Inquiry **`inquiry_hold`** no longer blocks availability (JS **`countsTowardCalendarAvailability`** + SQL **`stage175_3`**); **`createInquirySoftHold`** no-op. System chat **`invoice_payment_window_notice`** on invoice send.
+
+**Stage 175.2.0 (2026-06-22):** Calendar SSOT sweep — `block-source-display.js` exports `MANUAL_BLOCK_SOURCE`, `INVOICE_HOLD_SOURCE`, `INQUIRY_HOLD_SOURCE` (+ legacy `INQUIRY_SOFT_HOLD_SOURCE` alias); writers (`post-chat-invoice`, `invoice-extension`, `inquiry-soft-hold`, partner block APIs, smoke) import constants. `INVOICE_HOLD` grid style — static amber ring (no `animate-pulse`). **`PartnerFinancesTransactionHistory`** dual-layout `<md` cards.
+
+**Stage 175.1.0 (2026-06-22):** Partner extranet polish — **`lib/calendar/block-source-display.js`** SSOT `blockKind` (`MANUAL` | `INVOICE_HOLD` | `INQUIRY_HOLD` | `ICAL` | `INVENTORY`); **`calendar-query-blocks.js`** + `blockExpiresAt`; **`calendar-cell-presentation.js`** palette/legend; hold tooltip + **`hold-info`** modal (`expires_at`). Mobile finances: **`PartnerFinancesLedger`** / **`PartnerFinancesDocuments`** card stack `<md` (pattern from payout history).
+
+**Stage 175.0 (2026-06-22):** Silent SW + resilience — **`components/sw-register.jsx`**: фоновая установка SW без toast на обычных деплоях; force-update toast только при `NEXT_PUBLIC_CRITICAL_RELEASE_VERSION` > `NEXT_PUBLIC_APP_RELEASE_VERSION` + PWA/mobile (`lib/pwa/release-version.js`, `shouldShowSwUpdatePrompt`). **`components/pwa/ChunkLoadResilience.jsx`** — graceful reload на ChunkLoadError/CSS chunk. i18n **`pwaSwUpdate_*`** — мягкий copy.
+
 **Stage 173.1.0 (2026-06-27):** Stabilization sprint — chat invoice Special Offer: `syncBookingForPayableChatInvoice` (`INQUIRY` → `AWAITING_PAYMENT` + `price_thb` / `pricing_snapshot` sync on invoice); iCal `SUSPICIOUS_EMPTY_FEED` guard; E2E `chat-invoice-payment-golden-path.spec.ts`. iCal prod: external cron-job.org ~30 min → `/api/cron/ical-sync` (Vercel daily fallback).
 
 **Stage 174.1.0 (2026-06-27):** ADR-174 i18n sweep — inbox (`chatListPreview_*`, `chatInbox_*`, remove `isRu` anti-pattern), checkout/PDP hardcode cleanup, WCAG 44px touch targets in `ConversationList`; E2E golden path uses `promote-booking-paid-escrow` fixture (no webhook secret). SSOT strings: `lib/translations/slices/chat-ui.js`, `checkout.js`, `listings-public.js`.

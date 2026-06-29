@@ -18,6 +18,10 @@ import {
 } from '@/lib/services/finance/fintech-snapshot.service.js'
 import { assertHostPayoutReadyForBooking } from '@/lib/partner/host-payout-booking-gate'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
+import {
+  resolveInvoicePaymentExpiresAtIso,
+} from '@/lib/booking/payment-window-policy.js'
+import { resolveCheckoutHoldExpiresAtIso } from '@/lib/booking/checkout-hold-policy.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,6 +126,40 @@ export async function POST(request, { params }) {
         return NextResponse.json({ success: false, error: 'Invoice is cancelled' }, { status: 400 })
       }
       invoice = inv
+    } else if (booking?.metadata?.chat_invoice_id) {
+      const { data: inv } = await supabaseAdmin
+        .from('invoices')
+        .select('id,booking_id,amount,status,metadata,created_at')
+        .eq('id', String(booking.metadata.chat_invoice_id))
+        .maybeSingle()
+      if (inv && String(inv.status || '').toLowerCase() === 'pending') {
+        invoice = inv
+      }
+    }
+
+    if (invoice) {
+      const invoiceExpiryIso = resolveInvoicePaymentExpiresAtIso(invoice)
+      const expiryMs = Date.parse(String(invoiceExpiryIso || ''))
+      if (Number.isFinite(expiryMs) && expiryMs <= Date.now()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invoice payment window has expired',
+            code: 'INVOICE_PAYMENT_WINDOW_EXPIRED',
+          },
+          { status: 410 },
+        )
+      }
+      if (String(invoice.status || '').toLowerCase() === 'expired') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invoice payment window has expired',
+            code: 'INVOICE_PAYMENT_WINDOW_EXPIRED',
+          },
+          { status: 410 },
+        )
+      }
     }
 
     let walletUseAppliedThb = 0
@@ -234,6 +272,12 @@ export async function POST(request, { params }) {
     }
 
     const paymentInitiatedAt = new Date().toISOString()
+    const checkoutHoldExpiresAt = resolveCheckoutHoldExpiresAtIso({
+      booking,
+      invoice,
+      intentStartedAt: paymentInitiatedAt,
+      intentExpiresAt: intentRes.intent?.expiresAt || null,
+    })
     const existingSnapshot = readFintechSnapshotFromBooking(booking)
     const fintechSnapshot =
       existingSnapshot || (await buildFintechSnapshotPayload())
@@ -248,7 +292,13 @@ export async function POST(request, { params }) {
           paymentIntentId: initiated.intent.id,
           paymentMethod: initiated.selectedMethod,
           paymentInitiatedAt,
-          invoiceId: invoiceId || null,
+          invoiceId: invoiceId || invoice?.id || null,
+          ...(checkoutHoldExpiresAt
+            ? {
+                checkout_hold_expires_at: checkoutHoldExpiresAt,
+                chat_invoice_expires_at: checkoutHoldExpiresAt,
+              }
+            : {}),
           wallet_discount_thb:
             walletUseAppliedThb > 0 ? walletUseAppliedThb : booking?.metadata?.wallet_discount_thb || 0,
           wallet_spend_transaction_id:

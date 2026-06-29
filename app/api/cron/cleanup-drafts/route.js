@@ -26,6 +26,10 @@ import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/service
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
 import { processExpiredAwaitingPaymentCheckouts } from '@/lib/booking/checkout-hold-expiry.js';
+import {
+  LEGACY_INVOICE_EXPIRY_MINUTES,
+  resolveInvoicePaymentExpiresAtIso,
+} from '@/lib/booking/payment-window-policy.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,7 +46,13 @@ const DISPUTE_EVIDENCE_RETENTION_DAYS = 180;
 const DISPUTE_EVIDENCE_BUCKET = 'dispute-evidence';
 const TERMINAL_DISPUTE_STATUSES = ['RESOLVED', 'REJECTED', 'CLOSED'];
 const PARTNER_RESPONSE_SLA_HOURS = 24;
-const DEFAULT_INVOICE_EXPIRY_HOURS = 24;
+
+const INVOICE_EXPIRE_CANCEL_STATUSES = new Set([
+  'INQUIRY',
+  'PENDING',
+  'CONFIRMED',
+  'AWAITING_PAYMENT',
+]);
 
 /**
  * Delete images from Supabase Storage for a listing (per-URL; DB trigger also clears prefix on DELETE).
@@ -89,17 +99,10 @@ function withHoursAgo(hours) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
 
-function withHoursAfter(dateIso, hours) {
-  const baseMs = Date.parse(String(dateIso || ''));
-  if (!Number.isFinite(baseMs)) return null;
-  return new Date(baseMs + hours * 60 * 60 * 1000).toISOString();
-}
-
 function resolveInvoiceExpiryIso(invoiceRow) {
-  const meta = invoiceRow?.metadata && typeof invoiceRow.metadata === 'object' ? invoiceRow.metadata : {};
-  const fromMeta = meta?.expires_at || meta?.invoice?.expires_at || null;
-  const fallback = withHoursAfter(invoiceRow?.created_at, DEFAULT_INVOICE_EXPIRY_HOURS);
-  return fromMeta || fallback || null;
+  return resolveInvoicePaymentExpiresAtIso(invoiceRow, {
+    legacyFallbackMinutes: LEGACY_INVOICE_EXPIRY_MINUTES,
+  });
 }
 
 async function notifyAutoExpiredBooking(booking) {
@@ -374,6 +377,40 @@ async function processExpiredPendingInvoices() {
       console.info(
         `[CLEANUP] invoice_hold released: invoice=${expiredRow.id} blocks=${holdResult.released}`,
       );
+    }
+
+    const bookingId = expiredRow?.booking_id ? String(expiredRow.booking_id) : '';
+    if (bookingId) {
+      const { data: bookingRow } = await supabaseAdmin
+        .from('bookings')
+        .select('id, status, metadata')
+        .eq('id', bookingId)
+        .maybeSingle();
+      const bookingStatus = String(bookingRow?.status || '').toUpperCase();
+      if (bookingRow && INVOICE_EXPIRE_CANCEL_STATUSES.has(bookingStatus)) {
+        const statusResult = await BookingService.updateStatus(bookingId, 'CANCELLED', {
+          reason: 'auto_expired_invoice_payment_window',
+          referralTrigger: 'cron_invoice_payment_window_expired',
+        });
+        if (statusResult?.success) {
+          const prevMeta =
+            bookingRow?.metadata && typeof bookingRow.metadata === 'object'
+              ? bookingRow.metadata
+              : {};
+          await supabaseAdmin
+            .from('bookings')
+            .update({
+              metadata: {
+                ...prevMeta,
+                cancel_reason: 'auto_expired_invoice_payment_window',
+                auto_expired_invoice_payment_window_at: nowIso,
+                expired_invoice_id: expiredRow.id,
+              },
+            })
+            .eq('id', bookingId);
+        }
+        await releaseInquirySoftHold(bookingId);
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.174.1.0 | **Last Updated**: 2026-06-27 | **Stage 174.1.0:** inbox i18n sweep (4 langs) + E2E golden path fixture isolation. |
+> **Version**: 12.175.4.0 | **Last Updated**: 2026-06-22 | **Stage 175.4.0:** checkout hold ↔ invoice expiry sync + chat countdown UI. |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -205,7 +205,10 @@
 | **Service Worker (171.13 → 171.20)** | SSOT template **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (**.gitignore**); **`prebuild`** `bump-sw-cache.mjs` + **`postbuild`** `generate-sw-precache.mjs`; push module + SWR; **`sw-register.jsx`** update toast | Коммитить **`public/sw.js`** |
 | **Media delivery (171.20 → 171.21)** | Guest images: **`lib/media/image-delivery.js`** — catalog cards + **PDP hero/lightbox** (`getPdpHeroImageUrls`, `getPdpLightboxImageUrls`, connection-aware carousel/bento); **`hooks/use-network-quality.js`** | Дубли `sizes`/URL в карточках и `BentoGallery` |
 | **PDP navigation (171.21 → 171.23)** | **`loading.js`** shell; RQ sync init; touch prefetch + **`hero-image-warmup.js`**; View Transitions; **`pdp-hero-layout.js`** CLS; **`ListingGalleryEmptyFallback`**; map viewport gate; **`useListingPublicCalendarQuery`** + **`useListingAvailabilityQuery`**; **`ListingPdpDetailsColumn`** memo | Hover-only prefetch; map eager load; calendar fetch in component state |
-| **PWA SW update (171.22)** | **`PwaSwUpdateToast`** branded UI; `SKIP_WAITING` + **`location.reload()`** (controllerchange + 2.5s fallback) | Dismiss toast before reload |
+| **Partner calendar blocks (175.1)** | `calendar_blocks.source` → **`resolveBlockDisplayKind`** (`lib/calendar/block-source-display.js`); partner grid `blockKind` + `blockExpiresAt`; UI SSOT **`calendar-cell-presentation.js`** | Binary manual/iCal `blockKind` |
+| **Partner finances mobile (175.1 → 175.2)** | Ledger / Documents / **TransactionHistory** — dual layout `md+` table, `<md` card stack | Horizontal scroll on mobile |
+| **Calendar block sources (175.2)** | SSOT **`lib/calendar/block-source-display.js`** — `MANUAL_BLOCK_SOURCE`, `INVOICE_HOLD_SOURCE`, `INQUIRY_HOLD_SOURCE`; all `calendar_blocks` writers import | String literals in services |
+| **PWA SW update (171.22 → 175)** | Silent background SW (`sw-register.jsx` — no toast on normal `waiting`); critical force-update via **`NEXT_PUBLIC_CRITICAL_RELEASE_VERSION`** vs **`NEXT_PUBLIC_APP_RELEASE_VERSION`** (`lib/pwa/release-version.js`) + PWA/mobile only; **`ChunkLoadResilience.jsx`** graceful reload on chunk/CSS failures | Toast on every deploy; `skipWaiting` mid-session |
 | **Guest personalization (169.5)** | Cookie **`guest_viewed_listings`** → For You `guest_personalized` + similar category boost; merge on login | Fingerprinting; oversized cookies |
 | **Не путать** | Партнёрская база, ledger, payout FX, FinTech-пульт — отдельные домены; на FinTech-пульте для владельца — подсказка «суммы для гостя (с сервисным сбором)» где применимо. | ADR / **`docs/FINANCIAL_FLOW_MAP.md`** |
 

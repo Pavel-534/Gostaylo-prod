@@ -7,12 +7,20 @@
 
 import { format, parseISO, isToday } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
-import { Home, Anchor, Bike, Car, Lock, CalendarSync } from 'lucide-react'
+import { Home, Anchor, Bike, Car, Lock, CalendarSync, Receipt, MessageCircle, Clock } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getUIText } from '@/lib/translations'
+import {
+  BLOCK_DISPLAY_KIND,
+  buildBlockedCellTitle,
+  formatBlockExpiresAt,
+  resolveBlockedCellClass,
+  resolveBookingStatusCellClass,
+  isSoftHoldDisplayKind,
+} from '@/lib/calendar/calendar-cell-presentation.js'
 
 const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
 
@@ -24,7 +32,6 @@ function trTpl(template, vars) {
   return s
 }
 
-// Type icons
 const TYPE_ICONS = {
   villa: Home,
   apartment: Home,
@@ -32,25 +39,25 @@ const TYPE_ICONS = {
   yacht: Anchor,
   bike: Bike,
   car: Car,
-  default: Home
+  default: Home,
 }
 
-// Status colors
 const STATUS_COLORS = {
-  CONFIRMED: 'bg-brand/100 text-white',
-  PENDING: 'bg-amber-400 text-amber-900',
-  PAID: 'bg-emerald-500 text-white',
-  BLOCKED_MANUAL: 'bg-slate-300 text-slate-700',
-  BLOCKED_ICAL: 'bg-brand/15 text-brand border border-dashed border-brand/40',
-  BLOCKED_INVENTORY: 'bg-slate-200 text-slate-500',
-  AVAILABLE: 'bg-white hover:bg-slate-50'
+  AVAILABLE: 'bg-white hover:bg-slate-50',
 }
 
-function blockedCellClass(cellData) {
-  const kind = cellData.blockKind || (cellData.blockSource === 'manual' ? 'manual' : null)
-  if (kind === 'ical') return STATUS_COLORS.BLOCKED_ICAL
-  if (kind === 'inventory') return STATUS_COLORS.BLOCKED_INVENTORY
-  return STATUS_COLORS.BLOCKED_MANUAL
+function blockedCellIcon(kind) {
+  if (kind === BLOCK_DISPLAY_KIND.ICAL) return CalendarSync
+  if (kind === BLOCK_DISPLAY_KIND.INVOICE_HOLD) return Receipt
+  if (kind === BLOCK_DISPLAY_KIND.INQUIRY_HOLD) return MessageCircle
+  return Lock
+}
+
+function blockedCellChipKey(kind) {
+  if (kind === BLOCK_DISPLAY_KIND.ICAL) return 'partnerCal_chipIcal'
+  if (kind === BLOCK_DISPLAY_KIND.INVOICE_HOLD) return 'partnerCal_chipInvoice'
+  if (kind === BLOCK_DISPLAY_KIND.INQUIRY_HOLD) return 'partnerCal_chipInquiry'
+  return 'partnerCal_chipManual'
 }
 
 export function CalendarGrid({
@@ -62,7 +69,6 @@ export function CalendarGrid({
   todayRef,
   scrollContainerRef,
   language = 'ru',
-  /** В модалках/шитах задайте меньше (например min(60vh, 420px)), иначе пустота снизу */
   scrollMaxHeight = 'calc(100vh - 280px)',
 }) {
   const t = (key) => getUIText(key, language)
@@ -72,35 +78,30 @@ export function CalendarGrid({
     <TooltipProvider>
       <Card className="overflow-hidden border-0 shadow-lg">
         <div className="relative">
-        {/* Scrollable container */}
-        <div 
+        <div
           ref={scrollContainerRef}
           className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
           style={{ maxHeight: scrollMaxHeight }}
         >
           <div className="inline-flex min-w-full">
-            {/* Sticky Listing Column */}
             <div className="sticky left-0 z-20 bg-white border-r border-slate-200 shadow-sm">
-              {/* Corner cell */}
               <div className="flex h-16 items-center justify-center border-b border-slate-200 bg-slate-50 px-4">
                 <span className="text-sm font-semibold text-slate-600">{t('partnerCal_gridColumnListing')}</span>
               </div>
-              
-              {/* Listing rows */}
+
               {listings.map((item) => {
                 const TypeIcon = TYPE_ICONS[item.listing.type] || TYPE_ICONS.default
-                
+
                 return (
-                  <div 
+                  <div
                     key={item.listing.id}
                     className="flex min-h-[72px] items-center gap-3 border-b border-slate-100 px-3 py-2 transition-colors hover:bg-slate-50"
                     style={{ minWidth: '220px', maxWidth: '260px' }}
                   >
-                    {/* Thumbnail */}
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                       {item.listing.coverImage ? (
-                        <ProxiedImage 
-                          src={item.listing.coverImage} 
+                        <ProxiedImage
+                          src={item.listing.coverImage}
                           alt={item.listing.title}
                           fill
                           className="object-cover"
@@ -112,8 +113,7 @@ export function CalendarGrid({
                         </div>
                       )}
                     </div>
-                    
-                    {/* Info */}
+
                     <div className="flex-1 min-w-0">
                       <h4 className="truncate text-base font-semibold text-slate-900">
                         {item.listing.title}
@@ -127,24 +127,22 @@ export function CalendarGrid({
                 )
               })}
             </div>
-            
-            {/* Date columns */}
+
             <div className="flex-1">
-              {/* Sticky Date Header */}
               <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50">
                 {dates.map((date) => {
                   const dateObj = parseISO(date)
                   const isCurrentDay = isToday(dateObj)
                   const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
-                  
+
                   return (
-                    <div 
+                    <div
                       key={date}
                       ref={isCurrentDay && todayRef ? todayRef : undefined}
                       className={cn(
                         'flex h-16 flex-col items-center justify-center border-r border-slate-100',
-                        isCurrentDay && "bg-brand/10",
-                        isWeekend && "bg-slate-100/50"
+                        isCurrentDay && 'bg-brand/10',
+                        isWeekend && 'bg-slate-100/50',
                       )}
                       style={{ width: dayWidth, minWidth: dayWidth }}
                     >
@@ -170,8 +168,7 @@ export function CalendarGrid({
                   )
                 })}
               </div>
-              
-              {/* Data rows */}
+
               {listings.map((item) => (
                 <div key={item.listing.id} className="flex">
                   {dates.map((date) => {
@@ -180,15 +177,14 @@ export function CalendarGrid({
                     const isWeekend = parseISO(date).getDay() === 0 || parseISO(date).getDay() === 6
                     const flashSaleDay =
                       cellData.status === 'AVAILABLE' && cellData.marketingPromo?.isFlashSale === true
-                    
-                    // Determine cell appearance
+
                     let cellClass = STATUS_COLORS.AVAILABLE
                     let content = null
-                    
+                    let blockKind = null
+
                     if (cellData.status === 'BOOKED') {
-                      cellClass = STATUS_COLORS[cellData.bookingStatus] || STATUS_COLORS.CONFIRMED
-                      
-                      // Show guest name (truncated for first day)
+                      cellClass = resolveBookingStatusCellClass(cellData.bookingStatus)
+
                       if (cellData.isCheckIn || viewMode === 'wide') {
                         content = (
                           <span className="truncate px-0.5 text-[10px] font-semibold leading-tight">
@@ -197,37 +193,37 @@ export function CalendarGrid({
                         )
                       }
                     } else if (cellData.status === 'BLOCKED') {
-                      cellClass = blockedCellClass(cellData)
+                      cellClass = resolveBlockedCellClass(cellData)
+                      blockKind = cellData.blockKind
+                      const Icon = blockedCellIcon(blockKind)
+
                       if (viewMode === 'wide') {
-                        const isIcal = cellData.blockKind === 'ical'
-                        content = isIcal ? (
-                          <CalendarSync className="h-4 w-4 text-brand" aria-hidden />
-                        ) : (
-                          <Lock className="h-4 w-4 text-slate-600" aria-hidden />
-                        )
-                      } else if (cellData.blockKind === 'ical') {
+                        content = <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                      } else if (
+                        blockKind === BLOCK_DISPLAY_KIND.ICAL ||
+                        blockKind === BLOCK_DISPLAY_KIND.INVOICE_HOLD ||
+                        blockKind === BLOCK_DISPLAY_KIND.INQUIRY_HOLD
+                      ) {
                         content = (
-                          <span className="text-[9px] font-bold uppercase tracking-wide text-brand">
-                            {t('partnerCal_chipIcal')}
+                          <span className="text-[9px] font-bold uppercase tracking-wide">
+                            {t(blockedCellChipKey(blockKind))}
                           </span>
                         )
                       }
                     } else if (cellData.status === 'AVAILABLE') {
-                      // Show price for available dates
                       const price = cellData.priceThb || item.listing.basePriceThb
                       const basePrice = item.listing.basePriceThb
                       const isHighSeason = price > basePrice
                       const isLowSeason = price < basePrice
                       const minStay = cellData.minStay || 1
                       const marketingPromo = cellData.marketingPromo || null
-                      
-                      // Price styling based on season
-                      const priceColor = isHighSeason 
-                        ? 'text-brand font-bold' 
-                        : isLowSeason 
-                        ? 'text-slate-400' 
-                        : 'text-slate-500'
-                      
+
+                      const priceColor = isHighSeason
+                        ? 'text-brand font-bold'
+                        : isLowSeason
+                          ? 'text-slate-400'
+                          : 'text-slate-500'
+
                       content = (
                         <div className="flex flex-col items-center justify-center gap-0.5 px-0.5">
                           <span className={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}>
@@ -267,8 +263,27 @@ export function CalendarGrid({
                         </div>
                       )
                     }
-                    
-                    return (
+
+                    const cellTitle =
+                      cellData.status === 'BOOKED'
+                        ? trTpl(t('partnerCal_cellTitleBooked'), {
+                            name: cellData.guestName || t('partnerCal_guestShort'),
+                            status: cellData.bookingStatus || '',
+                          })
+                        : cellData.status === 'BLOCKED'
+                          ? buildBlockedCellTitle(cellData, t, trTpl, language)
+                          : cellData.previousGuestName
+                            ? trTpl(t('partnerCal_cellTitleCheckout'), {
+                                name: cellData.previousGuestName,
+                              })
+                            : t('partnerCal_cellTitleAvailable')
+
+                    const showHoldTooltip =
+                      cellData.status === 'BLOCKED' &&
+                      isSoftHoldDisplayKind(cellData.blockKind) &&
+                      cellData.blockExpiresAt
+
+                    const cellInner = (
                       <div
                         key={date}
                         onClick={() => onCellClick(item.listing, date, cellData)}
@@ -278,35 +293,14 @@ export function CalendarGrid({
                           flashSaleDay &&
                             !isCurrentDay &&
                             'shadow-[inset_0_0_0_1px_rgba(249,115,22,0.5)]',
-                          isCurrentDay && "ring-2 ring-inset ring-brand/40",
-                          isWeekend && cellData.status === 'AVAILABLE' && "bg-slate-50",
-                          cellData.isTransition && "border-l-2 border-l-dashed border-l-brand/40",
-                          cellData.isCheckIn && "rounded-l",
-                          cellData.isCheckOut && "rounded-r"
+                          isCurrentDay && 'ring-2 ring-inset ring-brand/40',
+                          isWeekend && cellData.status === 'AVAILABLE' && 'bg-slate-50',
+                          cellData.isTransition && 'border-l-2 border-l-dashed border-l-brand/40',
+                          cellData.isCheckIn && 'rounded-l',
+                          cellData.isCheckOut && 'rounded-r',
                         )}
                         style={{ width: dayWidth, minWidth: dayWidth }}
-                        title={
-                          cellData.status === 'BOOKED'
-                            ? trTpl(t('partnerCal_cellTitleBooked'), {
-                                name: cellData.guestName || t('partnerCal_guestShort'),
-                                status: cellData.bookingStatus || '',
-                              })
-                            : cellData.status === 'BLOCKED'
-                              ? cellData.blockKind === 'ical'
-                                ? trTpl(t('partnerCal_cellTitleIcalBlocked'), {
-                                    reason: cellData.reason || t('partnerCal_cellTitleBlocked'),
-                                  })
-                                : cellData.blockKind === 'manual'
-                                  ? trTpl(t('partnerCal_cellTitleManualBlocked'), {
-                                      reason: cellData.reason || t('partnerCal_cellTitleBlocked'),
-                                    })
-                                  : String(cellData.reason || t('partnerCal_cellTitleBlocked'))
-                              : cellData.previousGuestName
-                                ? trTpl(t('partnerCal_cellTitleCheckout'), {
-                                    name: cellData.previousGuestName,
-                                  })
-                                : t('partnerCal_cellTitleAvailable')
-                        }
+                        title={showHoldTooltip ? undefined : cellTitle}
                       >
                         {flashSaleDay ? (
                           <span
@@ -317,6 +311,23 @@ export function CalendarGrid({
                         ) : null}
                         {content}
                       </div>
+                    )
+
+                    if (!showHoldTooltip) return cellInner
+
+                    return (
+                      <Tooltip key={date}>
+                        <TooltipTrigger asChild>{cellInner}</TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] leading-relaxed">
+                          <p className="font-semibold">{cellTitle}</p>
+                          <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            {trTpl(t('partnerCal_holdExpiresAt'), {
+                              expires: formatBlockExpiresAt(cellData.blockExpiresAt, language),
+                            })}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     )
                   })}
                 </div>

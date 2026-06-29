@@ -2,6 +2,7 @@
  * CalendarHeader Component
  * Navigation, controls, and legend for Partner Calendar
  * Stage 140.4 — iCal legend + force-sync all partner listings
+ * Stage 175.1 — hold kinds + booking payment statuses in legend
  */
 
 'use client'
@@ -23,7 +24,10 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
+import { BLOCK_KIND_CELL_CLASS, BOOKING_STATUS_CELL_CLASS } from '@/lib/calendar/calendar-cell-presentation.js'
+import { BLOCK_DISPLAY_KIND } from '@/lib/calendar/block-source-display.js'
 
 const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
 
@@ -35,29 +39,49 @@ function trTpl(template, vars) {
   return s
 }
 
+function LegendSwatch({ className }) {
+  return <div className={cn('h-3 w-3 shrink-0 rounded', className)} />
+}
+
 function LegendBody({ variant = 'inline', language = 'ru' }) {
   const t = (key) => getUIText(key, language)
   const wrap = variant === 'stacked' ? 'flex flex-col gap-2.5' : 'flex items-center gap-4 flex-wrap'
   return (
     <div className={`${wrap} text-xs`}>
       <div className="flex items-center gap-1.5">
-        <div className="h-3 w-3 shrink-0 rounded bg-brand" />
+        <LegendSwatch className={BOOKING_STATUS_CELL_CLASS.CONFIRMED} />
         <span className="text-slate-600">{t('partnerCal_legendConfirmed')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="h-3 w-3 shrink-0 rounded bg-amber-400" />
+        <LegendSwatch className={BOOKING_STATUS_CELL_CLASS.PENDING} />
         <span className="text-slate-600">{t('partnerCal_legendPending')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="h-3 w-3 shrink-0 rounded bg-slate-300" />
+        <LegendSwatch className={BOOKING_STATUS_CELL_CLASS.AWAITING_PAYMENT} />
+        <span className="text-slate-600">{t('partnerCal_legendAwaitingPayment')}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <LegendSwatch className={BOOKING_STATUS_CELL_CLASS.PAID_ESCROW} />
+        <span className="text-slate-600">{t('partnerCal_legendPaidEscrow')}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <LegendSwatch className={BLOCK_KIND_CELL_CLASS[BLOCK_DISPLAY_KIND.MANUAL]} />
         <span className="text-slate-600">{t('partnerCal_legendManualBlock')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="h-3 w-3 shrink-0 rounded border border-dashed border-brand/50 bg-brand/15" />
+        <LegendSwatch className={BLOCK_KIND_CELL_CLASS[BLOCK_DISPLAY_KIND.INVOICE_HOLD]} />
+        <span className="text-slate-600">{t('partnerCal_legendInvoiceHold')}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <LegendSwatch className={BLOCK_KIND_CELL_CLASS[BLOCK_DISPLAY_KIND.INQUIRY_HOLD]} />
+        <span className="text-slate-600">{t('partnerCal_legendInquiryHold')}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <LegendSwatch className={BLOCK_KIND_CELL_CLASS[BLOCK_DISPLAY_KIND.ICAL]} />
         <span className="text-slate-600">{t('partnerCal_legendIcalBlock')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="h-3 w-3 shrink-0 rounded bg-slate-200" />
+        <LegendSwatch className={BLOCK_KIND_CELL_CLASS[BLOCK_DISPLAY_KIND.INVENTORY]} />
         <span className="text-slate-600">{t('partnerCal_legendInventoryBlock')}</span>
       </div>
       <div className="flex items-center gap-1.5">

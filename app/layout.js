@@ -20,6 +20,7 @@ import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsIni
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
 import { SwRegister } from '@/components/sw-register'
+import { ChunkLoadResilience } from '@/components/pwa/ChunkLoadResilience'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
 import { cookies, headers } from 'next/headers'
@@ -126,6 +127,7 @@ button{font:inherit}
             <AppQueryProvider>
               <PwaInstallProvider>
               <SwRegister />
+              <ChunkLoadResilience />
               <SupabaseRealtimeAuthSync />
               <PushClientInit />
               <Suspense fallback={null}>

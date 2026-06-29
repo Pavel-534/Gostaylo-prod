@@ -11,6 +11,7 @@ import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { CalendarService } from '@/lib/services/calendar.service';
+import { MANUAL_BLOCK_SOURCE } from '@/lib/calendar/block-source-display.js';
 import { toListingDate, addListingDays } from '@/lib/listing-date';
 
 export const dynamic = 'force-dynamic';
@@ -177,7 +178,7 @@ export async function POST(request, { params }) {
       start_date: startDate,
       end_date: endDate,
       reason: reason || 'Ручная блокировка',
-      source: 'manual',
+      source: MANUAL_BLOCK_SOURCE,
       units_blocked: unitsBlocked,
     })
     .select()

@@ -27,6 +27,7 @@ const publicSupabaseHost = supabaseHostname(supabasePublicUrl)
 const serverSupabaseHost = supabaseHostname(supabaseServerUrl)
 
 const { SITE_IMAGE_HOSTS } = require('./lib/site-url.cjs')
+const pkg = require('./package.json')
 
 const PDF_TRACE_INCLUDES = [
   './lib/assets/fonts/partner-pdf/**/*',
@@ -34,6 +35,12 @@ const PDF_TRACE_INCLUDES = [
 ]
 
 const nextConfig = {
+  /** Baked client build id for critical SW force-update gate (Stage 175). */
+  env: {
+    NEXT_PUBLIC_APP_RELEASE_VERSION:
+      process.env.NEXT_PUBLIC_APP_RELEASE_VERSION || pkg.version || '0',
+  },
+
   /** Dev/build isolation: avoids .next race when local dev server is running during `next build`. */
   distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
 

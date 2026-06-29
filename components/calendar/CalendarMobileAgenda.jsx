@@ -13,13 +13,19 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { format, parseISO, isToday as isDateToday, addDays } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
-import { Home, Anchor, Bike, Car, Lock, ChevronDown, Search } from 'lucide-react'
+import { Home, Anchor, Bike, Car, Lock, ChevronDown, Search, Receipt, MessageCircle, CalendarSync } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
 import { getUIText } from '@/lib/translations'
+import {
+  BLOCK_DISPLAY_KIND,
+  formatBlockExpiresAt,
+  resolveBlockedBadgeClass,
+  resolveBookingStatusBadgeClass,
+} from '@/lib/calendar/calendar-cell-presentation.js'
 
 const TYPE_ICONS = {
   villa: Home,
@@ -32,13 +38,6 @@ const TYPE_ICONS = {
 }
 
 const STATUS_BADGE = {
-  CONFIRMED: 'bg-brand text-white',
-  PENDING: 'bg-amber-400 text-amber-950',
-  PAID: 'bg-emerald-600 text-white',
-  BLOCKED: 'bg-slate-400 text-white',
-  BLOCKED_MANUAL: 'bg-slate-400 text-white',
-  BLOCKED_ICAL: 'bg-brand/20 text-brand border border-dashed border-brand/40',
-  BLOCKED_INVENTORY: 'bg-slate-300 text-slate-700',
   AVAILABLE: 'bg-slate-100 text-slate-800 border border-slate-200',
 }
 
@@ -342,26 +341,40 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
   let promoLine = null
 
   if (cellData.status === 'BOOKED') {
-    badgeClass = STATUS_BADGE[cellData.bookingStatus] || STATUS_BADGE.CONFIRMED
-    label =
-      cellData.bookingStatus === 'PENDING'
-        ? t('partnerCal_rowPending')
-        : cellData.bookingStatus === 'PAID'
-          ? t('partnerCal_rowPaid')
-          : t('partnerCal_rowBooked')
+    badgeClass = resolveBookingStatusBadgeClass(cellData.bookingStatus)
+    if (cellData.bookingStatus === 'AWAITING_PAYMENT') {
+      label = t('partnerCal_rowAwaitingPayment')
+    } else if (cellData.bookingStatus === 'PAID_ESCROW') {
+      label = t('partnerCal_rowPaidEscrow')
+    } else if (cellData.bookingStatus === 'PENDING') {
+      label = t('partnerCal_rowPending')
+    } else if (cellData.bookingStatus === 'PAID') {
+      label = t('partnerCal_rowPaid')
+    } else {
+      label = t('partnerCal_rowBooked')
+    }
     sub = cellData.guestName || t('partnerCal_guestShort')
   } else if (cellData.status === 'BLOCKED') {
-    if (cellData.blockKind === 'ical') {
-      badgeClass = STATUS_BADGE.BLOCKED_ICAL
+    badgeClass = resolveBlockedBadgeClass(cellData)
+    const kind = cellData.blockKind
+    if (kind === BLOCK_DISPLAY_KIND.INVOICE_HOLD) {
+      label = t('partnerCal_rowInvoiceHold')
+    } else if (kind === BLOCK_DISPLAY_KIND.INQUIRY_HOLD) {
+      label = t('partnerCal_rowInquiryHold')
+    } else if (kind === BLOCK_DISPLAY_KIND.ICAL) {
       label = t('partnerCal_rowIcalBlocked')
-    } else if (cellData.blockKind === 'inventory') {
-      badgeClass = STATUS_BADGE.BLOCKED_INVENTORY
+    } else if (kind === BLOCK_DISPLAY_KIND.INVENTORY) {
       label = t('partnerCal_rowBlocked')
     } else {
-      badgeClass = STATUS_BADGE.BLOCKED_MANUAL
       label = t('partnerCal_rowManualBlocked')
     }
     sub = cellData.reason ? String(cellData.reason).slice(0, 36) : null
+    if (cellData.blockExpiresAt) {
+      const expiresLine = trTpl(t('partnerCal_holdExpiresAt'), {
+        expires: formatBlockExpiresAt(cellData.blockExpiresAt, language),
+      })
+      sub = sub ? `${sub} · ${expiresLine}` : expiresLine
+    }
   } else {
     const price = cellData.priceThb || item.listing.basePriceThb
     const basePrice = item.listing.basePriceThb
@@ -452,7 +465,15 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
 
         {cellData.status === 'BLOCKED' && !priceLine ? (
           <div className="shrink-0 text-slate-500">
-            <Lock className="h-5 w-5" aria-hidden />
+            {cellData.blockKind === BLOCK_DISPLAY_KIND.INVOICE_HOLD ? (
+              <Receipt className="h-5 w-5 text-amber-700" aria-hidden />
+            ) : cellData.blockKind === BLOCK_DISPLAY_KIND.INQUIRY_HOLD ? (
+              <MessageCircle className="h-5 w-5 text-violet-700" aria-hidden />
+            ) : cellData.blockKind === BLOCK_DISPLAY_KIND.ICAL ? (
+              <CalendarSync className="h-5 w-5 text-brand" aria-hidden />
+            ) : (
+              <Lock className="h-5 w-5" aria-hidden />
+            )}
           </div>
         ) : null}
       </button>

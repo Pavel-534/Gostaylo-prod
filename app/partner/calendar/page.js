@@ -31,6 +31,7 @@ import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { WorkspaceEmptyState } from '@/components/empty-state'
 import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
 import { postIcalSyncPartnerAll } from '@/lib/api/ical-sync-client'
+import { isSoftHoldDisplayKind } from '@/lib/calendar/calendar-cell-presentation.js'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -250,6 +251,17 @@ function MasterCalendarContent() {
       })
     } else if (cellData.status === 'BOOKED') {
       /* booked cell — detail drill-down can be added here */
+    } else if (
+      cellData.status === 'BLOCKED' &&
+      (isSoftHoldDisplayKind(cellData.blockKind) || cellData.blockExpiresAt)
+    ) {
+      setActionModal({
+        open: true,
+        type: 'hold-info',
+        listing,
+        date,
+        cellData,
+      })
     }
   }, [])
   

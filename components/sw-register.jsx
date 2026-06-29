@@ -6,12 +6,13 @@ import { useI18n } from '@/contexts/i18n-context'
 import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
 import { SW_MESSAGE_SKIP_WAITING } from '@/lib/pwa/service-worker-messages.js'
 import { shouldShowSwUpdatePrompt } from '@/lib/pwa/client-display-channel.js'
+import { isBelowCriticalRelease } from '@/lib/pwa/release-version.js'
 import { PwaSwUpdateToast } from '@/components/pwa/PwaSwUpdateToast'
 
 const SW_UPDATE_TOAST_ID = 'airento-sw-update'
 
 /**
- * Early unified SW registration (push + static cache) + branded update prompt (Stage 171.22).
+ * Silent SW by default (Stage 175). Toast only for critical release + PWA/mobile.
  */
 export function SwRegister() {
   const { language } = useI18n()
@@ -36,16 +37,12 @@ export function SwRegister() {
 
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
 
-    const showUpdateToast = (/** @type {ServiceWorker} */ waitingWorker) => {
+    const maybeShowCriticalUpdateToast = (/** @type {ServiceWorker} */ waitingWorker) => {
       if (disposed || updateToastShownRef.current) return
-
-      if (!shouldShowSwUpdatePrompt()) {
-        // Desktop browser: refresh cache silently; new SW activates on next full navigation.
-        return
-      }
+      if (!shouldShowSwUpdatePrompt()) return
+      if (!isBelowCriticalRelease()) return
 
       updateToastShownRef.current = true
-
       const lang = languageRef.current
 
       toast.custom(
@@ -78,17 +75,20 @@ export function SwRegister() {
       if (!worker) return
       worker.addEventListener('statechange', () => {
         if (worker.state !== 'installed') return
-        if (navigator.serviceWorker.controller) {
-          showUpdateToast(worker)
-        } else {
+        if (!navigator.serviceWorker.controller) {
+          // First install — activate without user prompt.
           worker.postMessage({ type: SW_MESSAGE_SKIP_WAITING })
+        }
+        // `waiting` + existing controller: silent — no skipWaiting, no toast (unless critical).
+        else if (isBelowCriticalRelease()) {
+          maybeShowCriticalUpdateToast(worker)
         }
       })
     }
 
     const bindRegistration = (/** @type {ServiceWorkerRegistration} */ registration) => {
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        showUpdateToast(registration.waiting)
+      if (registration.waiting && navigator.serviceWorker.controller && isBelowCriticalRelease()) {
+        maybeShowCriticalUpdateToast(registration.waiting)
       }
 
       registration.addEventListener('updatefound', () => {
