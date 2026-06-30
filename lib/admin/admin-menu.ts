@@ -91,6 +91,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { id: 'ops-moderation', label: 'Очередь модерации', kind: 'link', href: '/admin/moderation', variant: 'brand' },
       { id: 'ops-messages', label: 'Сообщения', kind: 'link', href: '/admin/messages/', variant: 'outline' },
       { id: 'ops-disputes', label: 'Споры', kind: 'link', href: '/admin/disputes', variant: 'outline' },
+      { id: 'ops-review-mod', label: 'Отзывы (flagged)', kind: 'link', href: '/admin/reviews', variant: 'outline' },
     ],
     items: [
       {
@@ -121,6 +122,12 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         title: 'Споры',
         href: '/admin/disputes',
         icon: 'Gavel',
+        allowedRoles: ['ADMIN', 'MODERATOR'],
+      },
+      {
+        title: 'Модерация отзывов',
+        href: '/admin/reviews',
+        icon: 'BadgeCheck',
         allowedRoles: ['ADMIN', 'MODERATOR'],
       },
       {

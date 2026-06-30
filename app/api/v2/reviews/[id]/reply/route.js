@@ -6,6 +6,11 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import { guardReviewComment } from '@/lib/reviews/content-guard.js';
+import {
+  REVIEW_CONTENT_BLOCKED_CODE,
+  REVIEW_CONTENT_BLOCKED_MESSAGE,
+} from '@/lib/reviews/review-content-blocked-error.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,10 +68,23 @@ export async function PUT(request, { params }) {
       }, { status: 400 });
     }
 
+    const trimmedReply = String(reply).trim();
+    const contentGuard = guardReviewComment(trimmedReply);
+    if (contentGuard.shouldFlag) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: REVIEW_CONTENT_BLOCKED_MESSAGE,
+          code: REVIEW_CONTENT_BLOCKED_CODE,
+        },
+        { status: 400 },
+      );
+    }
+
     const { data: updatedReview, error } = await supabaseAdmin
       .from('reviews')
       .update({
-        partner_reply: String(reply).trim(),
+        partner_reply: trimmedReply,
         partner_reply_at: new Date().toISOString(),
       })
       .eq('id', id)

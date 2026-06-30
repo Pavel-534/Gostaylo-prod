@@ -16,6 +16,7 @@ import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust
 import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
+import { REVIEW_MODERATION_APPROVED } from '@/lib/reviews/moderation-status.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -263,7 +264,11 @@ async function enrichPartnerBookingsWithGuestStats(admin, partnerId, rows) {
   const renterIds = [...new Set(rows.map((r) => r.renterId).filter(Boolean))]
   const [ratingRes, reviewedRes] = await Promise.all([
     renterIds.length
-      ? admin.from('guest_reviews').select('guest_id, rating').in('guest_id', renterIds)
+      ? admin
+          .from('guest_reviews')
+          .select('guest_id, rating')
+          .eq('moderation_status', REVIEW_MODERATION_APPROVED)
+          .in('guest_id', renterIds)
       : Promise.resolve({ data: [] }),
     bookingIds.length
       ? admin

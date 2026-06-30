@@ -7,6 +7,11 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service';
 import { BookingStatus } from '@/lib/services/escrow.service';
+import { guardReviewComment } from '@/lib/reviews/content-guard.js';
+import {
+  REVIEW_MODERATION_FLAGGED,
+  moderationStatusFromContentGuard,
+} from '@/lib/reviews/moderation-status.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +35,7 @@ export async function POST(request) {
 
     const bookingId = String(body.bookingId || body.booking_id || '').trim();
     const rating = parseInt(body.rating, 10);
-    const comment = String(body.comment ?? '').slice(0, 4000);
+    const comment = String(body.comment ?? '').trim().slice(0, 4000);
 
     if (!bookingId) {
       return NextResponse.json({ success: false, error: 'bookingId required' }, { status: 400 });
@@ -64,6 +69,9 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Invalid guest' }, { status: 400 });
     }
 
+    const contentGuard = guardReviewComment(comment);
+    const moderationStatus = moderationStatusFromContentGuard(contentGuard.shouldFlag);
+
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('guest_reviews')
       .insert({
@@ -72,8 +80,9 @@ export async function POST(request) {
         booking_id: bookingId,
         rating,
         comment: comment || '',
+        moderation_status: moderationStatus,
       })
-      .select('id, created_at')
+      .select('id, created_at, moderation_status')
       .single();
 
     if (insErr) {
@@ -88,7 +97,14 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      data: { id: inserted.id, createdAt: inserted.created_at },
+      data: {
+        id: inserted.id,
+        createdAt: inserted.created_at,
+        moderationStatus: inserted.moderation_status || moderationStatus,
+      },
+      ...(moderationStatus === REVIEW_MODERATION_FLAGGED
+        ? { moderationPending: true }
+        : {}),
     });
   } catch (error) {
     console.error('[PARTNER GUEST-REVIEWS POST]', error);

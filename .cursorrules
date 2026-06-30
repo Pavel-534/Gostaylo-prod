@@ -64,3 +64,9 @@
 - **Новые цвета и визуальные токены:** только через **`lib/theme/tokens.ts`** / **`lib/theme/tokens.cjs`** → `tailwind.config.js` и `app/globals.css`.
 - **FinTech Mint/Navy:** `brand-mint` / `brand-navy` в Tailwind; не дублировать hex в admin panels (миграция — UI-1+).
 - **Типографика:** `font-sans` включает `var(--font-sans)` (Inter из `app/layout.js`); не обходить через inline `fontFamily`.
+
+### Mobile Touch Areas & Ergonomics (Stage 176.2)
+
+- **Touch targets:** интерактивные зоны на mobile (кнопки, звёзды рейтинга, иконки закрытия, действия модерации) — **не менее 44×44px** (`min-h-[44px] min-w-[44px]` или эквивалент с padding).
+- **Мобильные модалки:** bottom-sheet (`rounded-t-2xl`, full-width), динамическая высота через **`dvh`** / **`DialogContent`** + **`visualViewport`** (эталон — **`ThreadDealDetailsSheet`**, **`components/ui/dialog.jsx`**); прокручиваемое тело + **sticky footer** для primary/secondary CTA, чтобы клавиатура не перекрывала поля и Submit.
+- **Таблицы на mobile:** вместо **`Table`** на экранах **&lt; md** — **стек карточек** (`Card`), действия — full-width или вертикальный stack с достаточным gap против mis-tap.

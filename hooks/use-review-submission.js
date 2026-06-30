@@ -33,9 +33,14 @@ export function useReviewSubmission(opts = {}) {
             throw new Error(getUIText('reviewForm_toastPhotoUpload', language))
           }
         }
-        await postRenterReview({ booking, ratings, comment, photos: uploaded })
-        toast.success(getUIText('renterReviewSuccess', language))
+        const result = await postRenterReview({ booking, ratings, comment, photos: uploaded })
+        if (result?.moderationPending) {
+          toast.success(getUIText('reviewForm_toastModerationPending', language))
+        } else {
+          toast.success(getUIText('renterReviewSuccess', language))
+        }
         onSuccess?.()
+        return result
       } catch (e) {
         const msg = e?.message || getUIText('reviewForm_toastSubmitFailed', language)
         toast.error(msg)

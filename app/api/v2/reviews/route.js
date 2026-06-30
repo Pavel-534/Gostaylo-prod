@@ -13,6 +13,12 @@ import {
 } from '@/lib/utils/name-formatter';
 import { shouldAllowReviewByLifecycle } from '@/lib/orders/order-timeline';
 import { ReputationService } from '@/lib/services/reputation.service';
+import { guardReviewComment } from '@/lib/reviews/content-guard.js';
+import {
+  REVIEW_MODERATION_APPROVED,
+  REVIEW_MODERATION_FLAGGED,
+  moderationStatusFromContentGuard,
+} from '@/lib/reviews/moderation-status.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +46,7 @@ export async function GET(request) {
         profiles:user_id (first_name, last_name, is_verified),
         bookings:booking_id (id, check_in, check_out)
       `)
+      .eq('moderation_status', REVIEW_MODERATION_APPROVED)
       .order('created_at', { ascending: false });
 
     if (listingId) {
@@ -307,6 +314,10 @@ export async function POST(request) {
       }
     }
 
+    const trimmedComment = comment?.trim() || null;
+    const contentGuard = guardReviewComment(trimmedComment);
+    const moderationStatus = moderationStatusFromContentGuard(contentGuard.shouldFlag);
+
     // Create review
     const reviewId = `review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -318,9 +329,10 @@ export async function POST(request) {
         listing_id: listingId,
         booking_id: trimmedBookingId,
         ...ratingData,
-        comment: comment?.trim() || null,
+        comment: trimmedComment,
         photos: photos.length ? photos : [],
         is_verified: true,
+        moderation_status: moderationStatus,
         created_at: new Date().toISOString()
       })
       .select()
@@ -331,9 +343,13 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: review 
+    return NextResponse.json({
+      success: true,
+      data: review,
+      moderationStatus,
+      ...(moderationStatus === REVIEW_MODERATION_FLAGGED
+        ? { moderationPending: true }
+        : {}),
     });
     
   } catch (error) {

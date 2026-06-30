@@ -192,7 +192,7 @@ export function InvoiceBubble({
           </div>
           <span
             className={cn(
-              'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase',
+              'max-w-[48%] shrink truncate rounded-full px-2.5 py-1 text-[10px] font-bold uppercase',
               isPaid ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-950'
             )}
             title={statusInfo.label}

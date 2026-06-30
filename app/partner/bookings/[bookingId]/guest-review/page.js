@@ -159,7 +159,7 @@ export default function PartnerGuestReviewPage() {
 
   return (
     <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
-      <Button variant="ghost" size="sm" className="-ml-2" asChild>
+      <Button variant="ghost" className="-ml-2 min-h-[48px]" asChild>
         <Link href="/partner/bookings" className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Бронирования
@@ -208,7 +208,7 @@ export default function PartnerGuestReviewPage() {
             </div>
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700"
+              className="min-h-[48px] w-full bg-teal-600 hover:bg-teal-700"
               disabled={submitting || rating < 1}
             >
               {submitting ? (
