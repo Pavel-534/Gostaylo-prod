@@ -1,5 +1,5 @@
 /**
- * GoStayLo - iCal Sync Cron Job
+ * Platform cron — iCal sync
  * GET/POST /api/cron/ical-sync
  *
  * Синхронизация внешних календарей → `calendar_blocks` через
@@ -97,13 +97,17 @@ async function runSync() {
     }
 
     const sources = listing.sync_settings?.sources || []
+    let listingSuccesses = 0
 
     for (const source of sources) {
       if (!isIcalSyncSourceEnabled(source)) continue
 
       const result = await syncSource(supabase, listing.id, source)
 
-      if (result.status === 'success' || result.status === 'skipped') {
+      if (result.status === 'success') {
+        listingSuccesses++
+        results.synced++
+      } else if (result.status === 'skipped') {
         results.synced++
       } else {
         results.errors++
@@ -117,15 +121,17 @@ async function runSync() {
       }
     }
 
-    await supabase
-      .from('listings')
-      .update({
-        sync_settings: {
-          ...listing.sync_settings,
-          last_sync: new Date().toISOString(),
-        },
-      })
-      .eq('id', listing.id)
+    if (listingSuccesses >= 1) {
+      await supabase
+        .from('listings')
+        .update({
+          sync_settings: {
+            ...listing.sync_settings,
+            last_sync: new Date().toISOString(),
+          },
+        })
+        .eq('id', listing.id)
+    }
   }
 
   const duration = Date.now() - startTime
@@ -162,21 +168,33 @@ async function runSync() {
   }
 }
 
+/** @param {{ success?: boolean, errors?: number, error?: string }} [result] */
+function resolveIcalOpsFinish(result) {
+  if (result?.success === false) {
+    return { status: 'error', errorMessage: result.error || 'sync failed' }
+  }
+  if (Number(result?.errors || 0) > 0) {
+    return { status: 'error', errorMessage: `${result.errors} source error(s)` }
+  }
+  return { status: 'success', errorMessage: null }
+}
+
 export async function GET(request) {
   const denied = assertCronAuthorized(request)
   if (denied) return denied
   const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()
+    const ops = resolveIcalOpsFinish(result)
     await finishOpsJobRun(run, {
-      status: result?.success ? 'success' : 'error',
+      status: ops.status,
       stats: {
         total: Number(result?.total || 0),
         synced: Number(result?.synced || 0),
         errors: Number(result?.errors || 0),
         skipped: Number(result?.skipped || 0),
       },
-      errorMessage: result?.success ? null : result?.error || null,
+      errorMessage: ops.errorMessage,
     })
     if (result && result.success === false && result.error) {
       void notifySystemAlert(
@@ -204,15 +222,16 @@ export async function POST(request) {
   const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()
+    const ops = resolveIcalOpsFinish(result)
     await finishOpsJobRun(run, {
-      status: result?.success ? 'success' : 'error',
+      status: ops.status,
       stats: {
         total: Number(result?.total || 0),
         synced: Number(result?.synced || 0),
         errors: Number(result?.errors || 0),
         skipped: Number(result?.skipped || 0),
       },
-      errorMessage: result?.success ? null : result?.error || null,
+      errorMessage: ops.errorMessage,
     })
     if (result && result.success === false && result.error) {
       void notifySystemAlert(

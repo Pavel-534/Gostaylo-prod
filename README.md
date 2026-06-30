@@ -104,6 +104,8 @@ If `vercel.json` contains `0 * * * *` (hourly) or similar, **deployment fails** 
 
 **Financial jobs that must run hourly** (`promote-ready-for-payout`, and ideally `escrow-thaw`) are **not** in `vercel.json` — trigger them only via **[cron-job.org](https://cron-job.org)** (or Upstash QStash). Full table: **`docs/CRON_EXTERNAL_FINANCIAL.md`**.
 
+**All cron schedules (operational + daily):** **`docs/CRON_SCHEDULING.md`** — SSOT for cron-job.org titles (`Airento: <slug>`), paths, and Vercel fallbacks.
+
 `vercel.json` keeps **daily** fallbacks only (`escrow-thaw` 00:00 UTC, `financial-health-monitor` 06:30 UTC).
 
 ### cron-job.org — financial pipeline (recommended)

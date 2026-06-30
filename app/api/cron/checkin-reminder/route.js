@@ -1,5 +1,5 @@
 /**
- * GoStayLo - Check-in Reminder Cron Job
+ * Platform cron — check-in reminder
  * POST /api/cron/checkin-reminder
  * 
  * Called at 14:00 on check-in day to send push notification

@@ -1,5 +1,5 @@
 /**
- * GoStayLo - Draft Cleanup Cron Job
+ * Platform cron — draft cleanup
  * 
  * PURPOSE:
  * Clean up abandoned drafts older than 30 days.

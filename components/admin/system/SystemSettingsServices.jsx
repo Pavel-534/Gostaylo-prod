@@ -158,7 +158,9 @@ export function SystemSettingsServices({
               <CardDescription className="text-xs lg:text-sm">
                 Требуется <code className="text-[11px]">NOTIFICATION_OUTBOX=1</code> и миграции Stage 57–60 (в т.ч.{' '}
                 <code className="text-[11px]">updated_at</code> для reclaim). Cron:{' '}
-                <code className="text-[11px]">/api/cron/notification-outbox</code> каждые 5 мин. Статистика обновляется
+                <code className="text-[11px]">/api/cron/notification-outbox</code> — на проде cron-job.org каждые 5
+                мин (Vercel Hobby: daily fallback). См. <code className="text-[11px]">docs/CRON_SCHEDULING.md</code>.
+                Статистика обновляется
                 каждые ~25 с.
               </CardDescription>
             </div>

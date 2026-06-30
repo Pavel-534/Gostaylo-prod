@@ -20,6 +20,8 @@
 
 **Stage 173.1.0 (2026-06-27):** Stabilization sprint — chat invoice Special Offer: `syncBookingForPayableChatInvoice` (`INQUIRY` → `AWAITING_PAYMENT` + `price_thb` / `pricing_snapshot` sync on invoice); iCal `SUSPICIOUS_EMPTY_FEED` guard; E2E `chat-invoice-payment-golden-path.spec.ts`. iCal prod: external cron-job.org ~30 min → `/api/cron/ical-sync` (Vercel daily fallback).
 
+**Stage 173.2.0 (2026-06-30):** Cron infra hardening — `maxDuration` 60 on `draft-digest` / `notification-outbox`; `ops_job_runs` for both; outbox returns **503** on worker `error` (not blind 200); `ical-sync` updates `last_sync` only when ≥1 source `success`; `finishOpsJobRun` **error** when `errors > 0`; cron route headers de-legacy (`Platform cron —`); SSOT **`docs/CRON_SCHEDULING.md`** (`Airento: <slug>` on cron-job.org).
+
 **Stage 174.1.0 (2026-06-27):** ADR-174 i18n sweep — inbox (`chatListPreview_*`, `chatInbox_*`, remove `isRu` anti-pattern), checkout/PDP hardcode cleanup, WCAG 44px touch targets in `ConversationList`; E2E golden path uses `promote-booking-paid-escrow` fixture (no webhook secret). SSOT strings: `lib/translations/slices/chat-ui.js`, `checkout.js`, `listings-public.js`.
 
 **Stage 172.5.0 (2026-06-22):** ADR-172 Wave 5 (epic closure) — `InvoiceBubble` payment-method dialog i18n (`invoiceBubble_paymentMethod*` / `invoiceBubble_pay*`); host inbox deal badges (`inboxBadge_*`) in `ConversationList` via `resolveConversationDealBadge`; enrich API adds `latestInvoice` + message `metadata`. Wave 4 (`deal_context` JSONB) cancelled.
