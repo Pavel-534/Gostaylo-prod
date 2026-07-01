@@ -16,6 +16,8 @@ import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
+import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
+import { MobileSearchFAB } from '@/components/search/MobileSearchBottomSheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
@@ -59,6 +61,7 @@ function ListingsContent() {
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
   const searchParamsKey = searchParams.toString()
 
@@ -446,6 +449,85 @@ function ListingsContent() {
     ],
   )
 
+  const catalogFilterBarProps = useMemo(
+    () => ({
+      filtersOpen,
+      onFiltersOpenChange: setFiltersOpen,
+      language,
+      dateRange,
+      setDateRange,
+      checkInTime,
+      setCheckInTime,
+      checkOutTime,
+      setCheckOutTime,
+      categoriesForHierarchy: catalogCategories,
+      catalogHeadline: catalogHeadlines.h1,
+      catalogSubline: catalogHeadlines.sub,
+      catalogParentBlurb: catalogHeadlines.parentBlurb,
+      selectedCategory,
+      selectedCategoryWizardProfile,
+      setSelectedCategory,
+      where,
+      setWhere,
+      guests,
+      setGuests,
+      guestsBreakdown,
+      setGuestsBreakdown,
+      clearDates,
+      nights,
+      extraFilters,
+      onExtraFiltersChange: setExtraFilters,
+      listingsForFiltersHistogram: allListings,
+      priceHistogram: meta?.priceHistogram ?? null,
+      filterResultCount: allListings.length,
+      textQuery: searchQuery,
+      setTextQuery: setSearchQuery,
+      smartSearchOn,
+      setSmartSearchOn,
+      semanticSearchFeatureEnabled: semanticSiteEnabled,
+      onSearchSubmit: handleCatalogSearchSubmit,
+    }),
+    [
+      filtersOpen,
+      language,
+      dateRange,
+      checkInTime,
+      checkOutTime,
+      catalogCategories,
+      catalogHeadlines,
+      selectedCategory,
+      selectedCategoryWizardProfile,
+      where,
+      guests,
+      guestsBreakdown,
+      nights,
+      extraFilters,
+      allListings,
+      meta?.priceHistogram,
+      searchQuery,
+      smartSearchOn,
+      semanticSiteEnabled,
+      handleCatalogSearchSubmit,
+      setSelectedCategory,
+      setWhere,
+      setDateRange,
+      setCheckInTime,
+      setCheckOutTime,
+      setGuests,
+      setGuestsBreakdown,
+      setExtraFilters,
+      setSearchQuery,
+      setSmartSearchOn,
+    ],
+  )
+
+  const catalogMobileSearchActive =
+    (selectedCategory && selectedCategory !== 'all') ||
+    (where && where !== 'all') ||
+    (guests && guests !== '1') ||
+    Boolean(dateRange?.from) ||
+    Boolean(searchQuery?.trim())
+
   return (
     <div className="min-h-screen bg-slate-50">
       <PublicSearchChrome
@@ -453,41 +535,7 @@ function ListingsContent() {
         expanded={
           <FilterBar
             shellWrapper={false}
-            filtersOpen={filtersOpen}
-            onFiltersOpenChange={setFiltersOpen}
-            language={language}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            checkInTime={checkInTime}
-            setCheckInTime={setCheckInTime}
-            checkOutTime={checkOutTime}
-            setCheckOutTime={setCheckOutTime}
-            categoriesForHierarchy={catalogCategories}
-            catalogHeadline={catalogHeadlines.h1}
-            catalogSubline={catalogHeadlines.sub}
-            catalogParentBlurb={catalogHeadlines.parentBlurb}
-            selectedCategory={selectedCategory}
-            selectedCategoryWizardProfile={selectedCategoryWizardProfile}
-            setSelectedCategory={setSelectedCategory}
-            where={where}
-            setWhere={setWhere}
-            guests={guests}
-            setGuests={setGuests}
-            guestsBreakdown={guestsBreakdown}
-            setGuestsBreakdown={setGuestsBreakdown}
-            clearDates={clearDates}
-            nights={nights}
-            extraFilters={extraFilters}
-            onExtraFiltersChange={setExtraFilters}
-            listingsForFiltersHistogram={allListings}
-            priceHistogram={meta?.priceHistogram ?? null}
-            filterResultCount={allListings.length}
-            textQuery={searchQuery}
-            setTextQuery={setSearchQuery}
-            smartSearchOn={smartSearchOn}
-            setSmartSearchOn={setSmartSearchOn}
-            semanticSearchFeatureEnabled={semanticSiteEnabled}
-            onSearchSubmit={handleCatalogSearchSubmit}
+            {...catalogFilterBarProps}
           />
         }
         compact={
@@ -591,6 +639,20 @@ function ListingsContent() {
         onClose={() => setShowMap(false)}
         language={language}
         mapPanelProps={catalogMapPanelProps}
+      />
+
+      <MobileSearchFAB
+        language={language}
+        hidden={mobileSearchOpen || showMap}
+        hasActiveFilters={catalogMobileSearchActive}
+        onClick={() => setMobileSearchOpen(true)}
+      />
+      <CatalogMobileSearchSheet
+        open={mobileSearchOpen}
+        onClose={() => setMobileSearchOpen(false)}
+        language={language}
+        onSearchSubmit={handleCatalogSearchSubmit}
+        filterBarProps={catalogFilterBarProps}
       />
     </div>
   )

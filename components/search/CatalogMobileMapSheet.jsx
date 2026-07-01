@@ -57,7 +57,7 @@ export function CatalogMobileMapSheet({
   return (
     <>
       <div
-        className="fixed inset-0 z-[34] bg-slate-900/40 backdrop-blur-[2px] md:hidden"
+        className="fixed inset-0 z-[85] bg-slate-900/40 backdrop-blur-[2px] md:hidden"
         onClick={onClose}
         aria-hidden
         data-testid="catalog-mobile-map-backdrop"
@@ -70,12 +70,9 @@ export function CatalogMobileMapSheet({
         aria-label={getUIText('showMap', language)}
         data-testid="catalog-mobile-map-sheet"
         className={cn(
-          'fixed inset-x-0 top-0 app-fixed-above-bottom-nav z-[35] flex flex-col bg-white md:hidden',
+          'fixed inset-x-0 app-fixed-below-header app-fixed-above-bottom-nav z-[90] flex flex-col bg-white md:hidden',
           'animate-in slide-in-from-bottom duration-300',
         )}
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-        }}
       >
         <div
           className="flex shrink-0 flex-col border-b border-slate-200 bg-white/95 backdrop-blur-sm"
@@ -122,6 +119,17 @@ export function CatalogMobileMapSheet({
             layoutResetKey={open ? 1 : 0}
             mapShellClassName="h-full rounded-none border-0 shadow-none"
           />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="absolute bottom-4 left-1/2 z-[5] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
+            onClick={onClose}
+            data-testid="catalog-mobile-map-floating-list"
+          >
+            <ListIcon className="h-4 w-4" />
+            {getUIText('showList', language)}
+          </Button>
         </div>
       </div>
     </>
