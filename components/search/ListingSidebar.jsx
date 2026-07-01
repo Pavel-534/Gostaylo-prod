@@ -284,7 +284,12 @@ function ListingSidebarComponent({
                 onClick={onLoadMore}
                 className="border-brand/30 text-brand-hover hover:bg-brand/10"
               >
-                {getUIText('loadMore', language)} ({allListings.length - displayedCount} {getUIText('more', language)})
+                {(() => {
+                  const remaining = allListings.length - displayedCount
+                  const label = getUIText('loadMore', language)
+                  if (remaining <= 0) return label
+                  return `${label} (${remaining} ${getUIText('more', language)})`
+                })()}
               </Button>
             )}
           </div>

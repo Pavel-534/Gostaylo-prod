@@ -3,6 +3,7 @@
 **Назначение:** онбординг и рефакторинг без «охоты по репо». Один источник: как параметр попадает в URL с клиента, где парсится на сервере, где режет SQL, где — пост-фильтр в JS.
 
 **Ядро поиска:** `lib/api/run-listings-search-get.js` → `runListingsSearchGet`  
+**Unified pipeline (Stage 177.1, flag `DISCOVERY_UNIFIED_PIPELINE=1`):** `lib/search/discovery-filter-contract.js` → `filter-registry.js` → `discovery-query-plan.js` → `discovery-query-executor.js` (+ `lib/api/search/discovery-spatial-rpc.js`)  
 **Построение SQL:** `lib/api/search/query-builder.js` → `buildListingsQuery`  
 **Гео / текст OR:** `lib/api/search/location-filter.js`, `lib/api/search/params.js` → `buildTextSearchOr`  
 **Доступность и цена карточки с датами:** `lib/api/search/availability.js` → `filterListingsByAvailability` → `CalendarService`  
@@ -31,8 +32,8 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `appendExtraFiltersToParams` → `amenities` (CSV) из `lib/search/listings-page-url.js` |
-| Сервер: парсинг | `run-listings-search-get.js` → `parseAmenitiesFromSearchParams` (`lib/api/search/params.js`) |
-| SQL | `query-builder.js`: цикл `q.contains('metadata', { amenities: [slug] })` |
+| Сервер: парсинг | `run-listings-search-get.js` → `parseAmenitiesFromSearchParams` (`lib/api/search/params.js`); unified: `filter-registry` → `housing.amenities` |
+| SQL | **Legacy:** `query-builder.js` — цикл `q.contains('metadata', { amenities: [slug] })`. **Unified (`DISCOVERY_UNIFIED_PIPELINE=1`):** один `@>` / `cs` по `metadata.amenities` (`amenitiesMode: 'unified'`) |
 | JS пост | — |
 | Availability | — |
 
@@ -61,8 +62,8 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `useListingsSearch.js`, `PlatformHomeContent`, и др. |
-| Сервер: парсинг | `normalizeListingCategorySlugForSearch` + `resolveListingCategoryIdsForSearchScope` (`lib/api/category-search-scope.js`) |
-| SQL | `query-builder.js` → `in('category_id', …)` / `eq` |
+| Сервер: парсинг | `normalizeListingCategorySlugForSearch` + `resolveListingCategoryIdsForSearchScope` (`lib/api/category-search-scope.js`); unified: `filter-registry` → `category` (первый шаг каскада) |
+| SQL | `query-builder.js` → `in('category_id', …)` / `eq`; unified: `categoryIds` из plan до bbox/amenities |
 | JS пост | — |
 | Availability | Косвенно: slug влияет на ветку цены в `calendar-query-availability.js` (`isTransportListingCategory`) |
 
@@ -84,6 +85,17 @@
 | Сервер: парсинг | Пробрасываются в `filters` в `run-listings-search-get.js` |
 | SQL | — (интервал обрабатывается календарём / бронями) |
 | Availability | Учитываются в цепочке календаря при интервальном режиме (см. `calendar-query-availability.js` + vehicle utils) |
+
+### `cursor` (Stage 177.2, unified catalog only)
+
+| Этап | Детали |
+|------|--------|
+| Клиент → URL | `catalogSearchKeyParamsToUrlSearchParams` (`lib/catalog/build-catalog-search-params.js`) — только при **`NEXT_PUBLIC_DISCOVERY_UNIFIED_PIPELINE=1`** + **`sort=created_at`**; `loadMore` в **`useListingsFetch`** передаёт `meta.pagination.next_cursor` |
+| Сервер: парсинг | `discovery-filter-contract.js` → `browse.cursor`; требует `sort=created_at` |
+| SQL | Keyset в `discovery-cursor-sql.js` (`applyDiscoveryCursorToQuery`) |
+| JS пост | — |
+| Availability | — |
+| Ответ | `meta.pagination: { mode, pageSize, next_cursor, hasMore }` |
 
 ### `city` / `location` / `where`
 
@@ -151,8 +163,8 @@
 
 | Этап | Детали |
 |------|--------|
-| Клиент → URL | Каталог / главная |
-| Сервер: парсинг | `run-listings-search-get.js`; лимит listings/search см. `mergeQueryForListingsRoute` |
+| Клиент → URL | Каталог / главная; unified cursor path — default **24** (`CATALOG_CURSOR_PAGE_LIMIT`) |
+| Сервер: парсинг | `run-listings-search-get.js`; unified: max **50**; лимит listings/search см. `mergeQueryForListingsRoute` |
 | SQL | `fetchLimit` с headroom, затем slice по `filters.limit` |
 
 ### `max_price` / `maxPrice` и `min_price` / `minPrice`
@@ -212,9 +224,10 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `bboxToSearchParams` + `useListingsSearch` |
-| Сервер: парсинг | `parseMapBounds` → `filters.mapBounds` |
-| SQL | `query-builder.js` — прямоугольник по lat/lon |
-| JS пост | Доп. `pointInBounds` |
+| Сервер: парсинг | `parseMapBounds` → `filters.mapBounds`; unified: `filter-registry` → `geo.bbox` |
+| SQL | **Legacy:** `query-builder.js` — прямоугольник по lat/lon. **Unified:** RPC `listings_ids_in_bbox_gist_v1` (GiST) → `.in('id', ids)`; `categoryIds` передаются в RPC |
+| JS пост | **Legacy:** доп. `pointInBounds`. **Unified:** JS bbox skip когда GiST ids применены (`discoveryPlanUsedGistBbox`) |
+| **Цена на пине** | `mapPinRowToPayload` → `getGuestDisplayPerNight` с `guestServiceFeePercent` (как каталог) + `_pricing`; в UI сайдбар-пин берёт цену из объекта listing (`InteractiveSearchMap`) |
 
 ### `transmission`, `fuel_type` / `fuelType`
 

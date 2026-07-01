@@ -217,6 +217,7 @@ function ListingsContent() {
     listings,
     allListings,
     displayedCount,
+    hasMore,
     loading,
     loadingMore,
     meta,
@@ -444,8 +445,6 @@ function ListingsContent() {
       mapFitResetKey,
     ],
   )
-
-  const hasMore = displayedCount < allListings.length
 
   return (
     <div className="min-h-screen bg-slate-50">

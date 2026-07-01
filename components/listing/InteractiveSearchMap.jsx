@@ -287,6 +287,7 @@ function listingToPin(listing) {
 
 /**
  * Sidebar listings always stay on map; API pins add viewport extras (Stage 170.11).
+ * When a listing is in the sidebar, its price SSOT wins over map-pins API (card parity).
  * Cluster mode: only selected listing pin is merged (Stage 171.14).
  */
 function mergeCatalogMapPins(listings, mapPins, useApiLayer) {
@@ -299,7 +300,17 @@ function mergeCatalogMapPins(listings, mapPins, useApiLayer) {
   }
   for (const pin of fromListings) {
     const id = String(pin.id)
-    if (!byId.has(id)) byId.set(id, pin)
+    const existing = byId.get(id)
+    if (existing) {
+      byId.set(id, {
+        ...existing,
+        price: pin.price,
+        isApproximate: existing.isApproximate ?? pin.isApproximate,
+        locationPrivacyMode: existing.locationPrivacyMode ?? pin.locationPrivacyMode,
+      })
+    } else {
+      byId.set(id, pin)
+    }
   }
   return [...byId.values()]
 }
@@ -313,19 +324,26 @@ function resolveSelectedCatalogPin(selectedId, listings, mapPins) {
   const id = String(selectedId || '').trim()
   if (!id) return null
 
-  const apiPin = (mapPins || []).find((p) => String(p.id) === id)
-  if (apiPin) return apiPin
-
   const listing = (listings || []).find((l) => String(l.id) === id)
-  return listing ? listingToPin(listing) : null
+  if (listing) return listingToPin(listing)
+
+  const apiPin = (mapPins || []).find((p) => String(p.id) === id)
+  return apiPin ?? null
 }
 
-function pinPriceLabel(pin, currency, exchangeRates, language, approximate) {
-  const thb = pin?.price
+function resolvePinDisplayPriceThb(pin, listing) {
+  if (listing) {
+    const thb = getGuestDisplayPerNight(listing)
+    if (Number.isFinite(thb) && thb > 0) return thb
+  }
+  const fromPin = Number(pin?.price)
+  return Number.isFinite(fromPin) && fromPin > 0 ? fromPin : null
+}
+
+function pinPriceLabel(pin, currency, exchangeRates, language, approximate, listing = null) {
+  const thb = resolvePinDisplayPriceThb(pin, listing)
   const text =
-    thb != null && Number.isFinite(Number(thb))
-      ? formatPrice(Number(thb), currency, exchangeRates, language)
-      : '—'
+    thb != null ? formatPrice(thb, currency, exchangeRates, language) : '—'
   return (approximate ? '~' : '') + text
 }
 
@@ -403,6 +421,7 @@ export default function InteractiveSearchMap({
         exchangeRates,
         language,
         pin.isApproximate === true,
+        listingMatch,
       )
       return (
         <ListingPriceMarker

@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.176.2.0 | **Last Updated**: 2026-06-22 | **Stage 176.2.0:** mobile UX for review modal + admin moderation cards (touch 44px, bottom-sheet, visualViewport). |
+> **Version**: 12.177.1.0 | **Last Updated**: 2026-06-22 | **Stage 177.1.0:** unified discovery search pipeline (feature flag `DISCOVERY_UNIFIED_PIPELINE`, registry cascade category → bbox → amenities; catalog + map-pins plan parity). |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
