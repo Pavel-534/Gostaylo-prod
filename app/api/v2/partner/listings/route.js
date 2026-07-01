@@ -16,6 +16,8 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { applyListingGeoSnapshotToInsertRow } from '@/lib/partner/apply-listing-geo-snapshot';
 import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
+import { applyListingMaxCapacitySyncToRow } from '@/lib/listing-guest-capacity.js';
+import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
 
 export async function GET(request) {
   try {
@@ -201,6 +203,12 @@ export async function POST(request) {
       },
       { country, region, city, district, latitude, longitude, metadata },
     )
+
+    const categorySlug = (await resolveListingCategorySlug(categoryId)) || '';
+    applyListingMaxCapacitySyncToRow(insertRow, {
+      categorySlug,
+      existing: { metadata: insertRow.metadata || {} },
+    });
 
     const { data: listing, error } = await supabaseAdmin
       .from('listings')

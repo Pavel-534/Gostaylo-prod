@@ -10,6 +10,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { usePublicSearchChrome } from '@/lib/hooks/use-public-search-chrome'
 import {
   interpolatePublicSearchChromeHeight,
+  PUBLIC_SEARCH_CHROME_COMPACT_SHELL_CLASS,
   PUBLIC_SEARCH_CHROME_COMPACT_TRANSLATE_PX,
 } from '@/lib/search/public-search-chrome-constants'
 import { cn } from '@/lib/utils'
@@ -69,12 +70,12 @@ export function PublicSearchChrome({
     [bindExpandedRef],
   )
 
-  const compactTranslateY = (1 - morphT) * -PUBLIC_SEARCH_CHROME_COMPACT_TRANSLATE_PX
+  const compactTranslateY = Math.round((1 - morphT) * -PUBLIC_SEARCH_CHROME_COMPACT_TRANSLATE_PX)
 
   const compactMorphStyle = {
     opacity: morphT,
     transform: `translate3d(0, ${compactTranslateY}px, 0)`,
-    willChange: 'opacity, transform',
+    ...(morphT > 0.02 && morphT < 0.98 ? { willChange: 'opacity, transform' } : {}),
   }
 
   /**
@@ -162,7 +163,7 @@ export function PublicSearchChrome({
           data-testid={compactTestId}
           aria-hidden={morphT <= 0.01}
           className={cn(
-            'fixed left-0 right-0 app-fixed-below-header z-[120] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] md:block',
+            PUBLIC_SEARCH_CHROME_COMPACT_SHELL_CLASS,
             morphT > 0.01 ? 'pointer-events-auto' : 'pointer-events-none',
           )}
           style={compactMorphStyle}
@@ -203,7 +204,7 @@ export function PublicSearchChrome({
         data-testid={compactTestId}
         aria-hidden={morphT <= 0.01}
         className={cn(
-          'fixed left-0 right-0 app-fixed-below-header z-[120] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] md:block',
+          PUBLIC_SEARCH_CHROME_COMPACT_SHELL_CLASS,
           morphT > 0.01 ? 'pointer-events-auto' : 'pointer-events-none',
         )}
         style={compactMorphStyle}

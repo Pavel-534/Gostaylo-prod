@@ -123,7 +123,6 @@ describe('discovery housing executor SQL (Stage 177.2b E3)', () => {
       ['lte', 'base_price_thb', 20000],
       ['gte', 'bedrooms_count', 2],
       ['gte', 'bathrooms_count', 1],
-      ['gte', 'max_capacity', 4],
       ['eq', 'instant_booking', true],
       ['filter', 'metadata->>property_type', 'ilike', 'villa'],
       ['contains', 'metadata', { amenities: ['pool'] }],
@@ -222,14 +221,20 @@ describe('discovery housing executor SQL (Stage 177.2b E3)', () => {
     assert.deepEqual(scalarCalls, [])
   })
 
-  it('E3 — guests=1 plan applies max_capacity gte on unwrapped PostgREST builder', async () => {
+  it('E3 — guests plan does not SQL-filter max_capacity (capacity SSOT is post-step)', async () => {
     const parsed = await parseDiscoveryFiltersFromSearchParams(
-      new URLSearchParams('guests=1&limit=24'),
+      new URLSearchParams('guests=2&limit=24'),
       { surface: 'catalog' },
     )
     assert.equal(parsed.ok, true)
     const plan = await buildDiscoveryQueryPlan(parsed.value, { surface: 'catalog' })
     assert.ok(plan.registryFiltersApplied.includes('stay.guests'))
+    assert.equal(plan.sql.guestsMin, 2)
+    assert.ok(
+      !(plan.sql.scalarPredicates || []).some(
+        (p) => p.column === 'max_capacity' && p.op === 'gte',
+      ),
+    )
 
     const mockChain = createMockQuery()
     const mockAdmin = {
@@ -254,10 +259,9 @@ describe('discovery housing executor SQL (Stage 177.2b E3)', () => {
       deferOrderAndLimit: true,
     })
 
-    assert.equal(typeof builtQuery.gte, 'function')
-    const chained = applyDiscoveryScalarFiltersFromPlan(builtQuery, plan)
+    applyDiscoveryScalarFiltersFromPlan(builtQuery, plan)
     assert.ok(
-      chained.getCalls().some((c) => c[0] === 'gte' && c[1] === 'max_capacity' && c[2] === 1),
+      !mockChain.getCalls().some((c) => c[0] === 'gte' && c[1] === 'max_capacity'),
     )
   })
 

@@ -20,6 +20,7 @@ import { resolveListingCategorySlug } from '@/lib/services/booking/query.service
 import { listingBasePriceSchema } from '@/lib/validations/listing';
 import { applyListingGeoSnapshotToUpdateData } from '@/lib/partner/apply-listing-geo-snapshot';
 import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
+import { applyListingMaxCapacitySyncToRow } from '@/lib/listing-guest-capacity.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -201,7 +202,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, country_code, region_code, city_code, categories(slug, name, wizard_profile)')
+    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, country_code, region_code, city_code, max_capacity, bedrooms_count, categories(slug, name, wizard_profile)')
     .eq('id', listingId)
     .single();
   
@@ -319,6 +320,14 @@ export async function PATCH(request, context) {
     existing,
   );
   Object.assign(updateData, geoPatchedData);
+
+  let categorySlug = existing.categories?.slug || '';
+  if (body.categoryId !== undefined && String(body.categoryId) !== String(existing.category_id)) {
+    categorySlug = (await resolveListingCategorySlug(body.categoryId)) || categorySlug;
+  } else if (!categorySlug && existing.category_id) {
+    categorySlug = (await resolveListingCategorySlug(existing.category_id)) || '';
+  }
+  applyListingMaxCapacitySyncToRow(updateData, { categorySlug, existing });
 
   // Update
   const { data: updated, error } = await supabase
