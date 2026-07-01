@@ -7,7 +7,7 @@
 **Построение SQL:** `lib/api/search/query-builder.js` → `buildListingsQuery`  
 **Гео / текст OR:** `lib/api/search/location-filter.js`, `lib/api/search/params.js` → `buildTextSearchOr`  
 **Доступность и цена карточки с датами:** `lib/api/search/availability.js` → `filterListingsByAvailability` → `CalendarService`  
-**Пост-фильтр по metadata (транспорт / няни / сервисы):** `lib/search/listing-metadata-filter.js`  
+**Пост-фильтр по metadata (legacy flag `=0` only):** `lib/search/listing-metadata-filter.js` — при **`DISCOVERY_UNIFIED_PIPELINE=1`** transport/yacht/service facets режутся в SQL; JS strip — **`discovery-metadata-facet-page.js`**  
 **Клиент ↔ URL (каталог `/listings`):** `lib/search/listings-page-url.js` + `app/listings/listings-catalog-client.jsx` + `lib/hooks/useListingsSearch.js`  
 **Осмысленный browse-query (SSR ItemList и дефолты):** `hasMeaningfulListingsBrowseQuery` в `listings-page-url.js` (список ключей синхронизируйте при добавлении параметра)
 
@@ -181,9 +181,10 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `appendExtraFiltersToParams` |
-| Сервер: парсинг | `buildMetadataFiltersFromSearchParams` |
-| SQL | — |
-| JS пост | `listingMatchesMetadataFilters` |
+| Сервер: парсинг | Unified: `filter-registry` → `service.experience_min` / `service.languages` / `service.specialization` → `contract.vertical.*`; legacy dual-read: `buildMetadataFiltersFromSearchParams` |
+| SQL | **Unified (`DISCOVERY_UNIFIED_PIPELINE=1`):** `metadata @>` languages (`service.languages`); `(metadata->>'experience_years')::numeric >= n` (`service.experience_min`, `n >= 1`); `metadata->>'specialization' ILIKE '%kw%'` (`service.specialization`); guard — только `category=services\|nannies` (`discovery-services-vertical-guard.js`) |
+| JS пост | **Legacy flag `=0`:** `listingMatchesMetadataFilters`. **Unified:** strip в `metadataFiltersForJsPostFilter` — Node.js не фильтрует service facets |
+| Unified registry | `service.languages` ← `nanny_langs`; `service.experience_min` ← `nanny_experience_min`; `service.specialization` ← `nanny_specialization` |
 
 ### `q`
 
@@ -207,9 +208,10 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `appendExtraFiltersToParams` |
-| Сервер: парсинг | `buildMetadataFiltersFromSearchParams` → `serviceHomeVisitOnly` |
-| SQL | — |
-| JS пост | `listingMatchesMetadataFilters` |
+| Сервер: парсинг | Unified: `filter-registry` → `service.home_visit` → `contract.vertical.serviceHomeVisitOnly`; legacy: `buildMetadataFiltersFromSearchParams` |
+| SQL | **Unified:** `metadata @> '{"home_visit": true}'` (`service.home_visit`); guard — `category=services\|nannies` |
+| JS пост | **Legacy flag `=0`:** `listingMatchesMetadataFilters`. **Unified:** strip — SQL-only |
+| Unified registry | `service.home_visit` |
 
 ### `softAvailability`
 
@@ -234,9 +236,10 @@
 | Этап | Детали |
 |------|--------|
 | Клиент → URL | `appendExtraFiltersToParams` |
-| Сервер: парсинг | `buildMetadataFiltersFromSearchParams` |
-| SQL | — |
-| JS пост | `listingMatchesMetadataFilters` |
+| Сервер: парсинг | Unified: `filter-registry` → `transport.*`; legacy: `buildMetadataFiltersFromSearchParams` |
+| SQL | **Unified:** JSONB `@>` / `text_eq_ci` / `jsonb_numeric_gte` (`discovery-scalar-sql.js`); guard — `category=vehicles` |
+| JS пост | **Legacy flag `=0`:** `listingMatchesMetadataFilters`. **Unified:** strip в `metadataFiltersForJsPostFilter` |
+| Unified registry | `transport.transmission`, `transport.fuel_type`, `transport.engine_cc_min` |
 
 ---
 

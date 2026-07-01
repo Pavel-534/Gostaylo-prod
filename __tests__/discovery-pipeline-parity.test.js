@@ -67,6 +67,10 @@ describe('discovery pipeline parity (Stage 177.1)', () => {
       'yacht.with_captain',
       'yacht.vessel_type',
       'yacht.cabins_min',
+      'service.languages',
+      'service.experience_min',
+      'service.specialization',
+      'service.home_visit',
     ])
   })
 

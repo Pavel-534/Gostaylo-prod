@@ -184,6 +184,24 @@ code {
   .app-fixed-below-header {
     top: var(--app-header-height, 64px);
   }
+  /**
+   * ADR-101 — compact public search chrome (desktop scroll morph).
+   * Full fixed shell in CSS (not Tailwind in lib/) — survives content-path purge.
+   */
+  .app-public-search-compact-shell {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--app-header-height, 64px);
+    z-index: 120;
+    display: none;
+    @apply border-b border-slate-200 bg-white shadow-sm;
+  }
+  @screen md {
+    .app-public-search-compact-shell {
+      display: block;
+    }
+  }
   /** ADR-101 — sticky/fixed below AppHeader + active public search chrome */
   .app-sticky-below-public-chrome {
     position: sticky;
