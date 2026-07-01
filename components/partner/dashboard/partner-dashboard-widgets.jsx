@@ -2,7 +2,7 @@
 
 import { format, parseISO } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
-import { Bell, CalendarDays, Check, X } from 'lucide-react'
+import { Bell, CalendarDays, Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
@@ -219,6 +219,23 @@ export function PartnerDashboardLoadingSkeleton() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Shown when cookie session exists but auth user id is not hydrated yet. */
+export function PartnerDashboardIdentityGate({ language = 'ru', onRetry }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4 text-center"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-10 w-10 animate-spin text-brand" aria-hidden />
+      <p className="text-sm text-slate-600 max-w-xs">{getUIText('partnerDashboard_sessionSync', language)}</p>
+      <Button type="button" variant="outline" size="sm" onClick={() => onRetry?.()}>
+        {getUIText('partnerDashboard_retry', language)}
+      </Button>
     </div>
   )
 }

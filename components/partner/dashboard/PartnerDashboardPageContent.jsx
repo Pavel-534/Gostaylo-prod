@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -12,9 +13,6 @@ import {
   Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
   CalendarDays, BarChart3, RefreshCw, Bell, Banknote,
 } from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,9 +32,9 @@ import {
   WelcomePartnerModal,
   RevenueSparkline,
   OccupancyRadial,
-  IncomeChartTooltip,
   PendingBookingCard,
   PartnerDashboardLoadingSkeleton,
+  PartnerDashboardIdentityGate,
   DASH_DATE_LOCALE,
   partnerListAmountThb,
 } from '@/components/partner/dashboard/partner-dashboard-widgets'
@@ -44,6 +42,14 @@ import { usePartnerDashboardPage } from '@/hooks/partner/use-partner-dashboard-p
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { GSL_CARD } from '@/lib/theme/product-ui'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+const PartnerDashboardIncomeChart = dynamic(
+  () => import('@/components/partner/dashboard/PartnerDashboardIncomeChart'),
+  {
+    ssr: false,
+    loading: () => <div className="h-full min-h-[220px] rounded-xl gsl-shimmer bg-slate-100/80" aria-hidden />,
+  },
+)
 
 export default function PartnerDashboardPageContent() {
   const router = useRouter()
@@ -60,6 +66,8 @@ export default function PartnerDashboardPageContent() {
   const {
     language,
     partnerId,
+    authHydrating,
+    refreshIdentity,
     stats,
     isLoading,
     isError,
@@ -81,7 +89,15 @@ export default function PartnerDashboardPageContent() {
     return 'property'
   }, [stats?.financialV2?.dominantCategorySlug])
 
-  if (isLoading || !partnerId) {
+  if (authHydrating) {
+    return <PartnerDashboardLoadingSkeleton />
+  }
+
+  if (!partnerId) {
+    return <PartnerDashboardIdentityGate language={language} onRetry={refreshIdentity} />
+  }
+
+  if (isLoading) {
     return <PartnerDashboardLoadingSkeleton />
   }
   
@@ -323,24 +339,7 @@ export default function PartnerDashboardPageContent() {
                 </p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={stats?.financialV2?.incomeByMonth || []}
-                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-100" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis
-                    width={44}
-                    tick={{ fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
-                  />
-                  <Tooltip content={<IncomeChartTooltip />} cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }} />
-                  <Bar dataKey="amountThb" fill={brandMintHex} radius={[4, 4, 0, 0]} maxBarSize={48} />
-                </BarChart>
-              </ResponsiveContainer>
+              <PartnerDashboardIncomeChart rows={stats?.financialV2?.incomeByMonth || []} />
             )}
           </CardContent>
         </Card>

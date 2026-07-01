@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { KycUploader } from '@/components/kyc-uploader'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { getUIText } from '@/lib/translations'
 
 const PENDING_KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -36,6 +37,9 @@ export function ProfileInfo({
   onOpenPartnerModal,
   toast,
   router,
+  onOpenPartnerDashboard,
+  partnerNavBusy,
+  partnerNavLanguage = 'ru',
 }) {
   return (
     <>
@@ -104,8 +108,19 @@ export function ProfileInfo({
                   <p className="text-sm text-slate-500">Управляйте объявлениями и бронированиями</p>
                 </div>
               </div>
-              <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => router.push('/partner/dashboard')}>
-                Открыть
+              <Button
+                className="bg-teal-600 hover:bg-teal-700 min-w-[7.5rem]"
+                disabled={partnerNavBusy}
+                onClick={() => onOpenPartnerDashboard?.()}
+              >
+                {partnerNavBusy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {getUIText('profile_partnerNavOpening', partnerNavLanguage)}
+                  </>
+                ) : (
+                  'Открыть'
+                )}
               </Button>
             </div>
           </CardContent>

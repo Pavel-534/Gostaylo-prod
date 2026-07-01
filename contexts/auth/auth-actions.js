@@ -7,6 +7,7 @@ import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/pa
 import { signIn, signUp, getCurrentUser } from '@/lib/auth'
 import { getOAuthBrowserSupabase, getOAuthRedirectOrigin } from '@/lib/supabase/oauth-browser-client'
 import { safeInternalPath } from '@/lib/security/safe-internal-path'
+import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
   PENDING_REF_COOKIE,
   PENDING_REF_LS,
@@ -171,6 +172,10 @@ export function useAuthActions(params) {
 
         if (savedRedirect) sessionStorage.removeItem('gostaylo_redirect_after_login')
         window.dispatchEvent(new CustomEvent('auth-change', { detail: normalizedLogin }))
+
+        if (String(normalizedLogin?.role || '').toUpperCase() === 'PARTNER') {
+          prefetchPartnerWorkspace(router)
+        }
 
         if (savedRedirect) {
           router.push(safeInternalPath(savedRedirect, '/'))

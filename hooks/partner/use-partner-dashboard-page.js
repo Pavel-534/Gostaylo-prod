@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { usePartnerStats } from '@/lib/hooks/use-partner-stats'
 import { usePartnerDashboardBookingActions } from '@/hooks/partner/use-partner-dashboard-booking-actions'
@@ -20,41 +21,46 @@ async function shouldSuppressGenericWelcome(partnerId) {
 }
 
 /**
- * Stage 111.0 — состояние и данные партнёрского дашборда.
- * Stage 143.1 — suppress generic welcome when referral strip is active.
+ * Stage 111.0 — партнёрский дашборд.
+ * Stage 173.3 — partnerId из useAuth (не только localStorage); один refresh при гонке сессии.
  */
 export function usePartnerDashboardPage() {
   const { language } = useI18n()
-  const [partnerId, setPartnerId] = useState(null)
+  const { user, loading: authLoading, isAuthenticated, refreshUserFromServer } = useAuth()
+  const identityRefreshAttempted = useRef(false)
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
-  const [userName, setUserName] = useState('')
+
+  const partnerId = user?.id ?? null
+  const userName =
+    user?.name || user?.first_name || user?.firstName || (partnerId ? 'Partner' : '')
+
+  const authHydrating = authLoading || (isAuthenticated && !partnerId)
 
   useEffect(() => {
-    let cancelled = false
-    async function init() {
-      const stored = localStorage.getItem('gostaylo_user')
-      if (!stored) return
-      try {
-        const parsed = JSON.parse(stored)
-        if (cancelled) return
-        setPartnerId(parsed.id)
-        setUserName(parsed.name || parsed.first_name || 'Partner')
-        const hasSeenWelcome = localStorage.getItem(`welcome_partner_${parsed.id}`)
-        if (parsed.role !== 'PARTNER' || hasSeenWelcome) return
+    if (authLoading || partnerId || !isAuthenticated || identityRefreshAttempted.current) return
+    identityRefreshAttempted.current = true
+    void refreshUserFromServer()
+  }, [authLoading, partnerId, isAuthenticated, refreshUserFromServer])
 
-        const suppress = await shouldSuppressGenericWelcome(parsed.id)
-        if (cancelled) return
-        localStorage.setItem(`welcome_partner_${parsed.id}`, 'true')
-        if (!suppress) setShowWelcomeModal(true)
-      } catch {
-        /* ignore */
-      }
-    }
-    void init()
+  useEffect(() => {
+    const uid = partnerId
+    if (!uid || String(user?.role || '').toUpperCase() !== 'PARTNER') return
+
+    let cancelled = false
+    const hasSeenWelcome = localStorage.getItem(`welcome_partner_${uid}`)
+    if (hasSeenWelcome) return
+
+    void (async () => {
+      const suppress = await shouldSuppressGenericWelcome(uid)
+      if (cancelled) return
+      localStorage.setItem(`welcome_partner_${uid}`, 'true')
+      if (!suppress) setShowWelcomeModal(true)
+    })()
+
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [partnerId, user?.role])
 
   const { data: stats, isLoading, isError, refetch } = usePartnerStats(partnerId, {
     enabled: !!partnerId,
@@ -75,6 +81,8 @@ export function usePartnerDashboardPage() {
   return {
     language,
     partnerId,
+    authHydrating,
+    refreshIdentity: refreshUserFromServer,
     stats,
     isLoading,
     isError,

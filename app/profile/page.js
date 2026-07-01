@@ -26,6 +26,7 @@ import {
   usePartnerApplicationStatusQuery,
 } from '@/lib/hooks/use-profile-queries'
 import { queryKeys } from '@/lib/query-keys'
+import { usePartnerDashboardNav, prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 
 const KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -75,6 +76,7 @@ function ProfileContent() {
   const [verificationDocUrl, setVerificationDocUrl] = useState(null)
   const [partnerLegalConsent, setPartnerLegalConsent] = useState(false)
   const { language } = useI18n()
+  const { goToPartnerDashboard, navigating: partnerNavBusy } = usePartnerDashboardNav()
   const [isPendingPartner, setIsPendingPartner] = useState(false)
   const [pendingNeedsKyc, setPendingNeedsKyc] = useState(false)
   const [pendingInlineKycUrl, setPendingInlineKycUrl] = useState(null)
@@ -178,6 +180,11 @@ function ProfileContent() {
   const isPartner = authUser?.role === 'PARTNER'
   const isRenter = user?.role === 'RENTER' && !isPendingPartner && !isRejectedPartner
 
+  useEffect(() => {
+    if (!isPartner) return
+    prefetchPartnerWorkspace(router)
+  }, [isPartner, router])
+
   function handleLogout() {
     localStorage.removeItem('gostaylo_user')
     router.push('/')
@@ -217,9 +224,20 @@ function ProfileContent() {
           onOpenPartnerModal={() => setShowPartnerModal(true)}
           toast={toast}
           router={router}
+          onOpenPartnerDashboard={goToPartnerDashboard}
+          partnerNavBusy={partnerNavBusy}
+          partnerNavLanguage={language}
         />
 
-        <ProfilePreferences user={user} isPartner={isPartner} onLogout={handleLogout} router={router} />
+        <ProfilePreferences
+          user={user}
+          isPartner={isPartner}
+          onLogout={handleLogout}
+          router={router}
+          onOpenPartnerDashboard={goToPartnerDashboard}
+          partnerNavBusy={partnerNavBusy}
+          partnerNavLanguage={language}
+        />
 
         <ProfileSecurity user={user} onToast={(o) => toast(o)} />
     </ProductPageShell>
@@ -352,7 +370,7 @@ function ProfileContent() {
                 className="w-full bg-teal-600 hover:bg-teal-700"
                 onClick={() => {
                   setShowWelcomeModal(false)
-                  router.push('/partner/dashboard')
+                  goToPartnerDashboard()
                 }}
               >
                 <Building2 className="h-4 w-4 mr-2" />

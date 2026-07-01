@@ -1,10 +1,19 @@
 'use client'
 
-import { Plane, Building2, Settings, LogOut, MessageSquare, CheckCircle } from 'lucide-react'
+import { Plane, Building2, Settings, LogOut, MessageSquare, CheckCircle, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { getUIText } from '@/lib/translations'
 
-export function ProfilePreferences({ user, isPartner, onLogout, router }) {
+export function ProfilePreferences({
+  user,
+  isPartner,
+  onLogout,
+  router,
+  onOpenPartnerDashboard,
+  partnerNavBusy,
+  partnerNavLanguage = 'ru',
+}) {
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -16,9 +25,20 @@ export function ProfilePreferences({ user, isPartner, onLogout, router }) {
           Мои бронирования
         </Button>
         {isPartner && (
-          <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/partner/dashboard')}>
-            <Building2 className="h-4 w-4 mr-2 text-slate-500" />
-            Панель партнёра
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            disabled={partnerNavBusy}
+            onClick={() => onOpenPartnerDashboard?.()}
+          >
+            {partnerNavBusy ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin text-slate-500" />
+            ) : (
+              <Building2 className="h-4 w-4 mr-2 text-slate-500" />
+            )}
+            {partnerNavBusy
+              ? getUIText('profile_partnerNavOpening', partnerNavLanguage)
+              : 'Панель партнёра'}
           </Button>
         )}
         {user?.telegram_id ? (

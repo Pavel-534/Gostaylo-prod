@@ -15,6 +15,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useChatContext } from '@/lib/context/ChatContext'
@@ -50,7 +51,7 @@ import { Badge } from '@/components/ui/badge'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
-import { PartnerForegroundNotifications } from '@/components/partner/PartnerForegroundNotifications'
+import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
   WORKSPACE_FRAME_CLASS,
   WORKSPACE_MAIN_CLASS,
@@ -61,6 +62,14 @@ import {
   WORKSPACE_TOOLBAR_CLASS,
   WORKSPACE_TOOLBAR_ROW_CLASS,
 } from '@/lib/layout/workspace-shell'
+
+const PartnerForegroundNotifications = dynamic(
+  () =>
+    import('@/components/partner/PartnerForegroundNotifications').then((m) => ({
+      default: m.PartnerForegroundNotifications,
+    })),
+  { ssr: false },
+)
 
 const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
@@ -117,6 +126,10 @@ export default function PartnerLayout({ children }) {
       })),
     [language],
   )
+
+  useEffect(() => {
+    prefetchPartnerWorkspace(router)
+  }, [router])
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
