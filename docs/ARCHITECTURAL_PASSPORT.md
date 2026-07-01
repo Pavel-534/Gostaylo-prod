@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.177.1.0 | **Last Updated**: 2026-06-22 | **Stage 177.1.0:** unified discovery search pipeline (feature flag `DISCOVERY_UNIFIED_PIPELINE`, registry cascade category → bbox → amenities; catalog + map-pins plan parity). |
+> **Version**: 12.177.2c.2 | **Last Updated**: 2026-06-22 | **Stage 177.2c E3:** handler guard — no double `filterListingsByAvailability` when unified executor ran availability; `meta.pagination.refillAttempts`. **Stage 177.2c E2:** availability executor + cursor refill. **Stage 177.2c E1:** `stay.dates` registry + plan postSteps. **Stage 177.1.0:** unified discovery pipeline (`DISCOVERY_UNIFIED_PIPELINE`). |
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)

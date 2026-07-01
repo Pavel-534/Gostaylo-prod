@@ -1,6 +1,6 @@
 # Stage 177.2c — Календарь и доступность в Unified Discovery Pipeline
 
-> **Status:** Planning (pre-implementation)  
+> **Status:** E1–E3 implemented (registry, executor, handler guard); E4 docs pending  
 > **Parent spec:** [`discovery-architecture-blueprint.md`](./discovery-architecture-blueprint.md)  
 > **Predecessors:** [`stage177-2b-housing-filters.md`](./stage177-2b-housing-filters.md) (E1–E3 implemented), [`stage177-2-cursor-pagination.md`](./stage177-2-cursor-pagination.md) (Step 1 implemented)  
 > **Product:** Airento  

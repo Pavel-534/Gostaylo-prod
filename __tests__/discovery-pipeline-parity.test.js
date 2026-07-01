@@ -49,10 +49,11 @@ describe('discovery pipeline parity (Stage 177.1)', () => {
     }
   })
 
-  it('registry cascade order includes housing facets (Stage 177.2b)', () => {
+  it('registry cascade order includes stay.dates, housing, transport/yacht facets (Stage 177.3)', () => {
     assert.deepEqual(ORDERED_FILTER_KEYS, [
       'category',
       'geo.bbox',
+      'stay.dates',
       'price.range',
       'housing.bedrooms',
       'housing.bathrooms',
@@ -60,6 +61,12 @@ describe('discovery pipeline parity (Stage 177.1)', () => {
       'housing.property_type',
       'housing.instant_booking',
       'housing.amenities',
+      'transport.transmission',
+      'transport.fuel_type',
+      'transport.engine_cc_min',
+      'yacht.with_captain',
+      'yacht.vessel_type',
+      'yacht.cabins_min',
     ])
   })
 

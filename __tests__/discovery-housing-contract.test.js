@@ -95,7 +95,7 @@ describe('discovery housing contract (Stage 177.2b)', () => {
     assert.ok(!listActiveRegistryFilterKeys(parsed.value).includes('housing.bedrooms'))
   })
 
-  it('C8 — dates + min_price sets skipPriceBecauseCalendar on plan', async () => {
+  it('C8 — dates + min_price sets calendar price mode without SQL scalars', async () => {
     const parsed = await parseDiscoveryFiltersFromSearchParams(
       new URLSearchParams('checkIn=2026-07-01&checkOut=2026-07-05&min_price=1000'),
       { surface: 'catalog' },
@@ -107,7 +107,14 @@ describe('discovery housing contract (Stage 177.2b)', () => {
 
     const plan = await buildDiscoveryQueryPlan(parsed.value, { surface: 'catalog' })
     assert.equal(plan.sql.skipPriceBecauseCalendar, true)
-    assert.ok(!plan.registryFiltersApplied.includes('price.range'))
+    assert.equal(plan.price.mode, 'calendar')
+    assert.equal(plan.price.minThb, 1000)
+    assert.ok(plan.registryFiltersApplied.includes('stay.dates'))
+    assert.ok(plan.registryFiltersApplied.includes('price.range'))
+    assert.ok(
+      !plan.sql.scalarPredicates.some((p) => p.column === 'base_price_thb'),
+    )
+    assert.deepEqual(plan.postSteps, ['availability', 'calendar_price'])
   })
 
   it('price.range applyPlan fills scalar predicates when no dates', async () => {
