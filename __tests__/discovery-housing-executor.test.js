@@ -201,7 +201,7 @@ describe('discovery housing executor SQL (Stage 177.2b E3)', () => {
       },
     }
 
-    await buildListingsQuery({
+    const { query: builtQuery } = await buildListingsQuery({
       supabaseAdmin: mockAdmin,
       filters: {
         minPrice: 9999,
@@ -217,8 +217,57 @@ describe('discovery housing executor SQL (Stage 177.2b E3)', () => {
       centerBbox: null,
       discoveryPlan: plan,
     })
+    await builtQuery
 
     assert.deepEqual(scalarCalls, [])
+  })
+
+  it('E3 — guests=1 plan applies max_capacity gte on unwrapped PostgREST builder', async () => {
+    const parsed = await parseDiscoveryFiltersFromSearchParams(
+      new URLSearchParams('guests=1&limit=24'),
+      { surface: 'catalog' },
+    )
+    assert.equal(parsed.ok, true)
+    const plan = await buildDiscoveryQueryPlan(parsed.value, { surface: 'catalog' })
+    assert.ok(plan.registryFiltersApplied.includes('stay.guests'))
+
+    const mockChain = createMockQuery()
+    const mockAdmin = {
+      from() {
+        return {
+          select() {
+            return mockChain
+          },
+        }
+      },
+    }
+
+    const { query: builtQuery } = await buildListingsQuery({
+      supabaseAdmin: mockAdmin,
+      filters: { featured: false },
+      fetchLimit: 24,
+      textOrClause: null,
+      categoryIds: null,
+      bbox: null,
+      centerBbox: null,
+      discoveryPlan: plan,
+      deferOrderAndLimit: true,
+    })
+
+    assert.equal(typeof builtQuery.gte, 'function')
+    const chained = applyDiscoveryScalarFiltersFromPlan(builtQuery, plan)
+    assert.ok(
+      chained.getCalls().some((c) => c[0] === 'gte' && c[1] === 'max_capacity' && c[2] === 1),
+    )
+  })
+
+  it('E3 — unified catalog clamps browse limit above 50 instead of rejecting', async () => {
+    const parsed = await parseDiscoveryFiltersFromSearchParams(
+      new URLSearchParams('guests=1&limit=100'),
+      { surface: 'catalog' },
+    )
+    assert.equal(parsed.ok, true)
+    assert.equal(parsed.value.browse.limit, 50)
   })
 
   it('E3 — catalog and map plans stay identical for housing + bbox fixture', async () => {
