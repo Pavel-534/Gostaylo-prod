@@ -1,6 +1,8 @@
 ﻿'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +12,7 @@ import { LoginForm } from '@/components/auth/modals/LoginForm'
 import { RegisterForm } from '@/components/auth/modals/RegisterForm'
 import { PasswordResetForm } from '@/components/auth/modals/PasswordResetForm'
 import { useGeo } from '@/contexts/geo-context'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 function GoogleBrandGlyph({ className = 'h-5 w-5' }) {
   return (
@@ -54,136 +57,184 @@ export function AuthModalShell(props) {
   } = props
 
   const { isRussia } = useGeo()
+  const isMobile = useIsMobile()
   const showGoogleOAuth = !isRussia
+  const [mobileViewportHeight, setMobileViewportHeight] = useState('100vh')
+
+  useEffect(() => {
+    if (!isMobile || typeof window === 'undefined' || !window.visualViewport) return undefined
+    const updateViewportHeight = () => {
+      setMobileViewportHeight(`${window.visualViewport.height}px`)
+    }
+    window.visualViewport.addEventListener('resize', updateViewportHeight)
+    updateViewportHeight()
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight)
+    }
+  }, [isMobile])
+
+  const mobileMaxHeightStyle = useMemo(
+    () => ({ maxHeight: `min(92dvh, calc(${mobileViewportHeight} - 0.5rem))` }),
+    [mobileViewportHeight],
+  )
+
+  const authBody = (
+    <>
+      {authMode === 'verification_pending' ? (
+        <>
+          <DialogHeader>
+            <DialogTitle className='flex items-center gap-2'>
+              <Mail className='h-5 w-5 text-brand' />
+              {getUIText('auth_verify_emailTitle', language)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className='py-6 text-center space-y-4'>
+            <div className='w-16 h-16 mx-auto bg-brand/15 rounded-full flex items-center justify-center'>
+              <Mail className='h-8 w-8 text-brand' />
+            </div>
+            <p className='text-slate-600'>{getUIText('auth_verify_emailSent', language)}</p>
+            <div className='mx-auto max-w-sm space-y-1.5 px-1 text-left'>
+              <Label htmlFor='auth-verify-email-field' className='text-sm'>
+                {getUIText('email', language)}
+              </Label>
+              <Input
+                id='auth-verify-email-field'
+                readOnly
+                value={verificationEmail}
+                className='text-center font-medium text-slate-900'
+                autoFocus
+                onFocus={(e) => e.target.select()}
+                inputMode='email'
+                autoComplete='email'
+              />
+            </div>
+            <p className='text-sm text-slate-500'>{getUIText('auth_verify_emailInstructions', language)}</p>
+            <Button variant='outline' onClick={() => setAuthMode('login')} className='mt-4'>
+              {getUIText('auth_backToLogin', language)}
+            </Button>
+          </div>
+        </>
+      ) : authMode === 'forgot_password' ? (
+        <>
+          <DialogHeader>
+            <DialogTitle>{getUIText('auth_forgot_title', language)}</DialogTitle>
+            <DialogDescription>{getUIText('auth_forgot_description', language)}</DialogDescription>
+          </DialogHeader>
+          <PasswordResetForm
+            {...resetProps}
+            language={language}
+            forgotPasswordSent={forgotPasswordSent}
+            setForgotPasswordSent={setForgotPasswordSent}
+            setAuthMode={setAuthMode}
+          />
+        </>
+      ) : (
+        <>
+          <DialogHeader className='pb-2 flex-shrink-0'>
+            <DialogTitle className='text-lg'>
+              {authMode === 'login' ? getUIText('loginTitle', language) : getUIText('register', language)}
+            </DialogTitle>
+            <DialogDescription className='text-sm'>
+              {authMode === 'login'
+                ? getUIText('auth_modal_subtitleLogin', language)
+                : getUIText('auth_modal_subtitleRegister', language)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='mb-3 flex flex-shrink-0 border-b'>
+            <button
+              type='button'
+              onClick={() => {
+                setAuthMode('login')
+                props.setRegisterLegalConsent(false)
+                props.setError('')
+              }}
+              className={`flex-1 min-h-11 py-2.5 flex items-center justify-center text-sm font-medium transition-colors border-b-2 ${
+                authMode === 'login'
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {getUIText('auth_modal_tabLogin', language)}
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                setAuthMode('register')
+                props.setRegisterLegalConsent(false)
+                props.setError('')
+              }}
+              className={`flex-1 min-h-11 py-2.5 flex items-center justify-center text-sm font-medium transition-colors border-b-2 ${
+                authMode === 'register'
+                  ? 'border-brand bg-brand/10 text-brand'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {getUIText('register', language)}
+            </button>
+          </div>
+
+          {authMode === 'login' ? (
+            <LoginForm {...loginProps} language={language} />
+          ) : (
+            <RegisterForm {...registerProps} language={language} />
+          )}
+
+          {showGoogleOAuth ? (
+            <div className='mx-auto mt-5 w-full max-w-[300px] flex-shrink-0 flex flex-col gap-3 pb-1'>
+              <div className='relative flex w-full items-center justify-center py-2'>
+                <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
+                <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
+                  {getUIText('auth_oauthDivider', language)}
+                </span>
+              </div>
+              <button
+                type='button'
+                onClick={() => void startGoogleOAuth()}
+                disabled={googleOAuthBusy || submitting || (authMode === 'register' && !registerLegalConsent)}
+                className='flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-brand/30 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(0,102,102,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
+              >
+                {googleOAuthBusy ? (
+                  <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />
+                ) : (
+                  <GoogleBrandGlyph className='h-5 w-5 shrink-0' />
+                )}
+                {getUIText('auth_continueGoogle', language)}
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={loginModalOpen} onOpenChange={onLoginModalOpenChange}>
+        <DrawerContent
+          style={mobileMaxHeightStyle}
+          className='mt-0 flex w-full max-h-[92dvh] flex-col rounded-t-[24px] border-slate-200 p-0 [&>div:first-child]:mt-3'
+        >
+          <DrawerHeader className='shrink-0 border-b border-slate-100 px-4 pb-3 pt-1 text-left'>
+            <DrawerTitle className='sr-only'>
+              {authMode === 'login' ? getUIText('loginTitle', language) : getUIText('register', language)}
+            </DrawerTitle>
+            <DrawerDescription className='sr-only'>
+              {getUIText('auth_modal_subtitleLogin', language)}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className='min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-3'>
+            {authBody}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
     <Dialog open={loginModalOpen} onOpenChange={onLoginModalOpenChange}>
       <DialogContent className='sm:max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col'>
-        {authMode === 'verification_pending' ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className='flex items-center gap-2'>
-                <Mail className='h-5 w-5 text-brand' />
-                {getUIText('auth_verify_emailTitle', language)}
-              </DialogTitle>
-            </DialogHeader>
-            <div className='py-6 text-center space-y-4'>
-              <div className='w-16 h-16 mx-auto bg-brand/15 rounded-full flex items-center justify-center'>
-                <Mail className='h-8 w-8 text-brand' />
-              </div>
-              <p className='text-slate-600'>{getUIText('auth_verify_emailSent', language)}</p>
-              <div className='mx-auto max-w-sm space-y-1.5 px-1 text-left'>
-                <Label htmlFor='auth-verify-email-field' className='text-sm'>
-                  {getUIText('email', language)}
-                </Label>
-                <Input
-                  id='auth-verify-email-field'
-                  readOnly
-                  value={verificationEmail}
-                  className='text-center font-medium text-slate-900'
-                  autoFocus
-                  onFocus={(e) => e.target.select()}
-                  inputMode='email'
-                  autoComplete='email'
-                />
-              </div>
-              <p className='text-sm text-slate-500'>{getUIText('auth_verify_emailInstructions', language)}</p>
-              <Button variant='outline' onClick={() => setAuthMode('login')} className='mt-4'>
-                {getUIText('auth_backToLogin', language)}
-              </Button>
-            </div>
-          </>
-        ) : authMode === 'forgot_password' ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>{getUIText('auth_forgot_title', language)}</DialogTitle>
-              <DialogDescription>{getUIText('auth_forgot_description', language)}</DialogDescription>
-            </DialogHeader>
-            <PasswordResetForm
-              {...resetProps}
-              language={language}
-              forgotPasswordSent={forgotPasswordSent}
-              setForgotPasswordSent={setForgotPasswordSent}
-              setAuthMode={setAuthMode}
-            />
-          </>
-        ) : (
-          <>
-            <DialogHeader className='pb-2 flex-shrink-0'>
-              <DialogTitle className='text-lg'>
-                {authMode === 'login' ? getUIText('loginTitle', language) : getUIText('register', language)}
-              </DialogTitle>
-              <DialogDescription className='text-sm'>
-                {authMode === 'login'
-                  ? getUIText('auth_modal_subtitleLogin', language)
-                  : getUIText('auth_modal_subtitleRegister', language)}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className='mb-3 flex flex-shrink-0 border-b'>
-              <button
-                type='button'
-                onClick={() => {
-                  setAuthMode('login')
-                  props.setRegisterLegalConsent(false)
-                  props.setError('')
-                }}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                  authMode === 'login'
-                    ? 'border-brand bg-brand/10 text-brand'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {getUIText('auth_modal_tabLogin', language)}
-              </button>
-              <button
-                type='button'
-                onClick={() => {
-                  setAuthMode('register')
-                  props.setRegisterLegalConsent(false)
-                  props.setError('')
-                }}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                  authMode === 'register'
-                    ? 'border-brand bg-brand/10 text-brand'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {getUIText('register', language)}
-              </button>
-            </div>
-
-            {authMode === 'login' ? (
-              <LoginForm {...loginProps} language={language} />
-            ) : (
-              <RegisterForm {...registerProps} language={language} />
-            )}
-
-            {showGoogleOAuth ? (
-              <div className='mx-auto mt-4 w-full max-w-[280px] flex-shrink-0 pb-1'>
-                <div className='relative flex w-full items-center justify-center py-2'>
-                  <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
-                  <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
-                    {getUIText('auth_oauthDivider', language)}
-                  </span>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => void startGoogleOAuth()}
-                  disabled={googleOAuthBusy || submitting || (authMode === 'register' && !registerLegalConsent)}
-                  className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-brand/30 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(0,102,102,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
-                >
-                  {googleOAuthBusy ? (
-                    <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />
-                  ) : (
-                    <GoogleBrandGlyph className='h-5 w-5 shrink-0' />
-                  )}
-                  {getUIText('auth_continueGoogle', language)}
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
+        {authBody}
       </DialogContent>
     </Dialog>
   )

@@ -40,6 +40,7 @@ function CatalogSearchMapPanelComponent({
   exchangeRates = { THB: 1 },
   initialDates = null,
   selectedListingId = null,
+  hoveredListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -114,6 +115,7 @@ function CatalogSearchMapPanelComponent({
           exchangeRates={exchangeRates}
           initialDates={initialDates}
           selectedListingId={selectedListingId}
+          hoveredListingId={hoveredListingId}
           onListingMarkerClick={onListingMarkerClick}
           onSearchThisArea={onSearchThisArea}
           mapBoundsLocked={mapBoundsLocked}

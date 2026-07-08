@@ -22,6 +22,7 @@ function SearchMapWrapperComponent({
   exchangeRates = { THB: 1 },
   initialDates = null,
   selectedListingId = null,
+  hoveredListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -48,6 +49,7 @@ function SearchMapWrapperComponent({
         exchangeRates={exchangeRates}
         initialDates={initialDates}
         selectedListingId={selectedListingId}
+        hoveredListingId={hoveredListingId}
         onListingMarkerClick={onListingMarkerClick}
         onSearchThisArea={onSearchThisArea}
         mapBoundsLocked={mapBoundsLocked}

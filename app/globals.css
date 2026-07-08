@@ -389,10 +389,6 @@ code {
   border-color: #0f172a;
 }
 
-.gostaylo-price-pill--approx {
-  border-style: dashed;
-}
-
 .gostaylo-price-pill--selected {
   background: #0f172a;
   color: #ffffff;

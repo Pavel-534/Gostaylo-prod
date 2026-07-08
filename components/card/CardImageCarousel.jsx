@@ -15,6 +15,7 @@ import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { resolveListingCardImageSizes } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
+import { useIsMobile } from '@/hooks/use-mobile'
 import {
   listingHeroTransitionStyle,
   navigateWithListingHeroTransition,
@@ -45,6 +46,7 @@ export function CardImageCarousel({
 }) {
   const router = useRouter()
   const networkQuality = useNetworkQuality()
+  const isMobile = useIsMobile()
   const imageSizes = resolveListingCardImageSizes(networkQuality)
   const imagesProxied = useMemo(() => mapPublicImageUrls(images), [images])
 
@@ -88,6 +90,8 @@ export function CardImageCarousel({
     },
     [detailHref, listingId, router],
   )
+
+  const showNavigationArrows = imagesProxied.length > 1 && (isHovered || isMobile)
 
   return (
     <div 
@@ -139,12 +143,17 @@ export function CardImageCarousel({
       ) : null}
       
       {/* Navigation arrows */}
-      {imagesProxied.length > 1 && isHovered && (
+      {showNavigationArrows && (
         <>
           <button
             type="button"
             onClick={prevImage}
-            className="absolute left-2 top-1/2 z-[15] -translate-y-1/2 rounded-full bg-white/90 p-1.5 shadow-md transition-all hover:bg-white"
+            className={cn(
+              'absolute left-2 top-1/2 z-[15] -translate-y-1/2 rounded-full bg-white/90 shadow-md transition-all',
+              'flex min-h-11 min-w-11 items-center justify-center p-0',
+              isMobile ? 'opacity-90' : 'opacity-0 group-hover:opacity-100',
+              'hover:bg-white',
+            )}
             aria-label="Previous image"
           >
             <ChevronLeft className="h-4 w-4 text-slate-700" />
@@ -152,7 +161,12 @@ export function CardImageCarousel({
           <button
             type="button"
             onClick={nextImage}
-            className="absolute right-2 top-1/2 z-[15] -translate-y-1/2 rounded-full bg-white/90 p-1.5 shadow-md transition-all hover:bg-white"
+            className={cn(
+              'absolute right-2 top-1/2 z-[15] -translate-y-1/2 rounded-full bg-white/90 shadow-md transition-all',
+              'flex min-h-11 min-w-11 items-center justify-center p-0',
+              isMobile ? 'opacity-90' : 'opacity-0 group-hover:opacity-100',
+              'hover:bg-white',
+            )}
             aria-label="Next image"
           >
             <ChevronRight className="h-4 w-4 text-slate-700" />
@@ -167,7 +181,7 @@ export function CardImageCarousel({
             type="button"
             onClick={onShareClick}
             data-testid="card-share-button"
-            className="rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/90 p-0 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
             aria-label={shareLabel || 'Share'}
             title={shareLabel || 'Share'}
           >
@@ -177,7 +191,7 @@ export function CardImageCarousel({
         <button
           type="button"
           onClick={onFavoriteClick}
-          className="rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/90 p-0 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
           aria-label={isFavorite ? (favoriteRemoveLabel || 'Remove from favorites') : (favoriteAddLabel || 'Add to favorites')}
           title={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
         >

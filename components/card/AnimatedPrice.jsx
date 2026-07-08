@@ -35,8 +35,8 @@ export function AnimatedPrice({ value, className }) {
 
       timerRef.current = setTimeout(() => {
         setPhase('idle')
-      }, 160)
-    }, 160)
+      }, 150)
+    }, 150)
 
     return () => clearTimeout(timerRef.current)
   }, [value])
@@ -44,7 +44,7 @@ export function AnimatedPrice({ value, className }) {
   return (
     <span
       className={cn(
-        'inline-block transition-all duration-[160ms] ease-in-out will-change-transform',
+        'inline-block transition-all duration-150 ease-in-out will-change-transform',
         phase === 'exit' && 'opacity-0 -translate-y-1.5 scale-95',
         phase === 'enter' && 'opacity-0 translate-y-1.5 scale-95',
         phase === 'idle' && 'opacity-100 translate-y-0 scale-100',

@@ -13,6 +13,15 @@
  */
 
 import { cn } from "@/lib/utils"
+import {
+  LISTING_CARD_CONTENT_MIN_H,
+  LISTING_CARD_MEDIA_ASPECT,
+  LISTING_CARD_PRICE_ROW_MIN_H,
+  LISTING_CARD_SPEC_ROW_MIN_H,
+  LISTING_CARD_TITLE_ROW_MIN_H,
+  LISTING_CARD_TRUST_ROW_MIN_H,
+  LISTING_CATALOG_GRID_CLASSES,
+} from '@/lib/listing/listing-card-layout'
 
 /**
  * Shimmer component - reusable skeleton block with premium shine effect
@@ -31,7 +40,7 @@ function Shimmer({ className }) {
 /**
  * Точное совпадение с `TopListingsGrid` карточкой:
  * - `rounded-2xl` + `border-slate-200` + такая же мягкая тень.
- * - Image: фиксированная `h-44 sm:h-48` (как реальная), не aspect-* — иначе layout shift при подмене.
+ * - Image: `aspect-[4/3]` (SSOT с реальной карточкой), без фиксированной высоты.
  * - Content: `p-5`, ритм title (18px) → location → specs → price.
  */
 export function ListingCardSkeleton({ className, style }) {
@@ -43,26 +52,28 @@ export function ListingCardSkeleton({ className, style }) {
         className,
       )}
     >
-      {/* Image — те же h-44/h-48, что у реальной карточки */}
-      <Shimmer className="h-44 sm:h-48 flex-shrink-0" />
+      {/* Image — тот же aspect-ratio, что у реальной карточки */}
+      <Shimmer className={cn("flex-shrink-0", LISTING_CARD_MEDIA_ASPECT)} />
 
       {/* Content — p-5, как реальная */}
-      <div className="flex flex-col flex-grow p-5 gap-3">
+      <div className={cn("flex flex-col flex-grow p-5 gap-3", LISTING_CARD_CONTENT_MIN_H)}>
         {/* Title 18px */}
-        <Shimmer className="h-[18px] rounded w-3/4" />
+        <Shimmer className={cn("h-[18px] rounded w-3/4", LISTING_CARD_TITLE_ROW_MIN_H)} />
 
         {/* Location row */}
-        <Shimmer className="h-3 rounded w-1/2 bg-slate-100" />
+        <div className={LISTING_CARD_TRUST_ROW_MIN_H}>
+          <Shimmer className="h-3 rounded w-1/2 bg-slate-100" />
+        </div>
 
         {/* Specs row */}
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center gap-3", LISTING_CARD_SPEC_ROW_MIN_H)}>
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
         </div>
 
         {/* Price row — pinned to bottom (mt-auto), как реальная */}
-        <div className="mt-auto flex items-baseline justify-between">
+        <div className={cn("mt-auto flex items-baseline justify-between", LISTING_CARD_PRICE_ROW_MIN_H)}>
           <Shimmer className="h-7 w-28 rounded" />
           <Shimmer className="h-4 w-12 rounded bg-slate-100" />
         </div>
@@ -72,11 +83,11 @@ export function ListingCardSkeleton({ className, style }) {
 }
 
 /**
- * Grid of skeleton cards — те же col-spans и `gap-8`, что в `TopListingsGrid`.
+ * Grid of skeleton cards — SSOT with catalog listing grid.
  */
 export function ListingGridSkeleton({ count = 8 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+    <div className={LISTING_CATALOG_GRID_CLASSES}>
       {Array.from({ length: count }).map((_, i) => (
         <ListingCardSkeleton
           key={i}

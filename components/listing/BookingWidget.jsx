@@ -340,10 +340,14 @@ export function MobileBookingBar({
     askPartnerLoading,
   })
   const mobileOfferTiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
+  const onChatClick = exclusiveDatesUnavailable ? onAskPartnerUnavailable || onAskPartner : onAskPartner
+  const showChatButton = exclusiveDatesUnavailable
+    ? !!(onAskPartnerUnavailable || onAskPartner)
+    : !!(showAskPartner && onAskPartner)
 
   return (
     <div
-      className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-slate-200 py-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] app-padb-safe-screen-bottom px-3"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 pt-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
     >
       {mobileOfferTiers.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -390,47 +394,32 @@ export function MobileBookingBar({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <HeroPriceHeadline
-            listing={listing}
-            priceCalc={priceCalc}
-            currency={currency}
-            exchangeRates={exchangeRates}
-            language={language}
-            rentalPeriodMode={rentalPeriodMode}
-            tx={tx}
-            sizeClass="text-xl sm:text-2xl"
-          />
-        </div>
+      <div className="space-y-3">
+        <HeroPriceHeadline
+          listing={listing}
+          priceCalc={priceCalc}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          language={language}
+          rentalPeriodMode={rentalPeriodMode}
+          tx={tx}
+          sizeClass="text-xl sm:text-2xl"
+        />
 
-        <div className="flex items-center gap-2 shrink-0">
-          {exclusiveDatesUnavailable && (onAskPartnerUnavailable || onAskPartner) && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onAskPartnerUnavailable || onAskPartner}
-              disabled={askPartnerLoading}
-              className="h-12 px-3 border-brand/30 text-brand"
-            >
-              <MessageCircle className="h-5 w-5 sm:mr-1" />
-              <span className="hidden sm:inline">
-                {tx('listingDetail_openChat')}
-              </span>
-            </Button>
-          )}
-          {showAskPartner && onAskPartner && !exclusiveDatesUnavailable && (
-            <div className="relative">
+        <div className="flex items-stretch gap-2">
+          {showChatButton && (
+            <div className="relative shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={onAskPartner}
+                onClick={onChatClick}
                 disabled={askPartnerLoading}
-                className={`h-12 w-12 shrink-0 border-brand/25 text-brand-hover hover:bg-brand/10 ${
-                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 text-amber-900' : ''
-                }`}
+                data-testid="booking-contact-host"
+                className={cn(
+                  'h-12 w-12 min-h-11 min-w-11 shrink-0 rounded-xl border-brand/25 text-brand-hover hover:bg-brand/10',
+                  hasUnreadFromHost && 'border-amber-300 bg-amber-50 text-amber-900',
+                )}
                 aria-label={askPartnerLabel}
                 title={lastMessagePreview ? `${askPartnerLabel}: ${lastMessagePreview}` : askPartnerLabel}
               >
@@ -447,7 +436,7 @@ export function MobileBookingBar({
             variant="brand"
             data-testid="listing-book-now"
             title={tx('listingBookingPayHint')}
-            className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base"
+            className="h-12 min-h-11 flex-1 rounded-xl px-4 text-sm font-semibold sm:text-base"
           >
             {exclusiveDatesUnavailable
               ? tx('listingDetail_unavailable')

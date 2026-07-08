@@ -127,7 +127,7 @@ function PremiumListingContent({ params }) {
         onAskPartner: chat.handleContactPartner,
         onAskPartnerUnavailable: booking.handleAskPartnerUnavailable,
         askPartnerLoading: chat.contactPartnerLoading,
-        showAskPartner: chat.showContactPartner && !booking.exclusiveDatesUnavailable,
+        showAskPartner: chat.showContactPartner,
         hasExistingConversation: !!chat.existingConvId,
         lastMessagePreview: chat.lastMessagePreview,
         hasUnreadFromHost: chat.hasUnreadFromHost,

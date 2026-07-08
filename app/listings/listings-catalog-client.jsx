@@ -59,6 +59,7 @@ function ListingsContent() {
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
+  const [mapHoveredListingId, setMapHoveredListingId] = useState(null)
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
@@ -191,10 +192,25 @@ function ListingsContent() {
 
   const handleListingMarkerClick = useCallback((id) => {
     setMapSelectedListingId(id)
+    setMapHoveredListingId(null)
+  }, [])
+
+  const handleMapRailActiveChange = useCallback((id) => {
+    setMapSelectedListingId(id)
+    setMapHoveredListingId(null)
   }, [])
 
   const handleListingCardSelect = useCallback((id) => {
     setMapSelectedListingId(id)
+    setMapHoveredListingId(null)
+  }, [])
+
+  const handleListingCardHover = useCallback((id) => {
+    setMapHoveredListingId(id)
+  }, [])
+
+  const handleListingCardHoverEnd = useCallback((id) => {
+    setMapHoveredListingId((prev) => (prev === id ? null : prev))
   }, [])
 
   const [initialSemanticFromUrl] = useState(() => {
@@ -423,6 +439,7 @@ function ListingsContent() {
       exchangeRates,
       initialDates: cardDates,
       selectedListingId: mapSelectedListingId,
+      hoveredListingId: mapHoveredListingId,
       onListingMarkerClick: handleListingMarkerClick,
       onSearchThisArea: handleSearchThisArea,
       mapBoundsLocked: !!appliedBbox,
@@ -441,6 +458,7 @@ function ListingsContent() {
       exchangeRates,
       cardDates,
       mapSelectedListingId,
+      mapHoveredListingId,
       handleListingMarkerClick,
       handleSearchThisArea,
       handleClearMapBounds,
@@ -602,10 +620,13 @@ function ListingsContent() {
               selectedCategory={selectedCategory}
               filterWhere={where}
               transportBroadenHref={transportBroadenHref}
-              highlightedListingId={mapSelectedListingId}
+              highlightedListingId={mapHoveredListingId ?? mapSelectedListingId}
+              scrollToListingId={mapSelectedListingId}
               catalogCategories={catalogCategories}
               onListingPointerEnter={prefetchListingDetail}
               onListingPointerLeave={cancelListingDetailPrefetch}
+              onListingCardHover={handleListingCardHover}
+              onListingCardHoverEnd={handleListingCardHoverEnd}
               onListingCardSelect={handleListingCardSelect}
               catalogSort={catalogSort}
               onCatalogSortChange={handleCatalogSortChange}
@@ -624,6 +645,7 @@ function ListingsContent() {
             exchangeRates={exchangeRates}
             initialDates={cardDates}
             selectedListingId={mapSelectedListingId}
+            hoveredListingId={mapHoveredListingId}
             onListingMarkerClick={handleListingMarkerClick}
             onSearchThisArea={handleSearchThisArea}
             mapBoundsLocked={!!appliedBbox}
@@ -639,6 +661,15 @@ function ListingsContent() {
         onClose={() => setShowMap(false)}
         language={language}
         mapPanelProps={catalogMapPanelProps}
+        railProps={{
+          listings: allListings,
+          activeListingId: mapSelectedListingId,
+          onActiveListingChange: handleMapRailActiveChange,
+          onListingOpen: handleListingMarkerClick,
+          language,
+          currency,
+          exchangeRates,
+        }}
       />
 
       <MobileSearchFAB

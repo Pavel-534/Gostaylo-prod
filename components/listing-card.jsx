@@ -25,6 +25,7 @@ import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-s
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import {
   LISTING_CARD_CONTENT_MIN_H,
+  LISTING_CARD_PRICE_ROW_MIN_H,
   LISTING_CARD_SPEC_ROW_MIN_H,
   LISTING_CARD_TITLE_ROW_MIN_H,
   LISTING_CARD_TRUST_ROW_MIN_H,
@@ -253,7 +254,12 @@ export function ListingCard({
           </div>
 
           {/* Price — pinned to card bottom via flex-1 + mt-auto */}
-          <div className="relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3">
+          <div
+            className={cn(
+              'relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3',
+              LISTING_CARD_PRICE_ROW_MIN_H,
+            )}
+          >
             <CardPriceDisplay
               listing={listing}
               pricing={pricing}

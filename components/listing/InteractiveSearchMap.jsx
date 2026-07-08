@@ -24,6 +24,11 @@ import { formatPrice } from '@/lib/currency'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 import { extractListingLatLng } from '@/lib/maps/map-provider-adapter'
 import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
+import {
+  CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS,
+  CATALOG_MAP_SELECT_FLY_DURATION_MS,
+  CATALOG_MAP_SELECT_MIN_ZOOM,
+} from '@/lib/maps/catalog-map-ux-policy'
 
 configureLeafletDefaultIcons(L)
 
@@ -159,7 +164,10 @@ function InitialListingBoundsFit({
   return null
 }
 
-function MapViewportReporter({ onViewportBbox, debounceMs = 400 }) {
+function MapViewportReporter({
+  onViewportBbox,
+  debounceMs = CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS,
+}) {
   const map = useMap()
   const timerRef = useRef(null)
 
@@ -224,7 +232,11 @@ function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
 
   useEffect(() => {
     const id = String(selectedListingId || '').trim()
-    if (!id || lastPanIdRef.current === id) return
+    if (!id) {
+      lastPanIdRef.current = null
+      return
+    }
+    if (lastPanIdRef.current === id) return
 
     let lat = null
     let lng = null
@@ -246,12 +258,21 @@ function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
 
     lastPanIdRef.current = id
+
     try {
+      const bounds = map.getBounds()
+      if (bounds?.isValid?.() && bounds.contains([lat, lng])) {
+        return
+      }
       const zoom = map.getZoom()
-      map.flyTo([lat, lng], Number.isFinite(zoom) ? Math.max(zoom, 14) : 14, {
+      map.flyTo(
+        [lat, lng],
+        Number.isFinite(zoom) ? Math.max(zoom, CATALOG_MAP_SELECT_MIN_ZOOM) : CATALOG_MAP_SELECT_MIN_ZOOM,
+        {
         animate: true,
-        duration: 0.45,
-      })
+          duration: CATALOG_MAP_SELECT_FLY_DURATION_MS / 1000,
+        },
+      )
     } catch {
       lastPanIdRef.current = null
     }
@@ -340,11 +361,9 @@ function resolvePinDisplayPriceThb(pin, listing) {
   return Number.isFinite(fromPin) && fromPin > 0 ? fromPin : null
 }
 
-function pinPriceLabel(pin, currency, exchangeRates, language, approximate, listing = null) {
+function pinPriceLabel(pin, currency, exchangeRates, language, listing = null) {
   const thb = resolvePinDisplayPriceThb(pin, listing)
-  const text =
-    thb != null ? formatPrice(thb, currency, exchangeRates, language) : '—'
-  return (approximate ? '~' : '') + text
+  return thb != null ? formatPrice(thb, currency, exchangeRates, language) : '—'
 }
 
 export default function InteractiveSearchMap({
@@ -365,6 +384,7 @@ export default function InteractiveSearchMap({
   /** Синхрон с карточками списка: даты для `CardPriceDisplay` во всплывающем окне маркера */
   initialDates = null,
   selectedListingId = null,
+  hoveredListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -415,12 +435,14 @@ export default function InteractiveSearchMap({
       const position = [pin.lat, pin.lng]
       if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
       const listingMatch = listingsById.get(String(pin.id)) ?? null
+      const pinId = String(pin.id)
+      const isHighlighted =
+        pinId === String(selectedListingId) || pinId === String(hoveredListingId)
       const priceText = pinPriceLabel(
         pin,
         currency,
         exchangeRates,
         language,
-        pin.isApproximate === true,
         listingMatch,
       )
       return (
@@ -431,7 +453,7 @@ export default function InteractiveSearchMap({
           position={position}
           priceLabel={priceText || '—'}
           approximate={pin.isApproximate === true}
-          selected={selectedListingId === pin.id}
+          selected={isHighlighted}
           language={language}
           onSelect={onListingMarkerClick}
           initialDates={initialDates}
@@ -448,6 +470,7 @@ export default function InteractiveSearchMap({
       exchangeRates,
       language,
       selectedListingId,
+      hoveredListingId,
       onListingMarkerClick,
       initialDates,
     ],

@@ -33,7 +33,7 @@ export function RegisterForm({
 }) {
   return (
     <form onSubmit={onSubmit} className='flex min-h-0 flex-col overflow-hidden'>
-      <div className='max-h-[min(52vh,400px)] space-y-3 overflow-y-auto pb-2'>
+      <div className='max-h-[min(52vh,400px)] space-y-4 overflow-y-auto pb-2'>
         <div className='space-y-1.5'>
           <Label htmlFor='auth-name' className='text-sm'>
             {getUIText('auth_field_firstName', language)}
@@ -47,8 +47,10 @@ export function RegisterForm({
             onFocus={(e) =>
               setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
             }
-            autoComplete='name'
+            autoComplete='given-name'
+            autoCapitalize='words'
             className='h-11 text-base'
+            enterKeyHint='next'
             required
           />
         </div>
@@ -60,7 +62,7 @@ export function RegisterForm({
             </Label>
             <button
               type='button'
-              className='text-xs text-brand hover:text-brand-hover hover:underline'
+              className='inline-flex min-h-11 items-center px-1 py-2 text-sm text-brand hover:text-brand-hover hover:underline'
               onClick={() => void validatePromoCode()}
               disabled={!promoCode || promoStatus === 'checking'}
             >
@@ -79,6 +81,9 @@ export function RegisterForm({
             }}
             onBlur={() => void validatePromoCode()}
             autoComplete='off'
+            autoCapitalize='characters'
+            autoCorrect='off'
+            spellCheck={false}
             className='h-11 text-base uppercase'
           />
           {promoMessage ? (
@@ -110,7 +115,10 @@ export function RegisterForm({
               setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
             }
             inputMode='email'
-            autoComplete='username'
+            autoComplete='email'
+            autoCapitalize='none'
+            autoCorrect='off'
+            spellCheck={false}
             className='h-11 text-base'
             enterKeyHint='next'
             required
@@ -133,6 +141,9 @@ export function RegisterForm({
               }
               className='h-11 pr-10 text-base'
               autoComplete='new-password'
+              autoCapitalize='none'
+              autoCorrect='off'
+              spellCheck={false}
               enterKeyHint='done'
               required
               minLength={8}
@@ -140,7 +151,7 @@ export function RegisterForm({
             <button
               type='button'
               onClick={() => setShowPassword(!showPassword)}
-              className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+              className='absolute right-3 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:text-slate-600'
             >
               {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
             </button>

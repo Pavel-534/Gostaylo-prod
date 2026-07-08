@@ -19,6 +19,7 @@ import { isTransportListingCategory } from '@/lib/listing-category-slug';
 import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
 import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
 import { useNetworkQuality } from '@/hooks/use-network-quality';
+import { LISTING_CATALOG_GRID_CLASSES } from '@/lib/listing/listing-card-layout'
 
 function ListingSidebarComponent({
   listings = [],
@@ -49,9 +50,13 @@ function ListingSidebarComponent({
   filterWhere = 'all',
   transportBroadenHref = null,
   highlightedListingId = null,
+  /** Marker click / explicit select — scroll list to card (not hover). */
+  scrollToListingId = null,
   catalogCategories = null,
   onListingPointerEnter = null,
   onListingPointerLeave = null,
+  onListingCardHover = null,
+  onListingCardHoverEnd = null,
   onListingCardSelect = null,
   catalogSort = 'recommended',
   onCatalogSortChange = null,
@@ -60,10 +65,10 @@ function ListingSidebarComponent({
   const networkQuality = useNetworkQuality()
 
   useEffect(() => {
-    if (!highlightedListingId) return;
-    const el = document.getElementById(`listing-card-${highlightedListingId}`);
+    if (!scrollToListingId) return;
+    const el = document.getElementById(`listing-card-${scrollToListingId}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [highlightedListingId, listings]);
+  }, [scrollToListingId, listings]);
 
   // Error State
   if (error) {
@@ -217,7 +222,8 @@ function ListingSidebarComponent({
         ) : null}
         <div 
           className={cn(
-            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 items-stretch transition-opacity duration-200",
+            LISTING_CATALOG_GRID_CLASSES,
+            'transition-opacity duration-200',
             isTransitioning ? "opacity-50" : "opacity-100"
           )}
         >
@@ -228,9 +234,12 @@ function ListingSidebarComponent({
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
               onMouseEnter={() => {
                 onListingPointerEnter?.(listing.id, { intent: 'hover' })
-                onListingCardSelect?.(listing.id)
+                onListingCardHover?.(listing.id)
               }}
-              onMouseLeave={() => onListingPointerLeave?.(listing.id)}
+              onMouseLeave={() => {
+                onListingPointerLeave?.(listing.id)
+                onListingCardHoverEnd?.(listing.id)
+              }}
               onPointerDown={(e) => {
                 if (e.pointerType === 'touch') {
                   onListingPointerEnter?.(listing.id, { intent: 'touch', listing })

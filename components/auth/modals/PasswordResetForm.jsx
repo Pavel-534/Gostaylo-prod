@@ -31,6 +31,7 @@ export function PasswordResetForm({
         <p className='text-sm text-slate-500'>{getUIText('auth_forgot_sentInstructions', language)}</p>
         <Button
           variant='outline'
+          className='h-11 px-5'
           onClick={() => {
             setAuthMode('login')
             setForgotPasswordSent(false)
@@ -55,14 +56,19 @@ export function PasswordResetForm({
           onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
           autoFocus
           inputMode='email'
-          autoComplete='username'
+          autoComplete='email'
+          autoCapitalize='none'
+          autoCorrect='off'
+          spellCheck={false}
+          className='h-11 text-base'
+          enterKeyHint='done'
           required
         />
       </div>
 
       {error && <p className='text-red-500 text-sm'>{error}</p>}
 
-      <Button type='submit' variant='brand' className='w-full' disabled={submitting}>
+      <Button type='submit' variant='brand' className='h-12 w-full text-base font-medium' disabled={submitting}>
         {submitting ? (
           <>
             <Loader2 className='h-4 w-4 mr-2 animate-spin' />
@@ -73,7 +79,11 @@ export function PasswordResetForm({
         )}
       </Button>
 
-      <button type='button' onClick={() => setAuthMode('login')} className='w-full text-sm text-slate-500 hover:text-slate-700'>
+      <button
+        type='button'
+        onClick={() => setAuthMode('login')}
+        className='w-full min-h-11 py-3 text-sm text-slate-500 hover:text-slate-700'
+      >
         {getUIText('auth_backToLogin', language)}
       </button>
     </form>

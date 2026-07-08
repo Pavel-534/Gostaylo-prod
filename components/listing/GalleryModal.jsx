@@ -5,6 +5,7 @@
 
 'use client'
 
+import { useRef } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog'
@@ -13,6 +14,7 @@ import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { resolvePdpImageSizes } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export function GalleryModal({
   open,
@@ -23,6 +25,12 @@ export function GalleryModal({
   listingTitle,
   blurDataURL = LISTING_CARD_BLUR_DATA_URL,
 }) {
+  const touchStartXRef = useRef(null)
+  const touchStartYRef = useRef(null)
+  const SWIPE_THRESHOLD_PX = 40
+  const SWIPE_VERTICAL_GUARD_PX = 48
+
+  const isMobile = useIsMobile()
   const networkQuality = useNetworkQuality()
   const lightboxSizes = resolvePdpImageSizes('lightbox', networkQuality)
   const currentSrc = images[currentIndex]
@@ -33,6 +41,35 @@ export function GalleryModal({
 
   const handleNext = () => {
     onIndexChange((currentIndex + 1) % images.length)
+  }
+
+  const handleTouchStart = (event) => {
+    if (!isMobile) return
+    const touch = event.touches?.[0]
+    if (!touch) return
+    touchStartXRef.current = touch.clientX
+    touchStartYRef.current = touch.clientY
+  }
+
+  const handleTouchEnd = (event) => {
+    if (!isMobile) return
+    const touch = event.changedTouches?.[0]
+    if (!touch) return
+    const startX = touchStartXRef.current
+    const startY = touchStartYRef.current
+    touchStartXRef.current = null
+    touchStartYRef.current = null
+    if (startX == null || startY == null || images.length <= 1) return
+
+    const deltaX = touch.clientX - startX
+    const deltaY = touch.clientY - startY
+
+    // Horizontal swipe only; ignore mostly-vertical gestures to keep scroll feel stable.
+    if (Math.abs(deltaY) > SWIPE_VERTICAL_GUARD_PX) return
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return
+
+    if (deltaX < 0) handleNext()
+    else handlePrev()
   }
 
   return (
@@ -46,7 +83,11 @@ export function GalleryModal({
           'sm:left-[50%] sm:top-[50%] sm:h-[90vh] sm:max-w-6xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:shadow-2xl'
         }
       >
-        <div className="relative flex h-full w-full items-center justify-center bg-black">
+        <div
+          className="relative flex h-full w-full items-center justify-center bg-black touch-pan-y"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <DialogClose
             className="absolute z-20 focus:outline-none"
             style={{

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { CatalogSearchMapPanel } from '@/components/search/CatalogSearchMapPanel'
+import { CatalogMapCardRail } from '@/components/search/CatalogMapCardRail'
 
 const SWIPE_CLOSE_THRESHOLD_PX = 72
 
@@ -19,6 +20,7 @@ export function CatalogMobileMapSheet({
   onClose,
   language = 'ru',
   mapPanelProps = {},
+  railProps = {},
 }) {
   const sheetRef = useRef(null)
   const touchStartYRef = useRef(null)
@@ -51,6 +53,7 @@ export function CatalogMobileMapSheet({
     },
     [onClose],
   )
+  const railListings = railProps.listings || mapPanelProps.listings || []
 
   if (!open) return null
 
@@ -119,17 +122,33 @@ export function CatalogMobileMapSheet({
             layoutResetKey={open ? 1 : 0}
             mapShellClassName="h-full rounded-none border-0 shadow-none"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="absolute bottom-4 left-1/2 z-[5] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
-            onClick={onClose}
-            data-testid="catalog-mobile-map-floating-list"
-          >
-            <ListIcon className="h-4 w-4" />
-            {getUIText('showList', language)}
-          </Button>
+          <div className="pointer-events-none absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom,0px))] z-[12]">
+            <CatalogMapCardRail
+              listings={railListings}
+              activeListingId={railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null}
+              onActiveListingChange={
+                railProps.onActiveListingChange ?? mapPanelProps.onListingMarkerClick
+              }
+              onListingOpen={railProps.onListingOpen ?? mapPanelProps.onListingMarkerClick}
+              language={railProps.language || language}
+              currency={railProps.currency || mapPanelProps.currency || 'THB'}
+              exchangeRates={railProps.exchangeRates || mapPanelProps.exchangeRates || { THB: 1 }}
+              className="pointer-events-auto"
+            />
+          </div>
+          {railListings.length === 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[13] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
+              onClick={onClose}
+              data-testid="catalog-mobile-map-floating-list"
+            >
+              <ListIcon className="h-4 w-4" />
+              {getUIText('showList', language)}
+            </Button>
+          ) : null}
         </div>
       </div>
     </>

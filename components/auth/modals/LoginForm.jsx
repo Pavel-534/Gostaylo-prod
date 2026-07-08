@@ -22,7 +22,7 @@ export function LoginForm({
 }) {
   return (
     <form onSubmit={onSubmit} className='flex min-h-0 flex-col overflow-hidden'>
-      <div className='max-h-[min(52vh,400px)] space-y-3 overflow-y-auto pb-2'>
+      <div className='max-h-[min(52vh,400px)] space-y-4 overflow-y-auto pb-2'>
         <div className='space-y-1.5'>
           <Label htmlFor='auth-email' className='text-sm'>
             {getUIText('email', language)}
@@ -38,7 +38,10 @@ export function LoginForm({
             }
             autoFocus
             inputMode='email'
-            autoComplete='username'
+            autoComplete='email'
+            autoCapitalize='none'
+            autoCorrect='off'
+            spellCheck={false}
             className='h-11 text-base'
             enterKeyHint='next'
             required
@@ -53,7 +56,7 @@ export function LoginForm({
             <button
               type='button'
               onClick={onForgotPassword}
-              className='text-xs text-brand hover:text-brand-hover hover:underline'
+              className='inline-flex min-h-11 items-center py-2 px-1 text-sm text-brand hover:text-brand-hover hover:underline'
             >
               {getUIText('auth_forgot_password', language)}
             </button>
@@ -70,13 +73,16 @@ export function LoginForm({
               }
               className='h-11 pr-10 text-base'
               autoComplete='current-password'
+              autoCapitalize='none'
+              autoCorrect='off'
+              spellCheck={false}
               enterKeyHint='done'
               required
             />
             <button
               type='button'
               onClick={() => setShowPassword(!showPassword)}
-              className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+              className='absolute right-3 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:text-slate-600'
             >
               {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
             </button>

@@ -53,8 +53,8 @@ export function ListingPriceMarker({
 
   const gslVerified = listing ? listingQualifiesForTrustVerifiedMiniBadge(listing) : false
   const icon = useMemo(
-    () => createLeafletPricePillDivIcon(L, priceLabel, { selected, approximate }),
-    [priceLabel, selected, approximate],
+    () => createLeafletPricePillDivIcon(L, priceLabel, { selected }),
+    [priceLabel, selected],
   )
 
   return (
