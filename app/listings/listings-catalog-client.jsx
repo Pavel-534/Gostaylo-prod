@@ -343,8 +343,9 @@ function ListingsContent() {
         has_bbox: Boolean(appliedBbox),
       })
       setCatalogSort(next)
+      commitToUrl({ catalogSort: next, useDebounced: true })
     },
-    [debouncedWhere, appliedBbox],
+    [debouncedWhere, appliedBbox, commitToUrl],
   )
 
   const loadMoreRef = useIntersectionObserver(loadMore)

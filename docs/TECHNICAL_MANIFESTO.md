@@ -8,6 +8,8 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 178.6.1 (2026-07-10):** mobile catalog search sheet — **`SelectContent`** категории «Что?» с **`z-[220]`** (портал выше шторки `z-[120]`); каталог **`sort`** в ключе in-memory cache **`getCacheKey`** + **`commitToUrl`** при смене сортировки.
+
 **Stage 178.6 (2026-07-10):** откат mobile catalog search к **`CatalogMobileSearchSheet`** + **`FilterBar`** / **`UnifiedSearchBar variant="filter"`** (компактная сетка Что·Куда·Даты·Гости). Удалены **`MobileSearchWizard`** и wizard draft.
 
 **Stage 178.3–178.5 (2026-07-09):** *(отменено)* эксперименты с step-wizard и inline-only панелью.

@@ -63,6 +63,7 @@ export function FilterBar({
   shellWrapper = true,
   filtersOpen: filtersOpenProp,
   onFiltersOpenChange,
+  categorySelectPortalClassName,
 }) {
   const [filtersOpenInternal, setFiltersOpenInternal] = useState(false);
   const filtersOpen = filtersOpenProp ?? filtersOpenInternal;
@@ -185,6 +186,7 @@ export function FilterBar({
               setSmartSearchOn={setSmartSearchOn}
               semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
               onSearchSubmit={onSearchSubmit}
+              categorySelectPortalClassName={categorySelectPortalClassName}
             />
           </div>
           <Button

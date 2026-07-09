@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { FilterBar } from '@/components/search/FilterBar'
 
+/** Above sheet (`z-[120]`) and backdrop (`z-[110]`); matches WhereCombobox popover in overlays. */
+export const CATALOG_MOBILE_SEARCH_SHEET_SELECT_Z = 'z-[220]'
+
 export function CatalogMobileSearchSheet({
   open,
   onClose,
@@ -90,6 +93,7 @@ export function CatalogMobileSearchSheet({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <FilterBar
             {...filterBarProps}
+            categorySelectPortalClassName={CATALOG_MOBILE_SEARCH_SHEET_SELECT_Z}
             shellWrapper={false}
             catalogHeadline={null}
             catalogSubline={null}

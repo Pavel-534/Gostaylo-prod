@@ -129,6 +129,8 @@ export function UnifiedSearchBar({
   nights: _nights = 0,
   showFiltersButton = false,
   onFiltersClick,
+  /** Raised z-index for Radix Select portal inside bottom sheets (e.g. CatalogMobileSearchSheet z-120). */
+  categorySelectPortalClassName,
   className,
   innerClassName,
 }) {
@@ -299,7 +301,7 @@ export function UnifiedSearchBar({
                   : getUIText('whatPlaceholder', language)}
               </span>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={categorySelectPortalClassName}>
               <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
               {orderedCategoryRows.map(({ cat: c, depth }) => (
                 <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
