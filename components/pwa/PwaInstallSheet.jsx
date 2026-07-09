@@ -21,7 +21,7 @@ export function PwaInstallSheet({
   return (
     <>
       <div
-        className="fixed inset-0 z-[44] bg-slate-900/45 backdrop-blur-[2px] md:hidden"
+        className="fixed inset-0 z-[100] bg-slate-900/45 backdrop-blur-[2px] md:hidden"
         onClick={onBackdropClick}
         aria-hidden
         data-testid="pwa-install-backdrop"
@@ -33,9 +33,9 @@ export function PwaInstallSheet({
         aria-label={getUIText('pwaInstall_title', language)}
         data-testid="pwa-install-sheet"
         className={cn(
-          'fixed inset-x-0 app-fixed-above-bottom-nav z-[45] flex flex-col rounded-t-3xl bg-white md:hidden',
+          'fixed inset-x-0 bottom-0 z-[101] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
-          'animate-in slide-in-from-bottom duration-300 app-padb-safe-screen-bottom',
+          'animate-in slide-in-from-bottom duration-300 pb-[max(1rem,env(safe-area-inset-bottom,0px))]',
         )}
       >
         <div className="flex justify-center pt-3 pb-1" aria-hidden>

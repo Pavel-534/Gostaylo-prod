@@ -99,7 +99,7 @@ export function CatalogMapCardRail({
       <div
         ref={containerRef}
         className={cn(
-          'flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-3 pt-2',
+          'flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-3 py-2',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         )}
         onScroll={scheduleEmit}

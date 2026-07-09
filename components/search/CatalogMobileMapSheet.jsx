@@ -122,20 +122,6 @@ export function CatalogMobileMapSheet({
             layoutResetKey={open ? 1 : 0}
             mapShellClassName="h-full rounded-none border-0 shadow-none"
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom,0px))] z-[12]">
-            <CatalogMapCardRail
-              listings={railListings}
-              activeListingId={railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null}
-              onActiveListingChange={
-                railProps.onActiveListingChange ?? mapPanelProps.onListingMarkerClick
-              }
-              onListingOpen={railProps.onListingOpen ?? mapPanelProps.onListingMarkerClick}
-              language={railProps.language || language}
-              currency={railProps.currency || mapPanelProps.currency || 'THB'}
-              exchangeRates={railProps.exchangeRates || mapPanelProps.exchangeRates || { THB: 1 }}
-              className="pointer-events-auto"
-            />
-          </div>
           {railListings.length === 0 ? (
             <Button
               type="button"
@@ -150,6 +136,22 @@ export function CatalogMobileMapSheet({
             </Button>
           ) : null}
         </div>
+
+        {railListings.length > 0 ? (
+          <div className="shrink-0 border-t border-slate-200 bg-white/95 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+            <CatalogMapCardRail
+              listings={railListings}
+              activeListingId={railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null}
+              onActiveListingChange={
+                railProps.onActiveListingChange ?? mapPanelProps.onListingMarkerClick
+              }
+              onListingOpen={railProps.onListingOpen ?? mapPanelProps.onListingMarkerClick}
+              language={railProps.language || language}
+              currency={railProps.currency || mapPanelProps.currency || 'THB'}
+              exchangeRates={railProps.exchangeRates || mapPanelProps.exchangeRates || { THB: 1 }}
+            />
+          </div>
+        ) : null}
       </div>
     </>
   )

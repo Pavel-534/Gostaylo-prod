@@ -85,6 +85,7 @@ function HeroPriceHeadline({
   rentalPeriodMode,
   tx,
   sizeClass = 'text-3xl',
+  compact = false,
 }) {
   const hero = useHeroGuestPrice(listing, priceCalc)
   const spanMode = rentalPeriodMode === 'day' ? 'day' : 'night'
@@ -102,16 +103,18 @@ function HeroPriceHeadline({
       >
         {formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)}
       </div>
-      <p className="text-sm text-slate-500" data-testid="booking-per-period-label">
+      <p className={cn('text-slate-500', compact ? 'text-xs' : 'text-sm')} data-testid="booking-per-period-label">
         {periodLine}
       </p>
-      <button
-        type="button"
-        className="mt-1 max-w-full text-left text-xs leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-700 hover:decoration-slate-400 sm:text-[13px] py-0.5 -ml-0.5 pl-0.5 pr-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80"
-        onClick={scrollToBookingPriceBreakdown}
-      >
-        {getUIText('listingHero_priceFeesNote', language)}
-      </button>
+      {!compact ? (
+        <button
+          type="button"
+          className="mt-1 max-w-full text-left text-xs leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-700 hover:decoration-slate-400 sm:text-[13px] py-0.5 -ml-0.5 pl-0.5 pr-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80"
+          onClick={scrollToBookingPriceBreakdown}
+        >
+          {getUIText('listingHero_priceFeesNote', language)}
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -347,7 +350,7 @@ export function MobileBookingBar({
 
   return (
     <div
-      className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 pt-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 py-2.5 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
     >
       {mobileOfferTiers.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -394,21 +397,24 @@ export function MobileBookingBar({
         </div>
       )}
 
-      <div className="space-y-3">
-        <HeroPriceHeadline
-          listing={listing}
-          priceCalc={priceCalc}
-          currency={currency}
-          exchangeRates={exchangeRates}
-          language={language}
-          rentalPeriodMode={rentalPeriodMode}
-          tx={tx}
-          sizeClass="text-xl sm:text-2xl"
-        />
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <HeroPriceHeadline
+            listing={listing}
+            priceCalc={priceCalc}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            language={language}
+            rentalPeriodMode={rentalPeriodMode}
+            tx={tx}
+            sizeClass="text-lg sm:text-xl"
+            compact
+          />
+        </div>
 
-        <div className="flex items-stretch gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {showChatButton && (
-            <div className="relative shrink-0">
+            <div className="relative">
               <Button
                 type="button"
                 variant="outline"
@@ -436,7 +442,7 @@ export function MobileBookingBar({
             variant="brand"
             data-testid="listing-book-now"
             title={tx('listingBookingPayHint')}
-            className="h-12 min-h-11 flex-1 rounded-xl px-4 text-sm font-semibold sm:text-base"
+            className="h-12 min-h-11 min-w-[7rem] shrink-0 rounded-xl px-4 text-sm font-semibold sm:min-w-[7.5rem] sm:text-base"
           >
             {exclusiveDatesUnavailable
               ? tx('listingDetail_unavailable')
