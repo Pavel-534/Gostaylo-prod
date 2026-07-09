@@ -2,7 +2,7 @@
 
 /**
  * Stage 178.3 Step 1 — mobile catalog search informer (read-only).
- * Replaces in-flow FilterBar on `<md`; tap opens MobileSearchWizard.
+ * Replaces in-flow FilterBar on `<md`; tap opens CatalogMobileSearchSheet.
  */
 
 import { useMemo } from 'react'

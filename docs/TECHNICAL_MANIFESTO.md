@@ -8,13 +8,9 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
-**Stage 178.5 (2026-07-09):** **`MobileSearchWizard`** — отказ от multi-step; единый scrollable drawer (**Куда** + **Даты** + **Гости** inline, `presentation=wizardStep`); шапка «Поиск» + close; один CTA **`findButton`** + count. Draft → Apply без под-шторок.
+**Stage 178.6 (2026-07-10):** откат mobile catalog search к **`CatalogMobileSearchSheet`** + **`FilterBar`** / **`UnifiedSearchBar variant="filter"`** (компактная сетка Что·Куда·Даты·Гости). Удалены **`MobileSearchWizard`** и wizard draft.
 
-**Stage 178.4 (2026-07-09):** *(superseded by 178.5)* tiered **`dvh`** + slide между шагами.
-
-**Stage 178.3 Step 3 (2026-07-09):** wizard step router **`what → where → when → who`**; **`SearchCalendar`** / **`GuestsPopover`** `presentation=wizardStep`; **`CatalogMobileSearchSheet`** removed.
-
-**Stage 178.3 Step 2 (2026-07-09):** **`MobileSearchWizard`** (Vaul `92dvh`) replaces legacy catalog mobile sheet; draft SSOT **`useMobileSearchWizardDraft`** + **`mobile-search-wizard-draft.js`**; Apply commits snapshot via **`commitToUrl({ snapshot })`**. **`WhereCombobox.presentation="wizardStep"`** — inline destination panel, no nested Drawer.
+**Stage 178.3–178.5 (2026-07-09):** *(отменено)* эксперименты с step-wizard и inline-only панелью.
 
 **Stage 178.3 Step 1 (2026-07-09):** Catalog mobile search chrome — **`CatalogSearchSummaryBar`** (`<md`) replaces in-flow **`FilterBar`**; sticky read-only pill opens wizard; label SSOT **`lib/search/catalog-search-summary-labels.js`**. Desktop **`FilterBar`** + scroll-morph unchanged.
 
