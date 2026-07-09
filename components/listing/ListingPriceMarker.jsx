@@ -5,8 +5,8 @@
  * SSOT пилюли: **`createLeafletPricePillDivIcon`** (**`lib/maps/map-provider-adapter.js`**).
  */
 
-import { useMemo, useState } from 'react'
-import { Marker, Popup, useMap } from 'react-leaflet'
+import { useMemo, useState, useRef } from 'react'
+import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { createLeafletPricePillDivIcon } from '@/lib/maps/map-provider-adapter'
 import { listingQualifiesForTrustVerifiedMiniBadge } from '@/lib/listing-card-spec-profile'
@@ -44,7 +44,7 @@ export function ListingPriceMarker({
   lazyPopup = false,
   zIndexOffset = 0,
 }) {
-  const map = useMap()
+  const markerRef = useRef(null)
   const [popupOpen, setPopupOpen] = useState(false)
   const markerListing = listing || (pin ? { id: pin.id } : null)
   const listingId = String(markerListing?.id || pin?.id || '').trim()
@@ -59,6 +59,7 @@ export function ListingPriceMarker({
 
   return (
     <Marker
+      ref={markerRef}
       position={position}
       icon={icon}
       gslVerified={gslVerified}
@@ -66,13 +67,13 @@ export function ListingPriceMarker({
       eventHandlers={{
         click: () => {
           if (listingId) onSelect?.(listingId)
-          map.setView(position, Math.max(map.getZoom(), 14), { animate: true })
+          markerRef.current?.openPopup()
         },
         popupopen: () => setPopupOpen(true),
         popupclose: () => setPopupOpen(false),
       }}
     >
-      <Popup autoPan autoPanPadding={[80, 60]} className="map-listing-popup">
+      <Popup autoPan={false} className="map-listing-popup">
         {useLazyPopup ? (
           <ListingMapPopupLazy
             listingId={listingId}

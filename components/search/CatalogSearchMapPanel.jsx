@@ -47,6 +47,7 @@ function CatalogSearchMapPanelComponent({
   onClearMapBounds,
   appliedBboxKey = '',
   mapFitResetKey = '',
+  selectionPanMode,
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
 
@@ -123,6 +124,7 @@ function CatalogSearchMapPanelComponent({
           appliedBboxKey={appliedBboxKey}
           mapFitResetKey={mapFitResetKey}
           layoutResetKey={layoutResetKey}
+          selectionPanMode={selectionPanMode}
         />
       </div>
     </div>

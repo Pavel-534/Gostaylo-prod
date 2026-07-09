@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
@@ -41,11 +41,17 @@ import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalo
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
 import { useFavoritesBatch } from '@/hooks/use-favorites-batch'
+import {
+  CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
+  CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
+} from '@/lib/maps/catalog-map-ux-policy'
+import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
 
 const ITEMS_PER_PAGE = 12
 
 function ListingsContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { user } = useAuth()
   const isMobile = useIsMobile()
 
@@ -178,9 +184,10 @@ function ListingsContent() {
 
   useEffect(() => {
     if (!mapSelectedListingId) return
+    if (isMobile && showMap) return
     const t = setTimeout(() => setMapSelectedListingId(null), 5000)
     return () => clearTimeout(t)
-  }, [mapSelectedListingId])
+  }, [mapSelectedListingId, isMobile, showMap])
 
   const handleSearchThisArea = useCallback((b) => {
     setAppliedBbox(b)
@@ -199,6 +206,15 @@ function ListingsContent() {
     setMapSelectedListingId(id)
     setMapHoveredListingId(null)
   }, [])
+
+  const handleMapListingOpen = useCallback(
+    (id) => {
+      const listingId = String(id || '').trim()
+      if (!listingId) return
+      navigateWithListingHeroTransition(() => router.push(`/listings/${listingId}`), listingId)
+    },
+    [router],
+  )
 
   const handleListingCardSelect = useCallback((id) => {
     setMapSelectedListingId(id)
@@ -446,6 +462,9 @@ function ListingsContent() {
       onClearMapBounds: handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
+      selectionPanMode: isMobile && showMap
+        ? CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY
+        : CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
     }),
     [
       allListings,
@@ -464,6 +483,8 @@ function ListingsContent() {
       handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
+      isMobile,
+      showMap,
     ],
   )
 
@@ -665,7 +686,7 @@ function ListingsContent() {
           listings: allListings,
           activeListingId: mapSelectedListingId,
           onActiveListingChange: handleMapRailActiveChange,
-          onListingOpen: handleListingMarkerClick,
+          onListingOpen: handleMapListingOpen,
           language,
           currency,
           exchangeRates,

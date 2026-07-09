@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { MapRailCard } from '@/components/search/MapRailCard'
-import { CATALOG_MAP_MOBILE_RAIL_CARD_WIDTH } from '@/lib/maps/catalog-map-ux-policy'
+import { CATALOG_MAP_MOBILE_RAIL_CARD_WIDTH, CATALOG_MAP_RAIL_SCROLL_SETTLE_MS } from '@/lib/maps/catalog-map-ux-policy'
 
 /**
  * Controlled mobile rail for map sheet (native CSS snap + scroll math).
+ * Airbnb-style: scroll highlights pin only; no map flyTo feedback loop.
  */
 export function CatalogMapCardRail({
   listings = [],
@@ -19,8 +20,8 @@ export function CatalogMapCardRail({
   className,
 }) {
   const containerRef = useRef(null)
-  const rafRef = useRef(0)
-  const lastEmitRef = useRef(null)
+  const settleTimerRef = useRef(null)
+  const lastEmittedByRailRef = useRef(null)
 
   const idToIndex = useMemo(() => {
     const map = new Map()
@@ -54,24 +55,32 @@ export function CatalogMapCardRail({
     }
 
     if (!winnerId) return
-    if (lastEmitRef.current === winnerId) return
-    lastEmitRef.current = winnerId
+    if (String(activeListingId || '') === winnerId) return
+
+    lastEmittedByRailRef.current = winnerId
     onActiveListingChange?.(winnerId)
-  }, [onActiveListingChange])
+  }, [activeListingId, onActiveListingChange])
 
   const scheduleEmit = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(() => {
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current)
+    settleTimerRef.current = setTimeout(() => {
+      settleTimerRef.current = null
       emitCenteredListing()
-    })
+    }, CATALOG_MAP_RAIL_SCROLL_SETTLE_MS)
   }, [emitCenteredListing])
 
   useEffect(() => {
-    scheduleEmit()
+    const container = containerRef.current
+    if (!container) return undefined
+
+    const onScrollEnd = () => emitCenteredListing()
+    container.addEventListener('scrollend', onScrollEnd, { passive: true })
+
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      container.removeEventListener('scrollend', onScrollEnd)
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current)
     }
-  }, [listings, scheduleEmit])
+  }, [emitCenteredListing])
 
   useEffect(() => {
     const id = String(activeListingId || '')
@@ -79,8 +88,10 @@ export function CatalogMapCardRail({
     const container = containerRef.current
     if (!container) return
 
-    const index = idToIndex.get(id)
-    if (index == null) return
+    if (lastEmittedByRailRef.current === id) {
+      lastEmittedByRailRef.current = null
+      return
+    }
 
     const node = container.querySelector(`[data-listing-id="${id}"]`)
     if (!node) return
@@ -101,6 +112,7 @@ export function CatalogMapCardRail({
         className={cn(
           'flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-3 py-2',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          'touch-pan-x',
         )}
         onScroll={scheduleEmit}
       >

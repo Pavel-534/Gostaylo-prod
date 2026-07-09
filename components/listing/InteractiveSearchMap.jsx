@@ -28,6 +28,8 @@ import {
   CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS,
   CATALOG_MAP_SELECT_FLY_DURATION_MS,
   CATALOG_MAP_SELECT_MIN_ZOOM,
+  CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
+  CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 } from '@/lib/maps/catalog-map-ux-policy'
 
 configureLeafletDefaultIcons(L)
@@ -226,11 +228,18 @@ function resolvePinLatLng(pin) {
   return { lat: la, lng: ln }
 }
 
-function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
+function MapSelectionSync({
+  selectedListingId,
+  pins = [],
+  listings = [],
+  selectionPanMode = CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
+}) {
   const map = useMap()
   const lastPanIdRef = useRef(null)
 
   useEffect(() => {
+    if (selectionPanMode === CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY) return
+
     const id = String(selectedListingId || '').trim()
     if (!id) {
       lastPanIdRef.current = null
@@ -276,7 +285,7 @@ function MapSelectionSync({ selectedListingId, pins = [], listings = [] }) {
     } catch {
       lastPanIdRef.current = null
     }
-  }, [selectedListingId, pins, listings, map])
+  }, [selectedListingId, pins, listings, map, selectionPanMode])
 
   return null
 }
@@ -392,6 +401,7 @@ export default function InteractiveSearchMap({
   appliedBboxKey = '',
   mapFitResetKey = '',
   layoutResetKey = 0,
+  selectionPanMode = CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 }) {
   const [mounted, setMounted] = useState(false)
   const suppressBoundsUntilRef = useRef(0)
@@ -537,6 +547,7 @@ export default function InteractiveSearchMap({
           selectedListingId={selectedListingId}
           pins={effectivePins}
           listings={listings}
+          selectionPanMode={selectionPanMode}
         />
 
         {useServerClusters ? (
