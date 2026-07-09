@@ -8,7 +8,11 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
-**Stage 178.3 Step 3 (2026-07-09):** **`MobileSearchWizard`** step router **`what → where → when → who`**; header back; footer «Далее» + early «Показать результаты» on intermediate steps. **`SearchCalendar.presentation="wizardStep"`** + **`GuestsPopover.presentation="wizardStep"`** — inline panels, no nested shells. **`CatalogMobileSearchSheet`** removed. SSOT **`lib/search/mobile-search-wizard-steps.js`**.
+**Stage 178.5 (2026-07-09):** **`MobileSearchWizard`** — отказ от multi-step; единый scrollable drawer (**Куда** + **Даты** + **Гости** inline, `presentation=wizardStep`); шапка «Поиск» + close; один CTA **`findButton`** + count. Draft → Apply без под-шторок.
+
+**Stage 178.4 (2026-07-09):** *(superseded by 178.5)* tiered **`dvh`** + slide между шагами.
+
+**Stage 178.3 Step 3 (2026-07-09):** wizard step router **`what → where → when → who`**; **`SearchCalendar`** / **`GuestsPopover`** `presentation=wizardStep`; **`CatalogMobileSearchSheet`** removed.
 
 **Stage 178.3 Step 2 (2026-07-09):** **`MobileSearchWizard`** (Vaul `92dvh`) replaces legacy catalog mobile sheet; draft SSOT **`useMobileSearchWizardDraft`** + **`mobile-search-wizard-draft.js`**; Apply commits snapshot via **`commitToUrl({ snapshot })`**. **`WhereCombobox.presentation="wizardStep"`** — inline destination panel, no nested Drawer.
 

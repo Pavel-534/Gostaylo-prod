@@ -788,7 +788,6 @@ function ListingsContent() {
         committedFilters={mobileWizardCommittedFilters}
         onApply={handleMobileSearchWizardApply}
         resultCount={allListings.length}
-        categoriesForHierarchy={catalogCategories}
         wizardProfileBySlug={wizardProfileBySlug}
       />
     </div>
