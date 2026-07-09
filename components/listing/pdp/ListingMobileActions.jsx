@@ -7,6 +7,7 @@ import { PlatformCalendar } from '@/components/platform-calendar'
 import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { MobileBookingBar, PriceBreakdownBlock } from '@/app/listings/[id]/components/BookingWidget'
 import { getUIText } from '@/lib/translations'
+import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 
 /**
  * PDP mobile: inline date/guest planner (lg:hidden) + fixed bottom **`MobileBookingBar`**.
@@ -43,7 +44,7 @@ export function ListingMobileActions({
 
   return (
     <>
-      <div className="lg:hidden">
+      <div className="lg:hidden scroll-mt-24" {...{ [PDP_BOOKING_DATES_ANCHOR_ATTR]: '' }}>
         <h2 className="text-2xl font-medium tracking-tight mb-4">{tx('selectYourDates')}</h2>
         <Card className="border-slate-200 bg-slate-50">
           <CardContent className="p-4 space-y-4">

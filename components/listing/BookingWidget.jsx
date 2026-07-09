@@ -19,6 +19,7 @@ import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 import { getPdpHeroGuestPriceThb, scrollToBookingPriceBreakdown } from '@/lib/pricing/guest-display-price'
+import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 import { useBookingWidgetLogic } from '@/hooks/pricing/useBookingWidgetLogic'
 import { BookingPriceBreakdown } from '@/components/listing/booking/BookingPriceBreakdown'
 import { BookingDateGuestsPicker } from '@/components/listing/booking/BookingDateGuestsPicker'
@@ -261,7 +262,8 @@ export function DesktopBookingWidget({
             </div>
           )}
 
-          <BookingDateGuestsPicker
+          <div {...{ [PDP_BOOKING_DATES_ANCHOR_ATTR]: '' }} className="scroll-mt-24">
+            <BookingDateGuestsPicker
             listing={listing}
             language={language}
             rentalPeriodMode={rentalPeriodMode}
@@ -277,6 +279,7 @@ export function DesktopBookingWidget({
             onVehicleStartTimeChange={onVehicleStartTimeChange}
             onVehicleEndTimeChange={onVehicleEndTimeChange}
           />
+          </div>
 
           <BookingPriceBreakdown
             priceCalc={priceCalc}
@@ -438,7 +441,11 @@ export function MobileBookingBar({
           )}
           <Button
             onClick={onBookingClick}
-            disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
+            disabled={
+              exclusiveDatesUnavailable ||
+              availabilityLoading ||
+              (!!dateRange?.from && !!dateRange?.to && !canInstantBook)
+            }
             variant="brand"
             data-testid="listing-book-now"
             title={tx('listingBookingPayHint')}

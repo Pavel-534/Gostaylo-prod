@@ -123,7 +123,7 @@ function PremiumListingContent({ params }) {
         currency,
         exchangeRates,
         language,
-        onBookingClick: () => booking.openBookModal('book'),
+        onBookingClick: () => booking.handleBookCtaClick('book'),
         onAskPartner: chat.handleContactPartner,
         onAskPartnerUnavailable: booking.handleAskPartnerUnavailable,
         askPartnerLoading: chat.contactPartnerLoading,
@@ -233,7 +233,7 @@ function PremiumListingContent({ params }) {
                 exchangeRates={exchangeRates}
                 language={language}
                 calendarKey={booking.calendarKey}
-                onBookingClick={() => booking.openBookModal('book')}
+                onBookingClick={() => booking.handleBookCtaClick('book')}
                 showAskPartner={chat.showContactPartner && !booking.exclusiveDatesUnavailable}
                 onAskPartner={chat.handleContactPartner}
                 onAskPartnerUnavailable={booking.handleAskPartnerUnavailable}

@@ -25,6 +25,7 @@ import { useAuthModalState } from '@/hooks/useAuthModalState'
 import { useListingAvailabilityQuery } from '@/hooks/use-listing-availability-query'
 import { resolveListingTimeZoneFromMetadata } from '@/lib/geo/listing-timezone-ssot'
 import { listingYmdLocalWallTimeToUtcIso } from '@/lib/listing-date'
+import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 
 const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
 const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
@@ -359,6 +360,36 @@ export function useListingBookingFlow({
     setBookingModalOpen(true)
   }
 
+  const scrollToBookingDates = useCallback(() => {
+    if (typeof document === 'undefined') return false
+    const nodes = document.querySelectorAll(`[${PDP_BOOKING_DATES_ANCHOR_ATTR}]`)
+    const visible = [...nodes].find((el) => el.getBoundingClientRect().height > 0)
+    const target = visible || nodes[0]
+    if (!target) return false
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    return true
+  }, [])
+
+  const handleBookCtaClick = useCallback(
+    (intent = 'book') => {
+      const hasDates = !!dateRange?.from && !!dateRange?.to
+      if (!hasDates) {
+        scrollToBookingDates()
+        return
+      }
+      if (exclusiveDatesUnavailable || availabilityLoading) return
+      if (!canInstantBook) return
+      openBookModal(intent)
+    },
+    [
+      dateRange,
+      exclusiveDatesUnavailable,
+      availabilityLoading,
+      canInstantBook,
+      scrollToBookingDates,
+    ],
+  )
+
   function handleAskPartnerUnavailable() {
     if (!dateRange?.from || !dateRange?.to) {
       toast.error(getUIText('listingDetail_selectDates', language))
@@ -555,6 +586,8 @@ export function useListingBookingFlow({
     maxGuests,
     isVehicleListing,
     openBookModal,
+    handleBookCtaClick,
+    scrollToBookingDates,
     handleAskPartnerUnavailable,
     handleBookingSubmit,
     postInquiryBooking,

@@ -6,6 +6,7 @@ import nextDynamic from 'next/dynamic'
 import { getUIText, detectLanguage } from '@/lib/translations'
 import { useElementInView } from '@/hooks/use-element-in-view'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { PDP_MAP_FALLBACK_CLASS } from '@/lib/listing/pdp-hero-layout'
 
 function ListingMapLoadFallback() {
@@ -38,6 +39,7 @@ const ListingMapCore = nextDynamic(
  */
 export const ListingMap = memo(function ListingMap({ listing, language }) {
   const networkQuality = useNetworkQuality()
+  const isMobile = useIsMobile()
   const rootMargin = networkQuality.constrained ? '0px' : '280px'
   const { ref, inView } = useElementInView({
     rootMargin,
@@ -46,12 +48,14 @@ export const ListingMap = memo(function ListingMap({ listing, language }) {
   })
 
   const slug = listing?.categorySlug || listing?.category?.slug
+  const wizardProfile = listing?.wizardProfile || listing?.category?.wizard_profile
 
   return (
     <div ref={ref}>
       <h2 className="text-2xl font-medium tracking-tight mb-4">
         {getUIText('whereYoullBe', language, {
           listingCategorySlug: slug,
+          wizardProfile,
         })}
       </h2>
       {inView ? (
@@ -64,6 +68,7 @@ export const ListingMap = memo(function ListingMap({ listing, language }) {
           language={language}
           categoryId={listing.category_id}
           categorySlug={slug}
+          cooperativeTouch={isMobile}
         />
       ) : (
         <ListingMapLoadFallback />

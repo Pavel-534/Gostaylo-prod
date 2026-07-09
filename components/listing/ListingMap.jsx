@@ -6,13 +6,14 @@
  */
 import 'leaflet/dist/leaflet.css'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { MapPin, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
+import { cn } from '@/lib/utils'
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -40,8 +41,11 @@ export function ListingMap({
   categorySlug,
   /** Полный объект листинга — спеки строкой как на карточках каталога (Stage 86.0) */
   listing = null,
+  /** PDP: tap overlay before map captures touch (scrollport-safe). */
+  cooperativeTouch = false,
 }) {
   const t = (key) => getUIText(key, language)
+  const [mapGestureActive, setMapGestureActive] = useState(!cooperativeTouch)
   const hasCoordinates = latitude && longitude && !isNaN(latitude) && !isNaN(longitude)
 
   const mode = useMemo(
@@ -60,6 +64,8 @@ export function ListingMap({
     if (!hasCoordinates) return null
     return `https://www.google.com/maps?q=${latitude},${longitude}`
   }, [latitude, longitude, hasCoordinates])
+
+  const mapGesturesEnabled = cooperativeTouch ? mapGestureActive : true
 
   if (!hasCoordinates) {
     return (
@@ -93,11 +99,31 @@ export function ListingMap({
   return (
     <div className="space-y-3">
       <ListingCardSpecsRow listing={listingForSpecs} language={language} compact />
-      <div className="h-[400px] rounded-xl overflow-hidden border border-slate-200">
+      <div
+        className={cn(
+          'relative h-[min(280px,50vw)] max-h-[400px] min-h-[220px] rounded-xl overflow-hidden border border-slate-200 sm:h-[400px]',
+          cooperativeTouch && !mapGestureActive && 'touch-pan-y',
+        )}
+      >
+        {cooperativeTouch && !mapGestureActive ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-[1000] flex items-end justify-center bg-slate-900/[0.03] pb-3"
+            onClick={() => setMapGestureActive(true)}
+            aria-label={t('mapPicker_cooperativeTap')}
+          >
+            <span className="rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              {t('mapPicker_cooperativeTap')}
+            </span>
+          </button>
+        ) : null}
         <MapContainer
           center={position}
           zoom={showPrivacyCircle ? 13 : 15}
-          scrollWheelZoom={false}
+          scrollWheelZoom={mapGesturesEnabled}
+          dragging={mapGesturesEnabled}
+          touchZoom={mapGesturesEnabled}
+          doubleClickZoom={mapGesturesEnabled}
           style={{ height: '100%', width: '100%' }}
           className="z-0"
         >
@@ -121,7 +147,7 @@ export function ListingMap({
 
           {showExactMarker && (
             <ListingMapPin position={position}>
-              <Popup>
+              <Popup autoPan={false}>
                 <div className="p-2">
                   <h4 className="font-semibold text-slate-900">{title}</h4>
                   {district && <p className="text-sm text-slate-600 mt-1">{district}</p>}
@@ -133,7 +159,7 @@ export function ListingMap({
 
           {showPrivacyCircle && (
             <ListingMapPin position={position} approximate>
-              <Popup>
+              <Popup autoPan={false}>
                 <div className="p-2">
                   <h4 className="font-semibold text-slate-900">{title}</h4>
                   {district && <p className="text-sm text-slate-600 mt-1">{district}</p>}

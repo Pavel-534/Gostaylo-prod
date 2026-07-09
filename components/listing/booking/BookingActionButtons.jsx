@@ -43,7 +43,6 @@ export function BookingActionButtons({
   onPrivateTripClick,
   onSpecialPriceClick,
 }) {
-  const canBook = !!dateRange?.from && !!dateRange?.to && canInstantBook && !availabilityLoading
   const sharedMode = bookingUiMode === 'shared'
 
   return (
@@ -73,7 +72,7 @@ export function BookingActionButtons({
 
       <Button
         onClick={onBookingClick}
-        disabled={!canBook}
+        disabled={exclusiveDatesUnavailable || availabilityLoading || (!!dateRange?.from && !!dateRange?.to && !canInstantBook)}
         variant="brand"
         data-testid="listing-book-now"
         className="w-full h-12 text-base"

@@ -16,8 +16,10 @@ import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
-import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
+import { CatalogSearchSummaryBar } from '@/components/search/mobile/CatalogSearchSummaryBar'
+import { MobileSearchWizard } from '@/components/search/mobile/MobileSearchWizard'
 import { MobileSearchFAB } from '@/components/search/MobileSearchBottomSheet'
+import { mobileSearchWizardDraftToFilterSnapshot } from '@/lib/search/mobile-search-wizard-draft'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
@@ -306,6 +308,69 @@ function ListingsContent() {
     commitSemanticSearch()
   }, [commitToUrl, smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
 
+  const mobileWizardCommittedFilters = useMemo(
+    () => ({
+      selectedCategory,
+      where,
+      dateRange,
+      checkInTime,
+      checkOutTime,
+      guests,
+      guestsBreakdown,
+      searchQuery,
+      smartSearchOn,
+    }),
+    [
+      selectedCategory,
+      where,
+      dateRange,
+      checkInTime,
+      checkOutTime,
+      guests,
+      guestsBreakdown,
+      searchQuery,
+      smartSearchOn,
+    ],
+  )
+
+  const handleMobileSearchWizardApply = useCallback(
+    (draft) => {
+      const snapshot = mobileSearchWizardDraftToFilterSnapshot(draft)
+      setSelectedCategory(snapshot.selectedCategory)
+      setWhere(snapshot.where)
+      setDateRange(snapshot.dateRange)
+      setCheckInTime(snapshot.checkInTime)
+      setCheckOutTime(snapshot.checkOutTime)
+      setGuests(snapshot.guests)
+      setGuestsBreakdown(snapshot.guestsBreakdown)
+      setSearchQuery(snapshot.textQuery)
+      setSmartSearchOn(snapshot.smartSearchOn)
+      commitToUrl({ snapshot, includeSemantic: true })
+      if (
+        snapshot.smartSearchOn &&
+        semanticSiteEnabled &&
+        String(snapshot.textQuery || '').trim().length >= 2
+      ) {
+        setAiSearchPending(true)
+      }
+      commitSemanticSearch()
+    },
+    [
+      setSelectedCategory,
+      setWhere,
+      setDateRange,
+      setCheckInTime,
+      setCheckOutTime,
+      setGuests,
+      setGuestsBreakdown,
+      setSearchQuery,
+      setSmartSearchOn,
+      commitToUrl,
+      semanticSiteEnabled,
+      commitSemanticSearch,
+    ],
+  )
+
   useEffect(() => {
     if (!loading) setAiSearchPending(false)
   }, [loading])
@@ -572,10 +637,27 @@ function ListingsContent() {
       <PublicSearchChrome
         surface="catalog"
         expanded={
-          <FilterBar
-            shellWrapper={false}
-            {...catalogFilterBarProps}
-          />
+          <>
+            <div className="md:hidden">
+              <CatalogSearchSummaryBar
+                language={language}
+                category={selectedCategory}
+                categoryWizardProfile={selectedCategoryWizardProfile}
+                categoriesForHierarchy={catalogCategories}
+                where={where}
+                dateRange={dateRange}
+                guests={guests}
+                guestsBreakdown={guestsBreakdown}
+                textQuery={searchQuery}
+                catalogHeadline={catalogHeadlines.h1}
+                catalogSubline={catalogHeadlines.sub}
+                onOpenSearch={() => setMobileSearchOpen(true)}
+              />
+            </div>
+            <div className="hidden md:block">
+              <FilterBar shellWrapper={false} {...catalogFilterBarProps} />
+            </div>
+          </>
         }
         compact={
           <UnifiedSearchBar
@@ -699,12 +781,15 @@ function ListingsContent() {
         hasActiveFilters={catalogMobileSearchActive}
         onClick={() => setMobileSearchOpen(true)}
       />
-      <CatalogMobileSearchSheet
+      <MobileSearchWizard
         open={mobileSearchOpen}
-        onClose={() => setMobileSearchOpen(false)}
+        onOpenChange={setMobileSearchOpen}
         language={language}
-        onSearchSubmit={handleCatalogSearchSubmit}
-        filterBarProps={catalogFilterBarProps}
+        committedFilters={mobileWizardCommittedFilters}
+        onApply={handleMobileSearchWizardApply}
+        resultCount={allListings.length}
+        categoriesForHierarchy={catalogCategories}
+        wizardProfileBySlug={wizardProfileBySlug}
       />
     </div>
   )

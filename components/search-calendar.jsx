@@ -250,6 +250,83 @@ function DesktopCalendar({ dateRange, onSelect, onClear, locale }) {
 }
 
 /**
+ * Inline calendar panel (wizard step — no Drawer/Popover wrapper).
+ */
+function WizardCalendarPanel({ dateRange, onSelect, onClear, locale }) {
+  const months = React.useMemo(
+    () => Array.from({ length: 12 }, (_, i) => addMonths(new Date(), i)),
+    [],
+  )
+
+  const handleSelect = (date) => {
+    if (!dateRange.from || (dateRange.from && dateRange.to)) {
+      onSelect({ from: date, to: null })
+      return
+    }
+    if (isSameDay(date, dateRange.from)) {
+      onSelect({ from: dateRange.from, to: addDays(dateRange.from, 1) })
+      return
+    }
+    if (date < dateRange.from) {
+      onSelect({ from: date, to: dateRange.from })
+    } else {
+      onSelect({ from: dateRange.from, to: date })
+    }
+  }
+
+  const nights =
+    dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
+
+  return (
+    <div data-testid="search-calendar-wizard-step">
+      {dateRange.from && dateRange.to && nights > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="bg-brand/15 text-brand-hover">
+            {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
+          </Badge>
+          <Badge variant="outline" className="border-brand/30 text-brand">
+            {nights}{' '}
+            {locale === 'ru'
+              ? nights === 1
+                ? 'ночь'
+                : nights < 5
+                  ? 'ночи'
+                  : 'ночей'
+              : `night${nights > 1 ? 's' : ''}`}
+          </Badge>
+        </div>
+      ) : null}
+      {dateRange.from && !dateRange.to ? (
+        <p className="mb-3 text-sm text-slate-500">
+          {locale === 'ru' ? 'Выберите дату выезда' : 'Select checkout date'}
+        </p>
+      ) : null}
+      <div className="space-y-1">
+        {months.map((month, idx) => (
+          <div key={idx} className="py-1">
+            <MonthGrid
+              month={month}
+              dateRange={dateRange}
+              onSelect={handleSelect}
+              locale={locale}
+              showHeader={true}
+            />
+          </div>
+        ))}
+      </div>
+      {dateRange.from ? (
+        <div className="mt-2 flex justify-end">
+          <Button variant="ghost" size="sm" onClick={onClear} className="min-h-11 h-11 text-slate-900">
+            <X className="mr-1 h-3 w-3" />
+            {locale === 'ru' ? 'Сбросить' : 'Clear'}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
  * Mobile Drawer Calendar - Vertical Scroll
  */
 function MobileCalendarDrawer({ 
@@ -399,11 +476,17 @@ export function SearchCalendar({
   liveCount = null,
   countLoading = false,
   onConfirm,
-  className
+  className,
+  /** `wizardStep` — inline panel inside MobileSearchWizard (no nested Drawer/Popover). */
+  presentation,
 }) {
   const isMobile = useIsMobile()
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [popoverOpen, setPopoverOpen] = React.useState(false)
+
+  const isWizardStep = presentation === 'wizardStep'
+  const useDrawerShell = !isWizardStep && (presentation === 'drawer' || (presentation == null && isMobile))
+  const usePopoverShell = !isWizardStep && !useDrawerShell
   
   const dateRange = value || { from: null, to: null }
   const loc = locales[locale] || enUS
@@ -469,8 +552,20 @@ export function SearchCalendar({
     </>
   )
   
-  // Mobile: Use Drawer
-  if (isMobile) {
+  if (isWizardStep) {
+    return (
+      <div className={className}>
+        <WizardCalendarPanel
+          dateRange={dateRange}
+          onSelect={handleSelect}
+          onClear={handleClear}
+          locale={locale}
+        />
+      </div>
+    )
+  }
+
+  if (useDrawerShell) {
     return (
       <>
         <button
@@ -500,7 +595,7 @@ export function SearchCalendar({
     )
   }
   
-  // Desktop: Use Popover
+  if (usePopoverShell) {
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
@@ -530,6 +625,20 @@ export function SearchCalendar({
         />
       </PopoverContent>
     </Popover>
+  )
+  }
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex w-full min-w-0 items-center gap-3 text-left font-medium transition-colors hover:bg-slate-50/90",
+        className
+      )}
+      data-testid="search-calendar-trigger"
+    >
+      {TriggerContent}
+    </button>
   )
 }
 

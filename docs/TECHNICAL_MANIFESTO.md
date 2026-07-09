@@ -8,6 +8,14 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 178.3 Step 3 (2026-07-09):** **`MobileSearchWizard`** step router **`what → where → when → who`**; header back; footer «Далее» + early «Показать результаты» on intermediate steps. **`SearchCalendar.presentation="wizardStep"`** + **`GuestsPopover.presentation="wizardStep"`** — inline panels, no nested shells. **`CatalogMobileSearchSheet`** removed. SSOT **`lib/search/mobile-search-wizard-steps.js`**.
+
+**Stage 178.3 Step 2 (2026-07-09):** **`MobileSearchWizard`** (Vaul `92dvh`) replaces legacy catalog mobile sheet; draft SSOT **`useMobileSearchWizardDraft`** + **`mobile-search-wizard-draft.js`**; Apply commits snapshot via **`commitToUrl({ snapshot })`**. **`WhereCombobox.presentation="wizardStep"`** — inline destination panel, no nested Drawer.
+
+**Stage 178.3 Step 1 (2026-07-09):** Catalog mobile search chrome — **`CatalogSearchSummaryBar`** (`<md`) replaces in-flow **`FilterBar`**; sticky read-only pill opens wizard; label SSOT **`lib/search/catalog-search-summary-labels.js`**. Desktop **`FilterBar`** + scroll-morph unchanged.
+
+**Stage 178.2 (2026-07-09):** PDP mobile UX — inline map **`ListingMap.cooperativeTouch`** (`<md` only): tap overlay + **`touch-pan-y`**, i18n **`mapPicker_cooperativeTap`** (scrollport-safe, same as wizard **`MapPicker`**). Map section title — vertical SSOT **`verticalTransport_whereYoullBe`** / **`verticalService_whereYoullBe`** via **`getUIText('whereYoullBe', …, { listingCategorySlug, wizardProfile })`**. Book CTA always enabled without dates — **`handleBookCtaClick`** scrolls to **`data-pdp-booking-dates-anchor`**; with dates → booking modal. Anchor SSOT **`PDP_BOOKING_DATES_ANCHOR_ATTR`** in **`pdp-hero-layout.js`**.
+
 **Stage 177.4 UI (2026-07-08):** ADR-102 Phase 1–2 — catalog filters: `useCatalogExtraFiltersDraft`, `SearchFiltersPanel`, `SearchFiltersShell` (`md+` Dialog / `<md` Vaul Drawer `max-h-[92dvh]`, sticky footer, Select z 130/240), draft Apply-only URL; service panel touch `min-h-11`. Spec: `docs/adr/ADR-102-mobile-filter-bottom-sheet.md`.
 
 **Stage 177.6 Step 2 (2026-07-08):** Mobile map rail integration — `CatalogMobileMapSheet` overlays controlled `CatalogMapCardRail` (CSS snap, pointer-events passthrough); bidirectional pin↔card sync via shared `mapSelectedListingId` (`onListingMarkerClick` + rail `onActiveListingChange`); `InteractiveSearchMap` consumes map UX policy constants (`CATALOG_MAP_SELECT_FLY_DURATION_MS`, `CATALOG_MAP_SELECT_MIN_ZOOM`, `CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS`) from `lib/maps/catalog-map-ux-policy.js`.

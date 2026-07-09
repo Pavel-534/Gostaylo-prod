@@ -154,6 +154,8 @@ export function WhereCombobox({
   language = 'ru',
   fetchSuggestions,
   suggestDebounceMs = 150,
+  /** `wizardStep` — inline panel inside MobileSearchWizard (no nested Drawer/Popover). */
+  presentation,
 }) {
   const [inputValue, setInputValue] = useState('')
   const [drawerQuery, setDrawerQuery] = useState('')
@@ -191,11 +193,16 @@ export function WhereCombobox({
     setInputValue(label)
   }, [value, options, language])
 
-  const activeQuery = isMobile ? drawerQuery : inputValue
+  const isWizardStep = presentation === 'wizardStep'
+  const useDrawerShell = !isWizardStep && (presentation === 'drawer' || (presentation == null && isMobile))
+  const usePopoverShell = !isWizardStep && !useDrawerShell
+  const panelOpen = isWizardStep || open
+
+  const activeQuery = isWizardStep || useDrawerShell ? drawerQuery : inputValue
   const activeQueryTrimmed = activeQuery.trim()
 
   useEffect(() => {
-    if (!useServerSuggest || !open || !activeQueryTrimmed) {
+    if (!useServerSuggest || !panelOpen || !activeQueryTrimmed) {
       setSuggestOptions([])
       setSuggestLoading(false)
       return
@@ -224,8 +231,10 @@ export function WhereCombobox({
     activeQueryTrimmed,
     fetchSuggestions,
     open,
+    panelOpen,
     suggestDebounceMs,
     useServerSuggest,
+    isWizardStep,
   ])
 
   const displayed = useMemo(() => {
@@ -284,10 +293,10 @@ export function WhereCombobox({
       } else {
         setInputValue(label)
       }
-      setOpen(false)
+      if (!isWizardStep) setOpen(false)
       setHighlightedIndex(-1)
     },
-    [onChange, language],
+    [onChange, language, isWizardStep],
   )
 
   const clear = useCallback(
@@ -416,16 +425,108 @@ export function WhereCombobox({
         // Фолбэк: ставим slug + локализованную надпись (динамика готова к расширению options)
         onChange?.(chip.value)
         setInputValue(localized)
-        setOpen(false)
+        if (!isWizardStep) setOpen(false)
       }
     },
-    [options, handleSelect, onChange, language],
+    [options, handleSelect, onChange, language, isWizardStep],
   )
 
   useEffect(() => {
-    if (!isMobile || !open) return
+    if (!useDrawerShell && !isWizardStep) return
+    if (!panelOpen && !isWizardStep) return
     setDrawerQuery('')
-  }, [isMobile, open])
+  }, [useDrawerShell, isWizardStep, panelOpen])
+
+  const destinationPanel = (
+    <>
+      <Input
+        value={isWizardStep || useDrawerShell ? drawerQuery : inputValue}
+        onChange={(e) => {
+          if (isWizardStep || useDrawerShell) setDrawerQuery(e.target.value)
+          else onInputChange(e)
+        }}
+        placeholder={getUIText('cityOrAreaHint', language)}
+        className="mb-3"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+      />
+      {(isWizardStep || useDrawerShell ? drawerQuery : inputValue).trim() === '' ? (
+        <div className="mb-4 space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            {getUIText('popularDestinations', language)}
+          </p>
+          {orderedGroups.map((group) => (
+            <div key={group.id}>
+              <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
+                <span aria-hidden>{group.flag}</span>
+                <span>{group.titles[language] || group.titles.en}</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.items.map((chip) => {
+                  const label = chip.labels[language] || chip.labels.en
+                  const active = value === chip.value
+                  return (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() => {
+                        handleChipSelect(chip)
+                        if (useDrawerShell) setOpen(false)
+                      }}
+                      className={cn(
+                        'flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
+                        active
+                          ? 'border-brand/40 bg-brand/10 text-brand-hover'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
+                      )}
+                    >
+                      <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="space-y-1">
+        {(isWizardStep || useDrawerShell ? drawerDisplayed : displayed).map((opt) => (
+          <button
+            key={`${opt.type}-${opt.value}`}
+            type="button"
+            onClick={() => {
+              handleSelect(opt)
+              if (useDrawerShell) setOpen(false)
+            }}
+            className={cn(
+              'flex w-full min-h-11 items-start gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors',
+              value === opt.value
+                ? 'border-brand/30 bg-brand/10 text-brand'
+                : 'border-slate-200 hover:bg-slate-50',
+            )}
+          >
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+            <WhereOptionLabel
+              opt={opt}
+              query={(isWizardStep || useDrawerShell ? drawerQuery : inputValue).trim()}
+              language={language}
+            />
+          </button>
+        ))}
+      </div>
+      {didYouMeanHint ? <p className="mt-2 px-1 text-xs text-slate-500">{didYouMeanHint}</p> : null}
+    </>
+  )
+
+  if (isWizardStep) {
+    return (
+      <div className={cn('flex flex-col', className)} data-testid="where-combobox-wizard-step">
+        {destinationPanel}
+      </div>
+    )
+  }
 
   const triggerField = (
     <div
@@ -454,7 +555,7 @@ export function WhereCombobox({
           aria-hidden
         />
       )}
-      {isMobile ? (
+      {useDrawerShell ? (
         <button
           type="button"
           disabled={loading}
@@ -516,7 +617,7 @@ export function WhereCombobox({
 
   return (
     <div className={cn('relative', open && 'z-[140]', className)}>
-      {isMobile ? (
+      {useDrawerShell ? (
         <>
           {triggerField}
           <Drawer open={open} onOpenChange={setOpen}>
@@ -524,82 +625,11 @@ export function WhereCombobox({
               <DrawerHeader className="border-b pb-3">
                 <DrawerTitle>{placeholder || getUIText('whereShort', language)}</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
-                <Input
-                  value={drawerQuery}
-                  onChange={(e) => setDrawerQuery(e.target.value)}
-                  placeholder={getUIText('cityOrAreaHint', language)}
-                  className="mb-3"
-                />
-                {drawerQuery.trim() === '' ? (
-                  <div className="mb-4 space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                      {getUIText('popularDestinations', language)}
-                    </p>
-                    {orderedGroups.map((group) => (
-                      <div key={group.id}>
-                        <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
-                          <span aria-hidden>{group.flag}</span>
-                          <span>{group.titles[language] || group.titles.en}</span>
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {group.items.map((chip) => {
-                            const label = chip.labels[language] || chip.labels.en
-                            const active = value === chip.value
-                            return (
-                              <button
-                                key={chip.value}
-                                type="button"
-                                onClick={() => {
-                                  handleChipSelect(chip)
-                                  setOpen(false)
-                                }}
-                                className={cn(
-                                  'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
-                                  active
-                                    ? 'border-brand/40 bg-brand/10 text-brand-hover'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
-                                )}
-                              >
-                                <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
-                                {label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="space-y-1">
-                  {drawerDisplayed.map((opt) => (
-                    <button
-                      key={`${opt.type}-${opt.value}`}
-                      type="button"
-                      onClick={() => {
-                        handleSelect(opt)
-                        setOpen(false)
-                      }}
-                      className={cn(
-                        'w-full text-left px-3 py-2.5 text-sm rounded-lg border flex items-start gap-2 transition-colors',
-                        value === opt.value
-                          ? 'border-brand/30 bg-brand/10 text-brand'
-                          : 'border-slate-200 hover:bg-slate-50',
-                      )}
-                    >
-                      <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" aria-hidden />
-                      <WhereOptionLabel opt={opt} query={drawerQuery.trim()} language={language} />
-                    </button>
-                  ))}
-                </div>
-                {didYouMeanHint ? (
-                  <p className="mt-2 px-1 text-xs text-slate-500">{didYouMeanHint}</p>
-                ) : null}
-              </div>
+              <div className="flex-1 overflow-y-auto p-4">{destinationPanel}</div>
             </DrawerContent>
           </Drawer>
         </>
-      ) : (
+      ) : usePopoverShell ? (
         <Popover open={open && showPopoverPanel} onOpenChange={setOpen} modal={false}>
           <PopoverAnchor asChild>{triggerField}</PopoverAnchor>
           <PopoverContent
@@ -694,6 +724,8 @@ export function WhereCombobox({
             ) : null}
           </PopoverContent>
         </Popover>
+      ) : (
+        triggerField
       )}
     </div>
   )

@@ -92,11 +92,17 @@ export function GuestsPopover({
   triggerClassName,
   contentClassName,
   disabled = false,
+  /** `wizardStep` — inline panel inside MobileSearchWizard (no nested Drawer/Popover). */
+  presentation,
 }) {
   const t = (key, fallback) => tr((k) => getUIText(k, language), key, fallback)
   const [open, setOpen] = useState(false)
   const [local, setLocal] = useState(() => normalizeBreakdown(guestsBreakdown, guests))
   const isMobile = useIsMobile()
+
+  const isWizardStep = presentation === 'wizardStep'
+  const useDrawerShell = !isWizardStep && (presentation === 'drawer' || (presentation == null && isMobile))
+  const usePopoverShell = !isWizardStep && !useDrawerShell
 
   useEffect(() => {
     setLocal(normalizeBreakdown(guestsBreakdown, guests))
@@ -137,10 +143,13 @@ export function GuestsPopover({
   ]
 
   const rowsContent = (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" data-testid={isWizardStep ? 'guests-popover-wizard-step' : undefined}>
       {rows.map((row, idx) => {
         const value = local[row.key]
         const canDec = value > row.min
+        const stepperBtnClass = isWizardStep
+          ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors'
+          : 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors'
         return (
           <div
             key={row.key}
@@ -159,7 +168,7 @@ export function GuestsPopover({
                 disabled={!canDec}
                 onClick={() => canDec && update({ [row.key]: value - 1 })}
                 className={cn(
-                  'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors',
+                  stepperBtnClass,
                   canDec ? 'hover:border-brand/30 hover:bg-brand/10' : 'cursor-not-allowed opacity-40',
                 )}
                 aria-label={language === 'ru' ? `Уменьшить: ${row.label}` : `Decrease ${row.label}`}
@@ -170,7 +179,7 @@ export function GuestsPopover({
               <button
                 type="button"
                 onClick={() => update({ [row.key]: value + 1 })}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors hover:border-brand/30 hover:bg-brand/10"
+                className={cn(stepperBtnClass, 'hover:border-brand/30 hover:bg-brand/10')}
                 aria-label={language === 'ru' ? `Увеличить: ${row.label}` : `Increase ${row.label}`}
               >
                 <Plus className="h-4 w-4" aria-hidden />
@@ -182,9 +191,13 @@ export function GuestsPopover({
     </div>
   )
 
+  if (isWizardStep) {
+    return rowsContent
+  }
+
   return (
     <>
-      {isMobile ? (
+      {useDrawerShell ? (
         <>
           <button
             type="button"
@@ -208,7 +221,7 @@ export function GuestsPopover({
             </DrawerContent>
           </Drawer>
         </>
-      ) : (
+      ) : usePopoverShell ? (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
@@ -231,6 +244,19 @@ export function GuestsPopover({
             {rowsContent}
           </PopoverContent>
         </Popover>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-brand/30 hover:bg-brand/10 disabled:cursor-not-allowed disabled:opacity-50',
+            triggerClassName,
+          )}
+          aria-label={t('mobileSearchWhoTitle', language === 'ru' ? 'Кто едет' : 'Who')}
+        >
+          <Users className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">{summary || `${total}`}</span>
+        </button>
       )}
     </>
   )
