@@ -559,6 +559,7 @@ export function WhereCombobox({
         <button
           type="button"
           disabled={loading}
+          data-testid="where-combobox-trigger"
           onClick={() => setOpen(true)}
           className={cn(
             'min-w-0 flex-1 truncate bg-transparent text-left outline-none disabled:cursor-wait',

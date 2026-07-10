@@ -4,6 +4,7 @@
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
  */
 
+import { useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
@@ -19,7 +20,10 @@ import { RECENTLY_VIEWED_MIN_HOME } from '@/lib/recommendations/constants'
 import { useAuth } from '@/contexts/auth-context'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
-import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
+import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
+import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
+import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
+import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
 import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -45,7 +49,11 @@ export function PlatformHomeContent() {
     setWhere,
     dateRange,
     checkInTime,
+    setCheckInTime,
     checkOutTime,
+    setCheckOutTime,
+    setDateRange,
+    nights,
     guests,
     setGuests,
     guestsBreakdown,
@@ -61,7 +69,9 @@ export function PlatformHomeContent() {
     loading,
     listingsLoading,
     mobileSearchOpen,
-    setMobileSearchOpen,
+    openMobileSearch,
+    closeMobileSearch,
+    mobileSearchFocusSection,
     liveCount,
     countLoading,
     mediaFallback,
@@ -76,6 +86,81 @@ export function PlatformHomeContent() {
     heroTitle,
     topListingsTitle,
   } = usePlatformHomePage()
+
+  const selectedCategoryWizardProfile = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return null
+    return effectiveCategoryWizardProfileRaw(selectedCategory, categories)
+  }, [selectedCategory, categories])
+
+  const homeFilterBarProps = useMemo(
+    () => ({
+      language,
+      dateRange,
+      setDateRange: handleDateChange,
+      checkInTime,
+      setCheckInTime,
+      checkOutTime,
+      setCheckOutTime,
+      categoriesForHierarchy: categories,
+      selectedCategory,
+      selectedCategoryWizardProfile,
+      setSelectedCategory,
+      where,
+      setWhere,
+      guests,
+      setGuests,
+      guestsBreakdown,
+      setGuestsBreakdown,
+      clearDates: () => setDateRange({ from: undefined, to: undefined }),
+      nights,
+      textQuery: searchQuery,
+      setTextQuery: setSearchQuery,
+      smartSearchOn,
+      setSmartSearchOn,
+      semanticSearchFeatureEnabled: semanticSiteEnabled,
+      onSearchSubmit: handleSearch,
+    }),
+    [
+      language,
+      dateRange,
+      handleDateChange,
+      checkInTime,
+      setCheckInTime,
+      checkOutTime,
+      setCheckOutTime,
+      categories,
+      selectedCategory,
+      selectedCategoryWizardProfile,
+      setSelectedCategory,
+      where,
+      setWhere,
+      guests,
+      setGuests,
+      guestsBreakdown,
+      setGuestsBreakdown,
+      setDateRange,
+      nights,
+      searchQuery,
+      setSearchQuery,
+      smartSearchOn,
+      setSmartSearchOn,
+      semanticSiteEnabled,
+      handleSearch,
+    ],
+  )
+
+  const homeMobileSearchActive =
+    (selectedCategory && selectedCategory !== 'all') ||
+    (where && where !== 'all') ||
+    (guests && guests !== '1') ||
+    Boolean(dateRange?.from) ||
+    String(searchQuery || '').trim().length >= 2
+
+  useEffect(() => {
+    return subscribeMobileSearchTabAction(() => {
+      handleSearch()
+    })
+  }, [handleSearch])
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-slate-900">
@@ -104,6 +189,7 @@ export function PlatformHomeContent() {
         countLoading={countLoading}
         heroTitle={heroTitle}
         onCategoryTabClick={handleCategoryTabClick}
+        onMobileFieldTap={openMobileSearch}
       />
 
       <div className="border-b border-brand/15 bg-gradient-to-r from-brand-muted/80 via-white to-brand-muted/80">
@@ -252,29 +338,16 @@ export function PlatformHomeContent() {
       <MobileSearchFAB
         language={language}
         hidden={mobileSearchOpen}
-        hasActiveFilters={
-          (selectedCategory && selectedCategory !== 'all') ||
-          (where && where !== 'all') ||
-          (guests && guests !== '1') ||
-          Boolean(dateRange?.from)
-        }
-        onClick={() => setMobileSearchOpen(true)}
+        hasActiveFilters={homeMobileSearchActive}
+        onClick={() => openMobileSearch()}
       />
-      <MobileSearchBottomSheet
+      <CatalogMobileSearchSheet
         open={mobileSearchOpen}
-        onClose={() => setMobileSearchOpen(false)}
+        onClose={closeMobileSearch}
         language={language}
-        categoryTabs={heroTabs}
-        category={selectedCategory}
-        setCategory={setSelectedCategory}
-        onCategoryTabClick={handleCategoryTabClick}
-        where={where}
-        setWhere={setWhere}
-        dateRange={dateRange}
-        setDateRange={handleDateChange}
-        guests={guests}
-        setGuests={setGuests}
-        onSearch={handleSearch}
+        onSearchSubmit={handleSearch}
+        initialFocusSection={mobileSearchFocusSection}
+        filterBarProps={homeFilterBarProps}
       />
 
       <footer className="bg-slate-900 text-white py-10">

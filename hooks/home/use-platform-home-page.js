@@ -55,7 +55,9 @@ export function usePlatformHomePage() {
     dateRange,
     setDateRange,
     checkInTime,
+    setCheckInTime,
     checkOutTime,
+    setCheckOutTime,
     guests,
     setGuests,
     guestsBreakdown,
@@ -136,8 +138,19 @@ export function usePlatformHomePage() {
     categoriesQuery.isPending ||
     (featuredEnabled && featuredQuery.isPending && !featuredQuery.isPlaceholderData)
 
-  // Mobile floating search sheet
+  // Mobile unified search sheet (Stage 178.7)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const [mobileSearchFocusSection, setMobileSearchFocusSection] = useState(null)
+
+  const openMobileSearch = useCallback((section = null) => {
+    setMobileSearchFocusSection(section)
+    setMobileSearchOpen(true)
+  }, [])
+
+  const closeMobileSearch = useCallback(() => {
+    setMobileSearchOpen(false)
+    setMobileSearchFocusSection(null)
+  }, [])
 
   const liveCountQuery = useHomeLiveCountQuery({
     dateRange,
@@ -338,8 +351,11 @@ export function usePlatformHomePage() {
     where,
     setWhere,
     dateRange,
+    setDateRange,
     checkInTime,
+    setCheckInTime,
     checkOutTime,
+    setCheckOutTime,
     guests,
     setGuests,
     guestsBreakdown,
@@ -356,7 +372,9 @@ export function usePlatformHomePage() {
     loading,
     listingsLoading,
     mobileSearchOpen,
-    setMobileSearchOpen,
+    openMobileSearch,
+    closeMobileSearch,
+    mobileSearchFocusSection,
     liveCount,
     countLoading,
     mediaFallback,

@@ -64,6 +64,8 @@ export function FilterBar({
   filtersOpen: filtersOpenProp,
   onFiltersOpenChange,
   categorySelectPortalClassName,
+  /** Stage 178.7 — true inside CatalogMobileSearchSheet (<md unified editor). */
+  mobileSheetEditor = false,
 }) {
   const [filtersOpenInternal, setFiltersOpenInternal] = useState(false);
   const filtersOpen = filtersOpenProp ?? filtersOpenInternal;
@@ -187,6 +189,7 @@ export function FilterBar({
               semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
               onSearchSubmit={onSearchSubmit}
               categorySelectPortalClassName={categorySelectPortalClassName}
+              mobileSheetEditor={mobileSheetEditor}
             />
           </div>
           <Button

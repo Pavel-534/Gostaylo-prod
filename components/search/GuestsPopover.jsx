@@ -202,6 +202,7 @@ export function GuestsPopover({
           <button
             type="button"
             disabled={disabled}
+            data-testid="guests-popover-trigger"
             onClick={() => setOpen(true)}
             className={cn(
               'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-brand/30 hover:bg-brand/10 disabled:cursor-not-allowed disabled:opacity-50',

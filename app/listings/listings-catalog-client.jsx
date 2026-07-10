@@ -18,7 +18,7 @@ import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
 import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
 import { CatalogSearchSummaryBar } from '@/components/search/mobile/CatalogSearchSummaryBar'
-import { MobileSearchFAB } from '@/components/search/MobileSearchBottomSheet'
+import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
@@ -46,6 +46,7 @@ import {
   CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
   CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 } from '@/lib/maps/catalog-map-ux-policy'
+import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
 
 const ITEMS_PER_PAGE = 12
@@ -377,6 +378,15 @@ function ListingsContent() {
     window.addEventListener('language-change', handler)
     return () => window.removeEventListener('language-change', handler)
   }, [])
+
+  useEffect(() => {
+    if (!isMobile) return undefined
+    return subscribeMobileSearchTabAction(() => {
+      setShowMap(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setMobileSearchOpen(true)
+    })
+  }, [isMobile])
 
   const clearDates = () => setDateRange({ from: null, to: null })
 

@@ -38,6 +38,7 @@ export function HomeHeroLuxe({
   countLoading = false,
   heroTitle = null,
   onCategoryTabClick,
+  onMobileFieldTap,
 }) {
   const displayTabs = useMemo(
     () =>
@@ -161,6 +162,7 @@ export function HomeHeroLuxe({
             onSearchSubmit={onSearchSubmit}
             liveCount={liveCount}
             countLoading={countLoading}
+            onMobileFieldTap={onMobileFieldTap}
           />
         </div>
       </div>

@@ -14,6 +14,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { useChatContext } from '@/lib/context/ChatContext';
 import { useI18n } from '@/contexts/i18n-context';
 import { getUIText } from '@/lib/translations';
+import {
+  dispatchMobileSearchTabAction,
+  isMobileSearchTabInterceptPath,
+} from '@/lib/search/mobile-search-tab-action';
 
 const NAV_ITEMS = [
   {
@@ -27,6 +31,7 @@ const NAV_ITEMS = [
     icon: Search,
     labelKey: 'mobileNavSearch',
     activeMatches: ['/listings', '/search'],
+    interceptSearchTab: true,
   },
   {
     href: '/messages',
@@ -106,6 +111,12 @@ export function MobileBottomNav() {
     if (item.requiresAuth && !user) {
       e.preventDefault();
       openLoginModal?.('login');
+      return;
+    }
+
+    if (item.interceptSearchTab && isMobileSearchTabInterceptPath(pathname)) {
+      e.preventDefault();
+      dispatchMobileSearchTabAction({ source: 'bottom-nav' });
     }
   };
 
@@ -144,6 +155,7 @@ export function MobileBottomNav() {
               key={item.href}
               href={href}
               onClick={(e) => handleNavClick(item, e)}
+              data-testid={item.interceptSearchTab ? 'mobile-nav-search' : undefined}
               className={`flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all duration-200 ${
                 active
                   ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
