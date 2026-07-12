@@ -291,6 +291,11 @@ code {
   .gsl-hub-nav {
     @apply flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/80 p-2 backdrop-blur-sm shadow-sm;
   }
+  /** Stage 179.0 — premium glass SSOT (hero capsule, catalog summary bar). */
+  .gsl-premium-glass {
+    background-color: rgb(255 255 255 / 0.78);
+    @apply backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.04)];
+  }
   .gsl-hub-nav-active {
     @apply bg-brand text-white hover:bg-brand-hover shadow-brand-sm;
   }

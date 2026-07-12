@@ -3,6 +3,7 @@
 /**
  * CatalogMobileSearchSheet — unified mobile search editor (<md) for home + catalog.
  * Single-tab FilterBar / UnifiedSearchBar variant="filter"; SSOT filter state in parent.
+ * Stage 179.0 — overview-only sheet (FAB / catalog summary); no programmatic nested picker opens.
  */
 
 import { useCallback, useEffect, useRef } from 'react'
@@ -11,12 +12,9 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { FilterBar } from '@/components/search/FilterBar'
-import { normalizeMobileSearchSheetFocusSection } from '@/lib/search/mobile-search-sheet-focus'
 
 /** Above sheet (`z-[120]`) and backdrop (`z-[110]`); matches WhereCombobox popover in overlays. */
 export const CATALOG_MOBILE_SEARCH_SHEET_SELECT_Z = 'z-[220]'
-
-const FOCUS_ACTIVATE_DELAY_MS = 360
 
 export function CatalogMobileSearchSheet({
   open,
@@ -24,14 +22,10 @@ export function CatalogMobileSearchSheet({
   language = 'ru',
   onSearchSubmit,
   filterBarProps = {},
-  /** Contextual focus when opening from hero field tap (home). */
-  initialFocusSection = null,
   /** Sticky primary CTA at sheet bottom (<md). */
   showSubmitFooter = true,
 }) {
   const sheetRef = useRef(null)
-  const scrollRef = useRef(null)
-  const focusSection = normalizeMobileSearchSheetFocusSection(initialFocusSection)
 
   useEffect(() => {
     if (!open) return
@@ -46,40 +40,6 @@ export function CatalogMobileSearchSheet({
       document.body.style.overflow = prevOverflow
     }
   }, [open, onClose])
-
-  useEffect(() => {
-    if (!open || !focusSection) return
-    const root = scrollRef.current
-    if (!root) return
-
-    const timer = window.setTimeout(() => {
-      const section = root.querySelector(`[data-search-section="${focusSection}"]`)
-      section?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-
-      if (focusSection === 'where') {
-        section?.querySelector('[data-testid="where-combobox-trigger"]')?.click()
-        return
-      }
-      if (focusSection === 'dates') {
-        section?.querySelector('[data-testid="search-calendar-trigger"]')?.click()
-        return
-      }
-      if (focusSection === 'guests') {
-        section?.querySelector('[data-testid="guests-popover-trigger"]')?.click()
-        return
-      }
-      if (focusSection === 'what') {
-        section?.querySelector('button[role="combobox"]')?.click()
-        return
-      }
-      if (focusSection === 'keywords') {
-        const input = section?.querySelector('input[type="search"], input')
-        input?.focus({ preventScroll: true })
-      }
-    }, FOCUS_ACTIVATE_DELAY_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [open, focusSection])
 
   const handleSearchSubmit = useCallback(() => {
     onSearchSubmit?.()
@@ -133,10 +93,7 @@ export function CatalogMobileSearchSheet({
           </Button>
         </div>
 
-        <div
-          ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <FilterBar
             {...filterBarProps}
             mobileSheetEditor
@@ -150,7 +107,7 @@ export function CatalogMobileSearchSheet({
         </div>
 
         {showSubmitFooter ? (
-          <div className="border-t border-slate-100 bg-white px-5 py-3.5 md:hidden">
+          <div className="border-t border-slate-100 bg-white px-5 py-3.5 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] md:hidden">
             <Button
               type="button"
               variant="brand"

@@ -38,7 +38,6 @@ import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-p
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
-import { useIsMobile } from '@/hooks/use-mobile'
 
 /** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
 export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
@@ -134,13 +133,9 @@ export function UnifiedSearchBar({
   categorySelectPortalClassName,
   /** Stage 178.7 — inline popular chips below Where in unified mobile sheet. */
   mobileSheetEditor = false,
-  /** Home hero <md: open unified sheet instead of nested drawers. */
-  onMobileFieldTap,
   className,
   innerClassName,
 }) {
-  const isMobile = useIsMobile()
-  const heroOpensMobileSheet = Boolean(isMobile && typeof onMobileFieldTap === 'function')
   const [categories, setCategories] = useState([])
   const locations = useMemo(() => getStaticLocationsSeed(), [])
   const whereRef = useRef(null)
@@ -200,23 +195,6 @@ export function UnifiedSearchBar({
         : { adults: Math.max(1, parseInt(guests, 10) || 1), children: 0, infants: 0 }
     const total = (b.adults || 0) + (b.children || 0) + (b.infants || 0)
     if (!total || total <= 1) return null
-    return formatGuestsSummaryText(b, language)
-  }, [guests, guestsBreakdown, language])
-
-  const heroWhereLabel = useMemo(
-    () =>
-      resolveWhereLabel(where, whereOptionsFull) || getUIText('wherePlaceholder', language),
-    [where, whereOptionsFull, language],
-  )
-  const heroDatesLabel = useMemo(
-    () => formatDateRangeShort(dateRange, language) || getUIText('dates', language),
-    [dateRange, language],
-  )
-  const heroGuestsLabel = useMemo(() => {
-    const b =
-      guestsBreakdown && typeof guestsBreakdown === 'object'
-        ? guestsBreakdown
-        : { adults: Math.max(1, parseInt(guests, 10) || 1), children: 0, infants: 0 }
     return formatGuestsSummaryText(b, language)
   }, [guests, guestsBreakdown, language])
 
@@ -527,9 +505,6 @@ export function UnifiedSearchBar({
             type="search"
             value={textQuery}
             onChange={(e) => setTextQuery?.(e.target.value)}
-            onFocus={() => {
-              if (heroOpensMobileSheet) onMobileFieldTap('keywords')
-            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -570,82 +545,39 @@ export function UnifiedSearchBar({
       ) : null}
 
       <div className="grid grid-cols-1 items-stretch gap-2 overflow-visible md:grid-cols-[minmax(190px,1.4fr)_minmax(170px,1.2fr)_minmax(170px,0.95fr)_minmax(132px,0.72fr)] xl:grid-cols-[minmax(240px,1.5fr)_minmax(220px,1.3fr)_220px_148px]">
-        {heroOpensMobileSheet ? (
-          <button
-            type="button"
-            onClick={() => onMobileFieldTap('where')}
-            className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'cursor-pointer text-left')}
-            data-testid="hero-mobile-field-where"
-          >
-            <MapPin className="h-5 w-5 shrink-0 text-brand" aria-hidden />
-            <span className={cn('truncate text-base font-medium', !where || where === 'all' ? 'text-slate-500' : 'text-slate-900')}>
-              {heroWhereLabel}
-            </span>
-          </button>
-        ) : (
-          <WhereCombobox
-            options={whereOptionsFull}
-            value={where || 'all'}
-            onChange={setWhere}
-            placeholder={getUIText('wherePlaceholder', language)}
-            fetchSuggestions={fetchWhereSuggestions}
-            variant="flat"
-            language={language}
-            className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'px-0')}
-          />
-        )}
+        <WhereCombobox
+          options={whereOptionsFull}
+          value={where || 'all'}
+          onChange={setWhere}
+          placeholder={getUIText('wherePlaceholder', language)}
+          fetchSuggestions={fetchWhereSuggestions}
+          variant="flat"
+          language={language}
+          className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'px-0')}
+        />
 
-        {heroOpensMobileSheet ? (
-          <button
-            type="button"
-            onClick={() => onMobileFieldTap('dates')}
-            className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'cursor-pointer text-left')}
-            data-testid="hero-mobile-field-dates"
-          >
-            <Calendar className="h-5 w-5 shrink-0 text-brand" aria-hidden />
-            <span className={cn('truncate text-base font-medium', !dateRange?.from ? 'text-slate-500' : 'text-slate-900')}>
-              {heroDatesLabel}
-            </span>
-          </button>
-        ) : (
-          <SearchCalendar
-            value={dateRange}
-            onChange={setDateRange}
-            locale={language}
-            placeholder={getUIText('dates', language)}
-            liveCount={liveCount}
-            countLoading={countLoading}
-            className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'cursor-pointer')}
-          />
-        )}
+        <SearchCalendar
+          value={dateRange}
+          onChange={setDateRange}
+          locale={language}
+          placeholder={getUIText('dates', language)}
+          liveCount={liveCount}
+          countLoading={countLoading}
+          className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'cursor-pointer')}
+        />
 
-        {heroOpensMobileSheet ? (
-          <button
-            type="button"
-            onClick={() => onMobileFieldTap('guests')}
-            className={cn(
-              UNIFIED_SEARCH_HERO_FIELD_CLASS,
-              'w-full min-w-0 max-w-full cursor-pointer text-left xl:min-w-[220px] xl:max-w-[220px]',
-            )}
-            data-testid="hero-mobile-field-guests"
-          >
-            <Users className="h-5 w-5 shrink-0 text-brand" aria-hidden />
-            <span className="truncate text-base font-medium text-slate-900">{heroGuestsLabel}</span>
-          </button>
-        ) : (
-          <GuestsPopover
-            language={language}
-            guests={guests}
-            setGuests={setGuests}
-            guestsBreakdown={guestsBreakdown}
-            setGuestsBreakdown={setGuestsBreakdown}
-            align="start"
-            triggerClassName={cn(
-              UNIFIED_SEARCH_HERO_FIELD_CLASS,
-              'w-full min-w-0 max-w-full xl:min-w-[220px] xl:max-w-[220px] cursor-pointer',
-            )}
-          />
-        )}
+        <GuestsPopover
+          language={language}
+          guests={guests}
+          setGuests={setGuests}
+          guestsBreakdown={guestsBreakdown}
+          setGuestsBreakdown={setGuestsBreakdown}
+          align="start"
+          triggerClassName={cn(
+            UNIFIED_SEARCH_HERO_FIELD_CLASS,
+            'w-full min-w-0 max-w-full xl:min-w-[220px] xl:max-w-[220px] cursor-pointer',
+          )}
+        />
 
         <Button
           onClick={handleSearchClick}

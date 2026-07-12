@@ -62,7 +62,7 @@ export function CatalogSearchSummaryBar({
   return (
     <div
       className={cn(
-        'sticky top-[var(--app-header-height,64px)] z-[90] border-b border-slate-200/90 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80',
+        'sticky top-[var(--app-header-height,64px)] z-[90] border-b border-slate-200/90 gsl-premium-glass',
         className,
       )}
       data-testid="catalog-search-summary-bar"

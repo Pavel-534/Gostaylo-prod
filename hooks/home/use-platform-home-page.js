@@ -139,18 +139,15 @@ export function usePlatformHomePage() {
     categoriesQuery.isPending ||
     (featuredEnabled && featuredQuery.isPending && !featuredQuery.isPlaceholderData)
 
-  // Mobile unified search sheet (Stage 178.7)
+  // Mobile unified search sheet (Stage 178.7 / 179.0 overview-only)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
-  const [mobileSearchFocusSection, setMobileSearchFocusSection] = useState(null)
 
-  const openMobileSearch = useCallback((section = null) => {
-    setMobileSearchFocusSection(section)
+  const openMobileSearch = useCallback(() => {
     setMobileSearchOpen(true)
   }, [])
 
   const closeMobileSearch = useCallback(() => {
     setMobileSearchOpen(false)
-    setMobileSearchFocusSection(null)
   }, [])
 
   const liveCountQuery = useHomeLiveCountQuery({
@@ -379,7 +376,6 @@ export function usePlatformHomePage() {
     mobileSearchOpen,
     openMobileSearch,
     closeMobileSearch,
-    mobileSearchFocusSection,
     liveCount,
     countLoading,
     mediaFallback,

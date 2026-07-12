@@ -71,7 +71,6 @@ export function PlatformHomeContent() {
     mobileSearchOpen,
     openMobileSearch,
     closeMobileSearch,
-    mobileSearchFocusSection,
     liveCount,
     countLoading,
     mediaFallback,
@@ -189,7 +188,6 @@ export function PlatformHomeContent() {
         countLoading={countLoading}
         heroTitle={heroTitle}
         onCategoryTabClick={handleCategoryTabClick}
-        onMobileFieldTap={openMobileSearch}
       />
 
       <div className="border-b border-brand/15 bg-gradient-to-r from-brand-muted/80 via-white to-brand-muted/80">
@@ -346,7 +344,6 @@ export function PlatformHomeContent() {
         onClose={closeMobileSearch}
         language={language}
         onSearchSubmit={handleSearch}
-        initialFocusSection={mobileSearchFocusSection}
         filterBarProps={homeFilterBarProps}
       />
 
