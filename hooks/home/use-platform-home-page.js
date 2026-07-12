@@ -13,6 +13,7 @@ import { useHomeLiveCountQuery } from '@/lib/hooks/use-home-live-count-query'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { fetchAuthMe } from '@/lib/api/auth-client'
 import { submitHomeWaitingListLead } from '@/lib/home/platform-home-api-client'
+import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { buildHomeFeaturedKeyParams, fetchHomeFeatured } from '@/lib/home/fetch-home-featured'
 import { queryKeys } from '@/lib/query-keys'
 import { getUIText } from '@/lib/translations'
@@ -206,12 +207,15 @@ export function usePlatformHomePage() {
       setComingSoonCategory(selectedCategoryRow)
       return
     }
+    commitRecentSearchLocation({ where, language })
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
       setAiGridPending(true)
     }
     pendingHomeSemanticRef.current = true
     setSemanticCommitTick((t) => t + 1)
   }, [
+    where,
+    language,
     smartSearchOn,
     semanticSiteEnabled,
     searchQuery,
@@ -225,8 +229,9 @@ export function usePlatformHomePage() {
       setComingSoonCategory(selectedCategoryRow)
       return
     }
+    commitRecentSearchLocation({ where, language })
     navigateToCatalog()
-  }, [navigateToCatalog, selectedCategoryRow])
+  }, [navigateToCatalog, selectedCategoryRow, where, language])
 
   const handleCategoryTabClick = useCallback(
     (tab) => {

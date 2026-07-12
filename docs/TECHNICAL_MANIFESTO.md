@@ -8,6 +8,8 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 178.9 (2026-07-12):** mobile «Куда» chips — **`PopularDestinationChips`**: MRU **`airento_recent_searches`** (max 4, commit on «Найти» via **`commitRecentSearchLocation`**) + **`fetchPopularDestinations`** (`GET /api/v2/search/locations/suggest?q=&lang=&limit=` inventory rank; fallback **`getPopularDestinationsFallback`**). Desktop unchanged.
+
 **Stage 178.8 (2026-07-10):** mobile tab bar «Поиск» — **`mobile-search-tab-action.js`**: с `/` → `navigateToCatalog()` с текущими фильтрами; на `/listings` → scroll top + **`CatalogMobileSearchSheet`**; с других страниц — обычный `Link` на `/listings`.
 
 **Stage 178.7 (2026-07-10):** mobile search SSOT — единая **`CatalogMobileSearchSheet`** на `/` и `/listings` (`<md`); **`MobileSearchBottomSheet`** удалён; **`MobileSearchFAB`** → `components/search/mobile/MobileSearchFAB.jsx`; популярные направления — **`PopularDestinationChips`** в секции «Куда»; hero field tap → sheet с **`initialFocusSection`** (`lib/search/mobile-search-sheet-focus.js`).

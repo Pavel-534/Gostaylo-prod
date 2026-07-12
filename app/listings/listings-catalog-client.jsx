@@ -47,6 +47,7 @@ import {
   CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 } from '@/lib/maps/catalog-map-ux-policy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
+import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
 
 const ITEMS_PER_PAGE = 12
@@ -301,12 +302,13 @@ function ListingsContent() {
   }, [isMobile, showMap])
 
   const handleCatalogSearchSubmit = useCallback(() => {
+    commitRecentSearchLocation({ where, language })
     commitToUrl()
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
       setAiSearchPending(true)
     }
     commitSemanticSearch()
-  }, [commitToUrl, smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
+  }, [where, language, commitToUrl, smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
 
   useEffect(() => {
     if (!loading) setAiSearchPending(false)
