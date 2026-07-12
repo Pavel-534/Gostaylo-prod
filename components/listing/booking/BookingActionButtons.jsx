@@ -72,7 +72,10 @@ export function BookingActionButtons({
 
       <Button
         onClick={onBookingClick}
-        disabled={exclusiveDatesUnavailable || availabilityLoading || (!!dateRange?.from && !!dateRange?.to && !canInstantBook)}
+        disabled={
+          exclusiveDatesUnavailable ||
+          (!!dateRange?.from && !!dateRange?.to && availabilityLoading)
+        }
         variant="brand"
         data-testid="listing-book-now"
         className="w-full h-12 text-base"

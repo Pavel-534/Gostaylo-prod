@@ -39,7 +39,6 @@ import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from 
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { PopularDestinationChips } from '@/components/search/mobile/PopularDestinationChips'
 
 /** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
 export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
@@ -341,7 +340,7 @@ export function UnifiedSearchBar({
             </Select>
           </div>
 
-          <div data-search-section="where" className="min-w-0 space-y-2">
+          <div data-search-section="where" className="min-w-0">
             <WhereCombobox
               options={whereOptionsFull}
               value={where || 'all'}
@@ -353,14 +352,6 @@ export function UnifiedSearchBar({
               language={language}
               className="min-w-0"
             />
-            {mobileSheetEditor ? (
-              <PopularDestinationChips
-                language={language}
-                where={where || 'all'}
-                onSelect={setWhere}
-                className="md:hidden"
-              />
-            ) : null}
           </div>
 
           <div data-search-section="dates" className="min-w-0 space-y-1">

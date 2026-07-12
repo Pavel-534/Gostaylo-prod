@@ -377,16 +377,39 @@ export function useListingBookingFlow({
         scrollToBookingDates()
         return
       }
-      if (exclusiveDatesUnavailable || availabilityLoading) return
-      if (!canInstantBook) return
+      if (availabilityLoading) return
+      if (exclusiveDatesUnavailable) {
+        handleAskPartnerUnavailable()
+        return
+      }
+      if (availabilitySnapshot && !canInstantBook) {
+        if (
+          bookingUiMode === 'shared' &&
+          guests > (availabilitySnapshot.remaining_spots ?? 0)
+        ) {
+          toast.error(
+            language === 'ru'
+              ? `Свободно мест: ${availabilitySnapshot.remaining_spots ?? 0}. Уменьшите число гостей.`
+              : `Only ${availabilitySnapshot.remaining_spots ?? 0} spots left. Reduce guest count.`,
+          )
+          return
+        }
+        toast.error(getUIText('listingDetail_datesUnavailable', language))
+        return
+      }
       openBookModal(intent)
     },
     [
       dateRange,
       exclusiveDatesUnavailable,
       availabilityLoading,
+      availabilitySnapshot,
       canInstantBook,
+      bookingUiMode,
+      guests,
+      language,
       scrollToBookingDates,
+      handleAskPartnerUnavailable,
     ],
   )
 

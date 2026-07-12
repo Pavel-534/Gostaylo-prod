@@ -37,7 +37,7 @@ function DestinationChip({ active, label, value, onSelect, testId }) {
   return (
     <button
       type="button"
-      onClick={() => onSelect?.(value)}
+      onClick={() => onSelect?.(value, { label })}
       data-testid={testId}
       className={cn(
         'shrink-0 min-h-11 max-w-[220px] truncate rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',

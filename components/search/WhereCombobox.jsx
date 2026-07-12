@@ -17,12 +17,10 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { splitLabelHighlight } from '@/lib/locations/location-text-match'
 import {
-  POPULAR_DESTINATION_GROUPS,
   POPULAR_DESTINATIONS_FLAT,
   getDestinationLabel,
 } from '@/lib/locations/popular-destinations'
-import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
-import { useUserGeo } from '@/lib/hooks/useUserGeo'
+import { PopularDestinationChips } from '@/components/search/mobile/PopularDestinationChips'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
@@ -173,13 +171,6 @@ export function WhereCombobox({
   // а chip принёс локализованную строку ("Москва"). Без этого sync-effect на value→label
   // перезаписывал бы наш override на slug.
   const overrideLabelRef = useRef({})
-
-  // Smart geolocation — re-order popular destinations by user's country
-  const { country: userCountry } = useUserGeo()
-  const orderedGroups = useMemo(
-    () => reorderDestinationsByGeo(POPULAR_DESTINATION_GROUPS, userCountry),
-    [userCountry],
-  )
 
   // Синхронизация подписи с выбранным каноническим значением
   useEffect(() => {
@@ -431,6 +422,28 @@ export function WhereCombobox({
     [options, handleSelect, onChange, language, isWizardStep],
   )
 
+  const handlePopularDestinationSelect = useCallback(
+    (val, meta = {}) => {
+      if (val === 'all') {
+        handleSelect({ type: 'all', value: 'all', label: getUIText('catalogSearchSummary_anywhere', language) })
+        if (useDrawerShell) setOpen(false)
+        return
+      }
+      const flat = POPULAR_DESTINATIONS_FLAT.find((d) => d.value === val)
+      if (flat) {
+        handleChipSelect(flat)
+      } else {
+        const localized = meta.label || getDestinationLabel(val, language) || val
+        overrideLabelRef.current = { ...overrideLabelRef.current, [val]: localized }
+        onChange?.(val)
+        setInputValue(localized)
+        if (!isWizardStep) setOpen(false)
+      }
+      if (useDrawerShell) setOpen(false)
+    },
+    [handleSelect, handleChipSelect, onChange, language, isWizardStep, useDrawerShell],
+  )
+
   useEffect(() => {
     if (!useDrawerShell && !isWizardStep) return
     if (!panelOpen && !isWizardStep) return
@@ -452,44 +465,12 @@ export function WhereCombobox({
         spellCheck={false}
       />
       {(isWizardStep || useDrawerShell ? drawerQuery : inputValue).trim() === '' ? (
-        <div className="mb-4 space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-            {getUIText('popularDestinations', language)}
-          </p>
-          {orderedGroups.map((group) => (
-            <div key={group.id}>
-              <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
-                <span aria-hidden>{group.flag}</span>
-                <span>{group.titles[language] || group.titles.en}</span>
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {group.items.map((chip) => {
-                  const label = chip.labels[language] || chip.labels.en
-                  const active = value === chip.value
-                  return (
-                    <button
-                      key={chip.value}
-                      type="button"
-                      onClick={() => {
-                        handleChipSelect(chip)
-                        if (useDrawerShell) setOpen(false)
-                      }}
-                      className={cn(
-                        'flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
-                        active
-                          ? 'border-brand/40 bg-brand/10 text-brand-hover'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
-                      )}
-                    >
-                      <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+        <PopularDestinationChips
+          language={language}
+          where={value || 'all'}
+          onSelect={handlePopularDestinationSelect}
+          className="mb-4"
+        />
       ) : null}
       <div className="space-y-1">
         {(isWizardStep || useDrawerShell ? drawerDisplayed : displayed).map((opt) => (
@@ -686,42 +667,12 @@ export function WhereCombobox({
               </>
             ) : null}
             {showQuickChips ? (
-              <div className="space-y-3 p-1">
-                <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                  {getUIText('popularDestinations', language)}
-                </p>
-                {orderedGroups.map((group) => (
-                  <div key={group.id}>
-                    <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
-                      <span aria-hidden>{group.flag}</span>
-                      <span>{group.titles[language] || group.titles.en}</span>
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.items.map((chip) => {
-                        const label = chip.labels[language] || chip.labels.en
-                        const active = value === chip.value
-                        return (
-                          <button
-                            key={chip.value}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => handleChipSelect(chip)}
-                            className={cn(
-                              'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
-                              active
-                                ? 'border-brand/40 bg-brand/10 text-brand-hover'
-                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
-                            )}
-                          >
-                            <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PopularDestinationChips
+                language={language}
+                where={value || 'all'}
+                onSelect={handlePopularDestinationSelect}
+                className="p-1"
+              />
             ) : null}
           </PopoverContent>
         </Popover>

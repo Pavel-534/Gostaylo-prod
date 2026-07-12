@@ -443,8 +443,7 @@ export function MobileBookingBar({
             onClick={onBookingClick}
             disabled={
               exclusiveDatesUnavailable ||
-              availabilityLoading ||
-              (!!dateRange?.from && !!dateRange?.to && !canInstantBook)
+              (!!dateRange?.from && !!dateRange?.to && availabilityLoading)
             }
             variant="brand"
             data-testid="listing-book-now"
