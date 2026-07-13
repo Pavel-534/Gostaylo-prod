@@ -19,6 +19,7 @@ import { isTransportListingCategory } from '@/lib/listing-category-slug';
 import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
 import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
 import { useNetworkQuality } from '@/hooks/use-network-quality';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { LISTING_CATALOG_GRID_CLASSES } from '@/lib/listing/listing-card-layout'
 
 function ListingSidebarComponent({
@@ -63,6 +64,25 @@ function ListingSidebarComponent({
   catalogSortDistanceAvailable = false,
 }) {
   const networkQuality = useNetworkQuality()
+  const isMobile = useIsMobile()
+
+  /** Stage 179.2 — mobile: skeleton replaces list during refetch (no opacity flash / CLS). */
+  const showMobileRefetchSkeleton =
+    isMobile && !error && (loading || isTransitioning || aiSearchPending)
+
+  const renderCatalogSkeleton = () => (
+    <>
+      {aiSearchPending ? (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
+          <span aria-hidden className="text-base">
+            ✨
+          </span>
+          {getUIText('aiSearchLoadingBanner', language)}
+        </div>
+      ) : null}
+      <ListingGridSkeleton mobile={isMobile} />
+    </>
+  )
 
   useEffect(() => {
     if (!scrollToListingId) return;
@@ -87,21 +107,13 @@ function ListingSidebarComponent({
     );
   }
   
-  // Loading State
+  // Loading / mobile refetch — skeleton grid (SSOT layout, no layout shift)
+  if (showMobileRefetchSkeleton) {
+    return renderCatalogSkeleton()
+  }
+
   if (loading && !error) {
-    return (
-      <>
-        {aiSearchPending ? (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
-            <span aria-hidden className="text-base">
-              ✨
-            </span>
-            {getUIText('aiSearchLoadingBanner', language)}
-          </div>
-        ) : null}
-        <ListingGridSkeleton count={8} />
-      </>
-    );
+    return renderCatalogSkeleton()
   }
   
   // ── Soft Fallback Banner ──────────────────────────────────────────────────────
@@ -224,7 +236,7 @@ function ListingSidebarComponent({
           className={cn(
             LISTING_CATALOG_GRID_CLASSES,
             'transition-opacity duration-200',
-            isTransitioning ? "opacity-50" : "opacity-100"
+            !isMobile && isTransitioning ? 'opacity-50' : 'opacity-100',
           )}
         >
           {listings.map((listing, index) => (

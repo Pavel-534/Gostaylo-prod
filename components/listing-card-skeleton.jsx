@@ -21,6 +21,8 @@ import {
   LISTING_CARD_TITLE_ROW_MIN_H,
   LISTING_CARD_TRUST_ROW_MIN_H,
   LISTING_CATALOG_GRID_CLASSES,
+  MOBILE_CATALOG_SKELETON_COUNT,
+  DESKTOP_CATALOG_SKELETON_COUNT,
 } from '@/lib/listing/listing-card-layout'
 
 /**
@@ -83,12 +85,15 @@ export function ListingCardSkeleton({ className, style }) {
 }
 
 /**
- * Grid of skeleton cards — SSOT with catalog listing grid.
+ * Grid of skeleton cards — SSOT with catalog listing grid (same gap / columns → no CLS).
+ * @param {{ count?: number, mobile?: boolean }} props
  */
-export function ListingGridSkeleton({ count = 8 }) {
+export function ListingGridSkeleton({ count, mobile = false }) {
+  const resolvedCount =
+    count ?? (mobile ? MOBILE_CATALOG_SKELETON_COUNT : DESKTOP_CATALOG_SKELETON_COUNT)
   return (
-    <div className={LISTING_CATALOG_GRID_CLASSES}>
-      {Array.from({ length: count }).map((_, i) => (
+    <div className={LISTING_CATALOG_GRID_CLASSES} data-testid="listing-grid-skeleton">
+      {Array.from({ length: resolvedCount }).map((_, i) => (
         <ListingCardSkeleton
           key={i}
           className="animate-fade-in"
