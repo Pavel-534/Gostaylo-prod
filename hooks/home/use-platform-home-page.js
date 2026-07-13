@@ -18,7 +18,7 @@ import { buildHomeFeaturedKeyParams, fetchHomeFeatured } from '@/lib/home/fetch-
 import { queryKeys } from '@/lib/query-keys'
 import { getUIText } from '@/lib/translations'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
-import { hasCategoryParent } from '@/lib/config/category-hierarchy'
+import { selectHeroCategoryTabs } from '@/lib/home/hero-category-tabs'
 import { usePublicSearchFilters } from '@/lib/hooks/use-public-search-filters'
 import {
   AUTO_HERO_TITLE_FALLBACK,
@@ -288,20 +288,7 @@ export function usePlatformHomePage() {
     [dateRange],
   )
 
-  const categoryBarRoots = useMemo(() => {
-    return [...(categories || [])]
-      .filter((c) => c && c.slug && !hasCategoryParent(c))
-      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
-  }, [categories])
-
-  const heroTabs = useMemo(() => {
-    const preferred = ['property', 'vehicles', 'yachts', 'tours']
-    const picked = preferred
-      .map((slug) => categoryBarRoots.find((c) => c.slug === slug))
-      .filter(Boolean)
-    if (picked.length >= 3) return picked
-    return categoryBarRoots.slice(0, 4)
-  }, [categoryBarRoots])
+  const heroTabs = useMemo(() => selectHeroCategoryTabs(categories), [categories])
 
   // SSOT: white-label копии главной берутся из env (NEXT_PUBLIC_HOME_*) — `lib/config/home-page-copy.js`.
   // Пустой env → режим AUTO: `homeHeroHeadline` через `getUIText(key, language)`.

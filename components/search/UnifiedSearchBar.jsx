@@ -38,6 +38,7 @@ import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-p
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
+import { CategoryQuickChips } from '@/components/search/mobile/CategoryQuickChips'
 
 /** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
 export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
@@ -133,6 +134,8 @@ export function UnifiedSearchBar({
   categorySelectPortalClassName,
   /** Stage 178.7 — inline popular chips below Where in unified mobile sheet. */
   mobileSheetEditor = false,
+  /** Stage 179.1 — category chip row in mobile sheet (replaces Select). */
+  onCategoryTabClick,
   className,
   innerClassName,
 }) {
@@ -296,26 +299,40 @@ export function UnifiedSearchBar({
           </div>
         ) : null}
         <div className="grid grid-cols-2 gap-2 border-t-0 p-2 md:grid-cols-4 md:p-2">
-          <div data-search-section="what" className="min-w-0">
-            <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
-              <SelectTrigger className="h-9">
-                <Layers className="h-4 w-4 mr-2 text-brand" />
-                <span className="truncate">
-                  {category && category !== 'all'
-                    ? getCategoryName(category, language) || category
-                    : getUIText('whatPlaceholder', language)}
-                </span>
-              </SelectTrigger>
-              <SelectContent className={categorySelectPortalClassName}>
-                <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
-                {orderedCategoryRows.map(({ cat: c, depth }) => (
-                  <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
-                    {depth ? '· ' : ''}
-                    {getCategoryName(c.slug, language) || c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div
+            data-search-section="what"
+            className={cn('min-w-0', mobileSheetEditor && 'col-span-2')}
+          >
+            {mobileSheetEditor ? (
+              <CategoryQuickChips
+                variant="sheet"
+                language={language}
+                category={category}
+                setCategory={setCategory}
+                categories={categories}
+                onCategoryTabClick={onCategoryTabClick}
+              />
+            ) : (
+              <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
+                <SelectTrigger className="h-9">
+                  <Layers className="h-4 w-4 mr-2 text-brand" />
+                  <span className="truncate">
+                    {category && category !== 'all'
+                      ? getCategoryName(category, language) || category
+                      : getUIText('whatPlaceholder', language)}
+                  </span>
+                </SelectTrigger>
+                <SelectContent className={categorySelectPortalClassName}>
+                  <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
+                  {orderedCategoryRows.map(({ cat: c, depth }) => (
+                    <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
+                      {depth ? '· ' : ''}
+                      {getCategoryName(c.slug, language) || c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div data-search-section="where" className="min-w-0">

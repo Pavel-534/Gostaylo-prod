@@ -66,6 +66,8 @@ export function FilterBar({
   categorySelectPortalClassName,
   /** Stage 178.7 — true inside CatalogMobileSearchSheet (<md unified editor). */
   mobileSheetEditor = false,
+  /** Stage 179.1 — coming soon / hero parity for category chips in sheet. */
+  onCategoryTabClick,
 }) {
   const [filtersOpenInternal, setFiltersOpenInternal] = useState(false);
   const filtersOpen = filtersOpenProp ?? filtersOpenInternal;
@@ -190,6 +192,7 @@ export function FilterBar({
               onSearchSubmit={onSearchSubmit}
               categorySelectPortalClassName={categorySelectPortalClassName}
               mobileSheetEditor={mobileSheetEditor}
+              onCategoryTabClick={onCategoryTabClick}
             />
           </div>
           <Button

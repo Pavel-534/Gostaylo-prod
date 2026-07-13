@@ -8,6 +8,8 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 179.1 (2026-07-12):** mobile sheet «Что?» — **`CategoryQuickChips`** (API tabs via **`selectHeroCategoryTabs`**) replaces Radix Select in **`CatalogMobileSearchSheet`**; live **`setSelectedCategory`** SSOT; hero tabs share same component.
+
 **Stage 179.0 (2026-07-12):** mobile direct pickers — hero `<md` uses native **`WhereCombobox`** / **`SearchCalendar`** / **`GuestsPopover`** drawers (no **`CatalogMobileSearchSheet`** matryoshka); sheet overview-only (FAB + catalog summary). **`.gsl-premium-glass`** SSOT in `globals.css`; **`CatalogSearchSummaryBar`** + footer lift shadow on sheet. Removed **`mobile-search-sheet-focus.js`**.
 
 **Stage 178.9 (2026-07-12):** mobile «Куда» chips — **`PopularDestinationChips`**: MRU **`airento_recent_searches`** (max 4, commit on «Найти» via **`commitRecentSearchLocation`**) + **`fetchPopularDestinations`** (`GET /api/v2/search/locations/suggest?q=&lang=&limit=` inventory rank; fallback **`getPopularDestinationsFallback`**). Desktop unchanged.

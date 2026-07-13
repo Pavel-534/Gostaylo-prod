@@ -118,6 +118,7 @@ export function PlatformHomeContent() {
       setSmartSearchOn,
       semanticSearchFeatureEnabled: semanticSiteEnabled,
       onSearchSubmit: handleSearch,
+      onCategoryTabClick: handleCategoryTabClick,
     }),
     [
       language,
@@ -145,6 +146,7 @@ export function PlatformHomeContent() {
       setSmartSearchOn,
       semanticSiteEnabled,
       handleSearch,
+      handleCategoryTabClick,
     ],
   )
 

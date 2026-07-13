@@ -2,10 +2,8 @@
 
 import { useMemo } from 'react'
 import Image from 'next/image'
-import { Home, Bike, Map as MapIcon, Anchor } from 'lucide-react'
-import { getCategoryName } from '@/lib/translations'
 import { cn } from '@/lib/utils'
-import { HOME_CATEGORY_ICONS } from './home-constants'
+import { CategoryQuickChips } from '@/components/search/mobile/CategoryQuickChips'
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 
 /**
@@ -87,58 +85,17 @@ export function HomeHeroLuxe({
           data-public-search-chrome-expanded
           className="relative z-20 w-full rounded-3xl border border-white/35 bg-white/78 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_12px_40px_-18px_rgba(0,0,0,0.2)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-brand/35 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.18),0_0_0_3px_rgba(0,102,102,0.12)] sm:p-4"
         >
-          <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
-            {displayTabs.map((tab) => {
-              const active = category === tab.slug
-              const Icon = HOME_CATEGORY_ICONS[tab.slug] || Home
-              const comingSoon = tab.isComingSoon === true
-              const previewOnly = tab.isPreview === true
-              return (
-                <button
-                  key={tab.slug}
-                  type="button"
-                  onClick={() => {
-                    if (typeof onCategoryTabClick === 'function') {
-                      onCategoryTabClick(tab)
-                      return
-                    }
-                    setCategory?.(tab.slug)
-                  }}
-                  aria-pressed={active}
-                  className={cn(
-                    'inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold tracking-tight transition-all duration-200',
-                    active
-                      ? 'border-brand bg-brand text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
-                      : 'border-slate-200/90 bg-white/95 text-slate-700 hover:border-brand/60 hover:text-brand',
-                    previewOnly && 'opacity-50',
-                    !tabsReady && 'animate-pulse opacity-60',
-                  )}
-                >
-                  <Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-brand')} />
-                  {getCategoryName(tab.slug, language, tab.name)}
-                  {comingSoon ? (
-                    <span
-                      className={cn(
-                        'rounded-full border px-1.5 py-0.5 text-[10px] leading-none',
-                        active ? 'border-white/70 text-white' : 'border-amber-300 bg-amber-50 text-amber-700',
-                      )}
-                    >
-                      {language === 'ru' ? 'Скоро' : 'Soon'}
-                    </span>
-                  ) : null}
-                </button>
-              )
-            })}
-            {!tabsReady
-              ? Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={`hero-cat-skeleton-${idx}`}
-                    className="h-10 w-28 animate-pulse rounded-2xl border border-slate-200/90 bg-white/70"
-                    aria-hidden
-                  />
-                ))
-              : null}
-          </div>
+          <CategoryQuickChips
+            variant="hero"
+            language={language}
+            category={category}
+            setCategory={setCategory}
+            tabs={displayTabs}
+            tabsReady={tabsReady}
+            showAllChip={false}
+            onCategoryTabClick={onCategoryTabClick}
+            className="mb-3 sm:mb-4"
+          />
 
           <UnifiedSearchBar
             variant="hero"
@@ -167,5 +124,3 @@ export function HomeHeroLuxe({
     </section>
   )
 }
-
-export { Home, Bike, MapIcon, Anchor }
