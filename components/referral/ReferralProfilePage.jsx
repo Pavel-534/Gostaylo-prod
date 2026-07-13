@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/auth-context'
@@ -23,7 +23,10 @@ import { ReferralMentorStrip } from '@/components/referral/ReferralMentorStrip'
 import { ReferralPartnerSupplyStrip } from '@/components/referral/ReferralPartnerSupplyStrip'
 
 const TAB_ACTIVE =
-  'rounded-lg shrink-0 snap-start data-[state=active]:bg-brand data-[state=active]:text-white'
+  'rounded-lg shrink-0 snap-start scroll-mx-3 data-[state=active]:bg-brand data-[state=active]:text-white'
+
+const TABS_LIST_CLASS =
+  'flex w-full overflow-x-auto sm:flex-wrap h-auto gap-1.5 gsl-card p-1.5 shadow-sm scrollbar-thin snap-x snap-proximity scroll-pl-3 scroll-pr-3 [-webkit-overflow-scrolling:touch]'
 
 /**
  * Stage 114.3 / 115.0 — `/profile/referral` с табами (useReferralMeQuery SSOT).
@@ -44,11 +47,20 @@ export function ReferralProfilePage() {
     analyticsPeriod: 'month',
     teamLimit: 100,
   })
+  const tabsListRef = useRef(null)
 
   useEffect(() => {
     if (authLoading) return
     if (!isAuthenticated) router.replace('/profile?login=true')
   }, [authLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    const el = tabsListRef.current
+    if (!el) return
+    el.scrollLeft = 0
+    const active = el.querySelector('[data-state="active"]')
+    active?.scrollIntoView?.({ block: 'nearest', inline: 'start' })
+  }, [referralLoading])
 
   useEffect(() => {
     if (referralError) toast.error(t('referralStage726_loadErr'))
@@ -83,7 +95,7 @@ export function ReferralProfilePage() {
       />
 
       <Tabs defaultValue="link" className="space-y-6 mt-6">
-        <TabsList className="flex w-full overflow-x-auto sm:flex-wrap h-auto gap-1 gsl-card p-1 shadow-sm scrollbar-thin snap-x snap-mandatory [-webkit-overflow-scrolling:touch]">
+        <TabsList ref={tabsListRef} className={TABS_LIST_CLASS} data-testid="referral-profile-tabs">
           <TabsTrigger value="link" className={TAB_ACTIVE}>
             {t('stage1143_tabLink')}
           </TabsTrigger>

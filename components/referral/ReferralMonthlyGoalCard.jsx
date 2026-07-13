@@ -1,22 +1,23 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Target, Zap } from 'lucide-react'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 0 })
-}
+import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
+import { formatDisplayPriceInCurrency } from '@/lib/pricing/fx-display-client'
 
 /**
+ * Stage 179.6 — monthly goal display follows header `useCurrency` + retail FX.
+ *
  * @param {{
  *   monthlyEarnedThb?: number,
  *   monthlyGoalThb?: number,
  *   monthlyGoalProgressPercent?: number,
  *   turboEnabled?: boolean,
- *   t: (k: string) => string,
+ *   t: (k: string, ctx?: object) => string,
  *   locale?: string,
  * }} props
  */
@@ -26,12 +27,23 @@ export function ReferralMonthlyGoalCard({
   monthlyGoalProgressPercent = 0,
   turboEnabled = false,
   t,
-  locale = 'ru-RU',
 }) {
+  const { language } = useI18n()
+  const { currency } = useCurrency()
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+
   const goal = Math.max(1, Number(monthlyGoalThb) || 10000)
   const current = Number(monthlyEarnedThb) || 0
   const pct = Math.min(100, Number(monthlyGoalProgressPercent) || Math.round((current / goal) * 100))
   const goalMet = pct >= 100
+
+  const { currentAmount, goalAmount } = useMemo(() => {
+    const rates = exchangeRates
+    return {
+      currentAmount: formatDisplayPriceInCurrency(current, currency, rates, language),
+      goalAmount: formatDisplayPriceInCurrency(goal, currency, rates, language),
+    }
+  }, [current, goal, currency, exchangeRates, language])
 
   return (
     <Card className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-white shadow-sm">
@@ -41,17 +53,13 @@ export function ReferralMonthlyGoalCard({
           {t('stage73_monthlyGoalTitle')}
         </CardTitle>
         <CardDescription>
-          {t('stage73_monthlyGoalProgress')
-            .replace('{current}', formatThb(current, locale))
-            .replace('{goal}', formatThb(goal, locale))}
+          {t('stage73_monthlyGoalProgress', { currentAmount, goalAmount })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <Progress value={pct} className="h-2.5" />
         <p className="text-xs text-slate-600">
-          {t('stage73_monthlyGoalPercentLine')
-            .replace('{goal}', formatThb(goal, locale))
-            .replace('{percent}', String(Math.round(pct)))}
+          {t('stage73_monthlyGoalPercentLine', { goalAmount, percent: String(Math.round(pct)) })}
         </p>
         {goalMet ? (
           <div className="flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2 text-sm text-violet-950">

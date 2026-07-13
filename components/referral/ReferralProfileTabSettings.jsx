@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { REFERRAL_DISPLAY_CURRENCY_CODES, normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
 import { toast } from 'sonner'
 
 const TZ_FALLBACK_OPTIONS = ['Asia/Bangkok', 'UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York']
@@ -15,7 +14,6 @@ export function ReferralProfileTabSettings({ data, t }) {
   const [saving, setSaving] = useState(false)
   const [monthlyGoal, setMonthlyGoal] = useState('10000')
   const [reportTimezone, setReportTimezone] = useState('Asia/Bangkok')
-  const [displayCurrency, setDisplayCurrency] = useState('THB')
   const [campaignLoading, setCampaignLoading] = useState(false)
   const [campaignSaving, setCampaignSaving] = useState(false)
   const [campaignOptions, setCampaignOptions] = useState([])
@@ -35,7 +33,6 @@ export function ReferralProfileTabSettings({ data, t }) {
     const reportPrefs = data?.referralReport || {}
     setMonthlyGoal(String(Number(data?.stats?.monthlyGoalThb ?? reportPrefs?.referralMonthlyGoalThbProfile ?? 10000)))
     setReportTimezone(String(reportPrefs?.ianaTimezone || reportPrefs?.statsCalendarIana || 'Asia/Bangkok'))
-    setDisplayCurrency(normalizeReferralDisplayCurrency(data?.stats?.referralDisplayCurrency || 'THB'))
   }, [data])
 
   useEffect(() => {
@@ -74,7 +71,6 @@ export function ReferralProfileTabSettings({ data, t }) {
         body: JSON.stringify({
           referral_monthly_goal_thb: Math.round(goalNum),
           iana_timezone: String(reportTimezone || '').trim() || 'Asia/Bangkok',
-          referral_display_currency: normalizeReferralDisplayCurrency(displayCurrency),
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -136,21 +132,6 @@ export function ReferralProfileTabSettings({ data, t }) {
               {timezoneOptions.map((tz) => (
                 <SelectItem key={tz} value={tz}>
                   {tz}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>{t('stage1143_displayCurrency')}</Label>
-          <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {REFERRAL_DISPLAY_CURRENCY_CODES.map((code) => (
-                <SelectItem key={code} value={code}>
-                  {code}
                 </SelectItem>
               ))}
             </SelectContent>

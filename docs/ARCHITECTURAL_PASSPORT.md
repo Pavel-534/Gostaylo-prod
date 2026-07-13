@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.179.2.1 | **Last Updated**: 2026-07-13 | **Stage 179.2:** mobile catalog skeleton refetch; mobile sheet — compact 2×2 search grid (chips only on hero). **Stage 179.1:** **`CategoryQuickChips`** on home hero. **Stage 179.0:** hero direct pickers; **`.gsl-premium-glass`**.
+> **Version**: 12.179.6.0 | **Last Updated**: 2026-07-13 | **Stage 179.6:** referral settings currency UI removed; monthly goal FX. **Stage 179.5:** balance FX = header currency SSOT.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)

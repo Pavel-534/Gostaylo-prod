@@ -8,6 +8,14 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 179.6 (2026-07-13):** referral settings — removed **`referral_display_currency`** UI (`ReferralProfileTabSettings`); monthly goal card uses **`{currentAmount}`/`{goalAmount}`** + storefront FX (`ReferralMonthlyGoalCard`); i18n ZH/TH/RU/EN без `฿` в goal strings.
+
+**Stage 179.5 (2026-07-13):** ambassador balance UI — **`ReferralBalanceBreakdown`** uses storefront **`useCurrency`** + retail **`useFxRatesQuery`** + **`formatDisplayPriceInCurrency`** (ledger THB hidden when another currency selected); ZH/TH short share labels; Playwright mobile link-tab layout smoke.
+
+**Stage 179.4 (2026-07-13):** `/profile/referral` mobile UX — **`ReferralMarketingKit`** share buttons vertical stack `<md` (`w-full min-h-[44px]`, short i18n labels + `aria-label`); **`ReferralProfilePage`** tabs `snap-proximity` + `scroll-pl/pr-3`; removed duplicate **`ReferralAmbassadorWaveGuide`**.
+
+**Stage 179.3 (2026-07-13):** referral share/post copy — `{welcomeAmount}` via **`lib/referral/referral-share-pitch-tokens.js`** + storefront **`useCurrency`** + **`useFxRatesQuery`** (retail **`formatDisplayPriceInCurrency`**); removed `{welcomeRub}`/`{welcomeThb}` dual fallback in **`ReferralMarketingKit`**.
+
 **Stage 179.2 (2026-07-13):** mobile catalog `/listings` — refetch skeleton overlay (`ListingGridSkeleton` ×4, SSOT **`LISTING_CATALOG_GRID_CLASSES`**) on `loading` / `isTransitioning` / `aiSearchPending`; desktop keeps opacity cross-fade. TS: `moduleResolution: bundler`, removed deprecated `baseUrl`. **Mobile search sheet UX:** вернута компактная сетка 2×2 (Что?/Куда?/Даты/Гости) — без дублирующих badge-чипов и без горизонтальных category chips в шторке; **`CategoryQuickChips`** только на hero главной.
 
 **Stage 179.1 (2026-07-12):** home hero — **`CategoryQuickChips`** (API tabs via **`selectHeroCategoryTabs`**); live **`setSelectedCategory`** SSOT.

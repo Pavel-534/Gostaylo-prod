@@ -14,8 +14,38 @@ import { isUuidLike } from '@/lib/referral/uuid-like'
 import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
+import {
+  applyReferralPitchTemplate,
+  buildReferralPitchTokens,
+} from '@/lib/referral/referral-share-pitch-tokens'
 import { toast } from 'sonner'
+
+/** Stage 179.4 — mobile share row; desktop keeps horizontal wrap + hover scale. */
+const SHARE_BTN_CLASS =
+  'w-full min-h-[44px] justify-center transition-transform active:scale-[0.98] md:w-auto md:min-h-9 md:min-w-[132px] md:flex-initial md:hover:scale-[1.03] md:hover:shadow-md md:active:scale-100'
+
+const SHARE_ROW_CLASS =
+  'flex flex-col gap-2 w-full pt-1 md:flex-row md:flex-wrap md:justify-start'
+
+function ShareChannelButton({ variant = 'outline', onClick, icon: Icon, labelLong, labelShort, ariaLabel, disabled }) {
+  return (
+    <Button
+      type="button"
+      variant={variant}
+      className={SHARE_BTN_CLASS}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel || labelLong}
+    >
+      <Icon className="h-4 w-4 mr-1 shrink-0" aria-hidden />
+      <span className="md:hidden">{labelShort}</span>
+      <span className="hidden md:inline">{labelLong}</span>
+    </Button>
+  )
+}
 
 /**
  * QR + PDF-визитка + PNG + Stories 9:16 (два шаблона) + шаринг.
@@ -75,8 +105,6 @@ export function ReferralMarketingKit({
   storiesTeamLockedHint = '',
   /** Welcome bonus THB из `GET /api/v2/wallet/me` → `policy.welcomeBonusAmount` (fallback в шаблонах). */
   welcomeBonusThb = 0,
-  /** Stage 132.2 — RUB @ mid для RU-питчей (`referral/me.sharePitchFx.welcomeBonusRub`). */
-  welcomeBonusRub = 0,
   /** Stage 132.2 — guest vs host share pitch tabs. */
   sharePitchTabGuestLabel = 'Guests',
   sharePitchTabHostLabel = 'Hosts',
@@ -90,6 +118,8 @@ export function ReferralMarketingKit({
   shareNativeLabel = '',
 }) {
   const { language } = useI18n()
+  const { currency } = useCurrency()
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const link = String(referralLink || '').trim()
   const landing = String(landingShareUrl || '').trim()
   /** Основная ссылка для QR, PNG, TG/FB: короткая визитка, иначе длинный ref. */
@@ -134,24 +164,22 @@ export function ReferralMarketingKit({
   const teamStoriesLocked = partnerActivations < STORIES_TEAM_MIN_DIRECT_PARTNERS
   const partnersNeededForTeamStories = Math.max(0, STORIES_TEAM_MIN_DIRECT_PARTNERS - partnerActivations)
 
-  const welcomeThbStr = useMemo(() => {
-    const n = Math.round(Number(welcomeBonusThb))
-    return String(Number.isFinite(n) && n > 0 ? n : 500)
-  }, [welcomeBonusThb])
-
-  const welcomeRubStr = useMemo(() => {
-    const n = Math.round(Number(welcomeBonusRub))
-    return String(Number.isFinite(n) && n > 0 ? n : '')
-  }, [welcomeBonusRub])
+  const pitchTokens = useMemo(
+    () =>
+      buildReferralPitchTokens({
+        welcomeBonusThb,
+        currency,
+        rateMap: exchangeRates,
+        language,
+        brand: brandChip,
+        link: qrLink,
+      }),
+    [welcomeBonusThb, currency, exchangeRates, language, brandChip, qrLink],
+  )
 
   const applyPitchTokens = useMemo(
-    () => (template) =>
-      String(template || '')
-        .replace(/\{brand\}/g, brandChip)
-        .replace(/\{link\}/g, qrLink)
-        .replace(/\{welcomeThb\}/g, welcomeThbStr)
-        .replace(/\{welcomeRub\}/g, welcomeRubStr || welcomeThbStr),
-    [brandChip, qrLink, welcomeThbStr, welcomeRubStr],
+    () => (template) => applyReferralPitchTemplate(template, pitchTokens),
+    [pitchTokens],
   )
 
   const guestPitchBody = useMemo(() => {
@@ -169,6 +197,10 @@ export function ReferralMarketingKit({
   }, [shareBodyHost, guestPitchBody, applyPitchTokens])
 
   const defaultPitch = pitchMode === 'host' ? hostPitchBody : guestPitchBody
+
+  const shareWaShort = getUIText('referralStage726_shareWa_short', language)
+  const shareTgShort = getUIText('referralStage726_shareTg_short', language)
+  const shareNativeShort = getUIText('stage91_shareNative_short', language)
 
   function stripLinkFromPitch(text, link) {
     const l = String(link || '').trim()
@@ -552,31 +584,35 @@ export function ReferralMarketingKit({
                   {defaultPitch}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full pt-1">
+              <div className={SHARE_ROW_CLASS} data-testid="referral-share-buttons">
                 {nativeShareOk && String(shareNativeLabel || '').trim() ? (
-                  <Button
-                    type="button"
+                  <ShareChannelButton
                     variant="brand"
-                    className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md"
                     disabled={!qrLink}
                     onClick={() => void handleNativeShare()}
-                  >
-                    <Share2 className="h-4 w-4 mr-1 shrink-0" />
-                    {shareNativeLabel}
-                  </Button>
+                    icon={Share2}
+                    labelLong={shareNativeLabel}
+                    labelShort={shareNativeShort}
+                  />
                 ) : null}
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openWa}>
-                  <Share2 className="h-4 w-4 mr-1 shrink-0" />
-                  {shareWaLabel}
-                </Button>
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openTg}>
-                  <MessageCircle className="h-4 w-4 mr-1 shrink-0" />
-                  {shareTgLabel}
-                </Button>
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openFb}>
-                  <Facebook className="h-4 w-4 mr-1 shrink-0" />
-                  {shareFbLabel}
-                </Button>
+                <ShareChannelButton
+                  onClick={openWa}
+                  icon={Share2}
+                  labelLong={shareWaLabel}
+                  labelShort={shareWaShort}
+                />
+                <ShareChannelButton
+                  onClick={openTg}
+                  icon={MessageCircle}
+                  labelLong={shareTgLabel}
+                  labelShort={shareTgShort}
+                />
+                <ShareChannelButton
+                  onClick={openFb}
+                  icon={Facebook}
+                  labelLong={shareFbLabel}
+                  labelShort={shareFbLabel}
+                />
               </div>
             </div>
           </div>

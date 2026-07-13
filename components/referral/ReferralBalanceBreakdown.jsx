@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   Banknote,
   Clock,
@@ -13,22 +13,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
+import { formatDisplayPriceInCurrency } from '@/lib/pricing/fx-display-client'
 import { getUIText } from '@/lib/translations'
-
-function formatDisplayAmount(value, locale = 'ru-RU', currency = 'THB') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  if (currency === 'RUB') {
-    return n.toLocaleString(locale, { maximumFractionDigits: 0 })
-  }
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
 
 function formatUnlockDate(iso, locale) {
   if (!iso) return null
@@ -57,7 +45,8 @@ function BalanceHintPopover({ tooltip, ariaLabel }) {
 }
 
 /**
- * Stage 132.0 — SSOT разбор баланса амбассадора (wallet/me + referral/me fallback).
+ * Stage 132.0 / 179.5 — SSOT разбор баланса амбассадора.
+ * Ledger в THB на сервере; UI — только валюта из `useCurrency` + retail FX (как витрина).
  *
  * @param {{
  *   walletData?: object | null,
@@ -75,18 +64,18 @@ export function ReferralBalanceBreakdown({
   className = '',
 }) {
   const { language } = useI18n()
+  const { currency } = useCurrency()
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
-  const display = walletData?.displayBalances || null
-  const displayCurrency = String(display?.currency || 'THB').toUpperCase()
-  const useDisplayFx = displayCurrency !== 'THB' && display != null
+  const formatAmount = useCallback(
+    (thbAmount) => formatDisplayPriceInCurrency(thbAmount, currency, exchangeRates, language),
+    [currency, exchangeRates, language],
+  )
 
   const amounts = useMemo(() => {
     const balances = walletData?.balances || {}
     const wallet = walletData?.wallet || {}
-    const disp = walletData?.displayBalances || null
-    const cur = String(disp?.currency || 'THB').toUpperCase()
-    const showFx = cur !== 'THB' && disp != null
 
     const totalBalanceThb = Number(balances.totalBalanceThb ?? wallet.balance_thb ?? 0)
     const withdrawableBalanceThb = Number(
@@ -102,45 +91,24 @@ export function ReferralBalanceBreakdown({
     const securityHeldReferralBalanceThb = Number(balances.securityHeldReferralBalanceThb ?? 0)
     const nearestUnlockAt = referralData?.stats?.nearestUnlockAt || null
 
-    const pick = (dispKey, thbVal) =>
-      showFx && disp?.[dispKey] != null ? Number(disp[dispKey]) : Number(thbVal)
-
     return {
       totalBalanceThb,
       withdrawableBalanceThb,
       internalCreditsThb,
       heldReferralBalanceThb,
       securityHeldReferralBalanceThb,
-      total: pick('total', totalBalanceThb),
-      withdrawable: pick('withdrawable', withdrawableBalanceThb),
-      internalCredits: pick('internalCredits', internalCreditsThb),
-      heldReferral: pick('heldReferral', heldReferralBalanceThb),
-      securityHeldReferral: pick('securityHeldReferral', securityHeldReferralBalanceThb),
-      displayCurrency: cur,
-      showDisplayFx: showFx,
       nearestUnlockAt,
       unlockLabel: formatUnlockDate(nearestUnlockAt, locale),
     }
   }, [walletData, referralData, locale])
 
-  const currencySuffix = useDisplayFx
-    ? displayCurrency === 'RUB'
-      ? ' ₽'
-      : ` ${displayCurrency}`
-    : ' ฿'
-
-  const formatAmount = (value) =>
-    useDisplayFx
-      ? formatDisplayAmount(value, locale, displayCurrency)
-      : formatThb(value, locale)
-
   const rows = useMemo(() => {
-    /** @type {Array<{ id: string, label: string, amount: number, sublabel?: string, icon: typeof Wallet, tone: string, tooltip: string, always?: boolean }>} */
+    /** @type {Array<{ id: string, label: string, amountThb: number, sublabel?: string, icon: typeof Wallet, tone: string, tooltip: string, always?: boolean }>} */
     const list = [
       {
         id: 'total',
         label: t('stage1321_balanceTotal'),
-        amount: amounts.total,
+        amountThb: amounts.totalBalanceThb,
         icon: Wallet,
         tone: 'brand',
         tooltip: t('stage1321_balanceTotalTooltip'),
@@ -149,7 +117,7 @@ export function ReferralBalanceBreakdown({
       {
         id: 'withdrawable',
         label: t('stage1321_balanceWithdrawable'),
-        amount: amounts.withdrawable,
+        amountThb: amounts.withdrawableBalanceThb,
         icon: Banknote,
         tone: 'emerald',
         tooltip: t('stage1321_balanceWithdrawableTooltip'),
@@ -158,7 +126,7 @@ export function ReferralBalanceBreakdown({
       {
         id: 'internal',
         label: t('stage1321_balanceInternal'),
-        amount: amounts.internalCredits,
+        amountThb: amounts.internalCreditsThb,
         icon: PiggyBank,
         tone: 'slate',
         tooltip: t('stage1321_balanceInternalTooltip'),
@@ -172,7 +140,7 @@ export function ReferralBalanceBreakdown({
         label: amounts.unlockLabel
           ? t('stage1321_balanceUnlocksOn', { date: amounts.unlockLabel })
           : t('stage1321_balancePendingUnlock'),
-        amount: amounts.heldReferral,
+        amountThb: amounts.heldReferralBalanceThb,
         sublabel: t('stage1321_balancePeriodHoldSublabel'),
         icon: Lock,
         tone: 'amber',
@@ -184,7 +152,7 @@ export function ReferralBalanceBreakdown({
       list.push({
         id: 'security-hold',
         label: t('stage1321_balanceSecurityHold'),
-        amount: amounts.securityHeldReferral,
+        amountThb: amounts.securityHeldReferralBalanceThb,
         sublabel: t('stage1321_balanceSecurityHoldSublabel'),
         icon: ShieldAlert,
         tone: 'rose',
@@ -192,7 +160,7 @@ export function ReferralBalanceBreakdown({
       })
     }
 
-    return list.filter((r) => r.always || r.amount > 0)
+    return list.filter((r) => r.always || r.amountThb > 0)
   }, [amounts, variant, t])
 
   if (variant === 'header') {
@@ -206,10 +174,7 @@ export function ReferralBalanceBreakdown({
               <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
               {t('stage1321_balanceHeldShort')}
             </span>
-            <span className="tabular-nums font-medium">
-              {formatAmount(amounts.heldReferral)}
-              {currencySuffix}
-            </span>
+            <span className="tabular-nums font-medium">{formatAmount(amounts.heldReferralBalanceThb)}</span>
           </div>
         ) : null}
         {amounts.securityHeldReferralBalanceThb > 0 ? (
@@ -219,8 +184,7 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceSecurityShort')}
             </span>
             <span className="tabular-nums font-medium">
-              {formatAmount(amounts.securityHeldReferral)}
-              {currencySuffix}
+              {formatAmount(amounts.securityHeldReferralBalanceThb)}
             </span>
           </div>
         ) : null}
@@ -271,8 +235,7 @@ export function ReferralBalanceBreakdown({
                   <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
                 </div>
                 <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
-                  {formatAmount(row.amount)}
-                  {currencySuffix}
+                  {formatAmount(row.amountThb)}
                 </p>
               </div>
             )
@@ -306,8 +269,7 @@ export function ReferralBalanceBreakdown({
                 <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
               </div>
               <p className={cn('mt-2 text-2xl sm:text-3xl font-black tabular-nums tracking-tight', textTone[row.tone])}>
-                {formatAmount(row.amount)}
-                <span className="text-sm font-semibold opacity-80">{currencySuffix}</span>
+                {formatAmount(row.amountThb)}
               </p>
               {row.sublabel ? (
                 <p className="mt-1.5 text-[11px] text-slate-600 leading-snug flex items-center gap-1">

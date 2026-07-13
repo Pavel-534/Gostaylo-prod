@@ -12,6 +12,8 @@ import { E2E_FIXTURE_SECRET, E2E_HEADERS, E2E_ROUTES } from './constants'
 import {
   loginReferralAmbassador,
   openReferralTeamTab,
+  openReferralLinkTab,
+  assertNoSignificantOverlap,
   stabilizeVisualPage,
 } from './helpers/referral-dashboard-auth'
 
@@ -66,5 +68,42 @@ test.describe('@referral-dashboard-visual', () => {
       animations: 'disabled',
       maxDiffPixelRatio: 0.025,
     })
+  })
+
+  test('mobile 360×640 — link tab share stack and tabs not clipped', async ({ page, baseURL }) => {
+    test.skip(!baseURL || !creds, 'baseURL/creds')
+
+    await page.setViewportSize({ width: 360, height: 640 })
+    await loginReferralAmbassador(page, baseURL, creds)
+
+    const linkTab = page.getByRole('tab', { name: 'Моя ссылка' })
+    const tablist = page.getByTestId('referral-profile-tabs')
+    await expect(tablist).toBeVisible({ timeout: 30_000 })
+
+    const tablistBox = await tablist.boundingBox()
+    const linkTabBox = await linkTab.boundingBox()
+    expect(tablistBox).toBeTruthy()
+    expect(linkTabBox).toBeTruthy()
+    expect(linkTabBox.x).toBeGreaterThanOrEqual(tablistBox.x - 2)
+    expect(linkTabBox.x + linkTabBox.width).toBeLessThanOrEqual(tablistBox.x + tablistBox.width + 4)
+
+    const shareRow = await openReferralLinkTab(page)
+    const buttons = shareRow.locator('button')
+    const count = await buttons.count()
+    expect(count).toBeGreaterThanOrEqual(3)
+
+    /** @type {Array<{ x: number, y: number, width: number, height: number }>} */
+    const boxes = []
+    for (let i = 0; i < count; i++) {
+      const box = await buttons.nth(i).boundingBox()
+      if (box) boxes.push(box)
+    }
+    assertNoSignificantOverlap(boxes)
+
+    const viewport = page.viewportSize()
+    for (const box of boxes) {
+      expect(box.width).toBeGreaterThan((viewport?.width ?? 360) * 0.82)
+      expect(box.height).toBeGreaterThanOrEqual(40)
+    }
   })
 })

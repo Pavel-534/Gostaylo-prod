@@ -82,3 +82,40 @@ export async function stabilizeVisualPage(page) {
     `,
   })
 }
+
+/**
+ * Stage 179.4/179.5 — assert share buttons do not overlap (mobile stack regression).
+ * @param {Array<{ x: number, y: number, width: number, height: number }>} boxes
+ */
+export function assertNoSignificantOverlap(boxes) {
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i]
+      const b = boxes[j]
+      const overlapX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)
+      const overlapY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)
+      if (overlapX > 2 && overlapY > 2) {
+        const area = overlapX * overlapY
+        if (area > 16) {
+          throw new Error(`elements ${i} and ${j} overlap by ${Math.round(area)}px²`)
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param {import('@playwright/test').Page} page
+ */
+export async function openReferralLinkTab(page) {
+  const linkTab = page.getByRole('tab', { name: 'Моя ссылка' })
+  await expect(linkTab).toBeVisible({ timeout: 60_000 })
+  await linkTab.click()
+
+  const shareRow = page.getByTestId('referral-share-buttons')
+  await shareRow.scrollIntoViewIfNeeded()
+  await expect(shareRow).toBeVisible({ timeout: 45_000 })
+  await expect(shareRow.locator('button').first()).toBeVisible({ timeout: 15_000 })
+
+  return shareRow
+}

@@ -25,20 +25,6 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
     .replace(/\{brand\}/g, brand)
     .replace(/\{tier\}/g, tierName || '—')
     .replace(/\{badge\}/g, badgeFromStories || '—')
-  const welcomeBonusRub = Number(data?.sharePitchFx?.welcomeBonusRub ?? 0)
-  const welcomeRubStr = Number.isFinite(welcomeBonusRub) && welcomeBonusRub > 0 ? String(Math.round(welcomeBonusRub)) : ''
-  const pitchTokens = { welcomeThb: String(welcomeBonusThb), welcomeRub: welcomeRubStr, link: inviteLink, brand }
-  const inviteShareBody = String(t('stage1322_shareBodyGuest'))
-    .replace(/\{welcomeThb\}/g, pitchTokens.welcomeThb)
-    .replace(/\{welcomeRub\}/g, pitchTokens.welcomeRub || pitchTokens.welcomeThb)
-    .replace(/\{link\}/g, pitchTokens.link)
-    .replace(/\{brand\}/g, pitchTokens.brand)
-  const hostShareBody = String(t('stage1322_shareBodyHost'))
-    .replace(/\{welcomeThb\}/g, pitchTokens.welcomeThb)
-    .replace(/\{welcomeRub\}/g, pitchTokens.welcomeRub || pitchTokens.welcomeThb)
-    .replace(/\{link\}/g, pitchTokens.link)
-    .replace(/\{brand\}/g, pitchTokens.brand)
-
   async function copyText(value) {
     const v = String(value || '').trim()
     if (!v) return
@@ -81,8 +67,6 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
           </Card>
         </div>
       </section>
-
-      <ReferralAmbassadorWaveGuide t={t} />
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -131,11 +115,10 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         loyaltyExplainerLabel={t('stage91_shareColdAudienceLoyaltyLink')}
         shareNativeLabel={t('stage91_shareNative')}
         welcomeBonusThb={welcomeBonusThb}
-        welcomeBonusRub={welcomeBonusRub}
         sharePitchTabGuestLabel={t('stage1322_shareTabGuests')}
         sharePitchTabHostLabel={t('stage1322_shareTabHosts')}
-        shareBody={inviteShareBody}
-        shareBodyHost={hostShareBody}
+        shareBody={t('stage1322_shareBodyGuest')}
+        shareBodyHost={t('stage1322_shareBodyHost')}
         postTextShortHostTemplate={t('stage1322_postShortHost')}
         postTextMediumHostTemplate={t('stage1322_postMediumHost')}
         shareMessage={data?.shareMessage || ''}
