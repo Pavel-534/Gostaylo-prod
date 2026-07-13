@@ -167,7 +167,7 @@ export async function POST(request) {
   const settings = {
     key: 'general',
     value: {
-      defaultCommissionRate: 15,
+      defaultCommissionRate: 0,
       guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
       hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
       insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,

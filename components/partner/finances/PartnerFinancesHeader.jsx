@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { Download, Wallet } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 export function PartnerFinancesHeader({
   t,
@@ -44,28 +44,30 @@ export function PartnerFinancesHeader({
           <CardContent className="pt-0 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">{t('partnerFinances_escrowFrozenLabel')}</span>
-              <span className="font-semibold">{formatPrice(balanceBreakdown.frozenBalanceThb ?? 0, 'THB')}</span>
+              <span className="font-semibold tabular-nums">
+                <PartnerHostLedgerAmount thb={balanceBreakdown.frozenBalanceThb ?? 0} />
+              </span>
             </div>
             {(balanceBreakdown.thawHoldBalanceThb ?? 0) > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-600">{t('partnerFinances_bucketThawHoldTitle')}</span>
-                <span className="font-semibold text-cyan-800">
-                  {formatPrice(balanceBreakdown.thawHoldBalanceThb ?? 0, 'THB')}
+                <span className="font-semibold text-cyan-800 tabular-nums">
+                  <PartnerHostLedgerAmount thb={balanceBreakdown.thawHoldBalanceThb ?? 0} />
                 </span>
               </div>
             )}
             {(balanceBreakdown.disputeHoldBalanceThb ?? 0) > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-600">{t('partnerFinances_bucketDisputeTitle')}</span>
-                <span className="font-semibold text-rose-800">
-                  {formatPrice(balanceBreakdown.disputeHoldBalanceThb ?? 0, 'THB')}
+                <span className="font-semibold text-rose-800 tabular-nums">
+                  <PartnerHostLedgerAmount thb={balanceBreakdown.disputeHoldBalanceThb ?? 0} />
                 </span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-slate-600">{t('partnerFinances_escrowAvailableLabel')}</span>
-              <span className="font-semibold text-brand-hover">
-                {formatPrice(balanceBreakdown.availableBalanceThb ?? 0, 'THB')}
+              <span className="font-semibold text-brand-hover tabular-nums">
+                <PartnerHostLedgerAmount thb={balanceBreakdown.availableBalanceThb ?? 0} />
               </span>
             </div>
             {balanceBreakdown.byCategory && Object.keys(balanceBreakdown.byCategory).length > 0 && (
@@ -75,8 +77,10 @@ export function PartnerFinancesHeader({
                   <div key={slug} className="flex justify-between gap-2">
                     <span className="truncate">{slug}</span>
                     <span>
-                      {t('partnerFinances_escrowFrozenShort')} {formatPrice(row.frozenThb ?? 0, 'THB')} /{' '}
-                      {t('partnerFinances_escrowAvailableShort')} {formatPrice(row.availableThb ?? 0, 'THB')}
+                      {t('partnerFinances_escrowFrozenShort')}{' '}
+                      <PartnerHostLedgerAmount thb={row.frozenThb ?? 0} /> /{' '}
+                      {t('partnerFinances_escrowAvailableShort')}{' '}
+                      <PartnerHostLedgerAmount thb={row.availableThb ?? 0} />
                     </span>
                   </div>
                 ))}

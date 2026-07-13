@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * Мобильный мастер-календарь партнёра (< lg): фильтры по категориям из БД, поиск, аккордеон,
@@ -20,6 +20,10 @@ import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
 import { getUIText } from '@/lib/translations'
+import {
+  CalendarListingPriceDisplay,
+  useCalendarListingPriceFormat,
+} from '@/components/calendar/calendar-listing-price-display'
 import {
   BLOCK_DISPLAY_KIND,
   formatBlockExpiresAt,
@@ -328,6 +332,10 @@ export function CalendarMobileAgenda({
 function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClass, language = 'ru' }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
+  const { formatListingPrice } = useCalendarListingPriceFormat()
+  const baseCur = String(
+    item?.listing?.baseCurrency || item?.listing?.base_currency || 'THB',
+  ).toUpperCase()
 
   const cellData = item.availability[date] || { status: 'AVAILABLE' }
   const dateObj = parseISO(date)
@@ -383,16 +391,17 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
     const minStay = cellData.minStay || 1
     priceLine = (
       <div className="text-right leading-tight">
-        <span
-          className={cn(
+        <CalendarListingPriceDisplay
+          amountThb={price}
+          baseCurrency={baseCur}
+          className="items-end"
+          priceClassName={cn(
             'text-sm font-bold tabular-nums tracking-tight',
             high && 'text-brand-hover',
             low && 'text-slate-500',
             !high && !low && 'text-slate-900',
           )}
-        >
-          ฿{Math.round(price).toLocaleString('en-US')}
-        </span>
+        />
         {minStay > 1 ? (
           <p className="text-[10px] font-medium text-slate-500">{trTpl(t('partnerCal_minStayShort'), { n: minStay })}</p>
         ) : null}
@@ -408,9 +417,9 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
           </span>
           <p className="mt-0.5 break-words text-[9px] font-medium tabular-nums text-slate-600">
             {trTpl(t('partnerCal_tooltipPromoLine'), {
-              base: `฿${Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')}`,
-              discount: `฿${Math.round(promo.discountAmount || 0).toLocaleString('en-US')}`,
-              guest: `฿${Math.round(promo.guestPrice || 0).toLocaleString('en-US')}`,
+              base: formatListingPrice(promo.baseSeasonPrice || 0, baseCur).primary,
+              discount: formatListingPrice(promo.discountAmount || 0, baseCur).primary,
+              guest: formatListingPrice(promo.guestPrice || 0, baseCur).primary,
             })}
           </p>
         </div>

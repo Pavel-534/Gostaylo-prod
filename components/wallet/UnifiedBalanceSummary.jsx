@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * Stage 72.6 — единый снимок «бонусы маркетинга» vs «эскроу партнёра» (разные потоки в БД).
@@ -9,12 +9,7 @@
 import { Wallet, PiggyBank, Landmark, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-
-function formatThb(value) {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 })
-}
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 /**
  * Скелетон с той же структурой, что и UnifiedBalanceSummary, чтобы избежать
@@ -92,7 +87,9 @@ export function UnifiedBalanceSummary({ walletPayload, t }) {
                     </Tooltip>
                   </TooltipProvider>
                 </p>
-                <p className="text-lg font-semibold tabular-nums text-slate-900">฿{formatThb(wd)}</p>
+                <p className="text-lg font-semibold tabular-nums text-slate-900">
+                  <PartnerHostLedgerAmount thb={wd} />
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -111,13 +108,17 @@ export function UnifiedBalanceSummary({ walletPayload, t }) {
                     </Tooltip>
                   </TooltipProvider>
                 </p>
-                <p className="text-lg font-semibold tabular-nums text-slate-900">฿{formatThb(internal)}</p>
+                <p className="text-lg font-semibold tabular-nums text-slate-900">
+                  <PartnerHostLedgerAmount thb={internal} />
+                </p>
               </div>
             </div>
           </div>
           <p className="text-xs text-slate-500 pt-1 border-t border-slate-100">
             {t('referralStage726_marketingTotal')}:{' '}
-            <span className="font-semibold tabular-nums text-slate-800">฿{formatThb(marketingTotal)}</span>
+            <span className="font-semibold tabular-nums text-slate-800">
+              <PartnerHostLedgerAmount thb={marketingTotal} />
+            </span>
           </p>
         </div>
 
@@ -140,11 +141,15 @@ export function UnifiedBalanceSummary({ walletPayload, t }) {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs text-amber-900/80">{t('referralStage726_escrowFrozen')}</p>
-                <p className="font-semibold tabular-nums text-amber-950">฿{formatThb(escrow.frozenBalanceThb)}</p>
+                <p className="font-semibold tabular-nums text-amber-950">
+                  <PartnerHostLedgerAmount thb={escrow.frozenBalanceThb} />
+                </p>
               </div>
               <div>
                 <p className="text-xs text-amber-900/80">{t('referralStage726_escrowAvailable')}</p>
-                <p className="font-semibold tabular-nums text-amber-950">฿{formatThb(escrow.availableBalanceThb)}</p>
+                <p className="font-semibold tabular-nums text-amber-950">
+                  <PartnerHostLedgerAmount thb={escrow.availableBalanceThb} />
+                </p>
               </div>
             </div>
           </div>

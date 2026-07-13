@@ -14,6 +14,10 @@ import {
   resolveChatInvoiceRateMultiplier,
   PLATFORM_SPLIT_FEE_DEFAULTS,
 } from '@/lib/services/currency.service'
+import {
+  resolveGuestServiceFeePercentFromGeneral,
+  resolveHostCommissionPercentFromGeneral,
+} from '@/lib/services/pricing/pricing-fee-policy.js'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { readSystemSettingValue } from '@/lib/admin/system-settings-store'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -46,19 +50,11 @@ export async function GET(request) {
     }
 
     const general = (await readSystemSettingValue('general')) || {}
-    const rawSystem = general?.hostCommissionPercent ?? general?.defaultCommissionRate
-    const parsedSystem = parseFloat(rawSystem)
-    const parsedGuestFee = parseFloat(general?.guestServiceFeePercent ?? general?.serviceFeePercent)
+    const systemHostRate = resolveHostCommissionPercentFromGeneral(general)
+    const guestServiceFeePercent = resolveGuestServiceFeePercentFromGeneral(general)
     const parsedInsurance = parseFloat(general?.insuranceFundPercent)
     const parsedMarkup = parseFloat(general?.chatInvoiceRateMultiplier)
-    const systemRate =
-      Number.isFinite(parsedSystem) && parsedSystem >= 0 && parsedSystem <= 100
-        ? parsedSystem
-        : await resolveDefaultCommissionPercent()
-    const guestServiceFeePercent =
-      Number.isFinite(parsedGuestFee) && parsedGuestFee >= 0 && parsedGuestFee <= 100
-        ? parsedGuestFee
-        : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
+    const systemRate = systemHostRate
     const insuranceFundPercent =
       Number.isFinite(parsedInsurance) && parsedInsurance >= 0 && parsedInsurance <= 100
         ? parsedInsurance

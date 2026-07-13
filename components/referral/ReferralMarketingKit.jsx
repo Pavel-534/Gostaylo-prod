@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -15,7 +15,7 @@ import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { useCurrency } from '@/contexts/currency-context'
-import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
+import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
 import {
   applyReferralPitchTemplate,
@@ -119,7 +119,7 @@ export function ReferralMarketingKit({
 }) {
   const { language } = useI18n()
   const { currency } = useCurrency()
-  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const { exchangeRates } = useAmbassadorDisplayFx()
   const link = String(referralLink || '').trim()
   const landing = String(landingShareUrl || '').trim()
   /** Основная ссылка для QR, PNG, TG/FB: короткая визитка, иначе длинный ref. */

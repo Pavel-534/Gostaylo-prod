@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 export function PartnerFinancesLedger({ t, balanceBreakdown, language = 'ru' }) {
   const rows = balanceBreakdown?.recentLedgerTransactions || []
@@ -45,7 +45,7 @@ export function PartnerFinancesLedger({ t, balanceBreakdown, language = 'ru' }) 
                     <div className="flex justify-between gap-2 min-w-0">
                       <span className="text-slate-500 shrink-0">{t('partnerFinances_ledgerColThb')}</span>
                       <span className="tabular-nums font-semibold text-right break-all">
-                        {formatPrice(row.amountThb ?? 0, 'THB', { THB: 1 }, language)}
+                        <PartnerHostLedgerAmount thb={row.amountThb ?? 0} />
                       </span>
                     </div>
                     <div className="flex justify-between gap-2 min-w-0">
@@ -94,7 +94,7 @@ export function PartnerFinancesLedger({ t, balanceBreakdown, language = 'ru' }) 
                       <td className="px-3 py-2 text-slate-800 font-mono text-xs">{row.eventType || '—'}</td>
                       <td className="px-3 py-2">{row.side || '—'}</td>
                       <td className="px-3 py-2 text-right tabular-nums font-medium">
-                        {formatPrice(row.amountThb ?? 0, 'THB')}
+                        <PartnerHostLedgerAmount thb={row.amountThb ?? 0} />
                       </td>
                       <td className="px-3 py-2 font-mono text-xs">
                         {row.bookingId ? (

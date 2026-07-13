@@ -75,7 +75,15 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
       latitude: listing.latitude ?? null,
       longitude: listing.longitude ?? null,
       basePriceThb:
-        sanitizeThbDigits((listing.basePriceThb ?? listing.base_price_thb)?.toString() || '') || '',
+        sanitizeThbDigits(
+          String(
+            listing.basePriceAsset?.amount ??
+              listing.metadata?.base_price_asset?.amount ??
+              listing.basePriceThb ??
+              listing.base_price_thb ??
+              '',
+          ),
+        ) || '',
       baseCurrency:
         listing.baseCurrency || listing.base_currency || listing.metadata?.base_currency || 'THB',
       commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,

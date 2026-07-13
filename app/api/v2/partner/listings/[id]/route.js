@@ -21,6 +21,13 @@ import { listingBasePriceSchema } from '@/lib/validations/listing';
 import { applyListingGeoSnapshotToUpdateData } from '@/lib/partner/apply-listing-geo-snapshot';
 import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
 import { applyListingMaxCapacitySyncToRow } from '@/lib/listing-guest-capacity.js';
+import {
+  buildListingPriceWriteFields,
+  mapListingPriceFieldsForApi,
+  readPartnerFormAssetAmount,
+} from '@/lib/listing/listing-base-price-canon.js';
+import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
+import { assertListingFinancialEditAllowed, checkListingFinancialLock } from '@/lib/listing/listing-financial-lock.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,9 +99,16 @@ export async function GET(request, context) {
   const commissionRate =
     Number.isFinite(rawComm) && rawComm >= 0 ? rawComm : defaultListingCommission;
 
-  return NextResponse.json({
-    success: true,
-    data: {
+  const priceFields = mapListingPriceFieldsForApi(listing);
+
+  let financialLock = { locked: false, activeBookingCount: 0 }
+  try {
+    financialLock = await checkListingFinancialLock(supabase, listingId)
+  } catch (lockErr) {
+    console.warn('[PARTNER-LISTING] financial lock check failed:', lockErr?.message)
+  }
+
+  const listingPayload = {
       id: listing.id,
       categoryId: listing.category_id,
       category: cat,
@@ -104,8 +118,7 @@ export async function GET(request, context) {
       district: listing.district,
       latitude: listing.latitude,
       longitude: listing.longitude,
-      basePriceThb: parseFloat(listing.base_price_thb) || 0,
-      baseCurrency: listing.base_currency || 'THB',
+      ...priceFields,
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
@@ -129,41 +142,17 @@ export async function GET(request, context) {
         priceDaily: parseFloat(sp.price_daily) || 0,
         seasonType: sp.season_type,
       })),
-    },
-    listing: {
-      id: listing.id,
-      title: listing.title,
-      description: listing.description,
-      status: listing.status,
-      district: listing.district,
-      latitude: listing.latitude,
-      longitude: listing.longitude,
-      basePriceThb: parseFloat(listing.base_price_thb) || 0,
-      baseCurrency: listing.base_currency || 'THB',
-      commissionRate,
-      minBookingDays: listing.min_booking_days ?? 1,
-      maxBookingDays: listing.max_booking_days ?? 90,
-      instantBooking: listing.instant_booking === true,
-      cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
-      images: mapPublicImageUrls(listing.images || []),
-      coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
-      available: listing.available,
-      isFeatured: listing.is_featured,
-      views: listing.views || 0,
-      metadata: listing.metadata || {},
-      sync_settings: listing.sync_settings || null,
-      ownerId: listing.owner_id,
-      createdAt: listing.created_at,
-      updatedAt: listing.updated_at,
-      seasonalPrices: seasonalPrices.map(sp => ({
-        id: sp.id,
-        label: sp.label,
-        startDate: sp.start_date,
-        endDate: sp.end_date,
-        priceDaily: parseFloat(sp.price_daily) || 0,
-        seasonType: sp.season_type,
-      })),
-    }
+      financialLock: {
+        locked: financialLock.locked === true,
+        activeBookingCount: financialLock.activeBookingCount ?? 0,
+        baseCurrencyLocked: financialLock.locked === true,
+      },
+  };
+
+  return NextResponse.json({
+    success: true,
+    data: listingPayload,
+    listing: listingPayload,
   });
 }
 
@@ -191,6 +180,10 @@ export async function PATCH(request, context) {
   const { userId, userRole } = auth;
   
   const body = await request.json();
+  const requestedBaseCurrency =
+    body.baseCurrency !== undefined || body.base_currency !== undefined
+      ? normalizeCurrencyCode(body.baseCurrency ?? body.base_currency)
+      : null;
   
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -202,7 +195,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, country_code, region_code, city_code, max_capacity, bedrooms_count, categories(slug, name, wizard_profile)')
+    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, base_currency, category_id, country_code, region_code, city_code, max_capacity, bedrooms_count, categories(slug, name, wizard_profile)')
     .eq('id', listingId)
     .single();
   
@@ -213,6 +206,33 @@ export async function PATCH(request, context) {
   if (userRole !== 'ADMIN' && existing.owner_id !== userId) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
   }
+
+  try {
+    await assertListingFinancialEditAllowed(supabase, listingId, {
+      existing,
+      body,
+      partnerId: userId,
+    });
+  } catch (lockErr) {
+    if (lockErr?.code === 'LISTING_ASSET_LOCKED_ACTIVE_BOOKINGS') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: lockErr.message,
+          code: lockErr.code,
+          details: lockErr.details,
+        },
+        { status: 400 },
+      );
+    }
+    if (lockErr?.code === 'LISTING_FINANCIAL_LOCK_CHECK_FAILED') {
+      return NextResponse.json(
+        { success: false, error: lockErr.message, code: lockErr.code },
+        { status: 503 },
+      );
+    }
+    throw lockErr;
+  }
   
   // Prepare update data
   const updateData = {
@@ -221,22 +241,6 @@ export async function PATCH(request, context) {
   
   if (body.title !== undefined) updateData.title = body.title;
   if (body.description !== undefined) updateData.description = body.description;
-  if (body.basePriceThb !== undefined) {
-    const priceParsed = listingBasePriceSchema.safeParse(body.basePriceThb);
-    if (!priceParsed.success) {
-      const msg = priceParsed.error.errors?.[0]?.message || 'Invalid base price';
-      return NextResponse.json({ success: false, error: msg, code: 'INVALID_BASE_PRICE' }, { status: 400 });
-    }
-    updateData.base_price_thb = priceParsed.data;
-  }
-  if (body.baseCurrency !== undefined || body.base_currency !== undefined) {
-    const incoming = body.baseCurrency ?? body.base_currency;
-    const normalized = normalizeCurrencyCode(incoming);
-    if (!isListingBaseCurrency(normalized)) {
-      return NextResponse.json({ success: false, error: 'Invalid base currency' }, { status: 400 });
-    }
-    updateData.base_currency = normalized;
-  }
   if (body.district !== undefined) updateData.district = body.district;
   if (body.latitude !== undefined) updateData.latitude = body.latitude;
   if (body.longitude !== undefined) updateData.longitude = body.longitude;
@@ -265,6 +269,66 @@ export async function PATCH(request, context) {
   }
   if (body.sync_settings !== undefined) {
     updateData.sync_settings = body.sync_settings;
+  }
+
+  const { updateData: geoPatchedData, locationCapture } = applyListingGeoSnapshotToUpdateData(
+    updateData,
+    body,
+    existing,
+  );
+  Object.assign(updateData, geoPatchedData);
+
+  if (requestedBaseCurrency && !isListingBaseCurrency(requestedBaseCurrency)) {
+    return NextResponse.json({ success: false, error: 'Invalid base currency' }, { status: 400 });
+  }
+
+  applyListingBaseCurrencyInvariant(updateData, {
+    requestedCurrency: requestedBaseCurrency ?? existing.base_currency,
+    existingCurrency: existing.base_currency,
+    listingId,
+  });
+
+  const geoTouched =
+    body.country != null || body.region != null || body.city != null;
+  const priceFieldsTouched =
+    body.basePriceThb !== undefined ||
+    requestedBaseCurrency != null ||
+    geoTouched;
+
+  if (priceFieldsTouched) {
+    let assetAmount;
+    if (body.basePriceThb !== undefined) {
+      const priceParsed = listingBasePriceSchema.safeParse(body.basePriceThb);
+      if (!priceParsed.success) {
+        const msg = priceParsed.error.errors?.[0]?.message || 'Invalid base price';
+        return NextResponse.json({ success: false, error: msg, code: 'INVALID_BASE_PRICE' }, { status: 400 });
+      }
+      assetAmount = priceParsed.data;
+    } else {
+      const fromAsset = readPartnerFormAssetAmount(existing);
+      assetAmount = fromAsset != null ? fromAsset : parseFloat(existing.base_price_thb) || 0;
+    }
+
+    const mergedMeta =
+      updateData.metadata !== undefined ? updateData.metadata : existing.metadata || {};
+
+    try {
+      const priceWrite = await buildListingPriceWriteFields({
+        assetAmount,
+        currency: updateData.base_currency || existing.base_currency || 'THB',
+        existingMetadata: mergedMeta,
+      });
+      updateData.base_price_thb = priceWrite.base_price_thb;
+      updateData.metadata = priceWrite.metadata;
+    } catch (priceErr) {
+      if (priceErr?.code === 'LISTING_BASE_PRICE_FX_UNAVAILABLE') {
+        return NextResponse.json(
+          { success: false, error: priceErr.message, code: priceErr.code },
+          { status: 503 },
+        );
+      }
+      throw priceErr;
+    }
   }
 
   const nextStatus = body.status !== undefined ? String(body.status).toUpperCase() : null;
@@ -298,7 +362,9 @@ export async function PATCH(request, context) {
       categoryName: cat.name || '',
       wizardProfile: cat.wizard_profile ?? cat.wizardProfile ?? null,
       basePriceThb:
-        body.basePriceThb !== undefined ? body.basePriceThb : existing.base_price_thb,
+        body.basePriceThb !== undefined
+          ? body.basePriceThb
+          : readPartnerFormAssetAmount(existing) ?? existing.base_price_thb,
     });
     if (!quality.ok) {
       return NextResponse.json(
@@ -313,13 +379,6 @@ export async function PATCH(request, context) {
       );
     }
   }
-
-  const { updateData: geoPatchedData, locationCapture } = applyListingGeoSnapshotToUpdateData(
-    updateData,
-    body,
-    existing,
-  );
-  Object.assign(updateData, geoPatchedData);
 
   let categorySlug = existing.categories?.slug || '';
   if (body.categoryId !== undefined && String(body.categoryId) !== String(existing.category_id)) {

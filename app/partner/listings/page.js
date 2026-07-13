@@ -30,6 +30,7 @@ import {
   PartnerListingStatusBadge,
   partnerListingStatusToTone,
 } from '@/components/partner/PartnerListingStatusBadge'
+import { PartnerListingBasePriceDisplay } from '@/components/partner/listings/partner-listing-base-price-display'
 import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
 import {
   usePartnerListings,
@@ -468,10 +469,18 @@ export default function PartnerListings() {
                       </p>
                       
                       <div className='flex items-center gap-2 mt-1.5'>
-                        <span className='font-semibold text-sm text-slate-900'>
-                          {listing.base_price_thb > 0 
-                            ? `฿${listing.base_price_thb.toLocaleString()}` 
-                            : t('partnerListings_cardPriceUnset')}
+                        <span className='tabular-nums'>
+                          {listing.base_price_thb > 0 ? (
+                            <PartnerListingBasePriceDisplay
+                              amount={listing.base_price_thb}
+                              baseCurrency={listing.base_currency || listing.baseCurrency || 'THB'}
+                              className="items-start"
+                            />
+                          ) : (
+                            <span className='font-semibold text-sm text-slate-900'>
+                              {t('partnerListings_cardPriceUnset')}
+                            </span>
+                          )}
                         </span>
                         <span className='text-xs text-slate-400'>{t('partnerListings_perDay')}</span>
                       </div>

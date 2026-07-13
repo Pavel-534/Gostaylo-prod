@@ -5,13 +5,14 @@ import { Info } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ListingCard } from '@/components/listing-card'
 import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
-import { WizardFinancialRecap } from '@/components/partner/wizard/WizardFinancialRecap'
+import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/WizardPartnerEarningsCalculator'
 import { useListingWizard } from '../context/ListingWizardContext'
 import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
 } from './wizard-step-layout'
+import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 
 function StepPreviewInner() {
   const w = useListingWizard()
@@ -20,21 +21,21 @@ function StepPreviewInner() {
     tr,
     formData,
     language,
-    numberLocale,
     listingCategorySlug,
-    listingCategoryWizardProfile,
     partnerCommissionRate,
+    transportWizard,
+    toursWizard,
     canProceed,
     publishQualityChecklist,
     pricingPreview,
   } = w
+  const { currency, exchangeRates } = useStorefrontDisplayFx()
 
-  const hostNetPreview = useMemo(() => {
-    const base = parseFloat(String(formData.basePriceThb)) || 0
-    const pct = Number(partnerCommissionRate)
-    if (!(base > 0) || !Number.isFinite(pct)) return null
-    return Math.round(base * (1 - pct / 100))
-  }, [formData.basePriceThb, partnerCommissionRate])
+  const periodLabel = useMemo(() => {
+    if (transportWizard) return t('wizardPriceCalcPeriodBookingDay')
+    if (toursWizard) return t('wizardPriceCalcPeriodTour')
+    return t('wizardPriceCalcPeriodNight')
+  }, [transportWizard, toursWizard, t])
 
   return (
     <div className={WIZARD_STEP_ROOT_CLASS}>
@@ -45,16 +46,14 @@ function StepPreviewInner() {
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
 
-      {hostNetPreview != null && hostNetPreview > 0 ? (
-        <WizardFinancialRecap
-          language={language}
+      {parseFloat(String(formData.basePriceThb)) > 0 ? (
+        <WizardPartnerEarningsCalculator
+          t={t}
           tr={tr}
-          basePriceThb={formData.basePriceThb}
-          hostNetThb={hostNetPreview}
-          hostCommissionPercent={partnerCommissionRate}
-          categorySlug={listingCategorySlug}
-          wizardProfile={listingCategoryWizardProfile}
-          numberLocale={numberLocale}
+          baseAmount={formData.basePriceThb}
+          baseCurrency={formData.baseCurrency || 'THB'}
+          hostCommissionPercent={partnerCommissionRate ?? 0}
+          periodLabel={periodLabel}
         />
       ) : null}
 
@@ -95,9 +94,9 @@ function StepPreviewInner() {
               isFeatured: false,
               is_featured: false,
             }}
-            currency="THB"
+            currency={currency}
             language={language}
-            exchangeRates={{ THB: 1 }}
+            exchangeRates={exchangeRates}
             onFavorite={() => {}}
             isFavorited={false}
           />

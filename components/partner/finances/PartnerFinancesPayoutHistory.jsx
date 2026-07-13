@@ -5,25 +5,42 @@ import { ArrowDownToLine } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/currency'
 import { PAYOUT_STATUS_LABEL, PAYOUT_STATUS_COLORS } from '@/components/partner/finances/partner-finances-shared'
+import {
+  PartnerHostLedgerAmount,
+  PartnerHostMidFxFootnote,
+  PartnerHostPayoutAmount,
+} from '@/components/partner/finances/partner-host-amount-display'
+import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
 import { formatServerPayoutAmount } from '@/components/partner/finances/partner-payout-preview-display'
 
 export function PartnerFinancesPayoutHistory({
   t,
-  language,
   payouts,
   payoutsLoading,
   payoutsError,
   payoutsErr,
   onRefetchPayouts,
 }) {
-  const fmtThb = (amt) => formatPrice(Number(amt) || 0, 'THB', { THB: 1 }, language)
-  const fmtPayout = (amt, currencyCode) => {
-    const cur = String(currencyCode || 'THB').toUpperCase()
-    if (cur === 'THB') return fmtThb(amt)
-    return formatServerPayoutAmount(amt, cur, language)
+  const { formatThbLedgerSecondary, language } = usePartnerHostDisplayFx()
+
+  const fmtPayoutFinal = (p) => {
+    const cur = String(p.payoutCurrency || p.currency || 'THB').toUpperCase()
+    const payoutCurAmount = p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
+    if (cur !== 'THB' && payoutCurAmount != null) {
+      return {
+        primary: formatServerPayoutAmount(payoutCurAmount, cur, language),
+        secondary: formatThbLedgerSecondary(p.finalAmount),
+        usesServerPayout: true,
+      }
+    }
+    return {
+      primary: null,
+      secondary: null,
+      usesServerPayout: false,
+    }
   }
+
   return (
     <Card>
       <CardHeader>
@@ -52,11 +69,9 @@ export function PartnerFinancesPayoutHistory({
           <>
             <div className="md:hidden space-y-3 min-w-0">
               {payouts.map((p) => {
-                const cur = p.payoutCurrency || p.currency || 'THB'
                 const methodName = p.payoutMethod?.name || p.method || '—'
                 const st = String(p.status || '').toUpperCase()
-                const payoutCurAmount =
-                  p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
+                const finalDisplay = fmtPayoutFinal(p)
                 return (
                   <div
                     key={p.id}
@@ -74,21 +89,30 @@ export function PartnerFinancesPayoutHistory({
                     <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm">
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-                        <span className="tabular-nums text-right break-all">{fmtThb(p.grossAmount)}</span>
+                        <span className="tabular-nums text-right break-all">
+                          <PartnerHostLedgerAmount thb={p.grossAmount} />
+                        </span>
                       </div>
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
                         <span className="tabular-nums text-amber-800 text-right break-all">
-                          −{fmtThb(p.payoutFeeAmount)}
+                          −<PartnerHostLedgerAmount thb={p.payoutFeeAmount} />
                         </span>
                       </div>
-                      <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0">
+                      <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0 items-start">
                         <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
                         <span className="tabular-nums text-emerald-800 text-right break-all">
-                          {fmtThb(p.finalAmount)}
-                          {cur !== 'THB' && payoutCurAmount != null
-                            ? ` · ${fmtPayout(payoutCurAmount, cur)}`
-                            : ''}
+                          {finalDisplay.usesServerPayout ? (
+                            <PartnerHostPayoutAmount
+                              preview={{
+                                amountInPayoutCurrency: p.amountInPayoutCurrency,
+                                payoutCurrency: p.payoutCurrency || p.currency,
+                                finalAmountThb: p.finalAmount,
+                              }}
+                            />
+                          ) : (
+                            <PartnerHostLedgerAmount thb={p.finalAmount} />
+                          )}
                         </span>
                       </div>
                     </div>
@@ -110,26 +134,33 @@ export function PartnerFinancesPayoutHistory({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {payouts.map((p) => {
-                    const cur = p.payoutCurrency || p.currency || 'THB'
                     const methodName = p.payoutMethod?.name || p.method || '—'
                     const st = String(p.status || '').toUpperCase()
-                    const payoutCurAmount =
-                      p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
+                    const finalDisplay = fmtPayoutFinal(p)
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/80">
                         <td className="px-3 py-2 whitespace-nowrap text-slate-700">
                           {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
                         </td>
                         <td className="px-3 py-2 text-slate-800">{methodName}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{fmtThb(p.grossAmount)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          <PartnerHostLedgerAmount thb={p.grossAmount} />
+                        </td>
                         <td className="px-3 py-2 text-right tabular-nums text-amber-800">
-                          −{fmtThb(p.payoutFeeAmount)}
+                          −<PartnerHostLedgerAmount thb={p.payoutFeeAmount} />
                         </td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
-                          {fmtThb(p.finalAmount)}
-                          {cur !== 'THB' && payoutCurAmount != null
-                            ? ` · ${fmtPayout(payoutCurAmount, cur)}`
-                            : ''}
+                          {finalDisplay.usesServerPayout ? (
+                            <PartnerHostPayoutAmount
+                              preview={{
+                                amountInPayoutCurrency: p.amountInPayoutCurrency,
+                                payoutCurrency: p.payoutCurrency || p.currency,
+                                finalAmountThb: p.finalAmount,
+                              }}
+                            />
+                          ) : (
+                            <PartnerHostLedgerAmount thb={p.finalAmount} />
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
@@ -142,6 +173,7 @@ export function PartnerFinancesPayoutHistory({
                 </tbody>
               </table>
             </div>
+            <PartnerHostMidFxFootnote t={t} className="mt-3" />
           </>
         )}
       </CardContent>

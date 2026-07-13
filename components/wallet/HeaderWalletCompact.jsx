@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * Компактный баланс для шапки: иконка + сумма; раскладка в выпадающем меню (GET /api/v2/wallet/me, кэш wallet-me).
@@ -16,16 +16,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useMemo } from 'react'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
-
-function formatCompactThb(n, locale = 'ru-RU') {
-  const v = Number(n)
-  if (!Number.isFinite(v)) return '0'
-  return v.toLocaleString(locale, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
-}
 
 function summarizePayload(data) {
   const w = data?.wallet
@@ -45,8 +40,6 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
   const { user } = useAuth()
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const locale =
-    language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
   const { data, isLoading, isError } = useWalletMeQuery({ enabled: !!user })
 
   if (!user) return null
@@ -76,7 +69,7 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
             <span className="text-xs text-amber-700">—</span>
           ) : (
             <span className={`text-xs sm:text-sm font-semibold tabular-nums ${amountTone}`}>
-              ฿{formatCompactThb(summary?.headerTotal ?? 0, locale)}
+              <PartnerHostLedgerAmount thb={summary?.headerTotal ?? 0} />
             </span>
           )}
         </Button>
@@ -85,7 +78,7 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
         <DropdownMenuLabel className="font-normal space-y-1">
           <p className="text-xs text-slate-500">{t('stage73_walletHeaderTitle')}</p>
           <p className="text-lg font-semibold tabular-nums text-slate-900">
-            ฿{formatCompactThb(summary?.headerTotal ?? 0, locale)}
+            <PartnerHostLedgerAmount thb={summary?.headerTotal ?? 0} />
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -95,14 +88,18 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
               <PiggyBank className="h-4 w-4 text-emerald-600 shrink-0" />
               {t('referralStage726_withdrawableLabel')}
             </span>
-            <span className="tabular-nums font-medium">฿{formatCompactThb(summary?.wd ?? 0, locale)}</span>
+            <span className="tabular-nums font-medium">
+              <PartnerHostLedgerAmount thb={summary?.wd ?? 0} />
+            </span>
           </div>
           <div className="flex items-start justify-between gap-2">
             <span className="flex items-center gap-1.5 text-slate-600">
               <PiggyBank className="h-4 w-4 text-indigo-600 shrink-0" />
               {t('referralStage726_internalServicesLabel')}
             </span>
-            <span className="tabular-nums font-medium">฿{formatCompactThb(summary?.internal ?? 0, locale)}</span>
+            <span className="tabular-nums font-medium">
+              <PartnerHostLedgerAmount thb={summary?.internal ?? 0} />
+            </span>
           </div>
           {(summary?.escrowTotal ?? 0) > 0 ? (
             <div className="flex items-start justify-between gap-2 pt-1 border-t border-slate-100">
@@ -110,7 +107,9 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
                 <Landmark className="h-4 w-4 text-amber-700 shrink-0" />
                 {t('referralStage726_escrowWalletLabel')}
               </span>
-              <span className="tabular-nums font-medium">฿{formatCompactThb(summary?.escrowTotal ?? 0, locale)}</span>
+              <span className="tabular-nums font-medium">
+                <PartnerHostLedgerAmount thb={summary?.escrowTotal ?? 0} />
+              </span>
             </div>
           ) : null}
           <ReferralBalanceBreakdown walletData={data} variant="header" />

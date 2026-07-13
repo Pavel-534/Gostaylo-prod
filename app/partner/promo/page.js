@@ -20,6 +20,7 @@ import { Tag, Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
+import { formatPrice } from '@/lib/currency'
 
 export default function PartnerPromoPage() {
   const searchParams = useSearchParams()
@@ -441,7 +442,9 @@ export default function PartnerPromoPage() {
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-bold text-slate-900">{promo.code}</p>
                       <p className="text-xs text-slate-500">
-                        {promo.type === 'PERCENT' ? `${promo.value}%` : `${promo.value} THB`}
+                        {promo.type === 'PERCENT'
+                          ? `${promo.value}%`
+                          : formatPrice(promo.value, 'THB', { THB: 1 }, language)}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">

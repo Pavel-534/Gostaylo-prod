@@ -42,6 +42,7 @@ import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
 import { OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
 import { WorkspaceEmptyState } from '@/components/empty-state'
+import { PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 
 function toIsoOrNull(value) {
   const d = new Date(value)
@@ -291,6 +292,7 @@ export default function PartnerBookings() {
       </div>
 
       <OrdersSummary role="partner" partnerStats={stats} />
+      <PartnerHostMidFxFootnote t={(key) => getUIText(key, language)} className="mb-4" />
       <OrderTypeFilter activeType={activeType} counters={typeCounters} onChange={setActiveType} />
 
       {/* Filter */}

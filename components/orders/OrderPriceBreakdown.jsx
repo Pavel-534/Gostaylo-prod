@@ -1,9 +1,10 @@
-﻿'use client'
+'use client'
 
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { buildGuestPriceBreakdownFromBooking } from '@/lib/booking/guest-price-breakdown'
 import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 function n(x) {
   const v = Number(x)
@@ -40,10 +41,18 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
   if (!b.hasDetail) return null
 
   const currency = 'THB'
+  const isPartner = role === 'partner'
+  const AmountCell = ({ value }) =>
+    isPartner ? (
+      <PartnerHostLedgerAmount thb={value} />
+    ) : (
+      <span className="font-medium tabular-nums shrink-0">{formatPrice(value, currency)}</span>
+    )
+
   const Row = ({ label, value, muted }) => (
     <div className={`flex justify-between gap-3 text-sm ${muted ? 'text-slate-500' : 'text-slate-700'}`}>
       <span>{label}</span>
-      <span className="font-medium tabular-nums shrink-0">{formatPrice(value, currency)}</span>
+      <AmountCell value={value} />
     </div>
   )
 
@@ -116,12 +125,16 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
             ? getUIText('orderPrice_totalGuestPaid', language)
             : getUIText('orderPrice_totalYouPay', language)}
         </span>
-        <span className="text-brand-hover tabular-nums">{formatPrice(b.totalThb, currency)}</span>
+        <span className="text-brand-hover tabular-nums">
+          {isPartner ? <PartnerHostLedgerAmount thb={b.totalThb} /> : formatPrice(b.totalThb, currency)}
+        </span>
       </div>
-      {role === 'partner' && partnerShare > 0 ? (
+      {isPartner && partnerShare > 0 ? (
         <div className="flex justify-between gap-3 text-xs text-slate-600 pt-1 border-t border-dashed border-slate-200">
           <span>{getUIText('orderPrice_partnerShare', language)}</span>
-          <span className="font-medium text-brand-hover tabular-nums">{formatPrice(partnerShare, currency)}</span>
+          <span className="font-medium text-brand-hover tabular-nums">
+            <PartnerHostLedgerAmount thb={partnerShare} />
+          </span>
         </div>
       ) : null}
     </div>

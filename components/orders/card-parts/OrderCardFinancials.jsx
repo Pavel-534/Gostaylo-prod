@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Button } from '@/components/ui/button'
 import { Receipt } from 'lucide-react'
@@ -7,6 +7,7 @@ import { getUIText } from '@/lib/translations'
 import { buildGuestPriceBreakdownFromBooking } from '@/lib/booking/guest-price-breakdown'
 import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 /** Partner order card footer — SSOT: snapshot → breakdown → booking columns. */
 function resolvePartnerOrderFooterAmounts(booking, partnerEarnings) {
@@ -104,14 +105,16 @@ export function OrderCardFinancialTotals({
       <div className="flex items-start justify-between gap-3 pt-3 border-t">
         <div>
           <p className="text-sm text-slate-600 mb-1">{getUIText('partnerOrderCard_guestPaid', language)}</p>
-          <p className="text-2xl font-bold text-slate-900">
-            {guestPaid != null ? formatPrice(guestPaid, 'THB') : '—'}
+          <p className="text-2xl font-bold text-slate-900 tabular-nums">
+            {guestPaid != null ? <PartnerHostLedgerAmount thb={guestPaid} /> : '—'}
           </p>
         </div>
         {netEarnings != null ? (
           <div className="text-right">
             <p className="text-sm text-slate-500 mb-1">{getUIText('netEarnings', language)}</p>
-            <p className="text-lg font-semibold text-brand-hover">{formatPrice(netEarnings, 'THB')}</p>
+            <p className="text-lg font-semibold text-brand-hover tabular-nums">
+              <PartnerHostLedgerAmount thb={netEarnings} />
+            </p>
           </div>
         ) : null}
       </div>

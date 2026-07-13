@@ -722,3 +722,69 @@ Page content (rails, grid, map)
 
 - Full TH/ZH translation of canned **`QUICK_REPLIES`** body text (TH/ZH fall back to EN for preset snippets).
 - `messages/page.js` archive toasts (follow-up sweep).
+
+---
+
+## ADR-181: Listing Asset Currency SSOT — multi-market pricing (Stage 181.0)
+
+**Status:** Accepted (2026-07-13) — **Wave 0** ✅ · **Wave 1** ✅ (Stage 181.1) · **Wave 2** ✅ (Stage 181.2) · **Wave 3** ✅ (Stage 181.3) · **Wave 4** ✅ (Stage 181.4 + 181.4.3 UI) · **Wave 5** ✅ (migration `stage181_5_*`).  
+**Full spec:** **`docs/ADR/181-listing-asset-currency-ssot.md`**  
+**Related:** Stage 110.4 (retail/mid FX), Stage 180.1–180.6 (partner display FX), `guest-display-price.js`, `pricing-fx-helpers.getCheckoutRateToThb`.
+
+### Context
+
+Stage **180.6** исправил **отображение** (wizard inputs в `base_currency`, storefront retail preview, partner ledger mid FX). Остаётся **семантический разрыв**: при `base_currency=RUB` партнёр вводит `2000`, API пишет `2000` в `base_price_thb` **без конвертации в THB**, тогда как `PricingService` трактует `base_price_thb` как субтотал в THB-контуре. Для запуска в **РФ** это блокер; для **Таиланда** (THB) — не проявляется.
+
+Партнёры также путают **guest service fee** (дефолт **5%**, платит гость) и **host commission** (часто **15%**, удерживается с партнёра).
+
+### Decision (normative)
+
+**Три слоя цены — не смешивать:**
+
+| Слой | Назначение | FX |
+|------|------------|-----|
+| **L1 Asset** | Ввод партнёра в `base_currency` | Нет |
+| **L2 Storefront** | Цена для гостя (каталог, checkout preview) | **Retail** (`retail: true`) |
+| **L3 Ledger** | Escrow, snapshot, отчётность | **Mid** (`retail: false`) |
+
+**Канон хранения:**
+
+1. **`listings.base_price_thb`** — всегда **THB-эквивалент** субтотала (mid на момент save).
+2. **`listings.metadata.base_price_asset`** — `{ amount, currency, rate_thb_per_unit_mid, converted_at }` для round-trip UI.
+3. **`base_currency`** — валюта **актива** (локация); default из `country_code` (Wave 2); lock после первой брони (Wave 4).
+4. Партнёр **никогда** не вводит цену в валюте шапки — только asset currency.
+
+**Инварианты (сохраняются):** `getCheckoutRateToThb` (нет retail markup при `payment === listing_base`); payout preview только server-side; Stage 180 display hooks.
+
+### Implementation waves
+
+| Wave | Scope | Priority |
+|------|-------|----------|
+| **0** | ADR + docs | ✅ This document |
+| **1** | Server convert on save + `listing-base-price-canon.js` | **P0** (RU blocker) | ✅ Stage 181.1 |
+| **2** | Auto `base_currency` from listing country | **P0** UX | ✅ Stage 181.2 |
+| **3** | Wizard three-line explainer (asset / guest / net) | P1 | ✅ Stage 181.3 |
+| **4** | Lock `base_currency` after first booking | P1 | ✅ Stage 181.4 |
+| **5** | Backfill existing listings + seasonal asset canon | P2 | ✅ migration `stage181_5_ru_listing_base_price_asset_backfill.sql` |
+
+**Feature flags:** `LISTING_ASSET_PRICE_CANON`, `LISTING_BASE_CURRENCY_AUTO`, `LISTING_BASE_CURRENCY_LOCK`.
+
+### Non-goals
+
+- Смена ledger currency с THB.
+- CNY как `listings.base_currency`.
+
+---
+
+## ADR-182: Fee Policy Unification — guest vs host commission SSOT (Stage 182.0)
+
+**Status:** Accepted (2026-07-13) — implemented in code + migration `stage182_0_fee_policy_host_commission_sync.sql`.  
+**Full spec:** **`docs/ADR/182-fee-policy-unification.md`**  
+**Related:** Split Fee v3.5, `getFeePolicy` / `getCommissionRate`, PricingEngine v2 profiles.
+
+### Decision (summary)
+
+- **`resolveHostCommissionPercentFromGeneral()`** — SSOT host %; явный **0** не перекрывается legacy `defaultCommissionRate` (Stage 183).
+- Админка синхронизирует **`defaultCommissionRate`** ↔ **`hostCommissionPercent`** при save (зеркало).
+- **`commission_thb`** на брони = guest service fee (rename — backlog P1).
+- Launch: **15% guest / 0% host** — `system_settings` + `pricing_profiles`; миграция `stage183_0_fee_policy_launch_ssot.sql`.

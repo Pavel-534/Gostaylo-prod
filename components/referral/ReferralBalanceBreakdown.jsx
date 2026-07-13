@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
   Banknote,
   Clock,
@@ -13,9 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/contexts/i18n-context'
-import { useCurrency } from '@/contexts/currency-context'
-import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
-import { formatDisplayPriceInCurrency } from '@/lib/pricing/fx-display-client'
+import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
 import { getUIText } from '@/lib/translations'
 
 function formatUnlockDate(iso, locale) {
@@ -31,7 +29,7 @@ function BalanceHintPopover({ tooltip, ariaLabel }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="text-slate-400 hover:text-slate-600 shrink-0"
+          className="text-slate-400 hover:text-slate-600 shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center md:min-h-0 md:min-w-0"
           aria-label={ariaLabel}
         >
           <Info className="h-3.5 w-3.5" />
@@ -44,9 +42,33 @@ function BalanceHintPopover({ tooltip, ariaLabel }) {
   )
 }
 
+function FxApproxAmount({ thbAmount, formatAmount, showApprox, className }) {
+  const formatted = formatAmount(thbAmount)
+  if (!showApprox) {
+    return <span className={className}>{formatted}</span>
+  }
+  return (
+    <span className={className}>
+      <span className="opacity-75 font-semibold" aria-hidden>
+        ≈{' '}
+      </span>
+      {formatted}
+    </span>
+  )
+}
+
+function MidFxFootnote({ t }) {
+  return (
+    <p className="text-[10px] text-slate-500 flex items-center gap-1 leading-snug pt-0.5">
+      <span>{t('stage1797_midFxHint')}</span>
+      <BalanceHintPopover tooltip={t('stage1797_midFxTooltip')} ariaLabel={t('stage1797_midFxAria')} />
+    </p>
+  )
+}
+
 /**
- * Stage 132.0 / 179.5 — SSOT разбор баланса амбассадора.
- * Ledger в THB на сервере; UI — только валюта из `useCurrency` + retail FX (как витрина).
+ * Stage 132.0 / 179.7 — SSOT разбор баланса амбассадора.
+ * Ledger в THB на сервере; UI — `useCurrency` + mid FX (`useAmbassadorDisplayFx`, retail=0).
  *
  * @param {{
  *   walletData?: object | null,
@@ -64,14 +86,8 @@ export function ReferralBalanceBreakdown({
   className = '',
 }) {
   const { language } = useI18n()
-  const { currency } = useCurrency()
-  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const { isConvertedDisplay, formatThbAsDisplay: formatAmount } = useAmbassadorDisplayFx()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-
-  const formatAmount = useCallback(
-    (thbAmount) => formatDisplayPriceInCurrency(thbAmount, currency, exchangeRates, language),
-    [currency, exchangeRates, language],
-  )
 
   const amounts = useMemo(() => {
     const balances = walletData?.balances || {}
@@ -174,7 +190,13 @@ export function ReferralBalanceBreakdown({
               <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
               {t('stage1321_balanceHeldShort')}
             </span>
-            <span className="tabular-nums font-medium">{formatAmount(amounts.heldReferralBalanceThb)}</span>
+            <span className="tabular-nums font-medium">
+              <FxApproxAmount
+                thbAmount={amounts.heldReferralBalanceThb}
+                formatAmount={formatAmount}
+                showApprox={isConvertedDisplay}
+              />
+            </span>
           </div>
         ) : null}
         {amounts.securityHeldReferralBalanceThb > 0 ? (
@@ -184,7 +206,11 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceSecurityShort')}
             </span>
             <span className="tabular-nums font-medium">
-              {formatAmount(amounts.securityHeldReferralBalanceThb)}
+              <FxApproxAmount
+                thbAmount={amounts.securityHeldReferralBalanceThb}
+                formatAmount={formatAmount}
+                showApprox={isConvertedDisplay}
+              />
             </span>
           </div>
         ) : null}
@@ -211,7 +237,10 @@ export function ReferralBalanceBreakdown({
   if (variant === 'compact') {
     return (
       <div className={cn('rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3', className)}>
-        <p className="text-sm font-semibold text-slate-900">{t('stage1321_balanceBreakdownTitle')}</p>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-slate-900">{t('stage1321_balanceBreakdownTitle')}</p>
+          {isConvertedDisplay ? <MidFxFootnote t={t} /> : null}
+        </div>
         <div className="space-y-2">
           {rows.map((row) => {
             const Icon = row.icon
@@ -235,7 +264,11 @@ export function ReferralBalanceBreakdown({
                   <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
                 </div>
                 <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
-                  {formatAmount(row.amountThb)}
+                  <FxApproxAmount
+                    thbAmount={row.amountThb}
+                    formatAmount={formatAmount}
+                    showApprox={isConvertedDisplay}
+                  />
                 </p>
               </div>
             )
@@ -269,7 +302,11 @@ export function ReferralBalanceBreakdown({
                 <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
               </div>
               <p className={cn('mt-2 text-2xl sm:text-3xl font-black tabular-nums tracking-tight', textTone[row.tone])}>
-                {formatAmount(row.amountThb)}
+                <FxApproxAmount
+                  thbAmount={row.amountThb}
+                  formatAmount={formatAmount}
+                  showApprox={isConvertedDisplay}
+                />
               </p>
               {row.sublabel ? (
                 <p className="mt-1.5 text-[11px] text-slate-600 leading-snug flex items-center gap-1">

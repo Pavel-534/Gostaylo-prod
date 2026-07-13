@@ -1,24 +1,21 @@
 'use client'
 
-import { formatPrice } from '@/lib/currency'
-import { formatServerPayoutAmount } from '@/components/partner/finances/partner-payout-preview-display'
+import { PartnerHostPayoutAmount } from '@/components/partner/finances/partner-host-amount-display'
+import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
 
 /**
  * Server preview payout amount in partner rail currency (no client FX).
  */
-export function PartnerPayoutPreviewSubline({ preview, language = 'ru', className = 'text-xs text-indigo-700' }) {
+export function PartnerPayoutPreviewSubline({ preview, className = 'text-xs text-indigo-700' }) {
+  const { getPayoutDisplay } = usePartnerHostDisplayFx()
+
   if (!preview?.amountInPayoutCurrency || !preview?.payoutCurrency) return null
-  const cur = String(preview.payoutCurrency).toUpperCase()
-  if (cur === 'THB') {
-    return (
-      <p className={className}>
-        ≈ {formatPrice(preview.amountInPayoutCurrency, 'THB', { THB: 1 }, language)}
-      </p>
-    )
-  }
+  const { usesServerPayout } = getPayoutDisplay(preview)
+  if (!usesServerPayout) return null
+
   return (
-    <p className={className}>
-      ≈ {formatServerPayoutAmount(preview.amountInPayoutCurrency, cur, language)}
-    </p>
+    <div className={className}>
+      <PartnerHostPayoutAmount preview={preview} className="items-start" />
+    </div>
   )
 }

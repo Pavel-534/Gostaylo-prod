@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import {
   Dialog,
@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 function moneyRow(label, valueThb, { muted = false, strong = false } = {}) {
   return (
@@ -18,7 +18,9 @@ function moneyRow(label, valueThb, { muted = false, strong = false } = {}) {
       }`}
     >
       <span className="pr-2">{label}</span>
-      <span className="tabular-nums shrink-0">{formatPrice(Number(valueThb) || 0, 'THB')}</span>
+      <span className="tabular-nums shrink-0">
+        <PartnerHostLedgerAmount thb={Number(valueThb) || 0} />
+      </span>
     </div>
   )
 }

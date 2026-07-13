@@ -1,5 +1,8 @@
-﻿import { Card, CardContent } from '@/components/ui/card'
+'use client'
+
+import { Card, CardContent } from '@/components/ui/card'
 import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 function renderRenterSummary(visibleCount, currencyTotals) {
   return (
@@ -57,7 +60,9 @@ function renderPartnerSummary(stats) {
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
           <p className="text-xs text-slate-500">Ваш доход</p>
-          <p className="text-2xl font-bold text-brand">{formatPrice(Number(stats.revenue || 0), 'THB')}</p>
+          <p className="text-2xl font-bold text-brand tabular-nums">
+            <PartnerHostLedgerAmount thb={Number(stats.revenue || 0)} />
+          </p>
         </CardContent>
       </Card>
     </div>

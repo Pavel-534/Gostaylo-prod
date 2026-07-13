@@ -13,11 +13,17 @@ import { getUserIdFromSession } from '@/lib/services/session-service';
 import { createListingSchema } from '@/lib/validations/listing';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { resolveHostCommissionPercentFromGeneral } from '@/lib/services/pricing/pricing-fee-policy.js';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { applyListingGeoSnapshotToInsertRow } from '@/lib/partner/apply-listing-geo-snapshot';
 import { scheduleLocationSuggestionCapture } from '@/lib/services/location-suggestion-capture.service';
 import { applyListingMaxCapacitySyncToRow } from '@/lib/listing-guest-capacity.js';
 import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
+import {
+  buildListingPriceWriteFields,
+  mapListingPriceFieldsForApi,
+} from '@/lib/listing/listing-base-price-canon.js';
+import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
 
 export async function GET(request) {
   try {
@@ -70,8 +76,7 @@ export async function GET(request) {
       description: l.description ?? '',
       status: l.status,
       district: l.district,
-      basePriceThb: parseFloat(l.base_price_thb) || 0,
-      baseCurrency: l.base_currency || 'THB',
+      ...mapListingPriceFieldsForApi(l),
       commissionRate: (() => {
         const n = parseFloat(l.commission_rate);
         return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission;
@@ -167,21 +172,18 @@ export async function POST(request) {
     const generalSettings = (await readSystemSettingValue('general')) || {}
 
     const partnerComm = parseFloat(partner.custom_commission_rate);
-    const settingsComm = parseFloat(generalSettings?.defaultCommissionRate);
+    const settingsHostComm = resolveHostCommissionPercentFromGeneral(generalSettings);
     const commissionRate =
       Number.isFinite(partnerComm) && partnerComm >= 0
         ? partnerComm
-        : Number.isFinite(settingsComm) && settingsComm >= 0
-          ? settingsComm
-          : await resolveDefaultCommissionPercent();
+        : settingsHostComm;
     const instantBookingValue =
       instantBooking === true || instant_booking === true
         ? true
         : instantBooking === false || instant_booking === false
           ? false
           : partner.instant_booking === true;
-    
-    // Create listing
+
     const { insertRow, locationCapture } = applyListingGeoSnapshotToInsertRow(
       {
         owner_id: partnerId,
@@ -192,8 +194,8 @@ export async function POST(request) {
         district: district || '',
         latitude: latitude ?? null,
         longitude: longitude ?? null,
-        base_price_thb: basePriceThb,
-        base_currency: isListingBaseCurrency(baseCurrency) ? normalizeCurrencyCode(baseCurrency) : 'THB',
+        base_price_thb: 0,
+        base_currency: 'THB',
         commission_rate: commissionRate,
         images: images || [],
         cover_image: images?.[0] || null,
@@ -202,7 +204,29 @@ export async function POST(request) {
         available: false,
       },
       { country, region, city, district, latitude, longitude, metadata },
-    )
+    );
+
+    applyListingBaseCurrencyInvariant(insertRow, { requestedCurrency: baseCurrency });
+
+    let priceWriteFields;
+    try {
+      priceWriteFields = await buildListingPriceWriteFields({
+        assetAmount: basePriceThb,
+        currency: insertRow.base_currency,
+        existingMetadata: insertRow.metadata || metadata || {},
+      });
+    } catch (priceErr) {
+      if (priceErr?.code === 'LISTING_BASE_PRICE_FX_UNAVAILABLE') {
+        return NextResponse.json(
+          { success: false, error: priceErr.message, code: priceErr.code },
+          { status: 503 },
+        );
+      }
+      throw priceErr;
+    }
+
+    insertRow.base_price_thb = priceWriteFields.base_price_thb;
+    insertRow.metadata = priceWriteFields.metadata;
 
     const categorySlug = (await resolveListingCategorySlug(categoryId)) || '';
     applyListingMaxCapacitySyncToRow(insertRow, {
@@ -248,8 +272,7 @@ export async function POST(request) {
         id: listing.id,
         title: listing.title,
         status: listing.status,
-        basePriceThb: parseFloat(listing.base_price_thb),
-        baseCurrency: listing.base_currency || 'THB',
+        ...mapListingPriceFieldsForApi(listing),
         commissionRate: parseFloat(listing.commission_rate),
         instantBooking: listing.instant_booking === true,
       }

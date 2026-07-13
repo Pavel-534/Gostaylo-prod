@@ -187,11 +187,13 @@ async function seedData() {
       { 
         key: 'general', 
         value: {
-          defaultCommissionRate: 15,
+          defaultCommissionRate: 0,
+          guestServiceFeePercent: 15,
+          hostCommissionPercent: 0,
           maintenanceMode: false,
           heroTitle: 'Rentals in Phuket',
           heroSubtitle: 'Villas, Bikes, Yachts & Tours',
-          serviceFeePercent: 5
+          serviceFeePercent: 15,
         }
       }
     ];

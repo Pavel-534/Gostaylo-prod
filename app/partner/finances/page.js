@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 /**
  * GoStayLo Partner Finances — composition shell (Stage 54.0).
@@ -9,7 +9,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, AlertTriangle, FileText } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
 import { PartnerFinancesHeader } from '@/components/partner/finances/PartnerFinancesHeader'
@@ -188,7 +188,7 @@ function PartnerFinancesV2Content() {
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900">
           {t('partnerFinances_reconciliationWarn')}
           <span className="ml-2 font-mono text-xs">
-            Δ {formatPrice(financesSummary.reconciliation.differenceThb ?? 0, 'THB')}
+            Δ <PartnerHostLedgerAmount thb={financesSummary.reconciliation.differenceThb ?? 0} />
           </span>
         </div>
       ) : financesSummary?.reconciliation?.withinTolerance ? (
@@ -206,22 +206,23 @@ function PartnerFinancesV2Content() {
         <PartnerFinancesStatCard
           icon={Calendar}
           title={t('partnerFinances_bucketPendingTitle')}
-          value={formatPrice(financesSummary?.pendingThb ?? 0, 'THB')}
+          value={<PartnerHostLedgerAmount thb={financesSummary?.pendingThb ?? 0} />}
           subtitle={t('partnerFinances_bucketPendingDesc')}
           loading={summaryLoadingCombined}
         />
         <PartnerFinancesStatCard
           icon={AlertTriangle}
           title={t('partnerFinances_bucketDisputeTitle')}
-          value={formatPrice(financesSummary?.disputeHoldThb ?? 0, 'THB')}
+          value={<PartnerHostLedgerAmount thb={financesSummary?.disputeHoldThb ?? 0} />}
           subtitle={t('partnerFinances_bucketDisputeDesc')}
           loading={summaryLoadingCombined}
         />
       </div>
 
+      <PartnerHostMidFxFootnote t={t} />
+
       <PartnerFinancesPortfolioCards
         t={t}
-        language={language}
         financesSummary={financesSummary}
         loading={summaryLoadingCombined || payoutPreviewBatchLoading}
         previewByAmountKey={payoutPreviewByAmountKey}
@@ -229,7 +230,6 @@ function PartnerFinancesV2Content() {
 
       <PartnerFinancesPayoutHistory
         t={t}
-        language={language}
         payouts={payouts}
         payoutsLoading={payoutsLoading}
         payoutsError={payoutsError}

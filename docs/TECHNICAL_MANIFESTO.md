@@ -8,7 +8,35 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
-**Stage 179.6 (2026-07-13):** referral settings — removed **`referral_display_currency`** UI (`ReferralProfileTabSettings`); monthly goal card uses **`{currentAmount}`/`{goalAmount}`** + storefront FX (`ReferralMonthlyGoalCard`); i18n ZH/TH/RU/EN без `฿` в goal strings.
+**Stage 181.0 (2026-07-13, ADR-181 Accepted):** listing asset currency SSOT — три слоя (L1 asset / L2 storefront retail / L3 ledger THB); `base_price_thb` = THB-канон при save; `metadata.base_price_asset` для round-trip; auto `base_currency` по стране; lock после первой брони. **Wave 0** — ADR + план; **Wave 1** — server convert (P0 RU) ✅ **`lib/listing/listing-base-price-canon.js`**, partner listings POST/PATCH. См. **`docs/ADR/181-listing-asset-currency-ssot.md`**.
+
+**Stage 181.2 (2026-07-13):** auto `base_currency` по гео — `lib/listing/listing-asset-currency.js`, `apply-listing-base-currency-invariant.js`; RU hard invariant → `RUB` на POST/PATCH partner listings (`LISTING_BASE_CURRENCY_AUTO`, default on); порядок write: geo → currency → price canon.
+
+**Stage 181.5 (2026-07-13):** backfill RU `metadata.base_price_asset` — `migrations/stage181_5_ru_listing_base_price_asset_backfill.sql` (THB canon → derived RUB amount via `exchange_rates.RUB`; `base_price_thb` не меняется).
+
+**Stage 181.4 (2026-07-13):** financial lock при активных бронях — `lib/listing/listing-financial-lock.js`, `LISTING_FINANCIAL_LOCK_BLOCKING_STATUSES` в `status-sets.js`; partner PATCH listings → `400` + `LISTING_ASSET_LOCKED_ACTIVE_BOOKINGS` при смене `base_currency` / базовой цены / geo→currency (`LISTING_BASE_CURRENCY_LOCK`, default on).
+
+**Stage 181.3 (2026-07-13):** Wizard Wave 3 — `WizardPartnerEarningsCalculator` (3-line partner payout preview); Wave 4.3 — `financialLock` on `GET /api/v2/partner/listings/[id]`, currency `Select` disabled + `wizardBaseCurrencyLockedActiveBookings` tooltip in `StepPricing`.
+
+**Stage 183.0 (2026-07-13):** fee policy launch SSOT — явный `hostCommissionPercent: 0` не перекрывается legacy `defaultCommissionRate`; platform defaults **15% guest / 0% host** (`platform-split-fee-defaults.js`); `getCommissionRate` / `/api/v2/commission` → `pricing-fee-policy` resolvers; миграция `migrations/stage183_0_fee_policy_launch_ssot.sql` (prod: guest 15, host 0). Stage 182 sync deprecated.
+
+**Stage 182.0 (2026-07-13, ADR-182):** унификация fee policy — `resolveHostCommissionPercentFromGeneral` в `getFeePolicy`; синхронизация `defaultCommissionRate` ↔ `hostCommissionPercent` в admin handlers. См. **`docs/ADR/182-fee-policy-unification.md`**.
+
+**Stage 180.6 (2026-07-13):** partner listings wizard & settings — `PartnerListingBasePriceDisplay` (base currency + header ≈ mid); wizard storefront preview **`useStorefrontDisplayFx`** (retail +5%); `StepPricing` inputs in listing `base_currency`; `ListingCard` preview retail rates.
+
+**Stage 180.5 (2026-07-13):** partner calendar display — `CalendarListingPriceDisplay` (listing base currency primary, header ≈ mid); `ActionModals` mid `rateMap`; price inputs unchanged.
+
+**Stage 180.4 (2026-07-13):** partner bookings list — `OrderCardFinancials` / `OrderPriceBreakdown` partner role → `PartnerHostLedgerAmount`.
+
+**Stage 180.3 (2026-07-13):** partner dashboard + wallet chrome — mid FX via `PartnerHostLedgerAmount` (`PartnerDashboardPageContent`, wallet header).
+
+**Stage 180.2 (2026-07-13):** partner finances tab — **`usePartnerHostDisplayFx`** + **`PartnerHostLedgerAmount`**; payout preview primary = server `amountInPayoutCurrency`; ledger buckets ≈ mid FX.
+
+**Stage 180.1 (2026-07-13):** **`useMidMarketDisplayFx`** (shared); **`usePartnerHostDisplayFx`**; `fetchExchangeRatesMid` (rename from misleading retail).
+
+**Stage 179.7 (2026-07-13):** ambassador hub FX — **`useAmbassadorDisplayFx`** (`retail: false` / mid-market) for balance, monthly goal, share pitch; `≈` + tooltip in **`ReferralBalanceBreakdown`**; storefront catalog/checkout unchanged `retail: true`.
+
+**Stage 179.6 (2026-07-13):** referral settings — removed **`referral_display_currency`** UI; monthly goal i18n tokens.
 
 **Stage 179.5 (2026-07-13):** ambassador balance UI — **`ReferralBalanceBreakdown`** uses storefront **`useCurrency`** + retail **`useFxRatesQuery`** + **`formatDisplayPriceInCurrency`** (ledger THB hidden when another currency selected); ZH/TH short share labels; Playwright mobile link-tab layout smoke.
 
@@ -997,8 +1025,10 @@ SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owne
 - **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
 - E2E: **`priceRawForTest(amountThb, currency, exchangeRates)`** — «голое» число для **`data-test-*`** (USD — **2** знака; прочие витринные валюты кроме JPY — целые после конвертации).
 - Витрина (главная, каталог, PDP, checkout preview): **`useFxRatesQuery({ retail: true })`** — обёртка над **`fetchExchangeRates`** + RQ-кэш; legacy paths — прямой **`fetchExchangeRates`** или **`hooks/use-currency.js`**; формат цены — **`lib/pricing/fx-display.js`**.
+- Реферальный хаб (баланс, цель месяца, share pitch): **`useAmbassadorDisplayFx`** → **`useMidMarketDisplayFx`** / **`useFxRatesQuery({ retail: false })`** (mid-market, parity с payout / ADR-134); не использовать retail на обязательствах.
+- Партнёрский финкабинет (баланс, эскроу, портфель, история): **`usePartnerHostDisplayFx`** → mid + server payout preview; витрина **`retail: true`** не применяется.
 - Выбор валюты UI (**`CurrencyProvider`**, `contexts/currency-context.jsx`) — отдельно от rate map; не дублирует серверный канон курсов.
-- Партнёрский финкабинет использует **`/api/v2/exchange-rates?retail=0`** (конвертация без наценки, только прямой курс из `exchange_rates`/FX API).
+- **`fetchExchangeRatesMid`** (`lib/api/partner-finances-client.js`) — mid map для legacy fetch; в UI предпочтительно **`useFxRatesQuery({ retail: false })`**.
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).
 

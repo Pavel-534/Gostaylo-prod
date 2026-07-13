@@ -2,6 +2,7 @@
 
 import { Banknote, Shield } from 'lucide-react'
 import { getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
+import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 
 /**
  * Stage 156.3 — financial trust seal on wizard preview step.
@@ -14,14 +15,14 @@ export function WizardFinancialRecap({
   hostCommissionPercent,
   categorySlug,
   wizardProfile,
-  numberLocale = 'ru-RU',
+  baseCurrency = 'THB',
 }) {
   const base = Number(basePriceThb) || 0
   const net = Number(hostNetThb) || 0
   const pct = Number(hostCommissionPercent)
+  const { formatInListingBase } = useStorefrontDisplayFx()
   if (!(base > 0) || !(net > 0)) return null
 
-  const num = (n) => (typeof n === 'number' ? n.toLocaleString(numberLocale) : n)
   const payoutPolicy = getHostMoneyPolicyForListing({ categorySlug, wizardProfile }, language)
   const commissionLabel =
     Number.isFinite(pct) && pct === 0
@@ -36,10 +37,10 @@ export function WizardFinancialRecap({
         </div>
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-semibold text-slate-900">{tr('wizardFinancialRecap_title', {})}</p>
-          <p className="text-sm leading-relaxed text-slate-700">
+          <p className="text-sm leading-relaxed text-slate-700 tabular-nums">
             {tr('wizardFinancialRecap_summary', {
-              base: num(base),
-              net: num(net),
+              base: formatInListingBase(base, baseCurrency),
+              net: formatInListingBase(net, baseCurrency),
             })}
           </p>
           <p className="text-sm font-medium text-brand">{commissionLabel}</p>

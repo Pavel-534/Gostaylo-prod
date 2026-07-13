@@ -1,15 +1,14 @@
 'use client'
 
-import { formatPrice } from '@/lib/currency'
-import {
-  formatServerPayoutAmount,
-  interpolateTemplate,
-} from '@/components/partner/finances/partner-payout-preview-display'
+import { interpolateTemplate } from '@/components/partner/finances/partner-payout-preview-display'
+import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
 
 /**
  * Per-booking payout line from server preview (partner-payout-fx via preview-batch).
  */
-export function PartnerBookingPayoutPreviewLine({ t, language, preview, loading }) {
+export function PartnerBookingPayoutPreviewLine({ t, preview, loading }) {
+  const { getPayoutDisplay, formatThbLedgerSecondary } = usePartnerHostDisplayFx()
+
   if (loading) {
     return <p className="text-xs text-slate-500">…</p>
   }
@@ -17,22 +16,35 @@ export function PartnerBookingPayoutPreviewLine({ t, language, preview, loading 
     return null
   }
 
-  const netThb = formatPrice(preview.baseAmountThb ?? 0, 'THB', { THB: 1 }, language)
-  const feeThb = formatPrice(preview.feeAmountThb ?? 0, 'THB', { THB: 1 }, language)
-  const finalThb = formatPrice(preview.finalAmountThb ?? 0, 'THB', { THB: 1 }, language)
-  const payoutCur = String(preview.payoutCurrency || 'THB').toUpperCase()
-  const payoutApprox =
-    payoutCur === 'THB'
-      ? finalThb
-      : formatServerPayoutAmount(preview.amountInPayoutCurrency, payoutCur, language)
+  const { primary, usesServerPayout } = getPayoutDisplay(preview)
+  const netThb = formatThbLedgerSecondary(preview.baseAmountThb ?? 0)
+  const feeThb = formatThbLedgerSecondary(preview.feeAmountThb ?? 0)
+  const finalThb = formatThbLedgerSecondary(preview.finalAmountThb ?? 0)
+
+  if (usesServerPayout) {
+    return (
+      <div className="text-xs text-indigo-700 space-y-0.5">
+        <p className="font-medium tabular-nums">
+          {interpolateTemplate(t('partnerFinances_payoutLinePrimary'), { payoutPrimary: primary })}
+        </p>
+        <p className="text-slate-500 tabular-nums">
+          {interpolateTemplate(t('partnerFinances_payoutLineThbAccounting'), {
+            netThb,
+            feeThb,
+            finalThb,
+          })}
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <p className="text-xs text-indigo-700">
+    <p className="text-xs text-indigo-700 tabular-nums">
       {interpolateTemplate(t('partnerFinances_payoutLineDetail'), {
         netThb,
         feeThb,
         finalThb,
-        payoutApprox,
+        payoutApprox: primary,
       })}
     </p>
   )

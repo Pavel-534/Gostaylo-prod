@@ -72,6 +72,9 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     listingCategoryWizardProfile: derived.listingCategoryWizardProfile,
     transportWizard: derived.transportWizard,
     toursWizard: derived.toursWizard,
+    baseCurrencyLocked:
+      state.serverListing?.financialLock?.baseCurrencyLocked === true ||
+      state.serverListing?.financialLock?.locked === true,
     hideAirbnbImportBlock: derived.hideAirbnbImportBlock,
     partnerAmenitySlugs: derived.partnerAmenitySlugs,
     amenitiesHintKey: derived.amenitiesHintKey,

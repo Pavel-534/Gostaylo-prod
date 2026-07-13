@@ -1,7 +1,7 @@
-﻿'use client'
+'use client'
 
 import { Shield, Clock, Wallet, Banknote } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 import { cn } from '@/lib/utils'
 
 const ACCENTS = {
@@ -54,6 +54,7 @@ export function PartnerFinancesBalanceStrip({ t, summary, loading, thawHoldHint,
   ]
 
   return (
+    <div className="space-y-2">
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
       {items.map(({ id, icon: Icon, title, hint, value, accent }) => (
         <div
@@ -66,10 +67,12 @@ export function PartnerFinancesBalanceStrip({ t, summary, loading, thawHoldHint,
           </div>
           <p className="text-xs text-slate-600 mt-1 leading-snug flex-1">{hint}</p>
           <p className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">
-            {loading ? '—' : formatPrice(value, 'THB')}
+            {loading ? '—' : <PartnerHostLedgerAmount thb={value} />}
           </p>
         </div>
       ))}
+    </div>
+    <PartnerHostMidFxFootnote t={t} />
     </div>
   )
 }

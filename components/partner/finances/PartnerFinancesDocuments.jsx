@@ -1,11 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { Download, FileText, Loader2, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { useToast } from '@/hooks/use-toast'
 import {
   fetchPartnerSettlementDocumentDownloadUrl,
@@ -116,7 +116,7 @@ export function PartnerFinancesDocuments({ t, language }) {
                   <div className="flex justify-between gap-2 min-w-0">
                     <span className="text-slate-500 shrink-0">{t('partnerFinances_docsColAmount')}</span>
                     <span className="font-semibold tabular-nums text-right break-all">
-                      {formatPrice(row.amountThb ?? 0, 'THB', { THB: 1 }, language)}
+                      <PartnerHostLedgerAmount thb={row.amountThb ?? 0} />
                     </span>
                   </div>
                   <div className="flex justify-between gap-2 min-w-0 text-xs">
@@ -162,8 +162,8 @@ export function PartnerFinancesDocuments({ t, language }) {
                       <td className="p-2">
                         <Badge variant="secondary">{sourceLabel(row.source)}</Badge>
                       </td>
-                      <td className="p-2 font-medium">
-                        {formatPrice(row.amountThb ?? 0, 'THB', language)}
+                      <td className="p-2 font-medium tabular-nums">
+                        <PartnerHostLedgerAmount thb={row.amountThb ?? 0} />
                       </td>
                       <td className="p-2 font-mono text-xs">{row.documentNo}</td>
                       <td className="p-2 text-right">

@@ -121,20 +121,17 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
           })
           const commissionData = await commissionRes.json()
           if (commissionData.success && commissionData.data) {
-            const rate = commissionData.data.effectiveRate ?? commissionData.data.systemRate
-            if (rate != null && Number.isFinite(Number(rate))) {
-              const n = Number(rate)
-              setPartnerCommissionRate(n)
-              setFormData((prev) => ({ ...prev, commissionRate: n }))
-            }
+            const hostRate = Number.isFinite(Number(commissionData.data.hostCommissionPercent))
+              ? Number(commissionData.data.hostCommissionPercent)
+              : PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral
+            setPartnerCommissionRate(hostRate)
+            setFormData((prev) => ({ ...prev, commissionRate: hostRate }))
             setPricingPolicy((prev) => ({
               ...prev,
               guestServiceFeePercent: Number.isFinite(Number(commissionData.data.guestServiceFeePercent))
                 ? Number(commissionData.data.guestServiceFeePercent)
                 : prev.guestServiceFeePercent,
-              hostCommissionPercent: Number.isFinite(Number(commissionData.data.hostCommissionPercent))
-                ? Number(commissionData.data.hostCommissionPercent)
-                : Number(rate),
+              hostCommissionPercent: hostRate,
               insuranceFundPercent: Number.isFinite(Number(commissionData.data.insuranceFundPercent))
                 ? Number(commissionData.data.insuranceFundPercent)
                 : prev.insuranceFundPercent,

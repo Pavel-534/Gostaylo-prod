@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CalendarGrid Component
  * Main calendar grid with sticky columns and booking cells
  */
@@ -13,6 +13,10 @@ import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getUIText } from '@/lib/translations'
+import {
+  CalendarListingPriceDisplay,
+  useCalendarListingPriceFormat,
+} from '@/components/calendar/calendar-listing-price-display'
 import {
   BLOCK_DISPLAY_KIND,
   buildBlockedCellTitle,
@@ -73,6 +77,9 @@ export function CalendarGrid({
 }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
+  const { formatListingPrice } = useCalendarListingPriceFormat()
+  const resolveListingBaseCurrency = (listing) =>
+    String(listing?.baseCurrency || listing?.base_currency || 'THB').toUpperCase()
 
   return (
     <TooltipProvider>
@@ -224,11 +231,21 @@ export function CalendarGrid({
                           ? 'text-slate-400'
                           : 'text-slate-500'
 
+                      const baseCur = resolveListingBaseCurrency(item.listing)
+                      const promoBase = formatListingPrice(
+                        marketingPromo.baseSeasonPrice || price,
+                        baseCur,
+                      )
+                      const promoDiscount = formatListingPrice(marketingPromo.discountAmount || 0, baseCur)
+                      const promoGuest = formatListingPrice(marketingPromo.guestPrice || price, baseCur)
+
                       content = (
                         <div className="flex flex-col items-center justify-center gap-0.5 px-0.5">
-                          <span className={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}>
-                            ฿{Math.round(price).toLocaleString('en-US')}
-                          </span>
+                          <CalendarListingPriceDisplay
+                            amountThb={price}
+                            baseCurrency={baseCur}
+                            priceClassName={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}
+                          />
                           {marketingPromo ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -247,9 +264,9 @@ export function CalendarGrid({
                                 <p className="font-semibold">{marketingPromo.code || 'PROMO'}</p>
                                 <p>
                                   {trTpl(t('partnerCal_tooltipPromoLine'), {
-                                    base: `฿${Math.round(marketingPromo.baseSeasonPrice || price).toLocaleString('en-US')}`,
-                                    discount: `฿${Math.round(marketingPromo.discountAmount || 0).toLocaleString('en-US')}`,
-                                    guest: `฿${Math.round(marketingPromo.guestPrice || price).toLocaleString('en-US')}`,
+                                    base: promoBase.primary,
+                                    discount: promoDiscount.primary,
+                                    guest: promoGuest.primary,
                                   })}
                                 </p>
                               </TooltipContent>

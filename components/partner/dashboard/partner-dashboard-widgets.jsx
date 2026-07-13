@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { format, parseISO } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { Bell, CalendarDays, Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
@@ -149,7 +149,9 @@ export function IncomeChartTooltip({ active, payload }) {
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
       <p className="font-medium text-slate-700">{row.label}</p>
-      <p className="text-brand-hover tabular-nums">{formatPrice(row.amountThb, 'THB')}</p>
+      <p className="text-brand-hover tabular-nums">
+        <PartnerHostLedgerAmount thb={row.amountThb} />
+      </p>
     </div>
   )
 }
@@ -176,7 +178,7 @@ export function PendingBookingCard({ booking, onApprove, onDecline, isLoading, l
           title={getUIText('partnerDashboard_amountNetTooltip', language)}
         >
           {booking.checkIn && format(parseISO(booking.checkIn), 'd MMM', { locale: dateLocale })} •{' '}
-          {formatPrice(amountThb, 'THB')}
+          <PartnerHostLedgerAmount thb={amountThb} />
         </p>
       </div>
       <div className="flex gap-1.5 ml-2">

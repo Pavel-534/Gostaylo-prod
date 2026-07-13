@@ -6,7 +6,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, ChevronRight } from 'lucide-react'
+import { Bell, ChevronRight, Banknote } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -94,7 +94,13 @@ export function PartnerNotificationFeed({ language = 'ru', className }) {
                   )}
                   aria-hidden
                 >
-                  {item.kind === 'payment_received' ? '฿' : item.kind === 'new_booking' ? '!' : '•'}
+                  {item.kind === 'payment_received' ? (
+                    <Banknote className="h-3.5 w-3.5" aria-hidden />
+                  ) : item.kind === 'new_booking' ? (
+                    '!'
+                  ) : (
+                    '•'
+                  )}
                 </span>
                 <span className='min-w-0 flex-1'>
                   <span className='block text-sm font-medium text-slate-900 line-clamp-1'>

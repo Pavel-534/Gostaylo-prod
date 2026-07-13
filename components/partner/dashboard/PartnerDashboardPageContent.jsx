@@ -16,7 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage, getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
@@ -225,14 +225,21 @@ export default function PartnerDashboardPageContent() {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {formatPrice(stats?.revenue?.confirmed || 0, 'THB')}
+                <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                  <PartnerHostLedgerAmount thb={stats?.revenue?.confirmed || 0} />
                 </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {getUIText('partnerDashboard_revenuePending', language).replace(
-                    '{amount}',
-                    formatPrice(stats?.revenue?.pending || 0, 'THB'),
-                  )}
+                <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                  {(() => {
+                    const tpl = getUIText('partnerDashboard_revenuePending', language)
+                    const [before = '', after = ''] = tpl.split('{amount}')
+                    return (
+                      <>
+                        {before}
+                        <PartnerHostLedgerAmount thb={stats?.revenue?.pending || 0} />
+                        {after}
+                      </>
+                    )
+                  })()}
                 </p>
               </div>
               <RevenueSparkline data={stats?.revenue?.trend} color={brandMintHex} height={40} />
@@ -356,7 +363,7 @@ export default function PartnerDashboardPageContent() {
                   <Banknote className="h-5 w-5 text-brand" />
                 </div>
                 <p className="text-3xl font-bold text-slate-900 tabular-nums">
-                  {formatPrice(stats?.financialV2?.moneyInTransitThb ?? 0, 'THB')}
+                  <PartnerHostLedgerAmount thb={stats?.financialV2?.moneyInTransitThb ?? 0} />
                 </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
@@ -479,7 +486,7 @@ export default function PartnerDashboardPageContent() {
                         className="text-sm font-medium text-brand"
                         title={getUIText('partnerDashboard_amountNetTooltip', language)}
                       >
-                        {formatPrice(arrivalNetThb, 'THB')}
+                        <PartnerHostLedgerAmount thb={arrivalNetThb} />
                       </p>
                     </div>
                   </div>

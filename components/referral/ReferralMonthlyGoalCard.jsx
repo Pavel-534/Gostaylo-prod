@@ -4,13 +4,10 @@ import { useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Target, Zap } from 'lucide-react'
-import { useI18n } from '@/contexts/i18n-context'
-import { useCurrency } from '@/contexts/currency-context'
-import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
-import { formatDisplayPriceInCurrency } from '@/lib/pricing/fx-display-client'
+import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
 
 /**
- * Stage 179.6 — monthly goal display follows header `useCurrency` + retail FX.
+ * Stage 179.7 — monthly goal: header currency + mid FX (payout parity).
  *
  * @param {{
  *   monthlyEarnedThb?: number,
@@ -28,9 +25,7 @@ export function ReferralMonthlyGoalCard({
   turboEnabled = false,
   t,
 }) {
-  const { language } = useI18n()
-  const { currency } = useCurrency()
-  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const { isConvertedDisplay, formatThbAsDisplay } = useAmbassadorDisplayFx()
 
   const goal = Math.max(1, Number(monthlyGoalThb) || 10000)
   const current = Number(monthlyEarnedThb) || 0
@@ -38,12 +33,12 @@ export function ReferralMonthlyGoalCard({
   const goalMet = pct >= 100
 
   const { currentAmount, goalAmount } = useMemo(() => {
-    const rates = exchangeRates
+    const prefix = isConvertedDisplay ? '≈ ' : ''
     return {
-      currentAmount: formatDisplayPriceInCurrency(current, currency, rates, language),
-      goalAmount: formatDisplayPriceInCurrency(goal, currency, rates, language),
+      currentAmount: prefix + formatThbAsDisplay(current),
+      goalAmount: prefix + formatThbAsDisplay(goal),
     }
-  }, [current, goal, currency, exchangeRates, language])
+  }, [current, goal, isConvertedDisplay, formatThbAsDisplay])
 
   return (
     <Card className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-white shadow-sm">
@@ -61,6 +56,9 @@ export function ReferralMonthlyGoalCard({
         <p className="text-xs text-slate-600">
           {t('stage73_monthlyGoalPercentLine', { goalAmount, percent: String(Math.round(pct)) })}
         </p>
+        {isConvertedDisplay ? (
+          <p className="text-[10px] text-slate-500 leading-snug">{t('stage1797_midFxHint')}</p>
+        ) : null}
         {goalMet ? (
           <div className="flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2 text-sm text-violet-950">
             <Zap className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" />

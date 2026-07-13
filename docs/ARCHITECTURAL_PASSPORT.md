@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.179.6.0 | **Last Updated**: 2026-07-13 | **Stage 179.6:** referral settings currency UI removed; monthly goal FX. **Stage 179.5:** balance FX = header currency SSOT.
+> **Version**: 12.181.4.3.0 | **Last Updated**: 2026-07-13 | **Stage 181.3:** wizard 3-line earnings calculator. **Stage 181.4.3:** currency lock UI. **Stage 183.0:** fee policy launch SSOT (15% guest / 0% host).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -225,6 +225,17 @@
 | **Клиентский кеш** | `localStorage` v3 (`exchange_rates_retail` / `exchange_rates_mid`, TTL 2h) + TanStack Query **`useFxRatesQuery`** | **`lib/client-data.fetchExchangeRates({ retail })`**, **`lib/hooks/use-fx-rates-query.js`** |
 
 **Не менять:** `pricing_snapshot`, breakdown checkout, `getCheckoutRateToThb` — mid + отдельная логика invoice multiplier.
+
+### Listing asset currency (Stage 181.0 — ADR-181)
+
+| Слой | SSOT | FX |
+|------|------|-----|
+| **L1 Asset (partner input)** | `base_currency` + `metadata.base_price_asset.amount` | Нет |
+| **L1 → engine** | `base_price_thb` = THB-эквивалент (mid на save) | Mid при конвертации |
+| **L2 Storefront (guest)** | `guest-display-price.js` + retail map | Retail |
+| **L3 Ledger** | `bookings.*_thb`, `pricing_snapshot` | Mid only |
+
+Полный план волн: **`docs/ADR/181-listing-asset-currency-ssot.md`**. Wave 1 ✅ — **`lib/listing/listing-base-price-canon.js`**, partner listings POST/PATCH (`LISTING_ASSET_PRICE_CANON`, default on). Wave 2 ✅ — **`lib/listing/listing-asset-currency.js`**, **`apply-listing-base-currency-invariant.js`** (`LISTING_BASE_CURRENCY_AUTO`, default on; write order: geo → currency → price). Wave 4 ✅ — **`lib/listing/listing-financial-lock.js`** (`LISTING_BASE_CURRENCY_LOCK`, default on; `400` + `LISTING_ASSET_LOCKED_ACTIVE_BOOKINGS`). Wave 5 ✅ — **`migrations/stage181_5_ru_listing_base_price_asset_backfill.sql`** (RU `metadata.base_price_asset` backfill).
 
 ### SSOT Chat (Stage 110.4-chat / 110.5–110.7)
 
@@ -1384,8 +1395,8 @@ Protection (Stage 154.3): lib/webhooks/telegram-webhook-auth.js
 | `description` | TEXT | YES | Full description |
 | `district` | TEXT | YES | Location district |
 | `address` | TEXT | YES | Full address |
-| `base_price_thb` | NUMERIC | NO | Base price per night in THB |
-| `base_currency` | TEXT/ENUM | YES | Canonical listing currency for FX markup logic (`THB`,`RUB`,`USD`,`USDT`) |
+| `base_price_thb` | NUMERIC | NO | **THB-канон** субтотала за ночь для `PricingService` (ADR-181: mid-конвертация из asset amount при save) |
+| `base_currency` | TEXT/ENUM | YES | Валюта актива / ввода партнёра (`THB`,`RUB`,`USD`,`USDT`); default по стране листинга (Wave 2 ✅ — server invariant `apply-listing-base-currency-invariant.js`) |
 | `images` | JSONB | YES | Array of image URLs |
 | `cover_image` | TEXT | YES | Primary image URL |
 | `metadata` | JSONB | YES | **Extensible data store** |
@@ -1710,7 +1721,7 @@ for each night in booking:
 
 ### 3.4 Revenue split (User total → Platform → Partner)
 
-Canonical rates come from `system_settings.general` (`guestServiceFeePercent`, `hostCommissionPercent`, `insuranceFundPercent`) with partner override via `profiles.custom_commission_rate` for host commission.
+Canonical rates come from `system_settings.general` (`guestServiceFeePercent`, `hostCommissionPercent` synced with legacy `defaultCommissionRate` per **ADR-182**, `insuranceFundPercent`) with partner override via `profiles.custom_commission_rate` for host commission. Booking math: **`PricingService.getFeePolicy()`** → `resolveHostCommissionPercentFromGeneral`.
 
 ```
 subtotalThb        = PricingService total for the stay (THB, before guest fee)

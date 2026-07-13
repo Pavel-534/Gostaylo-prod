@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -6,7 +6,7 @@ import { Calendar, Receipt } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/currency'
+import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/finances/partner-finances-shared'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
@@ -27,12 +27,11 @@ function BookingStatusCell({ booking, t, language }) {
   )
 }
 
-function buildTransactionRow(booking, t, language, getBookingPayoutPreview) {
+function buildTransactionRow(booking, t, getBookingPayoutPreview) {
   const { gross, fee, net } = snapshotMoney(booking)
   const payoutPreview = getBookingPayoutPreview?.(booking)
   const checkIn = booking.checkIn || booking.check_in
   const checkOut = booking.checkOut || booking.check_out
-  const fmt = (amt) => formatPrice(amt, 'THB', { THB: 1 }, language)
   const dateRange =
     checkIn && checkOut
       ? `${format(new Date(checkIn), 'dd.MM.yyyy')} → ${format(new Date(checkOut), 'dd.MM.yyyy')}`
@@ -44,7 +43,6 @@ function buildTransactionRow(booking, t, language, getBookingPayoutPreview) {
     net,
     payoutPreview,
     dateRange,
-    fmt,
     listingTitle: booking.listing?.title || t('listing'),
     guestName: booking.guestName || booking.guest_name || 'N/A',
   }
@@ -72,8 +70,9 @@ export function PartnerFinancesTransactionHistory({
         <CardTitle>{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
         {hasPayoutProfile ? (
-          <p className="text-xs text-slate-500 mt-2">{t('partnerFinances_rubIndicativeDisclaimer')}</p>
+          <p className="text-xs text-slate-500 mt-2">{t('stage180_payoutVsLedgerDisclaimer')}</p>
         ) : null}
+        <PartnerHostMidFxFootnote t={t} className="mt-1" />
         {escrowBookingFilter ? (
           <div className="mt-3 flex flex-col gap-2 rounded-lg border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand sm:flex-row sm:items-center sm:justify-between">
             <span>{t('partnerFinances_escrowFilterBanner')}</span>
@@ -119,7 +118,7 @@ export function PartnerFinancesTransactionHistory({
           <>
             <div className="md:hidden space-y-3 min-w-0">
               {displayedBookings.map((booking) => {
-                const row = buildTransactionRow(booking, t, language, getBookingPayoutPreview)
+                const row = buildTransactionRow(booking, t, getBookingPayoutPreview)
                 return (
                   <div
                     key={booking.id}
@@ -142,21 +141,26 @@ export function PartnerFinancesTransactionHistory({
                     <div className="grid grid-cols-1 gap-1.5 text-xs sm:text-sm pt-1 border-t border-slate-200">
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-                        <span className="tabular-nums text-right break-all">{row.fmt(row.gross)}</span>
+                        <span className="tabular-nums text-right break-all">
+                          <PartnerHostLedgerAmount thb={row.gross} />
+                        </span>
                       </div>
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
-                        <span className="tabular-nums text-red-700 text-right break-all">−{row.fmt(row.fee)}</span>
+                        <span className="tabular-nums text-red-700 text-right break-all">
+                          −<PartnerHostLedgerAmount thb={row.fee} />
+                        </span>
                       </div>
                       <div className="flex justify-between gap-2 font-semibold min-w-0">
                         <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
-                        <span className="tabular-nums text-emerald-800 text-right break-all">{row.fmt(row.net)}</span>
+                        <span className="tabular-nums text-emerald-800 text-right break-all">
+                          <PartnerHostLedgerAmount thb={row.net} />
+                        </span>
                       </div>
                     </div>
                     {hasPayoutProfile ? (
                       <PartnerBookingPayoutPreviewLine
                         t={t}
-                        language={language}
                         preview={row.payoutPreview}
                         loading={payoutPreviewBatchLoading}
                       />
@@ -193,7 +197,7 @@ export function PartnerFinancesTransactionHistory({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {displayedBookings.map((booking) => {
-                    const row = buildTransactionRow(booking, t, language, getBookingPayoutPreview)
+                    const row = buildTransactionRow(booking, t, getBookingPayoutPreview)
                     return (
                       <tr key={booking.id} className="hover:bg-slate-50/80">
                         <td className="px-3 py-3 align-top min-w-0">
@@ -214,18 +218,19 @@ export function PartnerFinancesTransactionHistory({
                         <td className="px-3 py-3 align-top">
                           <BookingStatusCell booking={booking} t={t} language={language} />
                         </td>
-                        <td className="px-3 py-3 align-top text-right tabular-nums">{row.fmt(row.gross)}</td>
+                        <td className="px-3 py-3 align-top text-right tabular-nums">
+                          <PartnerHostLedgerAmount thb={row.gross} />
+                        </td>
                         <td className="px-3 py-3 align-top text-right tabular-nums text-red-700">
-                          −{row.fmt(row.fee)}
+                          −<PartnerHostLedgerAmount thb={row.fee} />
                         </td>
                         <td className="px-3 py-3 align-top text-right tabular-nums font-semibold text-emerald-800">
-                          {row.fmt(row.net)}
+                          <PartnerHostLedgerAmount thb={row.net} />
                         </td>
                         <td className="px-3 py-3 align-top text-right">
                           {hasPayoutProfile ? (
                             <PartnerBookingPayoutPreviewLine
                               t={t}
-                              language={language}
                               preview={row.payoutPreview}
                               loading={payoutPreviewBatchLoading}
                             />

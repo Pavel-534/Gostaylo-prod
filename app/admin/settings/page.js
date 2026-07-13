@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js';
 import { useState, useEffect } from 'react';
@@ -17,8 +17,8 @@ const FEE_SPLIT_PRESETS = {
     id: 'russia_fast',
     title: 'РФ / Быстрые выплаты',
     description: 'MIR/банки, выплаты в день заселения',
-    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
-    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    guestServiceFeePercent: 15,
+    hostCommissionPercent: 0,
     insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.01,
     settlementPayoutDelayDays: 0,
@@ -28,8 +28,8 @@ const FEE_SPLIT_PRESETS = {
     id: 'thailand_standard',
     title: 'Таиланд / Стандарт',
     description: 'Следующий день, баланс скорость/риски',
-    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
-    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    guestServiceFeePercent: 15,
+    hostCommissionPercent: 0,
     insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.025,
     settlementPayoutDelayDays: 1,
@@ -51,7 +51,7 @@ const FEE_SPLIT_PRESETS = {
 export default function SettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
-    defaultCommissionRate: 15,
+    defaultCommissionRate: 0,
     taxRatePercent: 0,
     guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
     hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
@@ -142,6 +142,7 @@ export default function SettingsPage() {
       ...prev,
       guestServiceFeePercent: preset.guestServiceFeePercent,
       hostCommissionPercent: preset.hostCommissionPercent,
+      defaultCommissionRate: preset.hostCommissionPercent,
       insuranceFundPercent: preset.insuranceFundPercent,
       chatInvoiceRateMultiplier: preset.chatInvoiceRateMultiplier,
       settlementPayoutDelayDays: preset.settlementPayoutDelayDays,
@@ -270,29 +271,6 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
-          <div>
-            <Label htmlFor="commission" className="text-sm sm:text-base">
-              Legacy defaultCommissionRate (%)
-            </Label>
-            <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
-              <Input
-                id="commission"
-                type="number"
-                min="0"
-                max="100"
-                value={settings.defaultCommissionRate}
-                onChange={(e) =>
-                  setSettings({ ...settings, defaultCommissionRate: parseFloat(e.target.value) })
-                }
-                className="max-w-[100px] sm:max-w-xs text-base sm:text-lg font-semibold"
-              />
-              <span className="text-xl sm:text-2xl font-bold text-indigo-600">%</span>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 mt-2">
-              Партнеры получают {100 - settings.defaultCommissionRate}%
-            </p>
-          </div>
-
           <div className="min-w-0">
             <Label htmlFor="chatInvoiceMult" className="text-sm sm:text-base">
               Розничный курс на витрине + чат (USD, RUB, USDT…)
@@ -398,9 +376,14 @@ export default function SettingsPage() {
                 max="100"
                 step="0.1"
                 value={settings.hostCommissionPercent}
-                onChange={(e) =>
-                  setSettings({ ...settings, hostCommissionPercent: parseFloat(e.target.value) })
-                }
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value)
+                  setSettings({
+                    ...settings,
+                    hostCommissionPercent: v,
+                    defaultCommissionRate: v,
+                  })
+                }}
                 className="mt-2"
               />
             </div>

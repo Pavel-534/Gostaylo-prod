@@ -1,10 +1,14 @@
-﻿'use client'
+'use client'
 
-import { formatPrice } from '@/lib/currency'
 import {
   buildPayoutReceiveRateLine,
   interpolateTemplate,
 } from '@/components/partner/finances/partner-payout-preview-display'
+import {
+  PartnerHostLedgerAmount,
+  PartnerHostPayoutAmount,
+} from '@/components/partner/finances/partner-host-amount-display'
+import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
 
 /**
  * Server-driven payout preview (GET /api/v2/partner/payouts/preview → partner-payout-fx).
@@ -17,24 +21,28 @@ export function PartnerPayoutPreviewFields({
   financesSummary,
   variant = 'card',
 }) {
+  const { formatThbLedgerSecondary } = usePartnerHostDisplayFx()
   const availableThb = preview?.availableThb ?? financesSummary?.availableThb ?? 0
   const reservedThb = preview?.pendingPayoutReserveThb ?? financesSummary?.pendingPayoutReserveThb ?? 0
   const rateLine = buildPayoutReceiveRateLine(t, preview, language)
   const isDialog = variant === 'dialog'
+  const hasServerPayout =
+    preview?.amountInPayoutCurrency != null &&
+    String(preview?.payoutCurrency || 'THB').toUpperCase() !== 'THB'
 
   return (
     <div className={isDialog ? 'rounded-md border border-brand/20 bg-brand/10 p-3 space-y-2' : 'space-y-2'}>
       <div className="flex justify-between gap-3 min-w-0">
         <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathBaseAvailable')}</span>
         <span className="font-medium tabular-nums text-right break-all min-w-0">
-          {loading ? '…' : formatPrice(availableThb, 'THB')}
+          {loading ? '…' : <PartnerHostLedgerAmount thb={availableThb} />}
         </span>
       </div>
 
       {reservedThb > 0 ? (
         <p className="text-xs text-slate-500">
           {interpolateTemplate(t('partnerFinances_withdrawReservedHint'), {
-            amount: formatPrice(reservedThb, 'THB'),
+            amount: formatThbLedgerSecondary(reservedThb),
           })}
         </p>
       ) : null}
@@ -42,12 +50,16 @@ export function PartnerPayoutPreviewFields({
       <div className="flex justify-between gap-3 min-w-0">
         <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathFee')}</span>
         <span className="font-medium tabular-nums text-right break-all min-w-0 text-amber-800">
-          {loading ? '…' : `−${formatPrice(preview?.feeAmountThb ?? 0, 'THB')}`}
+          {loading ? '…' : (
+            <>
+              −<PartnerHostLedgerAmount thb={preview?.feeAmountThb ?? 0} />
+            </>
+          )}
         </span>
       </div>
 
       <div className={`flex flex-col gap-1 min-w-0 ${isDialog ? '' : 'pt-2 border-t border-indigo-200'}`}>
-        <div className="flex justify-between gap-3">
+        <div className="flex justify-between gap-3 items-start">
           <span className={isDialog ? 'text-slate-600 shrink-0' : 'font-semibold shrink-0'}>
             {t('partnerFinances_payoutMathFinal')}
           </span>
@@ -56,15 +68,24 @@ export function PartnerPayoutPreviewFields({
               isDialog ? 'text-brand-hover' : 'text-indigo-700'
             }`}
           >
-            {loading ? '…' : formatPrice(preview?.finalAmountThb ?? 0, 'THB')}
+            {loading ? (
+              '…'
+            ) : hasServerPayout ? (
+              <PartnerHostPayoutAmount preview={preview} />
+            ) : (
+              <PartnerHostLedgerAmount thb={preview?.finalAmountThb ?? 0} />
+            )}
           </span>
         </div>
-        {rateLine ? (
+        {rateLine && !hasServerPayout ? (
           <p className={`text-sm font-medium ${isDialog ? 'text-brand' : 'text-indigo-800'}`}>
             {rateLine}
           </p>
         ) : null}
-        {!loading && preview?.amountInPayoutCurrency != null && preview?.payoutCurrency ? (
+        {!loading && hasServerPayout ? (
+          <p className="text-xs text-slate-600">{t('stage180_payoutVsLedgerDisclaimer')}</p>
+        ) : null}
+        {!loading && preview?.amountInPayoutCurrency != null && preview?.payoutCurrency && !hasServerPayout ? (
           <p className="text-xs text-slate-600">{t('partnerFinances_rubIndicativeDisclaimer')}</p>
         ) : null}
       </div>

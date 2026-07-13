@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CalendarHeader Component
  * Navigation, controls, and legend for Partner Calendar
  * Stage 140.4 — iCal legend + force-sync all partner listings
@@ -90,15 +90,15 @@ function LegendBody({ variant = 'inline', language = 'ru' }) {
       </div>
       <div className="hidden h-4 w-px bg-slate-300 sm:block" aria-hidden />
       <div className="flex items-center gap-1.5">
-        <span className="font-bold text-brand">฿</span>
+        <span className="font-bold text-brand text-[10px] uppercase tracking-wide">THB</span>
         <span className="text-slate-600">{t('partnerCal_legendHighSeason')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-slate-400">฿</span>
+        <span className="text-slate-400 text-[10px] uppercase tracking-wide">THB</span>
         <span className="text-slate-600">{t('partnerCal_legendLowSeason')}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-slate-500">฿</span>
+        <span className="text-slate-500 text-[10px] uppercase tracking-wide">THB</span>
         <span className="text-slate-600">{t('partnerCal_legendBasePrice')}</span>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { ListingCard } from '@/components/listing-card'
 import { useListingWizard } from '../../context/ListingWizardContext'
+import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 
 const PREVIEW_PLACEHOLDER_IMAGE = 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image'
 
@@ -45,14 +46,15 @@ export function useWizardPreviewListing() {
 export function ListingWizardPreviewContent({ showHints = true }) {
   const { t, language } = useListingWizard()
   const listing = useWizardPreviewListing()
+  const { currency, exchangeRates } = useStorefrontDisplayFx()
 
   return (
     <>
       <ListingCard
         listing={listing}
-        currency="THB"
+        currency={currency}
         language={language}
-        exchangeRates={{ THB: 1 }}
+        exchangeRates={exchangeRates}
         onFavorite={() => {}}
         isFavorited={false}
       />

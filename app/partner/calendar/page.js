@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GoStayLo - Master Calendar (God View)
  * Refactored for Clean Code Architecture - Phase 7.5
  * 
@@ -30,6 +30,7 @@ import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sl
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { WorkspaceEmptyState } from '@/components/empty-state'
 import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { postIcalSyncPartnerAll } from '@/lib/api/ical-sync-client'
 import { isSoftHoldDisplayKind } from '@/lib/calendar/calendar-cell-presentation.js'
 
@@ -173,6 +174,7 @@ function MasterCalendarContent() {
     listingId: filterListingId || null,
     enabled: !!partnerId
   })
+  const { data: midExchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: false })
   
   const createBlockMutation = useCreateBlock()
   const createBookingMutation = useCreateManualBooking()
@@ -489,7 +491,7 @@ function MasterCalendarContent() {
         createBookingMutation={createBookingMutation}
         upsertSeasonalPriceMutation={upsertSeasonalPriceMutation}
         language={language}
-        exchangeRates={{ THB: 1 }}
+        exchangeRates={midExchangeRates}
       />
     </div>
   )
