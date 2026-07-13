@@ -8,9 +8,9 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
-**Stage 179.2 (2026-07-13):** mobile catalog `/listings` — refetch skeleton overlay (`ListingGridSkeleton` ×4, SSOT **`LISTING_CATALOG_GRID_CLASSES`**) on `loading` / `isTransitioning` / `aiSearchPending`; desktop keeps opacity cross-fade. TS: `moduleResolution: bundler`, removed deprecated `baseUrl`.
+**Stage 179.2 (2026-07-13):** mobile catalog `/listings` — refetch skeleton overlay (`ListingGridSkeleton` ×4, SSOT **`LISTING_CATALOG_GRID_CLASSES`**) on `loading` / `isTransitioning` / `aiSearchPending`; desktop keeps opacity cross-fade. TS: `moduleResolution: bundler`, removed deprecated `baseUrl`. **Mobile search sheet UX:** вернута компактная сетка 2×2 (Что?/Куда?/Даты/Гости) — без дублирующих badge-чипов и без горизонтальных category chips в шторке; **`CategoryQuickChips`** только на hero главной.
 
-**Stage 179.1 (2026-07-12):** mobile sheet «Что?» — **`CategoryQuickChips`** (API tabs via **`selectHeroCategoryTabs`**) replaces Radix Select in **`CatalogMobileSearchSheet`**; live **`setSelectedCategory`** SSOT; hero tabs share same component.
+**Stage 179.1 (2026-07-12):** home hero — **`CategoryQuickChips`** (API tabs via **`selectHeroCategoryTabs`**); live **`setSelectedCategory`** SSOT.
 
 **Stage 179.0 (2026-07-12):** mobile direct pickers — hero `<md` uses native **`WhereCombobox`** / **`SearchCalendar`** / **`GuestsPopover`** drawers (no **`CatalogMobileSearchSheet`** matryoshka); sheet overview-only (FAB + catalog summary). **`.gsl-premium-glass`** SSOT in `globals.css`; **`CatalogSearchSummaryBar`** + footer lift shadow on sheet. Removed **`mobile-search-sheet-focus.js`**.
 

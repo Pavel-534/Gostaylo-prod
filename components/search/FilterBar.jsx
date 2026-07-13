@@ -109,17 +109,28 @@ export function FilterBar({
     return chipIconForCategory(merged);
   }, [selectedCategory, currentCategoryObj, selectedCategoryWizardProfile]);
 
-  const showRefineRow = subcategoryChips.length > 0 || parentCategoryObj;
+  const showRefineRow = !mobileSheetEditor && (subcategoryChips.length > 0 || parentCategoryObj);
 
   const hasActiveFilterBadges =
-    (dateRange.from && dateRange.to) ||
-    (selectedCategory && selectedCategory !== 'all') ||
-    (where && where !== 'all') ||
-    guests !== '1';
+    !mobileSheetEditor &&
+    ((dateRange.from && dateRange.to) ||
+      (selectedCategory && selectedCategory !== 'all') ||
+      (where && where !== 'all') ||
+      guests !== '1');
 
   const filterBody = (
-    <div className="border-b border-slate-200 bg-white">
-      <div className="container mx-auto px-4 py-3">
+    <div
+      className={cn(
+        'border-b border-slate-200 bg-white',
+        mobileSheetEditor && 'border-0 bg-transparent',
+      )}
+    >
+      <div
+        className={cn(
+          'container mx-auto px-4 py-3',
+          mobileSheetEditor && 'max-w-none px-5 py-2',
+        )}
+      >
         <h1 className="sr-only">
           {catalogHeadline || getUIText('searchResults', language)}
           {catalogSubline ? ` — ${catalogSubline}` : ''}
@@ -158,10 +169,10 @@ export function FilterBar({
             ) : null}
           </div>
         ) : null}
-        {catalogSubline ? (
+        {catalogSubline && !mobileSheetEditor ? (
           <p className="mb-2 text-sm font-medium text-slate-600">{catalogSubline}</p>
         ) : null}
-        {catalogParentBlurb ? (
+        {catalogParentBlurb && !mobileSheetEditor ? (
           <p className="mb-2 max-w-3xl text-sm leading-relaxed text-slate-500">{catalogParentBlurb}</p>
         ) : null}
         <div className="flex flex-col gap-2 md:flex-row md:items-stretch md:gap-3">
@@ -191,8 +202,6 @@ export function FilterBar({
               semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
               onSearchSubmit={onSearchSubmit}
               categorySelectPortalClassName={categorySelectPortalClassName}
-              mobileSheetEditor={mobileSheetEditor}
-              onCategoryTabClick={onCategoryTabClick}
             />
           </div>
           <Button

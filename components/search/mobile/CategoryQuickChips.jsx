@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Stage 179.1 — horizontal category chips (hero + mobile search sheet «Что?»).
+ * Stage 179.1 — horizontal category chips on home hero only; mobile sheet keeps compact 2×2 Select grid.
  * SSOT tabs: selectHeroCategoryTabs(categories); state via setCategory (usePublicSearchFilters).
  */
 
