@@ -29,6 +29,7 @@
     "verify:schema-103-2": "node scripts/verify-stage103-2-schema.mjs",
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "check:brand": "node scripts/check-brand-literals.mjs",
+    "check:guest-terminology": "node scripts/check-guest-terminology.mjs",
     "check:shell": "node scripts/check-shell-insets.js",
     "clean:e2e": "node scripts/clean-e2e-garbage.mjs",
     "clean:e2e-deep": "node scripts/clean-e2e-garbage.mjs --deep-profiles",

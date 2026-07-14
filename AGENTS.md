@@ -13,7 +13,7 @@
 | Ответы AI в чате / PR / runbook для людей | **Airento** или «платформа», **не** GoStayLo / Gostaylo |
 | Legacy в коде | `gostaylo_*`, `GostayloListingCard` — internal id, не display name |
 
-Проверка: **`npm run check:brand`**
+Проверка: **`npm run check:brand`**, **`npm run check:guest-terminology`** (renter UI — не «партнёр», SSOT **`lib/i18n/get-guest-provider-label.js`**)
 
 ## Обязательные документы (порядок)
 
@@ -23,7 +23,7 @@
 | `docs/TECHNICAL_MANIFESTO.md` | Сжатый снимок текущей реализации (API-идеи, чат, валюта, пуши, E2E, типы TEXT в Supabase). |
 | `docs/ARCHITECTURAL_PASSPORT.md` | Архитектура, критичные маршруты, схемы, стандарты UI. |
 
-Конституция для Cursor: **`.cursorrules`** + правило **`.cursor/rules/gostaylo-docs-constitution.mdc`** (`alwaysApply`).
+Конституция для Cursor: **`.cursorrules`** + правило **`.cursor/rules/airento-docs-constitution.mdc`** (`alwaysApply`).
 
 ## Когда обновлять манифест и паспорт
 
@@ -50,4 +50,4 @@
 - Пуши / PWA SW: `lib/services/push.service.js`, `components/push-client-init.jsx`, **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (gitignored; `npm run prebuild` / `postbuild`)
 - Критичная телеметрия: `lib/critical-telemetry.js`
 - Бронирования: `lib/services/booking.service.js` (оркестратор) + модули в `lib/services/booking/` (Stage 2.1)
-- **Resend в тестах:** `lib/email/resend-transport-guard.js` — smoke/E2E/тестовые адреса не вызывают Resend API; правило `.cursor/rules/gostaylo-resend-transport-guard.mdc`
+- **Resend в тестах:** `lib/email/resend-transport-guard.js` — smoke/E2E/тестовые адреса не вызывают Resend API; правило `.cursor/rules/airento-resend-transport-guard.mdc`

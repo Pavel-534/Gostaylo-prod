@@ -29,11 +29,11 @@ alwaysApply: true
 - Узкий diff; не удалять чужие комментарии без причины.
 - Пуши: `lib/services/push.service.js`, `POST /api/v2/push`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`.
 - Не размножать хардкод комиссий/курсов — только БД, env, `currency-last-resort.js` по ADR.
-- **Новая таблица в `public`:** в миграции обязательно **GRANT → RLS → POLICY** (шаблон `migrations/_template_new_public_table.sql`, правило `gostaylo-supabase-migrations.mdc`). С 2026-10-30 Supabase не выдаёт grants на новые таблицы автоматически.
+- **Новая таблица в `public`:** в миграции обязательно **GRANT → RLS → POLICY** (шаблон `migrations/_template_new_public_table.sql`, правило `airento-supabase-migrations.mdc`). С 2026-10-30 Supabase не выдаёт grants на новые таблицы автоматически.
 
 ## Имя бренда (Stage 151.1)
 
 - В ответах пользователю, новых doc-строках и i18n — **`getSiteDisplayName()`** / **`{brand}`**; прод: **Airento** через env.
 - **Не использовать** GoStayLo / Gostaylo как текущее продуктовое имя (legacy internal id и исторические Stage-записи — исключение).
 
-Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**, **`npm run check:brand`**.
+Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**, **`npm run check:brand`**, **`npm run check:guest-terminology`** (renter UI — SSOT **`lib/i18n/get-guest-provider-label.js`**).

@@ -30,6 +30,12 @@ import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
 const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
 const BOOKING_MODAL_INTENT_KEY = 'gostaylo_booking_modal_intent'
+const INQUIRY_MODAL_INTENTS = new Set(['private', 'special', 'contact'])
+
+function normalizeBookingModalIntent(savedIntent) {
+  const s = String(savedIntent || 'book')
+  return INQUIRY_MODAL_INTENTS.has(s) ? s : 'book'
+}
 
 /**
  * PDP: dates in URL, availability polling, commission/pricing, booking modal + POST /api/v2/bookings.
@@ -76,8 +82,7 @@ export function useListingBookingFlow({
       try {
         if (sessionStorage.getItem(BOOKING_MODAL_RESUME_KEY) !== '1') return
         const savedIntent = sessionStorage.getItem(BOOKING_MODAL_INTENT_KEY) || 'book'
-        const intent =
-          savedIntent === 'private' || savedIntent === 'special' ? savedIntent : 'book'
+        const intent = normalizeBookingModalIntent(savedIntent)
         setBookingModalIntent(intent)
         setBookingModalOpen(true)
       } catch {
@@ -93,8 +98,7 @@ export function useListingBookingFlow({
       sessionStorage.removeItem(BOOKING_MODAL_RESUME_KEY)
       const savedIntent = sessionStorage.getItem(BOOKING_MODAL_INTENT_KEY) || 'book'
       sessionStorage.removeItem(BOOKING_MODAL_INTENT_KEY)
-      const intent =
-        savedIntent === 'private' || savedIntent === 'special' ? savedIntent : 'book'
+      const intent = normalizeBookingModalIntent(savedIntent)
       setBookingModalIntent(intent)
       setBookingModalOpen(true)
     } catch {
@@ -422,7 +426,7 @@ export function useListingBookingFlow({
       openLoginModal()
       return
     }
-    openBookModal('special')
+    openBookModal('contact')
   }
 
   const handleBookingSubmit = useCallback(
@@ -442,8 +446,10 @@ export function useListingBookingFlow({
       setSubmitting(true)
 
       try {
-        const isPrivateOrSpecial =
-          bookingModalIntent === 'private' || bookingModalIntent === 'special'
+        const isInquiryModal =
+          bookingModalIntent === 'private' ||
+          bookingModalIntent === 'special' ||
+          bookingModalIntent === 'contact'
 
         const payload = {
           listingId: listing.id,
@@ -461,7 +467,7 @@ export function useListingBookingFlow({
           currency: 'THB',
           guestsCount: guests,
         }
-        if (!isPrivateOrSpecial) {
+        if (!isInquiryModal) {
           const sub = priceCalc?.subtotalBeforeFee ?? priceCalc?.totalPrice
           if (sub == null || !Number.isFinite(Number(sub))) {
             toast.error(getUIText('listingToast_priceCalc', language))
@@ -496,6 +502,7 @@ export function useListingBookingFlow({
         }
         if (bookingModalIntent === 'private') payload.privateTrip = true
         if (bookingModalIntent === 'special') payload.negotiationRequest = true
+        if (bookingModalIntent === 'contact') payload.contactInquiry = true
 
         const res = await fetch('/api/v2/bookings', {
           method: 'POST',
@@ -527,6 +534,9 @@ export function useListingBookingFlow({
               status: String(bookingStatus || 'PENDING').toUpperCase(),
               conversationId: cid || null,
             })
+            if (cid && bookingModalIntent === 'contact') {
+              router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
+            }
           } else {
             toast.success(getUIText('listingToast_bookingCreated', language))
           }

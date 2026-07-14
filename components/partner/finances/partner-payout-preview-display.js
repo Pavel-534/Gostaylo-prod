@@ -16,7 +16,7 @@ export function interpolateTemplate(template, vars = {}) {
 }
 
 export function buildPayoutReceiveRateLine(t, preview, language) {
-  if (!preview?.fx?.effectiveRateToThb) return null
+  if (preview?.amountInPayoutCurrency == null) return null
   const payoutCurrency = preview.payoutCurrency || 'THB'
   const receiveApprox = formatAbsoluteAmountInCurrency(
     preview.amountInPayoutCurrency,
@@ -25,8 +25,5 @@ export function buildPayoutReceiveRateLine(t, preview, language) {
   )
   return interpolateTemplate(t('partnerFinances_withdrawReceiveApprox'), {
     amount: receiveApprox,
-    currency: payoutCurrency,
-    rate: Number(preview.fx.effectiveRateToThb).toFixed(4),
-    spread: String(preview.fx.spreadPct ?? 0),
   })
 }

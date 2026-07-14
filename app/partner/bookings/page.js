@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerBookings, useUpdateBookingStatus } from '@/lib/hooks/use-partner-bookings'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import OrdersSummary from '@/components/orders/OrdersSummary'
@@ -156,14 +157,30 @@ export default function PartnerBookings() {
     [visibleBookings],
   )
 
+  const notifyBookingStatusSuccess = useCallback(
+    (status) => {
+      if (status === 'CONFIRMED') {
+        toast.success(getUIText('partnerDashboard_approveSuccess', language))
+      } else if (status === 'CANCELLED') {
+        toast.success(getUIText('partnerDashboard_declineSuccess', language))
+      } else {
+        toast.success(getUIText('partnerBookings_statusUpdated', language))
+      }
+    },
+    [language],
+  )
+
   const handleConfirm = (bookingOrId) => {
     const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
     if (!bookingId) return
-    updateStatusMutation.mutate({
-      bookingId,
-      status: 'CONFIRMED',
-      partnerId: user?.id,
-    })
+    updateStatusMutation.mutate(
+      {
+        bookingId,
+        status: 'CONFIRMED',
+        partnerId: user?.id,
+      },
+      { onSuccess: () => notifyBookingStatusSuccess('CONFIRMED') },
+    )
   }
 
   const handleRejectClick = (bookingOrId) => {
@@ -184,6 +201,7 @@ export default function PartnerBookings() {
       },
       {
         onSuccess: () => {
+          notifyBookingStatusSuccess('CANCELLED')
           setRejectDialog({ open: false, bookingId: null })
           setRejectReason('')
         },
@@ -194,11 +212,14 @@ export default function PartnerBookings() {
   const handleComplete = (bookingOrId) => {
     const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
     if (!bookingId) return
-    updateStatusMutation.mutate({
-      bookingId,
-      status: 'COMPLETED',
-      partnerId,
-    })
+    updateStatusMutation.mutate(
+      {
+        bookingId,
+        status: 'COMPLETED',
+        partnerId,
+      },
+      { onSuccess: () => notifyBookingStatusSuccess('COMPLETED') },
+    )
   }
 
   if (authLoading || isLoading) {

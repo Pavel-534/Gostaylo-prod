@@ -70,9 +70,6 @@ export function PartnerFinancesTransactionHistory({
       <CardHeader>
         <CardTitle>{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
-        {hasPayoutProfile ? (
-          <p className="text-xs text-slate-500 mt-2">{t('stage180_payoutVsLedgerDisclaimer')}</p>
-        ) : null}
         <PartnerHostMidFxFootnote t={t} className="mt-1" />
         {escrowBookingFilter ? (
           <div className="mt-3 flex flex-col gap-2 rounded-lg border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand sm:flex-row sm:items-center sm:justify-between">

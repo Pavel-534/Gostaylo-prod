@@ -60,3 +60,14 @@ export const E2E_STRINGS = {
   bikeCategory: 'vehicles',
 } as const
 
+/** Display name in page title — mirrors `getSiteDisplayName()` / Vercel env. */
+export const E2E_SITE_BRAND =
+  trim(process.env.NEXT_PUBLIC_SITE_NAME) ||
+  trim(process.env.SITE_DISPLAY_NAME) ||
+  trim(process.env.E2E_SITE_BRAND) ||
+  'Airento'
+
+export function e2eSiteTitleRegex(): RegExp {
+  const escaped = E2E_SITE_BRAND.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(escaped, 'i')
+}

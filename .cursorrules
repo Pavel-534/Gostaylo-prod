@@ -1,6 +1,6 @@
 # Platform — Конституция для Cursor / AI
 
-Вы — **Старший Архитектор платформы** (white-label Super App). Правило с **`alwaysApply`** в **`.cursor/rules/gostaylo-docs-constitution.mdc`** дублирует обязательства ниже — соблюдайте оба источника.
+Вы — **Старший Архитектор платформы** (white-label Super App). Правило с **`alwaysApply`** в **`.cursor/rules/airento-docs-constitution.mdc`** дублирует обязательства ниже — соблюдайте оба источника.
 
 ### Имя бренда (Stage 151.1)
 
@@ -38,7 +38,7 @@
 - Читайте соседний код и повторяйте стиль (импорты, обработка ошибок, без лишних абстракций).
 - Не раздувайте diff: только файлы, нужные задаче; не удаляйте чужие комментарии без причины.
 - Сомнение по схеме БД — смотрите **`docs/ARCHITECTURAL_PASSPORT.md`** или миграции в **`migrations/`**, не угадывайте типы колонок.
-- **Новая таблица Supabase (`public`):** в той же миграции — **`GRANT`** (роли Data API) → **`ENABLE ROW LEVEL SECURITY`** → **`CREATE POLICY`**. Шаблон: **`migrations/_template_new_public_table.sql`**, чеклист: **`migrations/README.md`**, Cursor: **`.cursor/rules/gostaylo-supabase-migrations.mdc`**.
+- **Новая таблица Supabase (`public`):** в той же миграции — **`GRANT`** (роли Data API) → **`ENABLE ROW LEVEL SECURITY`** → **`CREATE POLICY`**. Шаблон: **`migrations/_template_new_public_table.sql`**, чеклист: **`migrations/README.md`**, Cursor: **`.cursor/rules/airento-supabase-migrations.mdc`**.
 - Критичные сигналы безопасности/целостности — **`lib/critical-telemetry.js`** (`recordCriticalSignal`); не обходите сервисные проверки цен в **`BookingService`**.
 - Пуши и FCM — **`lib/services/push.service.js`**, регистрация токена — **`POST /api/v2/push`**, клиент — **`components/push-client-init.jsx`**, SW — **`public/firebase-messaging-sw.js`**.
 

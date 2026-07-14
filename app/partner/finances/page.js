@@ -144,7 +144,12 @@ function PartnerFinancesV2Content() {
       <PartnerFinancesHeader t={t} bookingsLength={bookings.length} onExportCsv={handleExportCSV} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <PartnerFinancesTabNav t={t} documentsCount={documentsCount} />
+        <PartnerFinancesTabNav
+          t={t}
+          documentsCount={documentsCount}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
           <PartnerFinancesOverviewTab

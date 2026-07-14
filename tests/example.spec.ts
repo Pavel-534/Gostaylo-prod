@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
-
-test('Главная страница содержит заголовок Gostaylo и доступен скриншот', async ({ page, baseURL }) => {
+import { e2eSiteTitleRegex } from './e2e/constants'
+test('Главная страница содержит заголовок бренда и доступен скриншот', async ({ page, baseURL }) => {
   test.skip(!baseURL, 'baseURL')
   await page.goto(baseURL)
-  await expect(page).toHaveTitle(/Gostaylo/i)
+  await expect(page).toHaveTitle(e2eSiteTitleRegex())
   await page.screenshot({ path: 'homepage-screenshot.png', fullPage: true })
 
   await page.getByRole('button', { name: /Войти|Login|Sign in/i }).first().click()

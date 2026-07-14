@@ -168,11 +168,6 @@ export function useListingChat({
   )
 
   const openPdpContactInquiry = useCallback(async () => {
-    if (exclusiveDatesUnavailable) {
-      toast.error(getBookingApiUserMessage({ code: 'DATES_CONFLICT' }, language))
-      return
-    }
-
     const basePayload = buildPdpContactInquiryPayload({
       listing,
       dateRange,
@@ -230,7 +225,6 @@ export function useListingChat({
 
     router.push(`/messages/${encodeURIComponent(cid)}`)
   }, [
-    exclusiveDatesUnavailable,
     listing,
     dateRange,
     guests,

@@ -31,7 +31,7 @@ SSOT: **`lib/cron/verify-cron-secret.js`** — `assertCronAuthorized`
 | **`ops_job_runs.job_name`** | `<kebab-slug>` only (no brand prefix) |
 | **Telegram ops alerts** | `Cron: <kebab-slug>` (system slug, not product copy) |
 
-Rename legacy panel titles (`Gostaylo …`, `GoStayLo …`) to **`Airento: …`** when touching jobs.
+Rename legacy cron-job.org panel titles (pre-rebrand) to **`Airento: …`** when touching jobs.
 
 ---
 

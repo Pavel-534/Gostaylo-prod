@@ -22,6 +22,7 @@ import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-
 import { resolveBookingListScope } from '@/lib/api/api-guard';
 import { resolveBookingCreateSession } from '@/lib/api/booking-create-guard';
 import { assertListingBookableForGuest } from '@/lib/listing/listing-booking-eligibility';
+import { isWholeUnitCalendarInventory } from '@/lib/listing-booking-ui';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 import { findReusablePdpContactInquiry } from '@/lib/services/booking/inquiry.service';
@@ -139,6 +140,10 @@ export async function POST(request) {
 
     const isTourListing = listingCategorySlug === 'tours';
     const isVehicleListing = listingCategorySlug === 'vehicles';
+    const isWholeUnitListing = isWholeUnitCalendarInventory(
+      listingCategorySlug,
+      listingData?.metadata,
+    );
 
     if (isTourListing) {
       const meta =
@@ -196,7 +201,7 @@ export async function POST(request) {
     }
 
     const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
-      guestsCount: isVehicleListing ? 1 : guestsCount,
+      guestsCount: isVehicleListing || isWholeUnitListing ? 1 : guestsCount,
       listingCategorySlugOverride: isVehicleListing ? 'vehicles' : undefined,
     });
 
@@ -213,19 +218,6 @@ export async function POST(request) {
     }
 
     const minRem = availabilityCheck.min_remaining_spots ?? 0;
-
-    if (contactInquiry === true && !availabilityCheck.available) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Sorry, these dates were JUST taken by another user. Please select different dates.',
-          code: 'DATES_CONFLICT',
-          conflicts: availabilityCheck.conflicts,
-        },
-        { status: 409 },
-      );
-    }
 
     const instantBookingEnforced =
       listingData?.instant_booking === true &&
@@ -288,6 +280,7 @@ export async function POST(request) {
         guestsCount,
         privateTrip: privateTrip === true,
         negotiationRequest: negotiationRequest === true,
+        contactInquiry: contactInquiry === true,
         minRemainingSpots: minRem,
         clientQuotedSubtotalThb,
         clientQuotedGuestTotalThb,

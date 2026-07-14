@@ -1,17 +1,15 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import {
-  TrendingDown, Calendar, DollarSign, Users,
-  Home, Clock, Check, ArrowRight, Plus, Lock, Download, Tag,
-  Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
-  CalendarDays, BarChart3, RefreshCw, Bell, Banknote,
+  Calendar, DollarSign, Users, Home,
+  Check, ChevronRight, UserCheck, UserMinus,
+  CalendarDays, Bell, AlertCircle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,20 +17,21 @@ import { Badge } from '@/components/ui/badge'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
-import { getHostMoneyStage, getHostMoneyPolicyForListing } from '@/lib/booking/host-money-stage'
 import { brandMintHex } from '@/lib/theme/tokens'
-import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
 import PartnerHostVerificationBanner from '@/components/partner/PartnerHostVerificationBanner'
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
 import { PartnerOnboardingChecklist } from '@/components/partner/PartnerOnboardingChecklist'
 import { PartnerHostNextStepsCard } from '@/components/partner/PartnerHostNextStepsCard'
-import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
 import { PartnerReferralWelcomeStrip } from '@/components/partner/PartnerReferralWelcomeStrip'
+import { PartnerDashboardQuickActions } from '@/components/partner/dashboard/PartnerDashboardQuickActions'
+import { PartnerDashboardPendingFlow } from '@/components/partner/dashboard/PartnerDashboardPendingFlow'
+import { PartnerDashboardReputationChip } from '@/components/partner/dashboard/PartnerDashboardReputationChip'
+import { PartnerSuccessHelpDrawer } from '@/components/partner/dashboard/PartnerSuccessHelpDrawer'
+import { PartnerDashboardMoneyCard } from '@/components/partner/dashboard/PartnerDashboardMoneyCard'
 import {
   WelcomePartnerModal,
   RevenueSparkline,
   OccupancyRadial,
-  PendingBookingCard,
   PartnerDashboardLoadingSkeleton,
   PartnerDashboardIdentityGate,
   DASH_DATE_LOCALE,
@@ -40,21 +39,13 @@ import {
 } from '@/components/partner/dashboard/partner-dashboard-widgets'
 import { usePartnerDashboardPage } from '@/hooks/partner/use-partner-dashboard-page'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
-import { GSL_CARD } from '@/lib/theme/product-ui'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-const PartnerDashboardIncomeChart = dynamic(
-  () => import('@/components/partner/dashboard/PartnerDashboardIncomeChart'),
-  {
-    ssr: false,
-    loading: () => <div className="h-full min-h-[220px] rounded-xl gsl-shimmer bg-slate-100/80" aria-hidden />,
-  },
-)
 
 export default function PartnerDashboardPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showPublishedModerationBanner, setShowPublishedModerationBanner] = useState(false)
+  const [successHelpOpen, setSuccessHelpOpen] = useState(false)
 
   useEffect(() => {
     if (searchParams.get('published') === '1') {
@@ -72,22 +63,14 @@ export default function PartnerDashboardPageContent() {
     isLoading,
     isError,
     refetch,
-    incomeChartEmpty,
-    handleApprove,
-    handleDecline,
-    isUpdatingBooking,
     showWelcomeModal,
     setShowWelcomeModal,
     userName,
   } = usePartnerDashboardPage()
 
   const dashLocale = DASH_DATE_LOCALE[language] || ru
-
-  const payoutCategorySlug = useMemo(() => {
-    const fromStats = stats?.financialV2?.dominantCategorySlug
-    if (typeof fromStats === 'string' && fromStats.trim()) return fromStats.trim().toLowerCase()
-    return 'property'
-  }, [stats?.financialV2?.dominantCategorySlug])
+  const listingsCount = stats?.occupancy?.listingsCount ?? 0
+  const isEmptyHost = !isLoading && listingsCount === 0
 
   if (authHydrating) {
     return <PartnerDashboardLoadingSkeleton />
@@ -128,54 +111,38 @@ export default function PartnerDashboardPageContent() {
           </AlertDescription>
         </Alert>
       ) : null}
-      <PartnerDashboardWalletOverview />
-      <PartnerReferralWelcomeStrip />
-      <PartnerOnboardingChecklist language={language} />
-      <PartnerHostNextStepsCard language={language} partnerId={partnerId} />
+
+      <PartnerDashboardPendingFlow
+        pending={stats?.pending}
+        partnerId={partnerId}
+        language={language}
+      />
 
       <PageSectionHeader
         title={getUIText('partnerDashboard_overviewTitle', language)}
         subtitle={format(new Date(), 'EEEE, d MMMM yyyy', { locale: dashLocale })}
         titleClassName="flex items-center gap-2"
         action={
-          <div className="flex gap-2 flex-wrap">
-          <Button asChild variant="brand">
-            <Link href="/partner/listings/new">
-              <Plus className="h-4 w-4 mr-2" />
-              {getUIText('partnerDashboard_newListing', language)}
-            </Link>
-          </Button>
-          <Button 
-            variant="outline" 
-            asChild
-          >
-            <Link href="/partner/calendar">
-              <Lock className="h-4 w-4 mr-2" />
-              {getUIText('partnerDashboard_blockDates', language)}
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/partner/promo">
-              <Tag className="h-4 w-4 mr-2" />
-              {getUIText('partnerNav_promo', language)}
-            </Link>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => refetch()}
-            title={getUIText('partnerDashboard_refresh', language)}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
+          <PartnerDashboardQuickActions language={language} onRefresh={() => refetch()} />
         }
       />
+
+      <PartnerReferralWelcomeStrip />
+      <PartnerOnboardingChecklist language={language} variant="compact" />
+
+      <PartnerDashboardMoneyCard language={language} />
+      <PartnerHostNextStepsCard language={language} partnerId={partnerId} variant="compact" />
 
       <PartnerHostVerificationBanner language={language} />
       <PartnerVerifiedBadgePromo language={language} />
 
-      <PartnerReputationSection language={language} />
+      <PartnerDashboardReputationChip language={language} onOpen={() => setSuccessHelpOpen(true)} />
+
+      <PartnerSuccessHelpDrawer
+        open={successHelpOpen}
+        onOpenChange={setSuccessHelpOpen}
+        language={language}
+      />
 
       {/* Today's Summary Banner */}
       {(stats?.today?.checkIns > 0 || stats?.today?.checkOuts > 0) && (
@@ -214,6 +181,32 @@ export default function PartnerDashboardPageContent() {
         </Card>
       )}
 
+      {isEmptyHost ? (
+        <Card
+          className="border-brand/25 bg-gradient-to-br from-brand/5 via-white to-emerald-50/40 shadow-sm"
+          data-testid="partner-dashboard-zero-listings"
+        >
+          <CardContent className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10">
+              <Home className="h-8 w-8 text-brand" aria-hidden />
+            </div>
+            <div className="max-w-md space-y-2">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {getUIText('partnerDashboard_zeroListingsTitle', language)}
+              </h2>
+              <p className="text-sm leading-relaxed text-slate-600">
+                {getUIText('partnerDashboard_zeroListingsDesc', language)}
+              </p>
+            </div>
+            <Button asChild variant="brand" className="min-h-[44px] px-6">
+              <Link href="/partner/listings/new">
+                {getUIText('partnerDashboard_newListing', language)}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue Widget */}
@@ -255,18 +248,13 @@ export default function PartnerDashboardPageContent() {
               <Calendar className="h-4 w-4 text-brand" />
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {stats?.occupancy?.rate || 0}%
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {getUIText('partnerDashboard_listingsCount', language).replace(
-                    '{count}',
-                    String(stats?.occupancy?.listingsCount || 0),
-                  )}
-                </p>
-              </div>
-              <OccupancyRadial rate={stats?.occupancy?.rate || 0} size={80} />
+              <p className="text-xs text-slate-500">
+                {getUIText('partnerDashboard_listingsCount', language).replace(
+                  '{count}',
+                  String(stats?.occupancy?.listingsCount || 0),
+                )}
+              </p>
+              <OccupancyRadial rate={stats?.occupancy?.rate || 0} size={80} language={language} />
             </div>
           </CardContent>
         </Card>
@@ -322,141 +310,33 @@ export default function PartnerDashboardPageContent() {
         </Card>
       </div>
 
-      {/* Финансы: график выплат + средства в эскроу */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-brand" />
-              {getUIText('partnerDashboard_incomeByMonthTitle', language)}
-            </CardTitle>
-            <CardDescription>
-              {getUIText('partnerDashboard_incomeByMonthDesc', language)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-[260px] pt-0">
-            {incomeChartEmpty ? (
-              <div className="h-full min-h-[220px] flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white px-6 text-center">
-                <BarChart3 className="h-12 w-12 text-slate-300 mb-3" aria-hidden />
-                <p className="text-sm text-slate-600 max-w-md leading-relaxed">
-                  {getUIText('partnerDashboard_incomeEmpty', language)}
-                </p>
-                <p className="text-xs text-slate-400 mt-2 max-w-sm">
-                  {getUIText('partnerDashboard_incomeEmptyHint', language)}
-                </p>
-              </div>
-            ) : (
-              <PartnerDashboardIncomeChart rows={stats?.financialV2?.incomeByMonth || []} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Link
-          href="/partner/finances?status=PAID_ESCROW"
-          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-        >
-          <Card className="shadow-sm border border-slate-100 border-l-4 border-l-brand h-full transition-shadow hover:shadow-md cursor-pointer">
-            <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_futureIncomeLabel', language)}</span>
-                  <Banknote className="h-5 w-5 text-brand" />
-                </div>
-                <p className="text-3xl font-bold text-slate-900 tabular-nums">
-                  <PartnerHostLedgerAmount thb={stats?.financialV2?.moneyInTransitThb ?? 0} />
-                </p>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {getHostMoneyStage('PAID_ESCROW', language, { categorySlug: payoutCategorySlug })?.eta ||
-                  getHostMoneyPolicyForListing({ categorySlug: payoutCategorySlug }, language).protected ||
-                  getUIText('partnerDashboard_futureIncomeDesc', language)}
-              </p>
-              <p className="text-xs font-medium text-brand-hover flex items-center gap-1">
-                {getUIText('partnerDashboard_futureIncomeMore', language)}
-                <ChevronRight className="h-3.5 w-3.5" />
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Approvals */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-amber-500" />
-                  {getUIText('partnerDashboard_pendingApprovalsTitle', language)}
-                </CardTitle>
-                <CardDescription>{getUIText('partnerDashboard_pendingApprovalsDesc', language)}</CardDescription>
-              </div>
-              {stats?.pending?.count > 0 && (
-                <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                  {stats.pending.count}
-                </Badge>
-              )}
+      {/* Upcoming arrivals */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-brand" />
+                {getUIText('partnerDashboard_upcomingArrivalsTitle', language)}
+              </CardTitle>
+              <CardDescription>{getUIText('partnerDashboard_upcomingArrivalsDesc', language)}</CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {stats?.pending?.items?.length > 0 ? (
-              stats.pending.items.map(booking => (
-                <PendingBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  onApprove={handleApprove}
-                  onDecline={handleDecline}
-                  isLoading={isUpdatingBooking}
-                  language={language}
-                />
-              ))
-            ) : (
-              <div className="text-center py-8 text-slate-500">
-                <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                <p>{getUIText('partnerDashboard_allProcessed', language)}</p>
-              </div>
-            )}
-            
-            {stats?.pending?.count > 3 && (
-              <Button variant="ghost" className="w-full mt-2" asChild>
-                <Link href="/partner/bookings">
-                  {getUIText('partnerDashboard_showAll', language).replace('{count}', String(stats.pending.count))}
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Arrivals */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5 text-brand" />
-                  {getUIText('partnerDashboard_upcomingArrivalsTitle', language)}
-                </CardTitle>
-                <CardDescription>{getUIText('partnerDashboard_upcomingArrivalsDesc', language)}</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/partner/calendar">
-                  {getUIText('partnerDashboard_calendar', language)}
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {stats?.upcoming?.length > 0 ? (
-              <div className="space-y-3">
-                {stats.upcoming.map((arrival) => {
-                  const arrLocale = DASH_DATE_LOCALE[language] || ru
-                  const arrivalNetThb = partnerListAmountThb(arrival)
-                  return (
-                  <div 
+            <Button variant="ghost" size="sm" asChild className="min-h-[44px]">
+              <Link href="/partner/calendar">
+                {getUIText('partnerDashboard_calendar', language)}
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {stats?.upcoming?.length > 0 ? (
+            <div className="space-y-3">
+              {stats.upcoming.map((arrival) => {
+                const arrLocale = DASH_DATE_LOCALE[language] || ru
+                const arrivalNetThb = partnerListAmountThb(arrival)
+                return (
+                  <div
                     key={arrival.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
                   >
@@ -481,60 +361,29 @@ export default function PartnerDashboardPageContent() {
                         )}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p
-                        className="text-sm font-medium text-brand"
+                        className="text-sm font-medium text-brand tabular-nums whitespace-nowrap"
                         title={getUIText('partnerDashboard_amountNetTooltip', language)}
                       >
                         <PartnerHostLedgerAmount thb={arrivalNetThb} />
                       </p>
                     </div>
                   </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500">
-                <Calendar className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                <p>{getUIText('partnerDashboard_noArrivals', language)}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Links */}
-      <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button variant="outline" asChild>
-              <Link href="/partner/listings">
-                <Home className="h-4 w-4 mr-2" />
-                {getUIText('partnerNav_listings', language)}
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/partner/calendar">
-                <CalendarDays className="h-4 w-4 mr-2" />
-                {getUIText('partnerDashboard_masterCalendar', language)}
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/partner/bookings">
-                <Users className="h-4 w-4 mr-2" />
-                {getUIText('partnerDashboard_allBookings', language)}
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/partner/finances">
-                <DollarSign className="h-4 w-4 mr-2" />
-                {getUIText('partnerDashboard_finances', language)}
-              </Link>
-            </Button>
-          </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-slate-500">
+              <Calendar className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+              <p>{getUIText('partnerDashboard_noArrivals', language)}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
-      
+        </>
+      )}
+
       {/* Welcome Partner Modal */}
       <WelcomePartnerModal
         isOpen={showWelcomeModal}

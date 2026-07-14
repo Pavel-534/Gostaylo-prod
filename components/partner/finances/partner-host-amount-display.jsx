@@ -28,23 +28,20 @@ export function PartnerHostLedgerAmount({ thb, className }) {
  * Ledger row: THB accounting primary; header-currency equivalent as subline when converted.
  */
 export function PartnerHostLedgerAmountCell({ thb, className }) {
-  const { formatThbLedgerSecondary, formatLedgerThb, isConvertedDisplay } = usePartnerHostDisplayFx()
+  const { formatThbLedgerSecondary, isConvertedDisplay } = usePartnerHostDisplayFx()
   const amount = Number(thb) || 0
-  const thbFormatted = formatThbLedgerSecondary(amount)
 
-  if (!isConvertedDisplay) {
-    return <span className={cn('tabular-nums font-semibold', className)}>{thbFormatted}</span>
+  if (isConvertedDisplay) {
+    return (
+      <span className={cn('inline-flex tabular-nums font-semibold whitespace-nowrap', className)}>
+        <PartnerHostLedgerAmount thb={amount} />
+      </span>
+    )
   }
 
   return (
-    <span className={cn('inline-flex flex-col items-end gap-0.5 tabular-nums', className)}>
-      <span className="font-semibold text-slate-900">{thbFormatted}</span>
-      <span className="text-xs font-normal text-slate-500 inline-flex items-baseline whitespace-nowrap">
-        <span className="opacity-75 shrink-0" aria-hidden>
-          ≈&nbsp;
-        </span>
-        <span>{formatLedgerThb(amount)}</span>
-      </span>
+    <span className={cn('tabular-nums font-semibold whitespace-nowrap', className)}>
+      {formatThbLedgerSecondary(amount)}
     </span>
   )
 }

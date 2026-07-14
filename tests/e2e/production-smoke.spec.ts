@@ -5,7 +5,7 @@
  * Без фикстур internal/e2e (нет POST броней) — только чтение каталога и UI чата под E2E-партнёром.
  */
 import { test, expect } from '@playwright/test'
-import { E2E_EMAILS, E2E_PASSWORD, E2E_ROUTES, E2E_STRINGS } from './constants'
+import { E2E_EMAILS, E2E_PASSWORD, E2E_ROUTES, E2E_STRINGS, e2eSiteTitleRegex } from './constants'
 
 test.describe('@production-smoke', () => {
   test('API: логин и сессия (E2E partner)', async ({ request, baseURL }) => {
@@ -61,6 +61,6 @@ test.describe('@production-smoke', () => {
   test('Главная: заголовок и навигация', async ({ page, baseURL }) => {
     test.skip(!baseURL, 'baseURL')
     await page.goto(baseURL, { waitUntil: 'domcontentloaded' })
-    await expect(page).toHaveTitle(/Gostaylo/i, { timeout: 20_000 })
+    await expect(page).toHaveTitle(e2eSiteTitleRegex(), { timeout: 20_000 })
   })
 })

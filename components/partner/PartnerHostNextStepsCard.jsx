@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { getUIText } from '@/lib/translations'
 import { getPublicSiteUrl } from '@/lib/site-url'
 import { formatPrice } from '@/lib/currency'
+import { usePartnerOnboardingStatus } from '@/lib/hooks/use-partner-onboarding-status'
 
 function excerptDescription(text, max = 120) {
   const s = String(text || '').replace(/\s+/g, ' ').trim()
@@ -19,19 +20,25 @@ function excerptDescription(text, max = 120) {
 
 /**
  * Stage 143.1 / 149.1 — «Что делать дальше» после первого объявления.
- * @param {{ language?: string, partnerId?: string | null }} props
+ * Stage 187.0 — variant `compact`: collapsed chip on dashboard.
+ * @param {{ language?: string, partnerId?: string | null, variant?: 'full' | 'compact' }} props
  */
-export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) {
+export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null, variant = 'full' }) {
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const [loading, setLoading] = useState(true)
-  const [hasListing, setHasListing] = useState(false)
+  const { data: onboarding, isLoading: loading } = usePartnerOnboardingStatus()
   const [dismissed, setDismissed] = useState(false)
-  const [latestListingId, setLatestListingId] = useState(null)
-  const [latestListingStatus, setLatestListingStatus] = useState(null)
-  const [latestTitle, setLatestTitle] = useState('')
-  const [latestDescription, setLatestDescription] = useState('')
-  const [latestPriceThb, setLatestPriceThb] = useState(null)
-  const [latestCurrency, setLatestCurrency] = useState('THB')
+  const [expanded, setExpanded] = useState(variant !== 'compact')
+
+  const hasListing = Boolean(onboarding?.hasListing)
+  const latestListingId = onboarding?.latestListingId || null
+  const latestListingStatus = onboarding?.latestListingStatus || null
+  const latestTitle = onboarding?.latestListingTitle || ''
+  const latestDescription = onboarding?.latestListingDescription || ''
+  const latestPriceThb =
+    onboarding?.latestListingBasePriceThb != null
+      ? Number(onboarding.latestListingBasePriceThb)
+      : null
+  const latestCurrency = onboarding?.latestListingBaseCurrency || 'THB'
 
   const storageKey = partnerId ? `partner_next_steps_dismissed_${partnerId}` : null
 
@@ -43,38 +50,6 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
       /* ignore */
     }
   }, [storageKey])
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch('/api/v2/partner/onboarding-status', {
-          credentials: 'include',
-          cache: 'no-store',
-        })
-        const json = await res.json().catch(() => ({}))
-        if (!cancelled && json?.success && json.data) {
-          const d = json.data
-          setHasListing(Boolean(d.hasListing))
-          setLatestListingId(d.latestListingId || null)
-          setLatestListingStatus(d.latestListingStatus || null)
-          setLatestTitle(d.latestListingTitle || '')
-          setLatestDescription(d.latestListingDescription || '')
-          setLatestPriceThb(
-            d.latestListingBasePriceThb != null ? Number(d.latestListingBasePriceThb) : null,
-          )
-          setLatestCurrency(d.latestListingBaseCurrency || 'THB')
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const publicListingUrl = useMemo(() => {
     if (!latestListingId) return ''
@@ -173,17 +148,52 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null }) 
 
   if (loading || !hasListing || dismissed) return null
 
+  if (variant === 'compact' && !expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-left text-sm font-medium text-slate-900 transition-colors hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        data-testid="partner-host-next-steps-compact"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <Sparkles className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <span className="truncate">
+            {t('partnerPostListing_compactChip', 'Что делать дальше')}
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-brand" aria-hidden />
+      </button>
+    )
+  }
+
   return (
     <Card
       className="border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-brand/5 shadow-sm"
       data-testid="partner-host-next-steps"
     >
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-brand" aria-hidden />
-          {t('partnerPostListing_title')}
-        </CardTitle>
-        <CardDescription>{t('partnerPostListing_subtitle')}</CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-brand" aria-hidden />
+              {t('partnerPostListing_title')}
+            </CardTitle>
+            <CardDescription>{t('partnerPostListing_subtitle')}</CardDescription>
+          </div>
+          {variant === 'compact' ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 min-h-[44px] min-w-[44px] px-2"
+              onClick={() => setExpanded(false)}
+              aria-label={t('partnerOnboarding_collapse', 'Свернуть')}
+            >
+              {t('partnerOnboarding_collapse', 'Свернуть')}
+            </Button>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {showModerationBanner ? (

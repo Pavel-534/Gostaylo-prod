@@ -1,4 +1,4 @@
-# Миграции Supabase (GoStayLo / FannRent)
+# Миграции Supabase (Airento — white-label platform)
 
 ## Обязательный порядок для новой таблицы в `public`
 

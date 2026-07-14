@@ -5,7 +5,7 @@
 ## Единственный источник истины (SSOT)
 
 - **Этот файл (`ARCHITECTURAL_DECISIONS.md` в корне репозитория)** — канонический манифест проекта: стек, золотые правила, порядок ревью.
-- **`docs/TECHNICAL_MANIFESTO.md`** и **`docs/ARCHITECTURAL_PASSPORT.md`** — снимок кода и архитектуры; их нужно обновлять при изменении API/БД/поведения (см. **`AGENTS.md`**, **`.cursor/rules/gostaylo-docs-constitution.mdc`**, чеклист в **`.github/pull_request_template.md`**).
+- **`docs/TECHNICAL_MANIFESTO.md`** и **`docs/ARCHITECTURAL_PASSPORT.md`** — снимок кода и архитектуры; их нужно обновлять при изменении API/БД/поведения (см. **`AGENTS.md`**, **`.cursor/rules/airento-docs-constitution.mdc`**, чеклист в **`.github/pull_request_template.md`**).
 - **`.cursorrules`** + **`.cursor/rules/*.mdc`** — указатели для Cursor; политики не дублировать длинно. **При любом расхождении побеждает только `ARCHITECTURAL_DECISIONS.md`.**
 - Менять архитектурные правила нужно **здесь**; затем при необходимости сжато обновить `.cursorrules` / правило в `.cursor/rules/` (если добавились новые жёсткие триггеры для агента).
 

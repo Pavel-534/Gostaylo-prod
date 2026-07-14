@@ -15,7 +15,7 @@ describe('referral-share-pitch-tokens (Stage 179.3)', () => {
 
   it('formatWelcomeBonusDisplayAmount uses retail rateMap per currency', () => {
     const rates = { THB: 1, RUB: 0.4, USD: 35 }
-    assert.equal(formatWelcomeBonusDisplayAmount(500, 'THB', rates, 'ru'), '฿500')
+    assert.equal(formatWelcomeBonusDisplayAmount(500, 'THB', rates, 'ru'), '500 THB')
     assert.equal(formatWelcomeBonusDisplayAmount(500, 'RUB', rates, 'ru'), '₽1\u00a0250')
     assert.equal(formatWelcomeBonusDisplayAmount(500, 'USD', rates, 'en'), '$14.29')
   })

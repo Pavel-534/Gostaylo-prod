@@ -1,48 +1,28 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, Circle, ChevronRight, ClipboardList } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { usePartnerOnboardingStatus } from '@/lib/hooks/use-partner-onboarding-status'
 
 /**
  * Stage 116.2 — чек-лист после approve партнёра (SSOT API).
- * @param {{ language?: string }} props
+ * Stage 187.0 — variant `compact`: collapsed chip, expand on tap.
+ * @param {{ language?: string, variant?: 'full' | 'compact' }} props
  */
-export function PartnerOnboardingChecklist({ language = 'ru' }) {
+export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }) {
   const t = (key, fb) => getUIText(key, language) || fb
-  const [loading, setLoading] = useState(true)
-  const [status, setStatus] = useState({
+  const { data: statusData, isLoading: loading } = usePartnerOnboardingStatus()
+  const [expanded, setExpanded] = useState(variant !== 'compact')
+  const status = statusData ?? {
     payoutReady: false,
     calendarConfigured: false,
     hasListing: false,
     listingCount: 0,
-  })
-
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch('/api/v2/partner/onboarding-status', {
-          credentials: 'include',
-          cache: 'no-store',
-        })
-        const json = await res.json().catch(() => ({}))
-        if (!cancelled && json?.success && json.data) {
-          setStatus(json.data)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  }
 
   const steps = useMemo(() => {
     const payout = {
@@ -81,17 +61,53 @@ export function PartnerOnboardingChecklist({ language = 'ru' }) {
   const completed = steps.filter((s) => s.done).length
   if (!loading && completed >= steps.length) return null
 
+  if (variant === 'compact' && !expanded && !loading) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex w-full min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-brand/25 bg-brand/5 px-4 py-3 text-left text-sm font-medium text-slate-900 transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        data-testid="partner-onboarding-checklist-compact"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <ClipboardList className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <span className="truncate">
+            {t('partnerOnboarding_compactChip', 'Пройдено {done} из {total} шагов')
+              .replace('{done}', String(completed))
+              .replace('{total}', String(steps.length))}
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-brand" aria-hidden />
+      </button>
+    )
+  }
+
   return (
     <Card className="border-brand/20 bg-brand/5 shadow-sm" data-testid="partner-onboarding-checklist">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-brand" aria-hidden />
-          {t('partnerOnboarding_title', 'Старт как партнёр')}
-        </CardTitle>
-        <CardDescription>
-          {t(subtitleKey, 'Payout profile → календарь → первое объявление')}{' '}
-          — {completed}/{steps.length}
-        </CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-brand" aria-hidden />
+              {t('partnerOnboarding_title', 'Старт как партнёр')}
+            </CardTitle>
+            <CardDescription>
+              {t(subtitleKey, 'Payout profile → календарь → первое объявление')} — {completed}/{steps.length}
+            </CardDescription>
+          </div>
+          {variant === 'compact' ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0 min-h-[44px] min-w-[44px] px-2"
+              onClick={() => setExpanded(false)}
+              aria-label={t('partnerOnboarding_collapse', 'Свернуть')}
+            >
+              {t('partnerOnboarding_collapse', 'Свернуть')}
+            </Button>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {loading ? (

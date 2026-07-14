@@ -10,7 +10,6 @@ import { PartnerLedgerRow } from '@/components/partner/finances/PartnerLedgerRow
 import { PartnerLedgerDetailDrawer } from '@/components/partner/finances/PartnerLedgerDetailDrawer'
 import { PartnerLedgerLoadMoreSkeleton } from '@/components/partner/finances/PartnerLedgerRowSkeleton'
 import { PartnerBookingDetailDrawer } from '@/components/partner/bookings/PartnerBookingDetailDrawer'
-import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
 import { usePartnerBookingDetail } from '@/hooks/use-partner-booking-detail'
 import {
   mapLedgerDescription,
@@ -45,7 +44,6 @@ export function PartnerFinancesLedger({
   ledgerLoadingMore = false,
   onLoadMore,
 }) {
-  const { isConvertedDisplay } = usePartnerHostDisplayFx()
   const baseRows = balanceBreakdown?.recentLedgerTransactions || []
   const [injectedArchiveEntry, setInjectedArchiveEntry] = useState(null)
 
@@ -60,9 +58,7 @@ export function PartnerFinancesLedger({
     return [{ ...injectedArchiveEntry, _archiveInjected: true }, ...baseRows]
   }, [baseRows, injectedArchiveEntry])
 
-  const amountColLabel = isConvertedDisplay
-    ? t('partnerFinances_ledgerColAmountThb')
-    : t('partnerFinances_ledgerColAmount')
+  const amountColLabel = t('partnerFinances_ledgerColAmount')
 
   const [selectedRow, setSelectedRow] = useState(null)
   const [ledgerDrawerOpen, setLedgerDrawerOpen] = useState(false)

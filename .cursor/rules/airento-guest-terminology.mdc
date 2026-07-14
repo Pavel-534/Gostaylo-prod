@@ -1,0 +1,44 @@
+---
+description: Guest-facing UI must not say «партнёр» / «partner» — use host/owner SSOT
+globs:
+  - lib/translations/listings-public.js
+  - lib/translations/slices/profile-app-renter.js
+  - lib/translations/slices/order-flow.js
+  - lib/translations/slices/checkout*.js
+  - components/listing/**
+  - components/orders/**
+  - hooks/useListing*.js
+  - hooks/pricing/useBookingWidgetLogic.js
+alwaysApply: false
+---
+
+# Guest terminology (Stage 146.2+)
+
+## Rule
+
+**Code / API / DB / partner cabinet** → **Partner** (internal role).
+
+**Renter / guest UI** (PDP, checkout, orders, chat to host) → **never** «партнёр» / «partner» as the counterparty label.
+
+Use vertical-aware labels via SSOT:
+
+- **`lib/i18n/get-guest-provider-label.js`** — `getGuestFacingProviderLabel()`
+- **`lib/i18n/guest-booking-labels.js`** — `{provider}`, `{providerDative}`, `{providerPossessive}`, `{checkInLabel}`, …
+- **`getUIText(key, lang, { listingCategorySlug })`** — auto-injects provider placeholders (Stage 155.3)
+
+| Vertical | RU guest label | EN |
+|----------|----------------|-----|
+| stay (property) | хозяин | host |
+| transport | владелец | owner |
+| tour / service | организатор | organizer / provider |
+
+## When adding copy
+
+1. i18n strings → `{providerDative}` / `{providerPossessive}`, **not** literal «партнёр».
+2. Components → pass **`{ listingCategorySlug }`** into `getUIText` (see `useBookingWidgetLogic`).
+3. Internal var names like `onAskPartner` / `partnerId` in code are OK; **visible strings are not**.
+4. Run **`npm run check:guest-terminology`** before PR.
+
+## Property calendar (Stage 187.8)
+
+**Whole-unit inventory** (villa/apartment): `guests_count` is **informational** for the host (party size, pricing display). Availability = **object free / occupied** (Airbnb whole-home), not sum of guest spots. SSOT: **`isWholeUnitCalendarInventory()`** + SQL **`is_whole_unit_listing_inventory_v1`**.

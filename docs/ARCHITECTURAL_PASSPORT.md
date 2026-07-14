@@ -1,7 +1,7 @@
 # Architectural Passport
 
-> **Version**: 12.181.4.3.0 | **Last Updated**: 2026-07-13 | **Stage 181.3:** wizard 3-line earnings calculator. **Stage 181.4.3:** currency lock UI. **Stage 183.0:** fee policy launch SSOT (15% guest / 0% host).
-> Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
+> **Version**: 12.187.8.1 | **Last Updated**: 2026-07-14 | **Stage 187.8:** property whole-unit calendar + guest terminology guard (applied to Supabase).
+> Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
 
@@ -255,7 +255,7 @@
 
 | Набор | Назначение | Примечание |
 |--------|------------|------------|
-| **`OCCUPYING_BOOKING_STATUSES`** | Календарь / availability RPC | **INQUIRY** намеренно **вне** списка (мягкий запрос). **AWAITING_PAYMENT** **внутри** с Stage 149.2 — окно checkout блокирует ночи; RPC **`create_booking_atomic_v1`** (`stage149_2_awaiting_payment_occupying.sql`) |
+| **`OCCUPYING_BOOKING_STATUSES`** | Календарь / availability RPC | **INQUIRY** намеренно **вне** списка (мягкий запрос). **AWAITING_PAYMENT** **внутри** с Stage 149.2 — окно checkout блокирует ночи; RPC **`create_booking_atomic_v1`** (`stage149_2_awaiting_payment_occupying.sql`); **Stage 187.8** — **`property`** / whole-yacht charter = whole-unit inventory (any occupying booking blocks dates; **`guests_count`** — только для отображения/цены, не «остаток мест») — **`is_whole_unit_listing_inventory_v1`** + **`lib/listing-booking-ui.js`** |
 | **In-flight PENDING policy (Stage 150.2)** | Checkout / payment | Если листинг ушёл на повторную модерацию (**`PENDING`**), **новые** брони блокируются на PDP и **`POST /api/v2/bookings`** (`listing-booking-eligibility`). **Уже созданные** брони в **`CONFIRMED`** или **`AWAITING_PAYMENT`** **могут** завершить оплату на **`/checkout/[id]`** — checkout **не** re-checks listing moderation status. |
 | **`ICAL_EXPORT_BOOKING_STATUSES`** | Публичный iCal BUSY | Без INQUIRY; без CHECKED_IN/THAWED (достаточно PAID_ESCROW / PAID / …) |
 | **`REFERRAL_GUEST_MARGIN_BOOKING_STATUSES`** | Marketing ROI (`commission_thb`) | PAID → COMPLETED контур |
@@ -378,7 +378,7 @@
 - **Price markers SSOT:** **`lib/maps/map-provider-adapter.js`** — **`createLeafletPricePillDivIcon`**: слот фиксированного размера + **`iconSize` / `iconAnchor` / `popupAnchor`** (убраны 1×1 и «сломанная» метрика Leaflet для HTML-пилюль). Стили **`app/globals.css`** (`.gostaylo-price-pill-marker-slot`): без теней у баббла, **`antialiased`** / **`geometricPrecision`** для цифр; **`overflow: visible`** на **`divIcon`**.
 - **Компоненты карты:** **`components/listing/ListingPriceMarker.jsx`** + **`ListingPopupCard.jsx`**; **`InteractiveSearchMap.jsx`** только монтирует маркеры для всех листингов с координатами. **`zIndexOffset`** при выбранном маркере. Кнопка в попапе: **`bg-emerald-600`** + **`text-white`**.
 - **Карточка листинга:** **`ListingCardSpecsRow`** — плотнее **`gap`** на мобиле (**`gap-x-2`** / **`sm:gap-x-4`**); **`ListingCard`** — **`flex flex-col`**, ценовой блок с **`mt-auto`**, **`relative z-10`**, **`bg-white`**, чтобы блок доверия/спеки не наезжали на цену на узкой ширине.
-- **Партнёр:** **`components/partner/PartnerVerifiedBadgePromo.jsx`** на **`/partner/dashboard`** (перед **`PartnerReputationSection`**, после блока заголовка и quick actions); **`GET /api/v2/auth/me`** (**`is_verified`**, **`verification_status`**) — скрыт если уже verified; CTA **`/partner/settings`**, справка **`/help`**. Ключи **`partnerVerifiedPromo_*`** в **`partner-shell.js`** (RU/EN/ZH/TH).
+- **Партнёр:** **`components/partner/PartnerVerifiedBadgePromo.jsx`** на **`/partner/dashboard`**; репутация — **`PartnerDashboardReputationChip`** → **`PartnerSuccessHelpDrawer`**; pending — **`PartnerDashboardPendingFlow`**; балансы — **`PartnerDashboardMoneyCard`**; onboarding — **`usePartnerOnboardingStatus`** (checklist + next steps); stats — **`GET /api/v2/partner/stats?lite=true`** (bookings minimal `select`, no payouts on dashboard); **zero-state** при **`listingsCount === 0`** — CTA «Создать объявление» вместо KPI-сетки.
 
 ### Stage 89.0 — Кластеры на карте поиска и мониторинг «Verified» по городам, 2026-05
 
@@ -1168,7 +1168,7 @@
 - **Поиск / каталог:** после фильтра доступности список **`availableListings`** пересортирован с учётом репутации владельца (**`sortListingsByReputationRanking`** в **`lib/api/run-listings-search-get.js`**): featured остаётся доминирующим (**`REPUTATION_SEARCH_FEATURED_WEIGHT`**), затем базовый порядок **`(n−index)×tierMultiplier` + additive `positionBoostByTier`** из **`lib/config/reputation-ranking.js`** (`TOP` / `STRONG` / …); с **Stage 17.0** добавляется **`computeSlaSearchBoost`** (см. §0.16). В **`meta`** ответа: **`reputationRankingApplied: true`**.
 - **Recency (репутация):** в **`ReputationService`** события старше **~6 месяцев** (183 суток) получают **вес 0.5** при расчёте: доля споров по завершённым броням (вклад по `booking_id` = max вес по спорам на бронь), штрафы (`points×weight`), отмены/decline по timestamp. Формула процента — та же схема вычитаний, что §0.14, но на взвешенных метриках; порог **TOP** использует **`weightedDisputedUnits ≤ 1.05`** и **`penaltyPointsSumWeighted ≤ 2`**.
 - **Гостевой тултип:** **`PartnerTrustBadge`** (Radix **`Tooltip`**) + агрегаты **12 мес** (`cancellations12m`, `cleanStayPercent12m`, …) через **`ReputationService.merge12mTooltipBatch`** после батча доверия в поиске и в **`getPartnerTrustPublic`**.
-- **Кабинет партнёра:** **`GET /api/v2/partner/reputation-health`** — снимок, **criticalFactors**, **pathToTop**; UI **`components/partner/PartnerReputationSection.jsx`** (один fetch: **`PartnerHealthWidget`** + **`SuccessGuide`**) на **`/partner/dashboard`**.
+- **Кабинет партнёра:** **`GET /api/v2/partner/reputation-health`** — снимок, **criticalFactors**, **pathToTop**; UI на **`/partner/dashboard`**: **`PartnerDashboardReputationChip`** + **`PartnerSuccessHelpDrawer`** (табы «Надёжность» / «Как попасть в TOP»); **`PartnerReputationSection`** остаётся для reuse, на дашборде не монтируется.
 
 ### 0.16 Stage 17.0 — Response SLA, performance logs, search boost
 - **Данные:** таблица **`partner_performance_logs`** (миграция **`database/migrations/040_partner_performance_logs.sql`**) — задержка **первого ответа партнёра** после сообщения гостя в том же треде (мс), уникальность **`(conversation_id, renter_message_id)`**. Запись сервером после успешного **`POST /api/v2/chat/messages`** и ответа из Telegram (**`lib/services/telegram/handlers/chat-inbound-reply.js`**), логика — **`tryLogPartnerInitialResponseAfterMessage`** в **`lib/services/partner-response-performance.js`**. С **Stage 20.0** в лог пишется **время без «тихих часов»** (см. §0.19).
@@ -1180,7 +1180,7 @@
 ### 0.17 Stage 18.0 — Репутация: единый сервис + «конституция» репо
 - **SSOT:** вся агрегация для **публичного балла партнёра** и кабинета — **`ReputationService`** (`computePartnerReliabilitySnapshot`, `getPartnersTrustPublicBatch`, `summarizeGuestReviewRatings`, rollup **`reviews`** по листингам **`owner_id`**, счётчик **`guest_reviews`** где **`author_id`** = партнёр — для прозрачности, без смешивания в чужой балл). Сырые списки отзывов по-прежнему **`GET/POST /api/v2/reviews`**; поле **`stats.averageRating`** считается через **`ReputationService.summarizeGuestReviewRatings`**.
 - **Peer (гость→хост):** при **`completedTotal ≥ 1`** и **`≥5`** отзывов: средняя **≥4.5★** — небольшой **бонус** к сырому баллу; **≤3.0★** — **штраф** (константы **`lib/config/reputation-peer-reviews.js`**). Фактор **`guest_reviews_low`** в **`buildCriticalFactors`**; подсказка пути к TOP при слабой средней.
-- **Онбординг партнёра:** **`components/partner/SuccessGuide.jsx`** (внутри **`PartnerReputationSection`**) — уровни NEW → STANDARD/STRONG → TOP, чеклист (SLA, споры, отмены, отзывы, порог **4.2★** для TOP), баннер при **`topBlockedByGuestReviews`**.
+- **Онбординг партнёра:** **`SuccessGuide`** (в **`PartnerSuccessHelpDrawer`**) — уровни NEW → STANDARD/STRONG → TOP; **`PartnerOnboardingChecklist`** — variant **`compact`** (chip «X из Y шагов»).
 - **Правила для Cursor:** **`.cursorrules`** — запрет дублирования логики, опора на паспорт, порог **300 строк** на рефакторинг, единый контракт заказа (**`toUnifiedOrder` / `UnifiedOrderCard`**), удаление мёртвого кода.
 
 ### 0.18 Stage 19.0 — Reputation modular split, TOP guest-review floor, proactive nudges
@@ -1219,7 +1219,7 @@
 - **SMS (заглушка):** при **`checklist.health_or_safety === true`** после успешного экстренного вызова — **`sendEmergencySMS`** (**`lib/services/emergency-contact-protocol.js`**, `console.log` с телефоном партнёра из **`profiles.phone`**).
 
 ### 0.23 Stage 24.0 — Super-App terminology + smart emergency visibility
-- **Терминология:** код/API/БД — **Partner** (`.cursorrules` Super-App); **гостевой UI** — **хозяин / арендодатель / владелец** (не «партнёр»); SSOT label helper — **`lib/i18n/get-guest-provider-label.js`**; переводы — **`orderHelp_*`**, **`checkout_*`**, **`partnerTrust_reliableHost`** / **`listingCard_verifiedPartner`** (гостевые бейджи = host).
+- **Терминология:** код/API/БД — **Partner** (`.cursorrules` Super-App); **гостевой UI** — **хозяин / арендодатель / владелец** (не «партнёр»); SSOT label helper — **`lib/i18n/get-guest-provider-label.js`**; переводы — **`{providerDative}`** в i18n + **`getUIText(..., { listingCategorySlug })`**; CI **`npm run check:guest-terminology`**; Cursor **`.cursor/rules/airento-guest-terminology.mdc`**; примеры — **`orderHelp_*`**, **`checkout_*`**, **`listingDetail_askPartnerChat`**, **`bookingModal_titleContact`**.
 - **Экстренный контакт до услуги:** **`AvailabilityService.isEmergencyBypassAllowed`** опирается на **`canRenterUseEmergencyContactBooking`** (статусы вроде **`CONFIRMED`**, **`AWAITING_PAYMENT`**, **`PAID`**, **`PAID_ESCROW`**, **`CHECKED_IN`**, **`THAWED`** + окно **14 дней** после **`check_out`**), а **не** на **`canOpenOfficialDispute`** (у спора остаётся своё «рано до заезда»).
 - **Умная кнопка:** **`GET /api/v2/bookings/[id]/emergency-context`** (рентер) → **`bookingEligible`** + **`partnerInQuietHours`** (**`isPartnerInQuietHoursNow`**). В **`UnifiedOrderCard`** красная «Экстренная связь» по умолчанию только при **`partnerInQuietHours`**; иначе CTA **«Написать в чат»**. В модалке — **`orderHelp_emergencyNightDisclaimer`** (ночь / ЧП / лимит 24 ч). См. **Stage 25.0** — флаг **`NEXT_PUBLIC_EMERGENCY_ALWAYS_VISIBLE`** и адаптивный второй пункт чеклиста.
 
@@ -1232,7 +1232,7 @@
 - **Визард листинга:** шаг «Основное» — обязательный **`listingServiceType`** (`stay` \| `transport` \| `service` \| `tour`) перед выбором **`categoryId`**; список категорий фильтруется (**`lib/partner/listing-service-type.js`**: **`inferListingServiceTypeFromCategorySlug`**, **`categorySlugMatchesListingServiceType`**, **`defaultMetadataForListingServiceType`** для TZ и полей metadata). UI — **`app/partner/listings/new/components/StepGeneralInfo.jsx`**, состояние — **`ListingWizardContext`** + **`wizard-constants.js`**; строки — **`lib/translations/listings-partner.js`** (`wizardServiceType*`).
 - **SuccessGuide (обновлено Stage 27.0):** доминирующий slug по-прежнему из **`GET /api/v2/partner/reputation-health`**; первый пункт чеклиста — **`getSuccessGuideOpsRuleLine(inferListingServiceTypeFromCategorySlug(dominantCategorySlug), language)`** из **`lib/config/success-guide-content.js`** (редактирование копирайта без **`lib/translations/ui.js`**).
 - **Форма отзыва (обновлено Stage 27.0):** см. **0.26** — динамические подписи к тем же ключам **`ratings`** в API.
-- **Конституция доков:** **`.cursor/rules/gostaylo-docs-constitution.mdc`** — правило про учёт **`category_slug`** при новом функционале.
+- **Конституция доков:** **`.cursor/rules/airento-docs-constitution.mdc`** — правило про учёт **`category_slug`** при новом функционале.
 
 ### 0.26 Stage 27.0 — Динамические критерии отзывов + SLA/календарь по доминирующей категории
 - **Идея:** ключи оценки в **`POST` отзыва** остаются каноничными (**`cleanliness`**, **`accuracy`**, **`communication`**, **`location`**, **`value`**) — меняются только **подписи и иконки** в UI в зависимости от **`listing.category_slug`** (через **`inferListingServiceTypeFromCategorySlug`**). Если slug неизвестен — **`getReviewCriteriaRows`** откатывается на **`reviewForm_dim_*`** в **`lib/translations/ui.js`**.
@@ -1298,7 +1298,7 @@ Protection (Stage 154.3): lib/webhooks/telegram-webhook-auth.js
 ### 0.4 Documentation & AI workflow
 
 - **Цель:** манифест и паспорт отражают текущий код; расхождения устраняются правкой кода или дока в одном PR.
-- **Файлы:** `AGENTS.md` (вход), `.cursorrules`, `.cursor/rules/gostaylo-docs-constitution.mdc` (всегда для Cursor), шаблон PR **`.github/pull_request_template.md`** (чеклист доков).
+- **Файлы:** `AGENTS.md` (вход), `.cursorrules`, `.cursor/rules/airento-docs-constitution.mdc` (всегда для Cursor), шаблон PR **`.github/pull_request_template.md`** (чеклист доков).
 - **Когда обновлять:** любые изменения в `app/api/**`, `migrations/**`, RLS, поведении продукта или зафиксированном в доках UX — правки в **`docs/TECHNICAL_MANIFESTO.md`** и в этом файле; нормативные решения — **`ARCHITECTURAL_DECISIONS.md`**.
 - **Realtime JWT (антилуп):** клиент **`lib/chat/realtime-session-jwt.js`** + **`components/supabase-realtime-auth-sync.jsx`** — см. манифест §5 (bullet `applyRealtimeSessionJwt`).
 

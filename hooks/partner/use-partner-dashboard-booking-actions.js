@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { useUpdateBookingStatus, partnerBookingsKeys } from '@/lib/hooks/use-partner-bookings'
 import { partnerStatsKeys } from '@/lib/hooks/use-partner-stats'
 import { partnerCalendarKeys } from '@/lib/hooks/use-partner-calendar'
+import { WALLET_ME_QUERY_KEY } from '@/lib/hooks/use-wallet-me'
+import { partnerDashboardMoneyKeys } from '@/hooks/partner/use-partner-dashboard-money'
 import { getUIText } from '@/lib/translations'
 
 /**
@@ -20,6 +22,8 @@ export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
     queryClient.invalidateQueries({ queryKey: partnerStatsKeys.all })
     queryClient.invalidateQueries({ queryKey: partnerCalendarKeys.all })
     queryClient.invalidateQueries({ queryKey: partnerBookingsKeys.all })
+    queryClient.invalidateQueries({ queryKey: WALLET_ME_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: partnerDashboardMoneyKeys.all })
   }, [queryClient])
 
   const handleApprove = useCallback(
@@ -40,18 +44,19 @@ export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
   )
 
   const handleDecline = useCallback(
-    async (bookingId) => {
+    async (bookingId, reason) => {
       try {
         await updateStatusMutation.mutateAsync({
           bookingId,
           status: 'CANCELLED',
-          reason: getUIText('partnerDashboard_declineReason', language),
+          reason: reason?.trim() || getUIText('partnerDashboard_declineReason', language),
           partnerId,
         })
         invalidatePartnerQueries()
         toast.success(getUIText('partnerDashboard_declineSuccess', language))
       } catch {
         toast.error(getUIText('partnerDashboard_declineError', language))
+        throw new Error('decline_failed')
       }
     },
     [updateStatusMutation, partnerId, invalidatePartnerQueries, language],

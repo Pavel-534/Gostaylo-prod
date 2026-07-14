@@ -21,7 +21,7 @@ export function PartnerPayoutPreviewFields({
   financesSummary,
   variant = 'card',
 }) {
-  const { formatThbLedgerSecondary } = usePartnerHostDisplayFx()
+  const { formatLedgerThb } = usePartnerHostDisplayFx()
   const availableThb = preview?.availableThb ?? financesSummary?.availableThb ?? 0
   const reservedThb = preview?.pendingPayoutReserveThb ?? financesSummary?.pendingPayoutReserveThb ?? 0
   const rateLine = buildPayoutReceiveRateLine(t, preview, language)
@@ -42,7 +42,7 @@ export function PartnerPayoutPreviewFields({
       {reservedThb > 0 ? (
         <p className="text-xs text-slate-500">
           {interpolateTemplate(t('partnerFinances_withdrawReservedHint'), {
-            amount: formatThbLedgerSecondary(reservedThb),
+            amount: formatLedgerThb(reservedThb),
           })}
         </p>
       ) : null}
@@ -83,7 +83,7 @@ export function PartnerPayoutPreviewFields({
           </p>
         ) : null}
         {!loading && hasServerPayout ? (
-          <p className="text-xs text-slate-600">{t('stage180_payoutVsLedgerDisclaimer')}</p>
+          <p className="text-xs text-slate-600">{t('partnerFinances_rubIndicativeDisclaimer')}</p>
         ) : null}
         {!loading && preview?.amountInPayoutCurrency != null && preview?.payoutCurrency && !hasServerPayout ? (
           <p className="text-xs text-slate-600">{t('partnerFinances_rubIndicativeDisclaimer')}</p>

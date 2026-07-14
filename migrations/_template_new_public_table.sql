@@ -1,5 +1,5 @@
 -- =============================================================================
--- TEMPLATE — new table in public schema (GoStayLo / FannRent)
+-- TEMPLATE — new table in public schema (Airento white-label platform)
 -- Copy → migrations/stageNNN_your_feature.sql
 --
 -- Supabase (с 2026-10-30 на существующих проектах): без явного GRANT таблица

@@ -2,7 +2,7 @@
 
 import { format, parseISO } from 'date-fns'
 import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
-import { Bell, CalendarDays, Check, X, Loader2 } from 'lucide-react'
+import { Bell, CalendarDays, Check, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { cn } from '@/lib/utils'
@@ -100,25 +100,35 @@ export function RevenueSparkline({ data, color = BRAND_CHART_HEX, height = 40 })
   )
 }
 
-export function OccupancyRadial({ rate, size = 120 }) {
-  const strokeWidth = 10
+function occupancyRingStrokeClass(rate) {
+  if (rate >= 80) return 'stroke-brand'
+  if (rate >= 50) return 'stroke-amber-500'
+  return 'stroke-red-500'
+}
+
+function occupancyPercentTextClass(size) {
+  if (size < 96) return 'text-lg font-bold text-slate-900 tabular-nums leading-none'
+  return 'text-2xl font-bold text-slate-900 tabular-nums leading-none'
+}
+
+/** Radial occupancy ring — Stage 187.0: i18n label, token strokes, compact mode when size &lt; 96. */
+export function OccupancyRadial({ rate, size = 120, language = 'ru' }) {
+  const strokeWidth = size < 96 ? 8 : 10
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (rate / 100) * circumference
-  const getColor = (r) => {
-    if (r >= 80) return '#0d9488'
-    if (r >= 50) return '#f59e0b'
-    return '#ef4444'
-  }
+  const showLabel = size >= 96
+  const label = getUIText('partnerDashboard_occupancyRadialLabel', language)
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90 transform" aria-hidden>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e2e8f0"
+          className="stroke-slate-200"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -126,17 +136,20 @@ export function OccupancyRadial({ rate, size = 120 }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={getColor(rate)}
+          className={cn('transition-all duration-700 ease-out', occupancyRingStrokeClass(rate))}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-slate-900">{rate}%</span>
-        <span className="text-xs text-slate-500">загрузка</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1">
+        <span className={occupancyPercentTextClass(size)}>{rate}%</span>
+        {showLabel ? (
+          <span className="text-[10px] leading-tight text-slate-500 text-center max-w-[90%] truncate">
+            {label}
+          </span>
+        ) : null}
       </div>
     </div>
   )
@@ -165,43 +178,33 @@ export function partnerListAmountThb(booking) {
   return Number.isFinite(gross) ? gross : 0
 }
 
-export function PendingBookingCard({ booking, onApprove, onDecline, isLoading, language = 'ru' }) {
+/** Tap-to-open pending row — no inline approve/decline (Stage 187.0). */
+export function PendingBookingCard({ booking, onOpen, language = 'ru' }) {
   const dateLocale = DASH_DATE_LOCALE[language] || ru
   const amountThb = partnerListAmountThb(booking)
   return (
-    <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 truncate">{booking.guestName}</p>
-        <p className="text-xs text-slate-500 truncate">{booking.listingTitle}</p>
+    <button
+      type="button"
+      onClick={() => onOpen?.(booking.id)}
+      className={cn(
+        'flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left',
+        'transition-colors hover:bg-amber-100/80 active:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
+      )}
+      aria-label={getUIText('partnerBookings_openDetails', language)}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-slate-900">{booking.guestName}</p>
+        <p className="truncate text-xs text-slate-500">{booking.listingTitle}</p>
         <p
-          className="text-xs text-amber-600 mt-0.5"
+          className="mt-0.5 text-xs text-amber-700 tabular-nums"
           title={getUIText('partnerDashboard_amountNetTooltip', language)}
         >
           {booking.checkIn && format(parseISO(booking.checkIn), 'd MMM', { locale: dateLocale })} •{' '}
           <PartnerHostLedgerAmount thb={amountThb} />
         </p>
       </div>
-      <div className="flex gap-1.5 ml-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 p-0 text-green-600 hover:bg-green-100"
-          onClick={() => onApprove(booking.id)}
-          disabled={isLoading}
-        >
-          <Check className="h-4 w-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 p-0 text-red-600 hover:bg-red-100"
-          onClick={() => onDecline(booking.id)}
-          disabled={isLoading}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+      <ChevronRight className="h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+    </button>
   )
 }
 

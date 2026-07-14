@@ -33,6 +33,7 @@ function dateFnsLocaleForLang(language) {
 function modalTitleKey(modalIntent) {
   if (modalIntent === 'private') return 'bookingModal_titlePrivate'
   if (modalIntent === 'special') return 'bookingModal_titleSpecial'
+  if (modalIntent === 'contact') return 'bookingModal_titleContact'
   return 'bookingModal_titleBook'
 }
 
@@ -54,7 +55,7 @@ export function BookingModal({
   language,
   submitting,
   onSubmit,
-  /** 'book' | 'private' | 'special' — inquiry flows create INQUIRY + chat */
+  /** 'book' | 'private' | 'special' | 'contact' — inquiry flows create INQUIRY + chat */
   modalIntent = 'book',
   listingCategorySlug = '',
   vehicleStartTime = '07:00',
@@ -66,7 +67,8 @@ export function BookingModal({
   const [mobileViewportHeight, setMobileViewportHeight] = useState('100vh')
 
   const isVehicle = isTransportListingCategory(listingCategorySlug)
-  const tx = (key) => getUIText(key, language)
+  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
+  const tx = (key) => getUIText(key, language, uiListingCtx)
   const dateLocale = dateFnsLocaleForLang(language)
   const title = tx(modalTitleKey(modalIntent))
 
@@ -89,7 +91,13 @@ export function BookingModal({
 
   const inquiryHint =
     modalIntent !== 'book' ? (
-      <p className="mt-1 pr-2 text-sm font-normal text-slate-500">{tx('bookingModal_inquiryHint')}</p>
+      <p className="mt-1 pr-2 text-sm font-normal text-slate-500">
+        {tx(
+          modalIntent === 'contact'
+            ? 'bookingModal_inquiryHintContact'
+            : 'bookingModal_inquiryHint',
+        )}
+      </p>
     ) : null
 
   const formFields = (

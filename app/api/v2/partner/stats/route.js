@@ -11,7 +11,6 @@ import { supabaseAdmin } from '@/lib/supabase'
 import {
   format,
   addDays,
-  subDays,
   subMonths,
   startOfMonth,
   endOfMonth,
@@ -25,6 +24,25 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { inferDominantCategorySlug } from '@/lib/booking/payout-release-config'
 
 export const dynamic = 'force-dynamic'
+
+/** Columns needed for stats + `buildBookingFinancialSnapshotFromRow` (no `select=*`). */
+const PARTNER_STATS_BOOKING_SELECT = [
+  'id',
+  'status',
+  'check_in',
+  'check_out',
+  'listing_id',
+  'guest_name',
+  'price_thb',
+  'commission_thb',
+  'commission_rate',
+  'applied_commission_rate',
+  'rounding_diff_pot',
+  'price_paid',
+  'exchange_rate',
+  'partner_earnings_thb',
+  'pricing_snapshot',
+].join(',')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -75,36 +93,11 @@ function buildIncomeByMonthFromPayouts(payoutRows, today) {
   }))
 }
 
-function generateMockStats() {
-  const today = new Date()
-
-  return {
-    revenue: {
-      confirmed: 0,
-      pending: 0,
-      total: 0,
-      trend: Array(7)
-        .fill(null)
-        .map((_, i) => ({
-          day: format(subDays(today, 6 - i), 'EEE'),
-          revenue: 0,
-        })),
-    },
-    occupancy: { rate: 0, occupiedDays: 0, totalCapacity: 0, listingsCount: 0 },
-    today: { checkIns: 0, checkOuts: 0, checkInsList: [], checkOutsList: [] },
-    pending: { count: 0, items: [] },
-    upcoming: [],
-    bookings: { total: 0, confirmed: 0, pending: 0, completed: 0 },
-    financialV2: {
-      moneyInTransitThb: 0,
-      incomeByMonth: buildIncomeByMonthFromPayouts([], today),
-      dominantCategorySlug: 'property',
-    },
-  }
-}
-
 export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const lite = searchParams.get('lite') === 'true' || searchParams.get('lite') === '1'
+
     const userId = await getUserIdFromSession()
     if (!userId) {
       return NextResponse.json({
@@ -124,12 +117,11 @@ export async function GET(request) {
     console.log(`[STATS API] Fetching stats for partner: ${userId}`)
     
     if (!SUPABASE_URL || !SUPABASE_KEY) {
-      console.log('[STATS API] Supabase not configured, using mock')
+      console.warn('[STATS API] Supabase not configured')
       return NextResponse.json({
-        status: 'success',
-        data: generateMockStats(),
-        meta: { partnerId: userId, isMockData: true }
-      })
+        status: 'error',
+        error: 'Database not configured',
+      }, { status: 503 })
     }
     
     try {
@@ -178,9 +170,9 @@ export async function GET(request) {
         }
       }
       
-      // Fetch all bookings for this partner
+      // Fetch bookings (minimal columns — Stage 187.0 Iteration 4)
       const bookingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&select=*`,
+        `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&select=${PARTNER_STATS_BOOKING_SELECT}`,
         {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -197,24 +189,28 @@ export async function GET(request) {
       
       const allBookings = Array.isArray(bookings) ? bookings : []
       
-      // Fetch seasonal prices for potential revenue calculation
+      // Fetch seasonal prices for potential revenue calculation (full mode only)
       let seasonalPrices = []
-      try {
-        const listingIds = listings.map(l => l.id)
-        const seasonalRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${todayStr}&select=*`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
+      if (!lite) {
+        try {
+          const listingIds = listings.map(l => l.id)
+          if (listingIds.length) {
+            const seasonalRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${todayStr}&select=*`,
+              {
+                headers: {
+                  'apikey': SUPABASE_KEY,
+                  'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+              }
+            )
+            seasonalPrices = await seasonalRes.json()
+            if (!Array.isArray(seasonalPrices)) seasonalPrices = []
+            console.log(`[STATS] Found ${seasonalPrices.length} seasonal prices`)
           }
-        )
-        seasonalPrices = await seasonalRes.json()
-        if (!Array.isArray(seasonalPrices)) seasonalPrices = []
-        console.log(`[STATS] Found ${seasonalPrices.length} seasonal prices`)
-      } catch (e) {
-        console.log('[STATS] No seasonal prices:', e.message)
+        } catch (e) {
+          console.log('[STATS] No seasonal prices:', e.message)
+        }
       }
       
       // Calculate stats
@@ -305,66 +301,77 @@ export async function GET(request) {
         trend.push({ day: dayStr, revenue: dayRevenue })
       }
       
-      // Calculate potential revenue (next 30 days, available dates only) — partner share from default commission SSOT
+      // Calculate potential revenue (next 30 days) — skipped in lite mode
       let potentialRevenue = 0
-      const defaultCommissionPct = await resolveDefaultCommissionPercent()
-      const partnerShareRatio = Math.max(0, Math.min(1, (100 - defaultCommissionPct) / 100))
+      if (!lite) {
+        const defaultCommissionPct = await resolveDefaultCommissionPercent()
+        const partnerShareRatio = Math.max(0, Math.min(1, (100 - defaultCommissionPct) / 100))
 
-      for (const listing of listings) {
-        const basePrice = parseFloat(listing.base_price_thb) || 0
+        for (const listing of listings) {
+          const basePrice = parseFloat(listing.base_price_thb) || 0
 
-        for (let i = 0; i < 30; i++) {
-          const date = format(addDays(today, i), 'yyyy-MM-dd')
+          for (let i = 0; i < 30; i++) {
+            const date = format(addDays(today, i), 'yyyy-MM-dd')
 
-          const isBooked = confirmedBookings.some((b) => {
-            const checkIn = parseISO(b.check_in)
-            const checkOut = parseISO(b.check_out)
-            const currentDate = parseISO(date)
-            return (
-              b.listing_id === listing.id && currentDate >= checkIn && currentDate < checkOut
-            )
-          })
+            const isBooked = confirmedBookings.some((b) => {
+              const checkIn = parseISO(b.check_in)
+              const checkOut = parseISO(b.check_out)
+              const currentDate = parseISO(date)
+              return (
+                b.listing_id === listing.id && currentDate >= checkIn && currentDate < checkOut
+              )
+            })
 
-          if (!isBooked) {
-            const seasonalPrice = getSeasonalPriceForDate(seasonalPrices, listing.id, date)
-            const dailyPrice = seasonalPrice || basePrice
-            potentialRevenue += dailyPrice * partnerShareRatio
+            if (!isBooked) {
+              const seasonalPrice = getSeasonalPriceForDate(seasonalPrices, listing.id, date)
+              const dailyPrice = seasonalPrice || basePrice
+              potentialRevenue += dailyPrice * partnerShareRatio
+            }
           }
         }
       }
       
-      let incomeByMonth = buildIncomeByMonthFromPayouts([], today)
-      let moneyInTransitThb = 0
-      const bookingsForCategory = allBookings.map((b) => {
-        const listing = listings.find((l) => l.id === b.listing_id)
-        const catId = listing?.category_id ? String(listing.category_id) : ''
-        return {
-          ...b,
-          listing: { category_slug: catId ? categorySlugById[catId] ?? null : null },
-        }
-      })
-      const dominantCategorySlug = inferDominantCategorySlug(bookingsForCategory)
-      try {
-        const escrowBookings = allBookings.filter((b) => b.status === 'PAID_ESCROW')
-        moneyInTransitThb =
-          Math.round(
-            escrowBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0) * 100,
-          ) / 100
+      let financialV2 = undefined
+      if (!lite) {
+        let incomeByMonth = buildIncomeByMonthFromPayouts([], today)
+        let moneyInTransitThb = 0
+        const bookingsForCategory = allBookings.map((b) => {
+          const listing = listings.find((l) => l.id === b.listing_id)
+          const catId = listing?.category_id ? String(listing.category_id) : ''
+          return {
+            ...b,
+            listing: { category_slug: catId ? categorySlugById[catId] ?? null : null },
+          }
+        })
+        const dominantCategorySlug = inferDominantCategorySlug(bookingsForCategory)
+        try {
+          const escrowBookings = allBookings.filter((b) => b.status === 'PAID_ESCROW')
+          moneyInTransitThb =
+            Math.round(
+              escrowBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0) * 100,
+            ) / 100
 
-        const { data: payoutRows, error: payoutsErr } = await supabaseAdmin
-          .from('payouts')
-          .select('gross_amount, amount, final_amount, processed_at, created_at, status')
-          .eq('partner_id', userId)
-          .in('status', ['PAID', 'COMPLETED'])
-          .order('created_at', { ascending: false })
-          .limit(3000)
-        if (payoutsErr) {
-          console.warn('[STATS] payouts query:', payoutsErr.message)
-        } else {
-          incomeByMonth = buildIncomeByMonthFromPayouts(payoutRows || [], today)
+          const { data: payoutRows, error: payoutsErr } = await supabaseAdmin
+            .from('payouts')
+            .select('gross_amount, amount, final_amount, processed_at, created_at, status')
+            .eq('partner_id', userId)
+            .in('status', ['PAID', 'COMPLETED'])
+            .order('created_at', { ascending: false })
+            .limit(3000)
+          if (payoutsErr) {
+            console.warn('[STATS] payouts query:', payoutsErr.message)
+          } else {
+            incomeByMonth = buildIncomeByMonthFromPayouts(payoutRows || [], today)
+          }
+        } catch (e) {
+          console.warn('[STATS] financialV2:', e.message)
         }
-      } catch (e) {
-        console.warn('[STATS] financialV2:', e.message)
+
+        financialV2 = {
+          moneyInTransitThb,
+          incomeByMonth,
+          dominantCategorySlug,
+        }
       }
 
       const stats = {
@@ -372,7 +379,7 @@ export async function GET(request) {
           confirmed: Math.round(confirmedRevenue),
           pending: Math.round(pendingRevenue),
           total: Math.round(confirmedRevenue + pendingRevenue),
-          potential: Math.round(potentialRevenue),
+          ...(lite ? {} : { potential: Math.round(potentialRevenue) }),
           trend
         },
         occupancy: {
@@ -406,36 +413,30 @@ export async function GET(request) {
           pending: pendingBookings.length,
           completed: allBookings.filter(b => b.status === 'COMPLETED').length
         },
-        financialV2: {
-          moneyInTransitThb,
-          incomeByMonth,
-          dominantCategorySlug,
-        },
+        ...(financialV2 ? { financialV2 } : {}),
       }
       
-      console.log(`[STATS API] Stats calculated: ${listings.length} listings, ${allBookings.length} bookings`)
+      console.log(`[STATS API] Stats calculated (${lite ? 'lite' : 'full'}): ${listings.length} listings, ${allBookings.length} bookings`)
       
       return NextResponse.json({
         status: 'success',
         data: stats,
-        meta: { partnerId: userId }
+        meta: { partnerId: userId, lite }
       })
       
     } catch (error) {
       console.error('[STATS API] Supabase error:', error)
       return NextResponse.json({
-        status: 'success',
-        data: generateMockStats(),
-        meta: { partnerId: userId, isFallback: true, error: error.message }
-      })
+        status: 'error',
+        error: error.message || 'Failed to load stats',
+      }, { status: 500 })
     }
     
   } catch (error) {
     console.error('[STATS API ERROR]', error)
     return NextResponse.json({
-      status: 'success',
-      data: generateMockStats(),
-      meta: { isFallback: true }
-    })
+      status: 'error',
+      error: error.message || 'Internal server error',
+    }, { status: 500 })
   }
 }

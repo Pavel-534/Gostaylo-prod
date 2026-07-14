@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { usePartnerStats } from '@/lib/hooks/use-partner-stats'
-import { usePartnerDashboardBookingActions } from '@/hooks/partner/use-partner-dashboard-booking-actions'
 
 async function shouldSuppressGenericWelcome(partnerId) {
   try {
@@ -23,6 +22,7 @@ async function shouldSuppressGenericWelcome(partnerId) {
 /**
  * Stage 111.0 — партнёрский дашборд.
  * Stage 173.3 — partnerId из useAuth (не только localStorage); один refresh при гонке сессии.
+ * Stage 187.0 — stats lite; money card loads balances separately.
  */
 export function usePartnerDashboardPage() {
   const { language } = useI18n()
@@ -64,19 +64,8 @@ export function usePartnerDashboardPage() {
 
   const { data: stats, isLoading, isError, refetch } = usePartnerStats(partnerId, {
     enabled: !!partnerId,
+    lite: true,
   })
-
-  const incomeByMonthRows = stats?.financialV2?.incomeByMonth
-  const incomeChartEmpty = useMemo(() => {
-    const rows = incomeByMonthRows
-    if (!rows?.length) return true
-    return !rows.some((m) => Number(m?.amountThb) > 0)
-  }, [incomeByMonthRows])
-
-  const { handleApprove, handleDecline, isUpdatingBooking } = usePartnerDashboardBookingActions(
-    partnerId,
-    language,
-  )
 
   return {
     language,
@@ -87,10 +76,6 @@ export function usePartnerDashboardPage() {
     isLoading,
     isError,
     refetch,
-    incomeChartEmpty,
-    handleApprove,
-    handleDecline,
-    isUpdatingBooking,
     showWelcomeModal,
     setShowWelcomeModal,
     userName,
