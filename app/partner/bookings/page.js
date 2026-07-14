@@ -281,6 +281,7 @@ export default function PartnerBookings() {
         onDecline={handleRejectClick}
         onComplete={handleComplete}
         onQuickConfirm={handleConfirm}
+        onQuickDecline={handleRejectClick}
       />
 
       <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ open, bookingId: null })}>

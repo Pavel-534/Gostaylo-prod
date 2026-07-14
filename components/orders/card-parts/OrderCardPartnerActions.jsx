@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Loader2, LifeBuoy, Check, X } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
 
-/** Partner confirm / decline / complete + help (same dispute/help entry as renter). */
+/** Partner confirm / decline / complete + lightweight support link (Stage 185.1). */
 export function OrderCardPartnerActions({
   language,
   booking,
@@ -14,6 +16,9 @@ export function OrderCardPartnerActions({
   onDecline,
   onComplete,
   onOpenHelp,
+  supportChatHref = null,
+  /** Link to chat instead of heavy help modal (partner drawer). */
+  helpAsLink = false,
   showConfirm,
   showDecline,
   showComplete,
@@ -23,6 +28,8 @@ export function OrderCardPartnerActions({
   const rowClass = stacked ? 'flex flex-col gap-2 pt-1' : 'flex flex-wrap gap-2 pt-1'
   const btnClass = stacked ? 'w-full min-h-[44px]' : undefined
   const confirmClass = stacked ? 'w-full min-h-[44px] bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
+
+  const helpHref = supportChatHref || '/help'
 
   return (
     <div className={rowClass}>
@@ -39,7 +46,11 @@ export function OrderCardPartnerActions({
           variant="outline"
           onClick={() => onDecline?.(booking)}
           disabled={isBusy}
-          className={stacked ? 'w-full min-h-[44px] text-red-700 border-red-200 hover:bg-red-50' : 'text-red-700 border-red-200 hover:bg-red-50'}
+          className={
+            stacked
+              ? 'w-full min-h-[44px] text-red-700 border-red-200 hover:bg-red-50'
+              : 'text-red-700 border-red-200 hover:bg-red-50'
+          }
         >
           <X className="h-4 w-4 mr-2" />
           {getUIText('orderAction_decline', language)}
@@ -53,7 +64,14 @@ export function OrderCardPartnerActions({
         </Button>
       ) : null}
 
-      {bookingId ? (
+      {bookingId && helpAsLink ? (
+        <Button asChild type="button" variant="ghost" className={cn(btnClass, 'text-slate-600')}>
+          <Link href={helpHref}>
+            <LifeBuoy className="h-4 w-4 mr-2" />
+            {getUIText('orderAction_help', language)}
+          </Link>
+        </Button>
+      ) : bookingId ? (
         <Button type="button" variant="outline" onClick={onOpenHelp} className={btnClass}>
           <LifeBuoy className="h-4 w-4 mr-2" />
           {getUIText('orderAction_help', language)}

@@ -5,6 +5,7 @@ import { ArrowDownToLine } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PartnerPayoutPreviewFields } from '@/components/partner/finances/PartnerPayoutPreviewFields'
+import { isPartnerWithdrawDisabled } from '@/lib/partner/partner-withdraw-eligibility'
 
 export function PartnerFinancesPayoutMathCard({
   t,
@@ -51,20 +52,20 @@ export function PartnerFinancesPayoutMathCard({
             </Button>
           </div>
         ) : null}
-        <div className="pt-4">
+        <div className="pt-4 hidden md:block">
           <Button
             type="button"
             variant="brand"
-            className="w-full gap-2 sm:w-auto"
+            className="w-full gap-2 sm:w-auto min-h-[44px]"
             onClick={() => onOpenWithdraw(true)}
-            disabled={
-              summaryLoading ||
-              payoutPreviewLoading ||
-              !partnerId ||
-              partnerProfileVerified !== true ||
-              !hasProfile ||
-              !payoutPreview?.finalAmountThb
-            }
+            disabled={isPartnerWithdrawDisabled({
+              summaryLoading,
+              payoutPreviewLoading,
+              partnerId,
+              partnerProfileVerified,
+              hasProfile,
+              payoutPreview,
+            })}
           >
             <ArrowDownToLine className="h-4 w-4 shrink-0" aria-hidden />
             {t('partnerFinances_withdrawCta')}

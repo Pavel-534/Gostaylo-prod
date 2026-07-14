@@ -1,28 +1,24 @@
 /**
  * Stage 100.7 — display-only helpers for server payout preview (no client FX).
+ * Stage 186.0 — amount formatting SSOT: `@/lib/partner/partner-money-display`.
  */
 
-import { formatPrice } from '@/lib/currency'
+export {
+  formatAbsoluteAmountInCurrency,
+  formatPayoutRailAmount,
+  formatServerPayoutAmount,
+} from '@/lib/partner/partner-money-display'
+
+import { formatAbsoluteAmountInCurrency } from '@/lib/partner/partner-money-display'
 
 export function interpolateTemplate(template, vars = {}) {
   return String(template || '').replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? ''))
 }
 
-/** Format amount in payout currency from server (no rateMap conversion). */
-export function formatServerPayoutAmount(amount, currencyCode, language = 'ru') {
-  const n = Number(amount)
-  const cur = String(currencyCode || 'THB').toUpperCase()
-  if (!Number.isFinite(n)) return '—'
-  if (cur === 'THB') return formatPrice(n, 'THB', { THB: 1 }, language)
-  const loc = language === 'ru' ? 'ru-RU' : 'en-US'
-  const suffix = { RUB: '₽', USDT: '₮', USD: '$', EUR: '€' }[cur] || cur
-  return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${suffix}`
-}
-
 export function buildPayoutReceiveRateLine(t, preview, language) {
   if (!preview?.fx?.effectiveRateToThb) return null
   const payoutCurrency = preview.payoutCurrency || 'THB'
-  const receiveApprox = formatServerPayoutAmount(
+  const receiveApprox = formatAbsoluteAmountInCurrency(
     preview.amountInPayoutCurrency,
     payoutCurrency,
     language,

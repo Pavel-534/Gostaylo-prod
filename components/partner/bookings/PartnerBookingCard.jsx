@@ -27,6 +27,7 @@ export function PartnerBookingCard({
   isBusy = false,
   onOpen,
   onQuickConfirm = null,
+  onQuickDecline = null,
 }) {
   const title = resolvePartnerBookingListingTitle(booking, language)
   const guestName = resolvePartnerBookingGuestName(booking, language)
@@ -38,6 +39,8 @@ export function PartnerBookingCard({
   const partnerEarnings = Number(booking?.partnerEarningsThb ?? booking?.partner_earnings_thb)
   const { netEarnings } = resolvePartnerOrderFooterAmounts(booking, partnerEarnings)
   const showQuickConfirm = status === 'PENDING' && typeof onQuickConfirm === 'function'
+  const showQuickDecline = status === 'PENDING' && typeof onQuickDecline === 'function'
+  const showQuickActions = showQuickConfirm || showQuickDecline
   const hasChat = !!booking?.conversationId
 
   return (
@@ -52,7 +55,7 @@ export function PartnerBookingCard({
       <button
         type="button"
         onClick={() => onOpen?.(booking)}
-        className="flex w-full items-start gap-3 p-3 text-left min-h-[44px] rounded-2xl transition-colors active:bg-slate-50"
+        className="flex w-full items-start gap-3 rounded-2xl p-3 text-left min-h-[44px] transition-colors active:bg-slate-50"
         aria-label={getUIText('partnerBookings_openDetails', language)}
       >
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-slate-100">
@@ -67,7 +70,7 @@ export function PartnerBookingCard({
 
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">{title}</p>
+            <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">{title}</p>
             <OrderCardStatusBadge status={status} language={language} className="shrink-0 text-[10px]" />
           </div>
 
@@ -84,12 +87,12 @@ export function PartnerBookingCard({
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-0.5">
-            <p className="text-xs text-slate-600 truncate">
+            <p className="truncate text-xs text-slate-600">
               {getUIText('orderCard_guestLabel', language)}:{' '}
               <span className="font-medium text-slate-800">{guestName}</span>
             </p>
             {netEarnings != null ? (
-              <p className="text-xs font-semibold text-brand-hover tabular-nums shrink-0">
+              <p className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums text-brand-hover">
                 <PartnerHostLedgerAmount thb={netEarnings} />
               </p>
             ) : null}
@@ -103,24 +106,41 @@ export function PartnerBookingCard({
           ) : null}
         </div>
 
-        <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 mt-1" aria-hidden />
+        <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
       </button>
 
-      {showQuickConfirm ? (
-        <div className="border-t border-slate-100 px-3 py-2">
-          <Button
-            type="button"
-            variant="brand"
-            size="sm"
-            className="w-full min-h-[44px]"
-            disabled={isBusy}
-            onClick={(e) => {
-              e.stopPropagation()
-              onQuickConfirm(booking)
-            }}
-          >
-            {getUIText('orderAction_confirm', language)}
-          </Button>
+      {showQuickActions ? (
+        <div className="flex gap-2 border-t border-slate-100 px-3 py-2">
+          {showQuickConfirm ? (
+            <Button
+              type="button"
+              variant="brand"
+              size="sm"
+              className="min-h-[44px] flex-1"
+              disabled={isBusy}
+              onClick={(e) => {
+                e.stopPropagation()
+                onQuickConfirm(booking)
+              }}
+            >
+              {getUIText('orderAction_confirm', language)}
+            </Button>
+          ) : null}
+          {showQuickDecline ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] flex-1 border-red-200 text-red-700 hover:bg-red-50"
+              disabled={isBusy}
+              onClick={(e) => {
+                e.stopPropagation()
+                onQuickDecline(booking)
+              }}
+            >
+              {getUIText('orderAction_decline', language)}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>

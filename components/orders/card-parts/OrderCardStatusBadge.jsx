@@ -5,6 +5,7 @@ import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
 const STATUS_CLASSNAMES = {
+  INQUIRY: 'bg-slate-100 text-slate-700 border-slate-200',
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
   AWAITING_PAYMENT: 'bg-orange-100 text-orange-800 border-orange-200',
   CONFIRMED: 'bg-green-100 text-green-700 border-green-200',

@@ -34,6 +34,7 @@ export function PartnerBookingDetailDrawer({
   onOpenChange,
   language = 'ru',
   isBusy = false,
+  isLoading = false,
   onConfirm,
   onDecline,
   onComplete,
@@ -62,7 +63,11 @@ export function PartnerBookingDetailDrawer({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4">
-          {booking ? (
+          {isLoading ? (
+            <p className="py-12 text-center text-sm text-slate-500">
+              {getUIText('partnerFinances_ledgerBookingLoading', language)}
+            </p>
+          ) : booking ? (
             <UnifiedOrderCard
               booking={booking}
               unifiedOrder={booking._unified}

@@ -61,6 +61,8 @@ export default function UnifiedOrderCard({
         onConfirm={onConfirm}
         onDecline={onDecline}
         onComplete={onComplete}
+        supportChatHref={u.supportChatHref}
+        helpAsLink={isPartnerDrawer}
         onOpenHelp={() => {
           u.setHelpStep('main')
           u.setHelpOpen(true)
@@ -94,6 +96,7 @@ export default function UnifiedOrderCard({
           status={u.status}
           language={language}
           orderRefTemplate={orderRefTemplate}
+          variant={isPartnerDrawer ? 'drawer' : 'default'}
         />
 
         <CardContent className="space-y-4">
@@ -142,6 +145,7 @@ export default function UnifiedOrderCard({
             partnerEarnings={u.partnerEarnings}
             hasUnifiedTotal={u.hasUnifiedTotal}
             compact={isPartnerCompact}
+            drawerFooter={isPartnerDrawer}
           />
 
           {u.normalizedRole !== 'admin' && u.conversationId ? (

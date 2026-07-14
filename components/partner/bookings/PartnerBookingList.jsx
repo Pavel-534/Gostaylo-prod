@@ -24,6 +24,7 @@ export function PartnerBookingList({
   onDecline,
   onComplete,
   onQuickConfirm,
+  onQuickDecline,
 }) {
   const selectedBooking =
     bookings.find((b) => String(b.id) === String(selectedBookingId)) || null
@@ -51,6 +52,7 @@ export function PartnerBookingList({
                 isBusy={isBusy}
                 onOpen={(b) => onSelectBooking?.(b.id)}
                 onQuickConfirm={onQuickConfirm}
+                onQuickDecline={onQuickDecline}
               />
               {booking.canSubmitGuestReview ? (
                 <div className="mt-2 pl-1">

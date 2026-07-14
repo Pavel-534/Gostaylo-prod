@@ -32,8 +32,20 @@ function taxVatLineLabel(b, language) {
   return getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(rate))
 }
 
+function resolvePartnerHostCommissionThb(booking) {
+  const snap = booking?.financial_snapshot
+  if (snap && typeof snap === 'object') {
+    const host = n(snap.hostCommissionThb)
+    const plat = n(snap.platformMarginThb)
+    const combined = host + plat
+    if (combined > 0) return combined
+  }
+  return 0
+}
+
 /**
  * Блок «Детализация цены» для Super-App (гость / партнёр — прозрачность).
+ * Partner role: compact 3-line summary (Stage 185.1).
  * @param {{ booking?: object | null, breakdown?: object | null, language?: string, role?: 'renter' | 'partner' }} props
  */
 export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru', role = 'renter' }) {
@@ -42,21 +54,56 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
 
   const currency = 'THB'
   const isPartner = role === 'partner'
-  const AmountCell = ({ value }) =>
-    isPartner ? (
-      <PartnerHostLedgerAmount thb={value} />
-    ) : (
-      <span className="font-medium tabular-nums shrink-0">{formatPrice(value, currency)}</span>
-    )
+  const AmountCell = ({ value, strong = false }) => (
+    <span className={strong ? 'font-bold' : 'font-medium'}>
+      {isPartner ? (
+        <PartnerHostLedgerAmount thb={value} />
+      ) : (
+        <span className="tabular-nums">{formatPrice(value, currency)}</span>
+      )}
+    </span>
+  )
 
-  const Row = ({ label, value, muted }) => (
-    <div className={`flex justify-between gap-3 text-sm ${muted ? 'text-slate-500' : 'text-slate-700'}`}>
-      <span>{label}</span>
-      <AmountCell value={value} />
+  const Row = ({ label, value, muted, strong = false }) => (
+    <div
+      className={`flex items-baseline justify-between gap-3 text-sm ${muted ? 'text-slate-500' : 'text-slate-700'} ${strong ? 'font-semibold text-base text-slate-900' : ''}`}
+    >
+      <span className="min-w-0 flex-1 pr-2">{label}</span>
+      <span className="shrink-0 whitespace-nowrap text-right">
+        <AmountCell value={value} strong={strong} />
+      </span>
     </div>
   )
 
   const partnerShare = n(booking?.partner_earnings_thb ?? booking?.partnerEarningsThb)
+  const hostCommissionThb = resolvePartnerHostCommissionThb(booking)
+
+  if (isPartner) {
+    return (
+      <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+          {getUIText('orderPrice_breakdownTitle', language)}
+        </p>
+        <Row label={getUIText('orderPrice_totalGuestPaid', language)} value={b.totalThb} />
+        {hostCommissionThb > 0 ? (
+          <Row
+            label={getUIText('partnerFinancial_hostCommission', language)}
+            value={hostCommissionThb}
+            muted
+          />
+        ) : null}
+        {partnerShare > 0 ? (
+          <div className="border-t border-slate-200 pt-2">
+            <Row
+              label={getUIText('orderPrice_partnerShare', language)}
+              value={partnerShare}
+              strong
+            />
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   const listing = booking?.listings || booking?.listing || {}
   const categorySlug = String(listing?.category_slug || listing?.category?.slug || '').toLowerCase()
@@ -64,15 +111,14 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
     listing?.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
       ? listing.metadata
       : {}
-  const exclusionHints =
-    role === 'renter' && categorySlug ? buildGuestPriceExclusionHints(categorySlug, meta) : []
+  const exclusionHints = categorySlug ? buildGuestPriceExclusionHints(categorySlug, meta) : []
 
   const showCatalogTop =
     b.catalogSubtotalThb > 0 && (b.durationDiscountThb > 0 || b.promoDiscountThb > 0 || b.listPriceThb > 0)
   const showListTop = !showCatalogTop && b.listPriceThb > 0 && b.discountThb > 0
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
+    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
         {getUIText('orderPrice_breakdownTitle', language)}
       </p>
@@ -98,11 +144,11 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
         <Row label={getUIText('orderPrice_rounding', language)} value={b.roundingThb} muted />
       ) : null}
       {exclusionHints.length > 0 ? (
-        <div className="rounded-lg border border-amber-100 bg-amber-50/80 px-2.5 py-2 space-y-1">
+        <div className="space-y-1 rounded-lg border border-amber-100 bg-amber-50/80 px-2.5 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-900/90">
             {getUIText('orderExcluded_title', language)}
           </p>
-          <ul className="text-[11px] text-amber-950/90 space-y-1 leading-snug list-disc pl-4">
+          <ul className="list-disc space-y-1 pl-4 text-[11px] leading-snug text-amber-950/90">
             {exclusionHints.map((hint) => {
               const base = getUIText(hint.key, language)
               const line =
@@ -114,29 +160,17 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
           </ul>
         </div>
       ) : null}
-      <p className="text-[11px] text-slate-500 leading-snug border-t border-slate-100/80 pt-2">
+      <p className="border-t border-slate-100/80 pt-2 text-[11px] leading-snug text-slate-500">
         {n(b.taxAmountThb) > 0
           ? getUIText('orderPrice_taxesNoteWithVatLine', language)
           : getUIText('orderPrice_taxesNote', language)}
       </p>
-      <div className="border-t border-slate-200 pt-2 flex justify-between gap-3 text-sm font-semibold text-slate-900">
-        <span>
-          {role === 'partner'
-            ? getUIText('orderPrice_totalGuestPaid', language)
-            : getUIText('orderPrice_totalYouPay', language)}
-        </span>
-        <span className="text-brand-hover tabular-nums">
-          {isPartner ? <PartnerHostLedgerAmount thb={b.totalThb} /> : formatPrice(b.totalThb, currency)}
+      <div className="flex items-baseline justify-between gap-3 border-t border-slate-200 pt-2 text-sm font-semibold text-slate-900">
+        <span>{getUIText('orderPrice_totalYouPay', language)}</span>
+        <span className="shrink-0 whitespace-nowrap text-brand-hover tabular-nums">
+          {formatPrice(b.totalThb, currency)}
         </span>
       </div>
-      {isPartner && partnerShare > 0 ? (
-        <div className="flex justify-between gap-3 text-xs text-slate-600 pt-1 border-t border-dashed border-slate-200">
-          <span>{getUIText('orderPrice_partnerShare', language)}</span>
-          <span className="font-medium text-brand-hover tabular-nums">
-            <PartnerHostLedgerAmount thb={partnerShare} />
-          </span>
-        </div>
-      ) : null}
     </div>
   )
 }

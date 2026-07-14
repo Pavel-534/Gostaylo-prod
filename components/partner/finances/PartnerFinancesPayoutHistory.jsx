@@ -11,8 +11,6 @@ import {
   PartnerHostMidFxFootnote,
   PartnerHostPayoutAmount,
 } from '@/components/partner/finances/partner-host-amount-display'
-import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
-import { formatServerPayoutAmount } from '@/components/partner/finances/partner-payout-preview-display'
 
 export function PartnerFinancesPayoutHistory({
   t,
@@ -22,23 +20,9 @@ export function PartnerFinancesPayoutHistory({
   payoutsErr,
   onRefetchPayouts,
 }) {
-  const { formatThbLedgerSecondary, language } = usePartnerHostDisplayFx()
-
-  const fmtPayoutFinal = (p) => {
+  const usesServerPayoutRow = (p) => {
     const cur = String(p.payoutCurrency || p.currency || 'THB').toUpperCase()
-    const payoutCurAmount = p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
-    if (cur !== 'THB' && payoutCurAmount != null) {
-      return {
-        primary: formatServerPayoutAmount(payoutCurAmount, cur, language),
-        secondary: formatThbLedgerSecondary(p.finalAmount),
-        usesServerPayout: true,
-      }
-    }
-    return {
-      primary: null,
-      secondary: null,
-      usesServerPayout: false,
-    }
+    return cur !== 'THB' && p.amountInPayoutCurrency != null
   }
 
   return (
@@ -71,7 +55,7 @@ export function PartnerFinancesPayoutHistory({
               {payouts.map((p) => {
                 const methodName = p.payoutMethod?.name || p.method || '—'
                 const st = String(p.status || '').toUpperCase()
-                const finalDisplay = fmtPayoutFinal(p)
+                const finalUsesRail = usesServerPayoutRow(p)
                 return (
                   <div
                     key={p.id}
@@ -102,7 +86,7 @@ export function PartnerFinancesPayoutHistory({
                       <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0 items-start">
                         <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
                         <span className="tabular-nums text-emerald-800 text-right break-all">
-                          {finalDisplay.usesServerPayout ? (
+                          {finalUsesRail ? (
                             <PartnerHostPayoutAmount
                               preview={{
                                 amountInPayoutCurrency: p.amountInPayoutCurrency,
@@ -136,7 +120,7 @@ export function PartnerFinancesPayoutHistory({
                   {payouts.map((p) => {
                     const methodName = p.payoutMethod?.name || p.method || '—'
                     const st = String(p.status || '').toUpperCase()
-                    const finalDisplay = fmtPayoutFinal(p)
+                    const finalUsesRail = usesServerPayoutRow(p)
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/80">
                         <td className="px-3 py-2 whitespace-nowrap text-slate-700">
@@ -150,7 +134,7 @@ export function PartnerFinancesPayoutHistory({
                           −<PartnerHostLedgerAmount thb={p.payoutFeeAmount} />
                         </td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
-                          {finalDisplay.usesServerPayout ? (
+                          {finalUsesRail ? (
                             <PartnerHostPayoutAmount
                               preview={{
                                 amountInPayoutCurrency: p.amountInPayoutCurrency,

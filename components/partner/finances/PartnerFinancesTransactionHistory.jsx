@@ -11,6 +11,7 @@ import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/f
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
 import { PartnerBookingPayoutPreviewLine } from '@/components/partner/finances/PartnerBookingPayoutPreviewLine'
+import { PartnerBookingTransactionRow } from '@/components/partner/finances/PartnerBookingTransactionRow'
 
 function BookingStatusCell({ booking, t, language }) {
   const st = resolveBookingStatusBadge(booking, { t })
@@ -78,7 +79,7 @@ export function PartnerFinancesTransactionHistory({
             <span>{t('partnerFinances_escrowFilterBanner')}</span>
             <Link
               href="/partner/finances"
-              className="shrink-0 font-semibold text-brand-hover underline underline-offset-2 hover:text-brand"
+              className="inline-flex min-h-[44px] items-center shrink-0 font-semibold text-brand-hover underline underline-offset-2 hover:text-brand"
             >
               {t('partnerFinances_escrowFilterShowAll')}
             </Link>
@@ -87,16 +88,16 @@ export function PartnerFinancesTransactionHistory({
       </CardHeader>
       <CardContent className="min-w-0">
         {isLoading ? (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-lg" />
+              <div key={i} className="h-24 rounded-2xl bg-slate-100 gsl-shimmer" />
             ))}
           </div>
         ) : isError ? (
           <div className="text-center py-8">
             <p className="mb-2 text-slate-700 font-medium">{t('failedToLoad')}</p>
             <p className="text-sm text-slate-500 mb-4">{error?.message}</p>
-            <Button onClick={() => onRefetch()} variant="outline" className="min-h-11">
+            <Button onClick={() => onRefetch()} variant="outline" className="min-h-[44px]">
               {t('retry')}
             </Button>
           </div>
@@ -110,7 +111,7 @@ export function PartnerFinancesTransactionHistory({
           <div className="text-center py-10 text-slate-600">
             <p className="font-medium text-slate-800 mb-2">{t('partnerFinances_noEscrowTitle')}</p>
             <p className="text-sm text-slate-500 mb-4">{t('partnerFinances_noEscrowRows')}</p>
-            <Button variant="outline" asChild className="min-h-11">
+            <Button variant="outline" asChild className="min-h-[44px]">
               <Link href="/partner/finances">{t('partnerFinances_escrowFilterShowAll')}</Link>
             </Button>
           </div>
@@ -120,64 +121,16 @@ export function PartnerFinancesTransactionHistory({
               {displayedBookings.map((booking) => {
                 const row = buildTransactionRow(booking, t, getBookingPayoutPreview)
                 return (
-                  <div
+                  <PartnerBookingTransactionRow
                     key={booking.id}
-                    className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2.5 text-sm min-w-0"
-                  >
-                    <div className="flex flex-wrap items-start gap-2 min-w-0">
-                      <h4 className="font-semibold text-slate-900 break-words min-w-0 flex-1">{row.listingTitle}</h4>
-                      <PartnerBookingIncomeKindBadge
-                        categorySlug={booking.financial_snapshot?.category_slug}
-                        t={t}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <BookingStatusCell booking={booking} t={t} language={language} />
-                    </div>
-                    <p className="text-xs text-slate-600 break-words">
-                      {t('guest')}: {row.guestName}
-                    </p>
-                    <p className="text-xs text-slate-500">{row.dateRange}</p>
-                    <div className="grid grid-cols-1 gap-1.5 text-xs sm:text-sm pt-1 border-t border-slate-200">
-                      <div className="flex justify-between gap-2 min-w-0">
-                        <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-                        <span className="tabular-nums text-right break-all">
-                          <PartnerHostLedgerAmount thb={row.gross} />
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2 min-w-0">
-                        <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
-                        <span className="tabular-nums text-red-700 text-right break-all">
-                          −<PartnerHostLedgerAmount thb={row.fee} />
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2 font-semibold min-w-0">
-                        <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
-                        <span className="tabular-nums text-emerald-800 text-right break-all">
-                          <PartnerHostLedgerAmount thb={row.net} />
-                        </span>
-                      </div>
-                    </div>
-                    {hasPayoutProfile ? (
-                      <PartnerBookingPayoutPreviewLine
-                        t={t}
-                        preview={row.payoutPreview}
-                        loading={payoutPreviewBatchLoading}
-                      />
-                    ) : null}
-                    {booking.financial_snapshot ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="min-h-11 w-full gap-1.5 border-brand/25 text-brand hover:bg-brand/10"
-                        onClick={() => onOpenSnapshot(booking)}
-                      >
-                        <Receipt className="h-4 w-4 shrink-0" aria-hidden />
-                        {t('partnerFinances_rowOpenDetails')}
-                      </Button>
-                    ) : null}
-                  </div>
+                    booking={booking}
+                    row={row}
+                    language={language}
+                    t={t}
+                    hasPayoutProfile={hasPayoutProfile}
+                    payoutPreviewBatchLoading={payoutPreviewBatchLoading}
+                    onOpenSnapshot={onOpenSnapshot}
+                  />
                 )
               })}
             </div>
@@ -240,7 +193,7 @@ export function PartnerFinancesTransactionHistory({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="mt-2 gap-1.5 border-brand/25 text-brand hover:bg-brand/10"
+                              className="mt-2 min-h-[44px] gap-1.5 border-brand/25 text-brand hover:bg-brand/10"
                               onClick={() => onOpenSnapshot(booking)}
                             >
                               <Receipt className="h-4 w-4 shrink-0" aria-hidden />

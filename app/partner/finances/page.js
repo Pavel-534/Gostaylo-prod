@@ -1,32 +1,22 @@
 'use client'
 
 /**
- * GoStayLo Partner Finances — composition shell (Stage 54.0).
- * Data: `hooks/usePartnerFinances.js`. UI: `components/partner/finances/*`.
+ * Partner Finances — Stage 54 composition + Stage 186.1 tabbed IA.
+ * Data: `hooks/usePartnerFinances.js`.
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Calendar, Clock, AlertTriangle, FileText } from 'lucide-react'
-import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
 import { PartnerFinancesHeader } from '@/components/partner/finances/PartnerFinancesHeader'
-import { PartnerFinancesPdfCard } from '@/components/partner/finances/PartnerFinancesPdfCard'
-import { PartnerFinancesStatCard } from '@/components/partner/finances/PartnerFinancesStatCard'
-import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
-import { PartnerFinancesPayoutHistory } from '@/components/partner/finances/PartnerFinancesPayoutHistory'
-import { PartnerFinancesLedger } from '@/components/partner/finances/PartnerFinancesLedger'
-import { PartnerFinancesPayoutMathCard } from '@/components/partner/finances/PartnerFinancesPayoutMathCard'
-import { PartnerFinancesTransactionHistory } from '@/components/partner/finances/PartnerFinancesTransactionHistory'
 import { PartnerFinancesWithdrawDialog } from '@/components/partner/finances/PartnerFinancesWithdrawDialog'
-import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
-import { PartnerFinancesDocuments } from '@/components/partner/finances/PartnerFinancesDocuments'
-import { PartnerConciergePayoutBanner } from '@/components/partner/finances/PartnerConciergePayoutBanner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { PartnerFinancesTabNav } from '@/components/partner/finances/PartnerFinancesTabs'
+import { PartnerFinancesOverviewTab } from '@/components/partner/finances/PartnerFinancesOverviewTab'
+import { PartnerFinancesLedgerTab } from '@/components/partner/finances/PartnerFinancesLedgerTab'
+import { PartnerFinancesReportsTab } from '@/components/partner/finances/PartnerFinancesReportsTab'
+import { PartnerPageShell } from '@/components/product/PartnerPageShell'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import {
   getPayoutReleaseConfig,
@@ -34,14 +24,23 @@ import {
   inferDominantCategorySlug,
 } from '@/lib/booking/payout-release-config'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 function PartnerFinancesV2Content() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const deepLinkBookingId = searchParams.get('booking')
+  const deepLinkLedgerEntryId = searchParams.get('ledgerEntry')
+
   const fin = usePartnerFinances()
   const {
     language,
     t,
     transactionSectionRef,
     escrowBookingFilter,
+    resolvedLedgerEntry,
     partnerId,
     defaultPayoutProfile,
     payoutProfiles,
@@ -72,6 +71,9 @@ function PartnerFinancesV2Content() {
     payoutsErr,
     refetchPayouts,
     balanceBreakdown,
+    ledgerHasMore,
+    ledgerLoadingMore,
+    loadMoreLedger,
     payoutPreview,
     payoutPreviewLoading,
     summaryLoadingCombined,
@@ -79,12 +81,13 @@ function PartnerFinancesV2Content() {
     handleExportCSV,
     handleExportPdf,
     applyPdfMonthPreset,
-    payoutPreviewByAmountKey,
     payoutPreviewBatchLoading,
     getBookingPayoutPreview,
   } = fin
 
+  const [activeTab, setActiveTab] = useState('overview')
   const [documentsCount, setDocumentsCount] = useState(null)
+
   const loadDocumentsCount = useCallback(async () => {
     try {
       const res = await fetch('/api/v2/partner/settlement-documents', { cache: 'no-store' })
@@ -101,6 +104,32 @@ function PartnerFinancesV2Content() {
     loadDocumentsCount()
   }, [loadDocumentsCount])
 
+  useEffect(() => {
+    if (escrowBookingFilter) {
+      setActiveTab('ledger')
+    }
+  }, [escrowBookingFilter])
+
+  useEffect(() => {
+    if (deepLinkBookingId || deepLinkLedgerEntryId) {
+      setActiveTab('ledger')
+    }
+  }, [deepLinkBookingId, deepLinkLedgerEntryId])
+
+  const clearQueryParam = useCallback(
+    (key) => {
+      if (!searchParams.get(key)) return
+      const next = new URLSearchParams(searchParams.toString())
+      next.delete(key)
+      const qs = next.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
+
+  const clearBookingDeepLink = useCallback(() => clearQueryParam('booking'), [clearQueryParam])
+  const clearLedgerEntryDeepLink = useCallback(() => clearQueryParam('ledgerEntry'), [clearQueryParam])
+
   const payoutPolicyTexts = useMemo(() => {
     const slug = inferDominantCategorySlug(bookings)
     const config = getPayoutReleaseConfig({ categorySlug: slug })
@@ -108,178 +137,87 @@ function PartnerFinancesV2Content() {
   }, [bookings, language])
 
   const brandName = getSiteDisplayName()
+  const conciergeBody = payoutPolicyTexts.conciergePayoutBody?.replace(/\{brand\}/g, brandName)
 
   return (
-    <div className="space-y-8 min-w-0 max-w-full">
-      <PartnerFinancesHeader
-        t={t}
-        balanceBreakdown={balanceBreakdown}
-        bookingsLength={bookings.length}
-        onExportCsv={handleExportCSV}
-        escrowCardDesc={payoutPolicyTexts.escrowCard}
-      />
+    <PartnerPageShell className="space-y-6">
+      <PartnerFinancesHeader t={t} bookingsLength={bookings.length} onExportCsv={handleExportCSV} />
 
-      <PartnerConciergePayoutBanner
-        t={t}
-        body={payoutPolicyTexts.conciergePayoutBody?.replace(/\{brand\}/g, brandName)}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <PartnerFinancesTabNav t={t} documentsCount={documentsCount} />
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
-          <TabsTrigger
-            value="documents"
-            className={cn(
-              'gap-1.5 order-first font-semibold ring-2 ring-brand/40 data-[state=active]:bg-brand data-[state=active]:text-white',
-              documentsCount > 0 && 'data-[state=inactive]:bg-brand/10 animate-pulse',
-            )}
-          >
-            <FileText className="h-4 w-4" />
-            {t('partnerFinances_tabDocuments')}
-            {documentsCount != null && documentsCount > 0 ? (
-              <Badge variant="secondary" className="ml-1 bg-brand/15 text-brand">
-                {documentsCount}
-              </Badge>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="overview">{t('partnerFinances_tabOverview')}</TabsTrigger>
-        </TabsList>
-
-        {documentsCount === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground rounded-lg border border-dashed border-brand/25 bg-brand/10 px-3 py-2">
-            {t('partnerFinances_docsTabHint')}
-          </p>
-        ) : null}
-
-        <TabsContent value="documents" className="mt-6">
-          <PartnerFinancesDocuments t={t} language={language} />
+        <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
+          <PartnerFinancesOverviewTab
+            t={t}
+            language={language}
+            payoutPolicyTexts={payoutPolicyTexts}
+            financesSummary={financesSummary}
+            summaryLoadingCombined={summaryLoadingCombined}
+            summaryError={summaryError}
+            summaryErr={summaryErr}
+            onRefetchSummary={refetchSummary}
+            partnerId={partnerId}
+            partnerProfileVerified={partnerProfileVerified}
+            defaultPayoutProfile={defaultPayoutProfile}
+            payoutPreview={payoutPreview}
+            payoutPreviewLoading={payoutPreviewLoading}
+            onOpenWithdraw={setWithdrawOpen}
+            conciergeBody={conciergeBody}
+          />
         </TabsContent>
 
-        <TabsContent value="overview" className="space-y-8 mt-6">
-      <PartnerFinancesBalanceStrip
-        t={t}
-        summary={financesSummary}
-        loading={summaryLoadingCombined}
-        thawHoldHint={payoutPolicyTexts.thawHoldShort}
-        escrowHint={payoutPolicyTexts.protected}
-      />
+        <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
+          <PartnerFinancesLedgerTab
+            t={t}
+            language={language}
+            balanceBreakdown={balanceBreakdown}
+            initialBookingId={deepLinkBookingId}
+            onInitialBookingConsumed={clearBookingDeepLink}
+            initialLedgerEntryId={deepLinkLedgerEntryId}
+            resolvedLedgerEntry={resolvedLedgerEntry}
+            onInitialLedgerEntryConsumed={clearLedgerEntryDeepLink}
+            ledgerHasMore={ledgerHasMore}
+            ledgerLoadingMore={ledgerLoadingMore}
+            onLoadMoreLedger={loadMoreLedger}
+            transactionSectionRef={transactionSectionRef}
+            escrowBookingFilter={escrowBookingFilter}
+            isLoading={isLoading}
+            isError={isError}
+            error={error}
+            onRefetch={refetch}
+            bookings={bookings}
+            displayedBookings={displayedBookings}
+            getBookingPayoutPreview={getBookingPayoutPreview}
+            payoutPreviewBatchLoading={payoutPreviewBatchLoading}
+            hasPayoutProfile={!!defaultPayoutProfile?.id}
+            onOpenSnapshot={setFinanceFocusBooking}
+          />
+        </TabsContent>
 
-      <PartnerFinancesPdfCard
-        t={t}
-        pdfDateFrom={pdfDateFrom}
-        setPdfDateFrom={setPdfDateFrom}
-        pdfDateTo={pdfDateTo}
-        setPdfDateTo={setPdfDateTo}
-        pdfLoading={pdfLoading}
-        onExportPdf={handleExportPdf}
-        onPresetCurrent={() => applyPdfMonthPreset('current')}
-        onPresetPrev={() => applyPdfMonthPreset('prev')}
-      />
-
-      {summaryError ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          {summaryErr?.message}
-          <Button variant="outline" size="sm" className="ml-2" onClick={() => refetchSummary()}>
-            {t('retry')}
-          </Button>
-        </div>
-      ) : null}
-
-      {financesSummary?.reconciliation && !financesSummary.reconciliation.withinTolerance ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900">
-          {t('partnerFinances_reconciliationWarn')}
-          <span className="ml-2 font-mono text-xs">
-            Δ <PartnerHostLedgerAmount thb={financesSummary.reconciliation.differenceThb ?? 0} />
-          </span>
-        </div>
-      ) : financesSummary?.reconciliation?.withinTolerance ? (
-        <p className="text-xs text-slate-500">{t('partnerFinances_reconciliationOk')}</p>
-      ) : null}
-
-      {(financesSummary?.disputeHoldThb ?? 0) > 0 ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 flex gap-2 items-start">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
-          <span>{t('partnerFinances_disputeBanner')}</span>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PartnerFinancesStatCard
-          icon={Calendar}
-          title={t('partnerFinances_bucketPendingTitle')}
-          value={<PartnerHostLedgerAmount thb={financesSummary?.pendingThb ?? 0} />}
-          subtitle={t('partnerFinances_bucketPendingDesc')}
-          loading={summaryLoadingCombined}
-        />
-        <PartnerFinancesStatCard
-          icon={AlertTriangle}
-          title={t('partnerFinances_bucketDisputeTitle')}
-          value={<PartnerHostLedgerAmount thb={financesSummary?.disputeHoldThb ?? 0} />}
-          subtitle={t('partnerFinances_bucketDisputeDesc')}
-          loading={summaryLoadingCombined}
-        />
-      </div>
-
-      <PartnerHostMidFxFootnote t={t} />
-
-      <PartnerFinancesPortfolioCards
-        t={t}
-        financesSummary={financesSummary}
-        loading={summaryLoadingCombined || payoutPreviewBatchLoading}
-        previewByAmountKey={payoutPreviewByAmountKey}
-      />
-
-      <PartnerFinancesPayoutHistory
-        t={t}
-        payouts={payouts}
-        payoutsLoading={payoutsLoading}
-        payoutsError={payoutsError}
-        payoutsErr={payoutsErr}
-        onRefetchPayouts={refetchPayouts}
-      />
-
-      <PartnerFinancesLedger t={t} balanceBreakdown={balanceBreakdown} language={language} />
-
-      <PartnerFinancesPayoutMathCard
-        t={t}
-        language={language}
-        financesSummary={financesSummary}
-        summaryLoading={summaryLoadingCombined}
-        partnerId={partnerId}
-        partnerProfileVerified={partnerProfileVerified}
-        defaultPayoutProfile={defaultPayoutProfile}
-        payoutPreview={payoutPreview}
-        payoutPreviewLoading={payoutPreviewLoading}
-        onOpenWithdraw={setWithdrawOpen}
-      />
-
-      <PartnerFinancesTransactionHistory
-        t={t}
-        language={language}
-        transactionSectionRef={transactionSectionRef}
-        escrowBookingFilter={escrowBookingFilter}
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        onRefetch={refetch}
-        bookings={bookings}
-        displayedBookings={displayedBookings}
-        getBookingPayoutPreview={getBookingPayoutPreview}
-        payoutPreviewBatchLoading={payoutPreviewBatchLoading}
-        hasPayoutProfile={!!defaultPayoutProfile?.id}
-        onOpenSnapshot={setFinanceFocusBooking}
-      />
-
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-3">
-            <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-blue-900 mb-1">{t('howPayoutsWork')}</h4>
-              <p className="text-sm text-blue-700">{payoutPolicyTexts.payoutsInfo}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="reports" className="mt-0 focus-visible:outline-none">
+          <PartnerFinancesReportsTab
+            t={t}
+            language={language}
+            financesSummary={financesSummary}
+            summaryLoadingCombined={summaryLoadingCombined}
+            payoutPreviewBatchLoading={payoutPreviewBatchLoading}
+            pdfDateFrom={pdfDateFrom}
+            setPdfDateFrom={setPdfDateFrom}
+            pdfDateTo={pdfDateTo}
+            setPdfDateTo={setPdfDateTo}
+            pdfLoading={pdfLoading}
+            onExportPdf={handleExportPdf}
+            onPresetCurrent={() => applyPdfMonthPreset('current')}
+            onPresetPrev={() => applyPdfMonthPreset('prev')}
+            payouts={payouts}
+            payoutsLoading={payoutsLoading}
+            payoutsError={payoutsError}
+            payoutsErr={payoutsErr}
+            onRefetchPayouts={refetchPayouts}
+            payoutsInfoText={payoutPolicyTexts.payoutsInfo}
+          />
+        </TabsContent>
+      </Tabs>
 
       <PartnerFinancesWithdrawDialog
         t={t}
@@ -305,15 +243,18 @@ function PartnerFinancesV2Content() {
         status={financeFocusBooking?.status}
         language={language}
       />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </PartnerPageShell>
   )
 }
 
 export default function PartnerFinancesV2() {
+  const { language } = useI18n()
   return (
-    <Suspense fallback={<LoadingPageShell variant="inline" label="Loading…" />}>
+    <Suspense
+      fallback={
+        <LoadingPageShell variant="inline" label={getUIText('partnerFinances_loading', language)} />
+      }
+    >
       <PartnerFinancesV2Content />
     </Suspense>
   )

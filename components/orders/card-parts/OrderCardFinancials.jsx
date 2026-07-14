@@ -8,6 +8,7 @@ import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { resolvePartnerOrderFooterAmounts } from '@/lib/partner/partner-booking-card-model'
+import { cn } from '@/lib/utils'
 
 /**
  * Price breakdown, partner financial snapshot entry, footer totals row.
@@ -36,7 +37,7 @@ export function OrderCardFinancials({
             type="button"
             variant="outline"
             size="sm"
-            className="w-full sm:w-auto gap-2 border-brand/25 text-brand hover:bg-brand/10"
+            className="w-full min-h-[44px] gap-2 border-brand/25 text-brand hover:bg-brand/10 sm:w-auto"
             onClick={() => setPartnerFinanceOpen(true)}
           >
             <Receipt className="h-4 w-4 shrink-0" aria-hidden />
@@ -66,32 +67,37 @@ export function OrderCardFinancialTotals({
   partnerEarnings,
   hasUnifiedTotal,
   compact = false,
+  drawerFooter = false,
 }) {
   if (normalizedRole === 'partner') {
     const { guestPaid, netEarnings } = resolvePartnerOrderFooterAmounts(booking, partnerEarnings)
     if (compact) {
       if (netEarnings == null) return null
       return (
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2">
           <p className="text-sm text-slate-600">{getUIText('netEarnings', language)}</p>
-          <p className="text-lg font-semibold text-brand-hover tabular-nums">
+          <p className="whitespace-nowrap text-lg font-semibold text-brand-hover tabular-nums">
             <PartnerHostLedgerAmount thb={netEarnings} />
           </p>
         </div>
       )
     }
+    const guestAmountClass = drawerFooter ? 'text-base font-bold' : 'text-2xl font-bold'
+    const netAmountClass = drawerFooter ? 'text-base font-semibold' : 'text-lg font-semibold'
     return (
-      <div className="flex items-start justify-between gap-3 pt-3 border-t">
-        <div>
-          <p className="text-sm text-slate-600 mb-1">{getUIText('partnerOrderCard_guestPaid', language)}</p>
-          <p className="text-2xl font-bold text-slate-900 tabular-nums">
+      <div className="grid grid-cols-2 gap-3 border-t pt-3">
+        <div className="min-w-0">
+          <p className="mb-0.5 text-xs text-slate-600 sm:text-sm">
+            {getUIText('partnerOrderCard_guestPaid', language)}
+          </p>
+          <p className={cn('whitespace-nowrap tabular-nums text-slate-900', guestAmountClass)}>
             {guestPaid != null ? <PartnerHostLedgerAmount thb={guestPaid} /> : '—'}
           </p>
         </div>
         {netEarnings != null ? (
-          <div className="text-right">
-            <p className="text-sm text-slate-500 mb-1">{getUIText('netEarnings', language)}</p>
-            <p className="text-lg font-semibold text-brand-hover tabular-nums">
+          <div className="min-w-0 text-right">
+            <p className="mb-0.5 text-xs text-slate-500 sm:text-sm">{getUIText('netEarnings', language)}</p>
+            <p className={cn('whitespace-nowrap tabular-nums text-brand-hover', netAmountClass)}>
               <PartnerHostLedgerAmount thb={netEarnings} />
             </p>
           </div>

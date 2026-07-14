@@ -1,32 +1,15 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { payoutPreviewAmountKey } from '@/lib/partner/partner-payout-preview-api'
-import {
-  PartnerHostLedgerAmount,
-  PartnerHostMidFxFootnote,
-  PartnerHostPayoutAmount,
-} from '@/components/partner/finances/partner-host-amount-display'
-import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx'
+import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 
-export function PartnerFinancesPortfolioCards({
-  t,
-  financesSummary,
-  loading,
-  previewByAmountKey,
-}) {
-  const { getPayoutDisplay } = usePartnerHostDisplayFx()
-  const netThb = financesSummary?.portfolio?.netThb ?? 0
-  const netPreview = previewByAmountKey?.[payoutPreviewAmountKey(netThb)]
-  const netPayoutDisplay = getPayoutDisplay(netPreview)
-
+export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
   const cards = [
     {
       id: 'gross',
       title: t('partnerFinances_portfolioGrossTitle'),
       valueThb: financesSummary?.portfolio?.grossThb ?? 0,
       className: 'text-2xl font-bold text-slate-900',
-      payoutPreview: null,
       footer: (
         <p className="text-xs text-slate-500 mt-1">
           {financesSummary?.portfolio?.bookingCount ?? 0} {t('partnerFinances_portfolioBookingsLabel')}
@@ -38,22 +21,14 @@ export function PartnerFinancesPortfolioCards({
       title: t('partnerFinances_portfolioFeeTitle'),
       valueThb: financesSummary?.portfolio?.feeThb ?? 0,
       className: 'text-2xl font-bold text-red-700',
-      payoutPreview: null,
       footer: null,
     },
     {
       id: 'net',
       title: t('partnerFinances_portfolioNetTitle'),
-      valueThb: netThb,
+      valueThb: financesSummary?.portfolio?.netThb ?? 0,
       className: 'text-2xl font-bold text-emerald-700',
-      payoutPreview: netPreview,
-      footer: (
-        <p className="text-xs text-slate-500 mt-2">
-          {netPayoutDisplay.usesServerPayout
-            ? t('stage180_payoutVsLedgerDisclaimer')
-            : t('partnerFinances_rubIndicativeDisclaimer')}
-        </p>
-      ),
+      footer: <p className="text-xs text-slate-500 mt-2">{t('partnerFinances_portfolioNetHint')}</p>,
     },
   ]
 
@@ -67,13 +42,7 @@ export function PartnerFinancesPortfolioCards({
             </CardHeader>
             <CardContent>
               <div className={card.className}>
-                {loading ? (
-                  '—'
-                ) : card.id === 'net' && card.payoutPreview && netPayoutDisplay.usesServerPayout ? (
-                  <PartnerHostPayoutAmount preview={card.payoutPreview} className="items-start" />
-                ) : (
-                  <PartnerHostLedgerAmount thb={card.valueThb} />
-                )}
+                {loading ? '—' : <PartnerHostLedgerAmount thb={card.valueThb} />}
               </div>
               {!loading && card.footer}
             </CardContent>

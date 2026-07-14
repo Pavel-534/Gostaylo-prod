@@ -4,7 +4,7 @@
  * Stage 54.0–55.0 — React state + TanStack Query for `/partner/finances`.
  * Network: `lib/api/partner-finances-client.js`.
  */
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
@@ -27,13 +27,19 @@ import {
   fetchFinancesStatementPdf,
 } from '@/lib/api/partner-finances-client'
 
+export const PARTNER_LEDGER_PAGE_SIZE = 40
+
 export function usePartnerFinances() {
   const queryClient = useQueryClient()
   const { language } = useI18n()
   const t = (key) => getUIText(key, language)
   const searchParams = useSearchParams()
   const escrowBookingFilter = searchParams.get('status') === 'PAID_ESCROW'
+  const deepLinkLedgerEntryId = searchParams.get('ledgerEntry')
   const transactionSectionRef = useRef(null)
+  const [ledgerExtraPages, setLedgerExtraPages] = useState([])
+  const [ledgerLoadingMore, setLedgerLoadingMore] = useState(false)
+  const balanceDataUpdatedAtRef = useRef(0)
 
   const [partnerId, setPartnerId] = useState(null)
   const [defaultPayoutProfile, setDefaultPayoutProfile] = useState(null)
@@ -156,12 +162,79 @@ export function usePartnerFinances() {
     staleTime: 30 * 1000,
   })
 
-  const { data: balanceBreakdown } = useQuery({
+  const {
+    data: balanceBreakdownRaw,
+    dataUpdatedAt: balanceDataUpdatedAt,
+  } = useQuery({
     queryKey: ['partner-balance-breakdown', partnerId],
-    queryFn: () => fetchPartnerBalanceBreakdown(),
+    queryFn: () =>
+      fetchPartnerBalanceBreakdown({ limit: PARTNER_LEDGER_PAGE_SIZE, offset: 0 }),
     enabled: !!partnerId,
     staleTime: 30 * 1000,
   })
+
+  useEffect(() => {
+    if (balanceDataUpdatedAtRef.current !== balanceDataUpdatedAt) {
+      balanceDataUpdatedAtRef.current = balanceDataUpdatedAt
+      setLedgerExtraPages([])
+    }
+  }, [balanceDataUpdatedAt])
+
+  const { data: resolvedLedgerEntryData } = useQuery({
+    queryKey: ['partner-ledger-entry-resolve', partnerId, deepLinkLedgerEntryId],
+    queryFn: () =>
+      fetchPartnerBalanceBreakdown({
+        limit: 0,
+        offset: 0,
+        ledgerEntry: deepLinkLedgerEntryId,
+      }),
+    enabled: !!partnerId && !!deepLinkLedgerEntryId,
+    staleTime: 60 * 1000,
+  })
+
+  const resolvedLedgerEntry =
+    resolvedLedgerEntryData?.resolvedLedgerEntry ?? balanceBreakdownRaw?.resolvedLedgerEntry ?? null
+
+  const ledgerTransactions = useMemo(() => {
+    const firstPage = balanceBreakdownRaw?.recentLedgerTransactions || []
+    if (!ledgerExtraPages.length) return firstPage
+    const extra = ledgerExtraPages.flatMap((page) => page.recentLedgerTransactions || [])
+    return [...firstPage, ...extra]
+  }, [balanceBreakdownRaw?.recentLedgerTransactions, ledgerExtraPages])
+
+  const ledgerHasMore = useMemo(() => {
+    if (ledgerExtraPages.length > 0) {
+      const last = ledgerExtraPages[ledgerExtraPages.length - 1]
+      return last?.ledgerPagination?.hasMore === true
+    }
+    return balanceBreakdownRaw?.ledgerPagination?.hasMore === true
+  }, [balanceBreakdownRaw?.ledgerPagination?.hasMore, ledgerExtraPages])
+
+  const balanceBreakdown = useMemo(() => {
+    if (!balanceBreakdownRaw) return balanceBreakdownRaw
+    return {
+      ...balanceBreakdownRaw,
+      recentLedgerTransactions: ledgerTransactions,
+    }
+  }, [balanceBreakdownRaw, ledgerTransactions])
+
+  const loadMoreLedger = useCallback(async () => {
+    if (!partnerId || ledgerLoadingMore || !ledgerHasMore) return
+    setLedgerLoadingMore(true)
+    try {
+      const offset = ledgerTransactions.length
+      const page = await fetchPartnerBalanceBreakdown({
+        limit: PARTNER_LEDGER_PAGE_SIZE,
+        offset,
+      })
+      setLedgerExtraPages((prev) => [...prev, page])
+    } catch (e) {
+      console.warn('[FINANCES] ledger load more failed', e)
+      toast.error(t('partnerFinances_ledgerLoadMoreError'))
+    } finally {
+      setLedgerLoadingMore(false)
+    }
+  }, [partnerId, ledgerLoadingMore, ledgerHasMore, ledgerTransactions.length, t])
 
   const {
     data: payoutPreview,
@@ -340,6 +413,8 @@ export function usePartnerFinances() {
     language,
     t,
     escrowBookingFilter,
+    deepLinkLedgerEntryId,
+    resolvedLedgerEntry,
     transactionSectionRef,
     partnerId,
     defaultPayoutProfile,
@@ -372,6 +447,9 @@ export function usePartnerFinances() {
     payoutsErr,
     refetchPayouts,
     balanceBreakdown,
+    ledgerHasMore,
+    ledgerLoadingMore,
+    loadMoreLedger,
     payoutPreview,
     payoutPreviewLoading,
     refetchPayoutPreview,

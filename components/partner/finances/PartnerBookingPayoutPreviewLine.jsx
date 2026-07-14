@@ -16,16 +16,19 @@ export function PartnerBookingPayoutPreviewLine({ t, preview, loading }) {
     return null
   }
 
-  const { primary, usesServerPayout } = getPayoutDisplay(preview)
+  const { primary, secondary, usesServerPayout } = getPayoutDisplay(preview)
   const netThb = formatThbLedgerSecondary(preview.baseAmountThb ?? 0)
   const feeThb = formatThbLedgerSecondary(preview.feeAmountThb ?? 0)
   const finalThb = formatThbLedgerSecondary(preview.finalAmountThb ?? 0)
 
-  if (usesServerPayout) {
+  if (usesServerPayout && secondary) {
     return (
       <div className="text-xs text-indigo-700 space-y-0.5">
         <p className="font-medium tabular-nums">
-          {interpolateTemplate(t('partnerFinances_payoutLinePrimary'), { payoutPrimary: primary })}
+          {interpolateTemplate(t('partnerFinances_payoutLineDisplay'), { amount: primary })}
+        </p>
+        <p className="text-slate-600 tabular-nums">
+          {interpolateTemplate(t('partnerFinances_payoutLineRail'), { amount: secondary })}
         </p>
         <p className="text-slate-500 tabular-nums">
           {interpolateTemplate(t('partnerFinances_payoutLineThbAccounting'), {
