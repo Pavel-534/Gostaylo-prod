@@ -12,7 +12,7 @@ import EscrowService from '@/lib/services/escrow.service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { LedgerService } from '@/lib/services/ledger.service';
 
-export const LEDGER_TX_DEFAULT_LIMIT = 40;
+const LEDGER_TX_DEFAULT_LIMIT = 40;
 const LEDGER_TX_MAX_LIMIT = 100;
 
 function clampLedgerLimit(raw) {
