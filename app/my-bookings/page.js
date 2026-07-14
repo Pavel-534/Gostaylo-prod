@@ -396,8 +396,18 @@ function MyBookingsContent() {
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-0">
-            <OrdersSummary role="renter" visibleCount={visibleBookings.length} currencyTotals={spendTotals} />
-            <OrderTypeFilter activeType={activeType} counters={typeCounters} onChange={handleTypeSwitch} />
+            <OrdersSummary
+              role="renter"
+              language={language}
+              visibleCount={visibleBookings.length}
+              currencyTotals={spendTotals}
+            />
+            <OrderTypeFilter
+              activeType={activeType}
+              counters={typeCounters}
+              onChange={handleTypeSwitch}
+              language={language}
+            />
 
             {typeSwitchLoading ? (
               <OrdersListSkeleton count={2} />

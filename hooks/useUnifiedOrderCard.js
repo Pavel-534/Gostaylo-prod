@@ -126,9 +126,12 @@ export function useUnifiedOrderCard({
   const guestName =
     booking?.guestName ||
     [booking?.renter?.first_name, booking?.renter?.last_name].filter(Boolean).join(' ') ||
-    'Гость'
-  const guestPhone = booking?.guestPhone || booking?.renter?.phone || null
-  const guestEmail = booking?.guestEmail || booking?.renter?.email || null
+    [booking?.renter?.firstName, booking?.renter?.lastName].filter(Boolean).join(' ') ||
+    getUIText('guest', language)
+  const guestPhone =
+    normalizedRole === 'partner' ? null : booking?.guestPhone || booking?.renter?.phone || null
+  const guestEmail =
+    normalizedRole === 'partner' ? null : booking?.guestEmail || booking?.renter?.email || null
   const listingImageRaw =
     listing?.images?.[0] || listing?.coverImage || listing?.cover_image || null
   const listingImage = listingImageRaw

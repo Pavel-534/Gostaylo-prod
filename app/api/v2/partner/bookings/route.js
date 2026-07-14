@@ -16,6 +16,7 @@ import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust
 import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
+import { sanitizePartnerBookingForClient } from '@/lib/partner/partner-booking-client-dto'
 import { REVIEW_MODERATION_APPROVED } from '@/lib/reviews/moderation-status.js'
 
 export const dynamic = 'force-dynamic'
@@ -147,10 +148,12 @@ export async function GET(request) {
       
       // Transform to camelCase
       const dc = await resolveDefaultCommissionPercent()
-      let transformed = filtered.map((b) => ({
-        ...transformPartnerBookingToClient(b, dc),
-        financial_snapshot: buildBookingFinancialSnapshotFromRow(b),
-      }))
+      let transformed = filtered.map((b) =>
+        sanitizePartnerBookingForClient({
+          ...transformPartnerBookingToClient(b, dc),
+          financial_snapshot: buildBookingFinancialSnapshotFromRow(b),
+        }),
+      )
       transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
       transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
       transformed = await attachPartnerTrustToBookings(transformed)
@@ -187,8 +190,7 @@ export async function GET(request) {
         renter:profiles!renter_id (
           id,
           first_name,
-          last_name,
-          email
+          last_name
         )
       `)
       .eq('partner_id', userId) // SECURITY: Filter by owner_id
@@ -215,10 +217,12 @@ export async function GET(request) {
     
     // 6. Transform to camelCase + guest rating / pending guest review
     const dc = await resolveDefaultCommissionPercent()
-    let transformed = (bookings || []).map((b) => ({
-      ...transformPartnerBookingToClient(b, dc),
-      financial_snapshot: buildBookingFinancialSnapshotFromRow(b),
-    }))
+    let transformed = (bookings || []).map((b) =>
+      sanitizePartnerBookingForClient({
+        ...transformPartnerBookingToClient(b, dc),
+        financial_snapshot: buildBookingFinancialSnapshotFromRow(b),
+      }),
+    )
     transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
     transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
     transformed = await attachDisputeToBookings(supabaseAdmin, transformed)

@@ -1,7 +1,6 @@
 ﻿'use client'
 
-import { ProxiedImage } from '@/components/proxied-image'
-import { Car, Home, Key, Mail, Phone, Star } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import OrderTimeline from '@/components/orders/OrderTimeline'
 import { OrderCardFinancials } from '@/components/orders/card-parts/OrderCardFinancials'
@@ -11,10 +10,13 @@ import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextSt
 import { HostBookingNextStepsCard } from '@/components/partner/HostBookingNextStepsCard'
 import { HostMoneyTimelineChip } from '@/components/partner/HostMoneyTimelineChip'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
+import { Car, Key } from 'lucide-react'
+import { ProxiedImage } from '@/components/proxied-image'
 
 /** Timeline, trust, pricing block, check-in media, admin parties, escrow callouts, partner guest card. */
 export function OrderCardMainSections({
   language,
+  density = 'full',
   normalizedRole,
   booking,
   normalizedOrder,
@@ -30,16 +32,16 @@ export function OrderCardMainSections({
   checkInInstructionsText,
   checkInPhotoUrls,
   onPhotoClick,
-  listingImage,
   guestName,
-  guestPhone,
-  guestEmail,
   supportChatHref = null,
   listingCategorySlug = null,
   wizardProfile = null,
 }) {
+  const isPartnerCompact = normalizedRole === 'partner' && density === 'compact'
   const partnerEscrowCallout =
-    normalizedRole === 'partner' ? resolvePartnerEscrowCallout(booking, status, language) : null
+    normalizedRole === 'partner' && !isPartnerCompact
+      ? resolvePartnerEscrowCallout(booking, status, language)
+      : null
   const partnerCalloutToneClass =
     partnerEscrowCallout?.tone === 'sky'
       ? 'border-sky-200 bg-sky-50 text-sky-900'
@@ -68,7 +70,7 @@ export function OrderCardMainSections({
           surface="my_bookings"
         />
       ) : null}
-      {normalizedRole === 'partner' && bookingId ? (
+      {normalizedRole === 'partner' && bookingId && !isPartnerCompact ? (
         <HostBookingNextStepsCard
           booking={booking}
           bookingId={bookingId}
@@ -78,14 +80,16 @@ export function OrderCardMainSections({
         />
       ) : null}
 
-      <OrderTimeline
-        status={status}
-        type={normalizedOrder.type}
-        language={language}
-        reviewed={reviewed}
-        checkOut={checkOut}
-      />
-      {normalizedRole === 'partner' ? (
+      {!isPartnerCompact ? (
+        <OrderTimeline
+          status={status}
+          type={normalizedOrder.type}
+          language={language}
+          reviewed={reviewed}
+          checkOut={checkOut}
+        />
+      ) : null}
+      {normalizedRole === 'partner' && !isPartnerCompact ? (
         <HostMoneyTimelineChip status={status} language={language} bookingContext={booking} />
       ) : null}
 
@@ -93,16 +97,18 @@ export function OrderCardMainSections({
         <PartnerRenterTrustBadges trust={partnerTrustPublic} language={language} />
       ) : null}
 
-      <OrderCardFinancials
-        booking={booking}
-        language={language}
-        normalizedRole={normalizedRole}
-        partnerFinanceOpen={partnerFinanceOpen}
-        setPartnerFinanceOpen={setPartnerFinanceOpen}
-        title={title}
-        bookingId={bookingId}
-        status={status}
-      />
+      {!isPartnerCompact ? (
+        <OrderCardFinancials
+          booking={booking}
+          language={language}
+          normalizedRole={normalizedRole}
+          partnerFinanceOpen={partnerFinanceOpen}
+          setPartnerFinanceOpen={setPartnerFinanceOpen}
+          title={title}
+          bookingId={bookingId}
+          status={status}
+        />
+      ) : null}
 
       {normalizedRole === 'renter' && (checkInInstructionsText || checkInPhotoUrls.length > 0) ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
@@ -180,42 +186,23 @@ export function OrderCardMainSections({
         </div>
       ) : null}
 
-      {normalizedRole === 'partner' ? (
-        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-              {listingImage ? (
-                <ProxiedImage src={listingImage} alt={title} fill className="object-cover" sizes="48px" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Home className="h-5 w-5 text-slate-300" />
-                </div>
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-slate-900 text-sm truncate">{guestName}</p>
-              {booking?.guestRatingAverage != null ? (
-                <p className="text-xs text-amber-700 inline-flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-                  {Number(booking.guestRatingAverage).toFixed(1)}
-                </p>
-              ) : null}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
-            {guestPhone ? (
-              <div className="flex items-center gap-1.5">
-                <Phone className="h-3 w-3 text-slate-400" />
-                <span>{guestPhone}</span>
-              </div>
-            ) : null}
-            {guestEmail ? (
-              <div className="flex items-center gap-1.5">
-                <Mail className="h-3 w-3 text-slate-400" />
-                <span className="truncate">{guestEmail}</span>
-              </div>
+      {normalizedRole === 'partner' && !isPartnerCompact && guestName ? (
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+            {getUIText('orderCard_guestLabel', language)}
+          </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="font-medium text-slate-900 text-sm truncate">{guestName}</p>
+            {booking?.guestRatingAverage != null ? (
+              <p className="text-xs text-amber-700 inline-flex items-center gap-1 shrink-0">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-500" aria-hidden />
+                {Number(booking.guestRatingAverage).toFixed(1)}
+              </p>
             ) : null}
           </div>
+          <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+            {getUIText('orderCard_guestContactViaChat', language)}
+          </p>
         </div>
       ) : null}
     </>

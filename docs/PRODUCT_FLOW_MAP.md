@@ -374,7 +374,7 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 | **P1-6** | CHECKED_IN vs THAWED product doc | ✅ **108.4** | `status-transitions.js` table, `BOOKING_STATUS_OWNER_HINTS_RU`, partner finances tooltip | «Гость заехал» ≠ «Разморожено» в UI |
 | **P1-7** | Client `BOOKING_STATUS` parity | ✅ **108.4** | `BOOKING_STATUS_CODES`, `BOOKING_ESCROW_PIPELINE_STATUSES`, `escrow/constants.js` | All pipeline statuses in client SSOT |
 | **P1-8** | Pricing service rename clarity | ✅ **108.5** | `PricingCatalogService`, `BookingSettlementPricing` | Алиасы в коде + карта в `PRICING_SERVICES.md` |
-| **P1-9** | Smoke 6e: `max_capacity=1` atomic RPC date conflict | backlog | `lib/smoke/checkout-acquiring-smoke-shared.js`, `create_booking_atomic_v1` | Second `POST /bookings` on overlapping dates → **409 `DATES_CONFLICT`**; сейчас **200** (Stage 149 regression). Не блокирует checkout→escrow (шаги 1–6d PASS). |
+| **P1-9** | Smoke 6e: `max_capacity=1` atomic RPC date conflict | ✅ **184.0** | `sync_listing_counts_from_metadata`, smoke `max_guests: 1` | Second `POST /bookings` on overlapping dates → **409 `DATES_CONFLICT`**; trigger no longer bumps explicit cap 1 → 4 |
 
 **Suggested branch names:** `refactor/p1-chat-send-ssot`, `refactor/p1-chat-inbox-dedup`, `chore/p1-dead-components`, `docs/p1-checkedin-thaw`, `fix/p1-booking-status-constants`
 

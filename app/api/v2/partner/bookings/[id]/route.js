@@ -14,6 +14,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
+import { sanitizePartnerBookingForClient } from '@/lib/partner/partner-booking-client-dto'
 import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 import { validatePartnerBookingStatusTransition } from '@/lib/booking/status-transitions.js'
 import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js'
@@ -40,8 +41,7 @@ const PARTNER_BOOKING_DETAIL_SELECT = `
   renter:profiles!renter_id (
     id,
     first_name,
-    last_name,
-    email
+    last_name
   )
 `
 
@@ -96,7 +96,7 @@ export async function GET(request, { params }) {
       .maybeSingle()
     if (conv?.id) merged = { ...merged, conversationId: conv.id }
 
-    return NextResponse.json({ status: 'success', data: merged })
+    return NextResponse.json({ status: 'success', data: sanitizePartnerBookingForClient(merged) })
   } catch (error) {
     return NextResponse.json({ status: 'error', error: error.message }, { status: 500 })
   }

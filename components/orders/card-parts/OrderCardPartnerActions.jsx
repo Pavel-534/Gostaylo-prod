@@ -17,11 +17,17 @@ export function OrderCardPartnerActions({
   showConfirm,
   showDecline,
   showComplete,
+  /** Full-width vertical stack for drawer / mobile (Stage 176.2). */
+  stacked = false,
 }) {
+  const rowClass = stacked ? 'flex flex-col gap-2 pt-1' : 'flex flex-wrap gap-2 pt-1'
+  const btnClass = stacked ? 'w-full min-h-[44px]' : undefined
+  const confirmClass = stacked ? 'w-full min-h-[44px] bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
+
   return (
-    <div className="flex flex-wrap gap-2 pt-1">
+    <div className={rowClass}>
       {showConfirm ? (
-        <Button type="button" onClick={() => onConfirm?.(booking)} disabled={isBusy} className="bg-green-600 hover:bg-green-700">
+        <Button type="button" onClick={() => onConfirm?.(booking)} disabled={isBusy} className={confirmClass}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
           {getUIText('orderAction_confirm', language)}
         </Button>
@@ -33,7 +39,7 @@ export function OrderCardPartnerActions({
           variant="outline"
           onClick={() => onDecline?.(booking)}
           disabled={isBusy}
-          className="text-red-700 border-red-200 hover:bg-red-50"
+          className={stacked ? 'w-full min-h-[44px] text-red-700 border-red-200 hover:bg-red-50' : 'text-red-700 border-red-200 hover:bg-red-50'}
         >
           <X className="h-4 w-4 mr-2" />
           {getUIText('orderAction_decline', language)}
@@ -41,14 +47,14 @@ export function OrderCardPartnerActions({
       ) : null}
 
       {showComplete ? (
-        <Button type="button" variant="outline" onClick={() => onComplete?.(booking)} disabled={isBusy}>
+        <Button type="button" variant="outline" onClick={() => onComplete?.(booking)} disabled={isBusy} className={btnClass}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
           {getUIText('orderAction_complete', language)}
         </Button>
       ) : null}
 
       {bookingId ? (
-        <Button type="button" variant="outline" onClick={onOpenHelp}>
+        <Button type="button" variant="outline" onClick={onOpenHelp} className={btnClass}>
           <LifeBuoy className="h-4 w-4 mr-2" />
           {getUIText('orderAction_help', language)}
         </Button>

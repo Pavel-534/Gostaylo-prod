@@ -4,43 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Receipt } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
-import { buildGuestPriceBreakdownFromBooking } from '@/lib/booking/guest-price-breakdown'
 import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
-
-/** Partner order card footer — SSOT: snapshot → breakdown → booking columns. */
-function resolvePartnerOrderFooterAmounts(booking, partnerEarnings) {
-  const snap = booking?.financial_snapshot
-  let guestPaid = null
-  if (snap && typeof snap === 'object') {
-    const gp = Number(snap.guestPayableThb)
-    if (Number.isFinite(gp) && gp > 0) guestPaid = gp
-  }
-  if (guestPaid == null) {
-    const breakdown = buildGuestPriceBreakdownFromBooking(booking)
-    if (breakdown.hasDetail && breakdown.totalThb > 0) guestPaid = breakdown.totalThb
-  }
-  if (guestPaid == null) {
-    const paid = Number(booking?.price_paid ?? booking?.pricePaid)
-    const thb = Number(booking?.price_thb ?? booking?.priceThb)
-    const fallback = Number.isFinite(paid) && paid > 0 ? paid : thb
-    if (Number.isFinite(fallback) && fallback > 0) guestPaid = fallback
-  }
-
-  let net = Number(partnerEarnings)
-  if (!Number.isFinite(net) && snap && typeof snap === 'object') {
-    net = Number(snap.partnerPayoutThb ?? snap.net ?? snap.partner_earnings_thb)
-  }
-  if (!Number.isFinite(net)) {
-    net = Number(booking?.partner_earnings_thb ?? booking?.partnerEarningsThb)
-  }
-
-  return {
-    guestPaid: Number.isFinite(guestPaid) && guestPaid > 0 ? guestPaid : null,
-    netEarnings: Number.isFinite(net) && net > 0 ? net : null,
-  }
-}
+import { resolvePartnerOrderFooterAmounts } from '@/lib/partner/partner-booking-card-model'
 
 /**
  * Price breakdown, partner financial snapshot entry, footer totals row.
@@ -98,9 +65,21 @@ export function OrderCardFinancialTotals({
   normalizedOrder,
   partnerEarnings,
   hasUnifiedTotal,
+  compact = false,
 }) {
   if (normalizedRole === 'partner') {
     const { guestPaid, netEarnings } = resolvePartnerOrderFooterAmounts(booking, partnerEarnings)
+    if (compact) {
+      if (netEarnings == null) return null
+      return (
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
+          <p className="text-sm text-slate-600">{getUIText('netEarnings', language)}</p>
+          <p className="text-lg font-semibold text-brand-hover tabular-nums">
+            <PartnerHostLedgerAmount thb={netEarnings} />
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="flex items-start justify-between gap-3 pt-3 border-t">
         <div>

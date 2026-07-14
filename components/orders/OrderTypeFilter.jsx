@@ -1,28 +1,31 @@
-﻿import { Button } from '@/components/ui/button'
-import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
+﻿'use client'
 
-const FILTERS = [
-  { id: 'all', label: 'Все', icon: null },
-  { id: 'home', label: 'Жильё', icon: 'home' },
-  { id: 'transport', label: 'Транспорт', icon: 'transport' },
-  { id: 'activity', label: 'Активности', icon: 'activity' },
+import { Button } from '@/components/ui/button'
+import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
+import { getUIText } from '@/lib/translations'
+
+const FILTER_IDS = [
+  { id: 'all', labelKey: 'all', icon: null },
+  { id: 'home', labelKey: 'orderTypeFilter_home', icon: 'home' },
+  { id: 'transport', labelKey: 'orderTypeFilter_transport', icon: 'transport' },
+  { id: 'activity', labelKey: 'orderTypeFilter_activity', icon: 'activity' },
 ]
 
-export default function OrderTypeFilter({ activeType = 'all', counters = {}, onChange }) {
+export default function OrderTypeFilter({ activeType = 'all', counters = {}, onChange, language = 'ru' }) {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2">
-      {FILTERS.map((item) => {
+      {FILTER_IDS.map((item) => {
         const active = activeType === item.id
         return (
           <Button
             key={item.id}
             type="button"
             variant={active ? 'brand' : 'outline'}
-            className={active ? '' : undefined}
+            className="min-h-[44px]"
             onClick={() => onChange?.(item.id)}
           >
             {item.icon ? <OrderTypeIcon type={item.icon} className="mr-2" /> : null}
-            {item.label} ({counters?.[item.id] || 0})
+            {getUIText(item.labelKey, language)} ({counters?.[item.id] || 0})
           </Button>
         )
       })}

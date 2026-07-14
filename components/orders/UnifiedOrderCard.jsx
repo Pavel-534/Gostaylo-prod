@@ -20,6 +20,10 @@ export default function UnifiedOrderCard({
   unifiedOrder,
   role = 'renter',
   language = 'ru',
+  /** `compact` — partner list: hide breakdown/timeline/PII; keep footer totals + actions. */
+  density = 'full',
+  /** `drawer` — partner detail sheet: flat card + sticky action footer (Stage 176.2). */
+  layout = 'default',
   isBusy = false,
   cardAnchorId = null,
   onConfirm = null,
@@ -44,11 +48,38 @@ export default function UnifiedOrderCard({
 
   const orderTypeLabel = getOrderTypeLabel(u.normalizedOrder.type, language)
   const orderRefTemplate = getUIText('orderCard_orderRef', language)
+  const isPartnerCompact = u.normalizedRole === 'partner' && density === 'compact'
+  const isPartnerDrawer = u.normalizedRole === 'partner' && layout === 'drawer'
+
+  const partnerActions =
+    u.normalizedRole === 'partner' ? (
+      <OrderCardPartnerActions
+        language={language}
+        booking={booking}
+        bookingId={u.bookingId}
+        isBusy={isBusy}
+        onConfirm={onConfirm}
+        onDecline={onDecline}
+        onComplete={onComplete}
+        onOpenHelp={() => {
+          u.setHelpStep('main')
+          u.setHelpOpen(true)
+        }}
+        showConfirm={u.showPartnerConfirm}
+        showDecline={u.showPartnerDecline}
+        showComplete={u.showPartnerComplete}
+        stacked={isPartnerDrawer}
+      />
+    ) : null
 
   return (
     <>
       <Card
-        className="rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
+        className={
+          isPartnerDrawer
+            ? 'rounded-2xl overflow-hidden border-0 shadow-none bg-transparent'
+            : 'rounded-2xl overflow-hidden hover:shadow-md transition-shadow'
+        }
         data-booking-card={cardAnchorId || u.bookingId}
       >
         <OrderCardHeader
@@ -68,6 +99,7 @@ export default function UnifiedOrderCard({
         <CardContent className="space-y-4">
           <OrderCardMainSections
             language={language}
+            density={density}
             normalizedRole={u.normalizedRole}
             booking={booking}
             normalizedOrder={u.normalizedOrder}
@@ -109,6 +141,7 @@ export default function UnifiedOrderCard({
             normalizedOrder={u.normalizedOrder}
             partnerEarnings={u.partnerEarnings}
             hasUnifiedTotal={u.hasUnifiedTotal}
+            compact={isPartnerCompact}
           />
 
           {u.normalizedRole !== 'admin' && u.conversationId ? (
@@ -156,23 +189,12 @@ export default function UnifiedOrderCard({
             />
           ) : null}
 
-          {u.normalizedRole === 'partner' ? (
-            <OrderCardPartnerActions
-              language={language}
-              booking={booking}
-              bookingId={u.bookingId}
-              isBusy={isBusy}
-              onConfirm={onConfirm}
-              onDecline={onDecline}
-              onComplete={onComplete}
-              onOpenHelp={() => {
-                u.setHelpStep('main')
-                u.setHelpOpen(true)
-              }}
-              showConfirm={u.showPartnerConfirm}
-              showDecline={u.showPartnerDecline}
-              showComplete={u.showPartnerComplete}
-            />
+          {u.normalizedRole === 'partner' && !isPartnerDrawer ? partnerActions : null}
+
+          {isPartnerDrawer ? (
+            <div className="sticky bottom-0 z-10 -mx-1 mt-2 border-t border-slate-200 bg-background/95 px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/90">
+              {partnerActions}
+            </div>
           ) : null}
 
           <OrderCardHelpDialogs

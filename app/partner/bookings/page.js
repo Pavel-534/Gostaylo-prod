@@ -1,29 +1,15 @@
 /**
  * GoStayLo - Partner Bookings Page (v2 API)
- * 
- * STERILIZED: All data flows through API v2
- * Uses TanStack Query for reactive state management
- * 
- * @updated 2026-03-13 - Phase 1 Sterilization
+ *
+ * Stage 185.0 — Master-Detail: compact list + detail drawer + status tabs.
  */
 
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { 
-  Calendar, Loader2, AlertCircle, Inbox
-} from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
+import { Calendar, Loader2, AlertCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -41,58 +27,32 @@ import { getUIText } from '@/lib/translations'
 import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
 import { OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
-import { WorkspaceEmptyState } from '@/components/empty-state'
 import { PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
-
-function toIsoOrNull(value) {
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d.toISOString()
-}
-
-function inferTypeFromSlug(slug) {
-  const s = String(slug || '').toLowerCase()
-  if (s.includes('vehicle') || s.includes('transport') || s.includes('bike') || s.includes('car')) {
-    return 'transport'
-  }
-  if (s.includes('tour') || s.includes('activity')) return 'activity'
-  return 'home'
-}
-
-function buildPartnerUnifiedOrder(booking) {
-  const listing = booking?.listing || booking?.listings || {}
-  const categorySlug =
-    listing?.category_slug ||
-    listing?.category?.slug ||
-    listing?.metadata?.category_slug ||
-    booking?.metadata?.listing_category_slug
-  return {
-    id: String(booking?.id || ''),
-    type: inferTypeFromSlug(categorySlug),
-    status: String(booking?.status || '').toUpperCase(),
-    total_price: Number(booking?.guestPayableThb ?? booking?.priceThb),
-    currency: 'THB',
-    dates: {
-      check_in: toIsoOrNull(booking?.checkIn || booking?.check_in),
-      check_out: toIsoOrNull(booking?.checkOut || booking?.check_out),
-      created_at: toIsoOrNull(booking?.createdAt || booking?.created_at),
-      updated_at: toIsoOrNull(booking?.updatedAt || booking?.updated_at),
-    },
-    metadata: booking?.metadata && typeof booking.metadata === 'object' ? booking.metadata : {},
-  }
-}
+import { PartnerBookingStatusTabs } from '@/components/partner/bookings/PartnerBookingStatusTabs'
+import { PartnerBookingList } from '@/components/partner/bookings/PartnerBookingList'
+import { PageSectionHeader } from '@/components/product/PageSectionHeader'
+import { PartnerPageShell } from '@/components/product/PartnerPageShell'
+import {
+  filterPartnerBookingsByTab,
+  countPartnerBookingsByTab,
+  tabForPartnerBookingDeepLink,
+} from '@/lib/booking/partner-bookings-tabs'
+import { buildPartnerUnifiedOrder } from '@/lib/partner/partner-booking-card-model'
 
 export default function PartnerBookings() {
   const { language } = useI18n()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const deepLinkHandled = useRef(false)
   const { user, loading: authLoading, isAuthenticated } = useAuth()
-  const [filter, setFilter] = useState('all')
+  const [activeTab, setActiveTab] = useState('all')
   const [activeType, setActiveType] = useState('all')
+  const [selectedBookingId, setSelectedBookingId] = useState(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null })
   const [rejectReason, setRejectReason] = useState('')
   const [fallbackPartnerId, setFallbackPartnerId] = useState(null)
 
-  // Fallback partnerId from localStorage (when useAuth is delayed or user from different source)
   useEffect(() => {
     if (user?.id) return
     const stored = localStorage.getItem('gostaylo_user')
@@ -106,22 +66,13 @@ export default function PartnerBookings() {
 
   const partnerId = user?.id || fallbackPartnerId
 
-  // TanStack Query hook for bookings
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    error,
-    refetch
-  } = usePartnerBookings(partnerId, {
-    status: filter,
-    enabled: !!partnerId
+  const { data, isLoading, isError, error, refetch } = usePartnerBookings(partnerId, {
+    status: 'all',
+    enabled: !!partnerId,
   })
-  
-  // Mutation hook for status updates
+
   const updateStatusMutation = useUpdateBookingStatus()
-  
-  // Extract bookings and meta from query response
+
   const bookings = data?.bookings || []
   const bookingsWithUnified = useMemo(
     () =>
@@ -132,79 +83,89 @@ export default function PartnerBookings() {
     [bookings],
   )
 
+  const typeFilteredBookings = useMemo(() => {
+    if (activeType === 'all') return bookingsWithUnified
+    return bookingsWithUnified.filter((booking) => booking?._unified?.type === activeType)
+  }, [activeType, bookingsWithUnified])
+
+  const tabCounters = useMemo(() => countPartnerBookingsByTab(typeFilteredBookings), [typeFilteredBookings])
+
+  const visibleBookings = useMemo(
+    () => filterPartnerBookingsByTab(typeFilteredBookings, activeTab),
+    [activeTab, typeFilteredBookings],
+  )
+
   const typeCounters = useMemo(() => {
-    const counters = { all: bookingsWithUnified.length, home: 0, transport: 0, activity: 0 }
-    for (const booking of bookingsWithUnified) {
+    const tabbed = filterPartnerBookingsByTab(bookingsWithUnified, activeTab)
+    const counters = { all: tabbed.length, home: 0, transport: 0, activity: 0 }
+    for (const booking of tabbed) {
       const type = booking?._unified?.type || 'home'
       if (counters[type] == null) counters[type] = 0
       counters[type] += 1
     }
     return counters
-  }, [bookingsWithUnified])
+  }, [activeTab, bookingsWithUnified])
 
-  const visibleBookings = useMemo(() => {
-    if (activeType === 'all') return bookingsWithUnified
-    return bookingsWithUnified.filter((booking) => booking?._unified?.type === activeType)
-  }, [activeType, bookingsWithUnified])
+  const openBookingDrawer = useCallback((bookingId) => {
+    setSelectedBookingId(String(bookingId))
+    setDrawerOpen(true)
+  }, [])
 
-  const forcedAllForDeepLink = useRef(false)
+  const handleDrawerOpenChange = useCallback((open) => {
+    setDrawerOpen(open)
+    if (!open) {
+      setSelectedBookingId(null)
+      const tid = searchParams.get('booking')
+      if (tid) {
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('booking')
+        const qs = params.toString()
+        router.replace(qs ? `/partner/bookings?${qs}` : '/partner/bookings', { scroll: false })
+      }
+    }
+  }, [router, searchParams])
+
   useEffect(() => {
     const tid = searchParams.get('booking')
-    if (!tid || forcedAllForDeepLink.current) return
-    forcedAllForDeepLink.current = true
-    setFilter('all')
-  }, [searchParams])
-
-  // ?booking=id — скролл к карточке после загрузки списка (фильтр «все»)
-  useEffect(() => {
-    const tid = searchParams.get('booking')
-    if (!tid || deepLinkHandled.current || !bookings?.length) return
-    const exists = bookings.some((b) => String(b.id) === String(tid))
-    if (!exists) {
+    if (!tid || deepLinkHandled.current || !bookingsWithUnified.length) return
+    const match = bookingsWithUnified.find((b) => String(b.id) === String(tid))
+    if (!match) {
       deepLinkHandled.current = true
       return
     }
     deepLinkHandled.current = true
-    const tmr = window.setTimeout(() => {
-      const safe = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(tid) : tid.replace(/"/g, '')
-      const el = document.querySelector(`[data-booking-card="${safe}"]`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el?.classList.add('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
-      window.setTimeout(() => {
-        el?.classList.remove('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
-      }, 4000)
-    }, 200)
-    return () => window.clearTimeout(tmr)
-  }, [bookings, searchParams])
+    setActiveTab(tabForPartnerBookingDeepLink(match))
+    openBookingDrawer(match.id)
+  }, [bookingsWithUnified, openBookingDrawer, searchParams])
 
-  // Calculate stats from bookings
-  const stats = {
-    total: visibleBookings.length,
-    pending: visibleBookings.filter(b => b.status === 'PENDING').length,
-    confirmed: visibleBookings.filter(b =>
-      ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
-    ).length,
-    revenue: visibleBookings
-      .filter(b =>
-        ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'].includes(
-          b.status,
-        ),
-      )
-      .reduce((sum, b) => sum + (b.partnerEarningsThb || 0), 0),
-  }
+  const stats = useMemo(
+    () => ({
+      total: visibleBookings.length,
+      pending: visibleBookings.filter((b) => b.status === 'PENDING').length,
+      confirmed: visibleBookings.filter((b) =>
+        ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status),
+      ).length,
+      revenue: visibleBookings
+        .filter((b) =>
+          ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'].includes(
+            b.status,
+          ),
+        )
+        .reduce((sum, b) => sum + (b.partnerEarningsThb || 0), 0),
+    }),
+    [visibleBookings],
+  )
 
-  // Handle confirm booking
   const handleConfirm = (bookingOrId) => {
     const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
     if (!bookingId) return
     updateStatusMutation.mutate({
       bookingId,
       status: 'CONFIRMED',
-      partnerId: user?.id
+      partnerId: user?.id,
     })
   }
 
-  // Handle reject booking (opens dialog)
   const handleRejectClick = (bookingOrId) => {
     const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
     if (!bookingId) return
@@ -212,186 +173,143 @@ export default function PartnerBookings() {
     setRejectReason('')
   }
 
-  // Submit rejection
   const handleRejectSubmit = () => {
     if (!rejectDialog.bookingId) return
-    
-    updateStatusMutation.mutate({
-      bookingId: rejectDialog.bookingId,
-      status: 'CANCELLED',
-      reason: rejectReason,
-      partnerId
-    }, {
-      onSuccess: () => {
-        setRejectDialog({ open: false, bookingId: null })
-        setRejectReason('')
-      }
-    })
+    updateStatusMutation.mutate(
+      {
+        bookingId: rejectDialog.bookingId,
+        status: 'CANCELLED',
+        reason: rejectReason,
+        partnerId,
+      },
+      {
+        onSuccess: () => {
+          setRejectDialog({ open: false, bookingId: null })
+          setRejectReason('')
+        },
+      },
+    )
   }
 
-  // Handle complete booking
   const handleComplete = (bookingOrId) => {
     const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
     if (!bookingId) return
     updateStatusMutation.mutate({
       bookingId,
       status: 'COMPLETED',
-      partnerId
+      partnerId,
     })
   }
 
-  // Loading state
   if (authLoading || isLoading) {
     return (
       <div className="max-w-full overflow-x-hidden">
-        <div className="space-y-4">
-          <OrdersPageSkeleton />
-        </div>
+        <OrdersPageSkeleton />
       </div>
     )
   }
 
-  // Not authenticated
   if (!isAuthenticated && !fallbackPartnerId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-4">
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Требуется авторизация</h2>
-        <p className="text-slate-500 text-center mb-6">
-          Войдите в систему для просмотра бронирований
-        </p>
-        <Button asChild className="bg-teal-600 hover:bg-teal-700">
-          <Link href="/profile?login=true">Войти</Link>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          {getUIText('partnerBookings_authRequiredTitle', language)}
+        </h2>
+        <p className="text-slate-500 text-center mb-6">{getUIText('partnerBookings_authRequiredBody', language)}</p>
+        <Button asChild variant="brand">
+          <Link href="/profile?login=true">{getUIText('partnerBookings_login', language)}</Link>
         </Button>
       </div>
     )
   }
 
-  // Error state
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-4">
         <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Ошибка загрузки</h2>
-        <p className="text-slate-500 text-center mb-6">{error?.message || 'Не удалось загрузить бронирования'}</p>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          {getUIText('partnerBookings_loadErrorTitle', language)}
+        </h2>
+        <p className="text-slate-500 text-center mb-6">{error?.message || getUIText('partnerDashboard_errorBody', language)}</p>
         <Button onClick={() => refetch()} variant="outline">
-          Попробовать снова
+          {getUIText('partnerBookings_loadErrorRetry', language)}
         </Button>
       </div>
     )
   }
 
   return (
-    <div className="max-w-full overflow-x-hidden">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Бронирования</h1>
-        <p className="text-slate-600 mt-1">
-          Управляйте заказами и общайтесь с клиентами
-        </p>
-      </div>
+    <PartnerPageShell>
+      <PageSectionHeader
+        className="mb-6"
+        title={getUIText('partnerBreadcrumb_bookings', language)}
+        subtitle={getUIText('partnerBookings_pageSubtitle', language)}
+      />
 
-      <OrdersSummary role="partner" partnerStats={stats} />
+      <OrdersSummary role="partner" partnerStats={stats} language={language} />
       <PartnerHostMidFxFootnote t={(key) => getUIText(key, language)} className="mb-4" />
-      <OrderTypeFilter activeType={activeType} counters={typeCounters} onChange={setActiveType} />
 
-      {/* Filter */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{getUIText('all', language)}</SelectItem>
-            <SelectItem value="PENDING">{getUIText('chatBookingStatus_PENDING', language)}</SelectItem>
-            <SelectItem value="CONFIRMED">{getUIText('chatBookingStatus_CONFIRMED', language)}</SelectItem>
-            <SelectItem value="AWAITING_PAYMENT">{getUIText('chatBookingStatus_AWAITING_PAYMENT', language)}</SelectItem>
-            <SelectItem value="PAID">{getUIText('chatBookingStatus_PAID', language)}</SelectItem>
-            <SelectItem value="PAID_ESCROW">{getUIText('chatBookingStatus_PAID_ESCROW', language)}</SelectItem>
-            <SelectItem value="COMPLETED">{getUIText('chatBookingStatus_COMPLETED', language)}</SelectItem>
-            <SelectItem value="CANCELLED">{getUIText('chatBookingStatus_CANCELLED', language)}</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-sm text-slate-500">
-          {getUIText('partnerBookings_shownCount', language, { count: visibleBookings.length })}
-        </span>
-      </div>
+      <PartnerBookingStatusTabs
+        activeTab={activeTab}
+        counters={tabCounters}
+        onChange={setActiveTab}
+        language={language}
+      />
 
-      {/* Bookings List */}
-      {visibleBookings.length === 0 ? (
-        <WorkspaceEmptyState
-          icon={Inbox}
-          title={getUIText('partnerBookings_emptyTitle', language)}
-          hint={
-            filter !== 'all'
-              ? getUIText('partnerBookings_emptyFiltered', language)
-              : getUIText('partnerBookings_emptyHint', language)
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {visibleBookings.map((booking) => (
-            <div key={booking.id} data-testid={`booking-card-${booking.id}`}>
-              <UnifiedOrderCard
-                booking={booking}
-                unifiedOrder={booking._unified}
-                role="partner"
-                language={language}
-                cardAnchorId={booking.id}
-                isBusy={updateStatusMutation.isPending}
-                onConfirm={handleConfirm}
-                onDecline={handleRejectClick}
-                onComplete={handleComplete}
-              />
-              {booking.canSubmitGuestReview ? (
-                <div className="mt-2">
-                  <Button asChild variant="outline" className="border-amber-200 text-amber-900 hover:bg-amber-50">
-                    <Link href={`/partner/bookings/${encodeURIComponent(booking.id)}/guest-review`}>
-                      {getUIText('partnerBreadcrumb_reviews', language)}
-                    </Link>
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
+      <OrderTypeFilter
+        activeType={activeType}
+        counters={typeCounters}
+        onChange={setActiveType}
+        language={language}
+      />
 
-      {/* Reject Dialog */}
+      <p className="text-sm text-slate-500 mb-3">
+        {getUIText('partnerBookings_shownCount', language, { count: visibleBookings.length })}
+      </p>
+
+      <PartnerBookingList
+        bookings={visibleBookings}
+        language={language}
+        activeTab={activeTab}
+        selectedBookingId={selectedBookingId}
+        drawerOpen={drawerOpen}
+        onDrawerOpenChange={handleDrawerOpenChange}
+        onSelectBooking={openBookingDrawer}
+        isBusy={updateStatusMutation.isPending}
+        onConfirm={handleConfirm}
+        onDecline={handleRejectClick}
+        onComplete={handleComplete}
+        onQuickConfirm={handleConfirm}
+      />
+
       <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ open, bookingId: null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Отклонить бронирование</DialogTitle>
-            <DialogDescription>
-              Укажите причину отклонения (необязательно). Гость получит уведомление.
-            </DialogDescription>
+            <DialogTitle>{getUIText('partnerBookings_rejectTitle', language)}</DialogTitle>
+            <DialogDescription>{getUIText('partnerBookings_rejectDesc', language)}</DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder="Причина отклонения..."
+            placeholder={getUIText('partnerBookings_rejectPlaceholder', language)}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             className="min-h-[100px]"
           />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRejectDialog({ open: false, bookingId: null })}
-            >
-              Отмена
+            <Button variant="outline" onClick={() => setRejectDialog({ open: false, bookingId: null })}>
+              {getUIText('partnerBookings_rejectCancel', language)}
             </Button>
             <Button
               onClick={handleRejectSubmit}
               disabled={updateStatusMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {updateStatusMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Отклонить
+              {updateStatusMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {getUIText('partnerBookings_rejectSubmit', language)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PartnerPageShell>
   )
 }

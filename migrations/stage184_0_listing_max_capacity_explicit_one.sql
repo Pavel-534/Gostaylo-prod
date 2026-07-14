@@ -1,0 +1,112 @@
+-- Stage 184.0 — respect explicit max_capacity / max_guests = 1 on property listings
+-- Bug: stage177_3 trigger forced v_cap := 4 whenever v_cap <= 1, overriding studio/single-unit
+--       and breaking financial smoke 6e (atomic RPC max_capacity=1 date conflict).
+-- Fix: draft default 4 only when no explicit guest signal in metadata and no bedrooms.
+
+CREATE OR REPLACE FUNCTION public.sync_listing_counts_from_metadata()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_bedrooms integer;
+  v_bathrooms integer;
+  v_category_slug text;
+  v_meta_guests integer;
+  v_meta_guests_alt integer;
+  v_seats integer;
+  v_from_beds integer;
+  v_cap integer;
+BEGIN
+  IF NEW.metadata IS NULL OR jsonb_typeof(NEW.metadata) <> 'object' THEN
+    NEW.bedrooms_count := COALESCE(NEW.bedrooms_count, 0);
+    NEW.bathrooms_count := COALESCE(NEW.bathrooms_count, 0);
+    NEW.max_capacity := GREATEST(1, COALESCE(NEW.max_capacity, 1));
+    RETURN NEW;
+  END IF;
+
+  v_bedrooms := CASE
+    WHEN COALESCE(NEW.metadata->>'bedrooms', '') ~ '^\d+$'
+      THEN (NEW.metadata->>'bedrooms')::integer
+    ELSE NULL
+  END;
+
+  v_bathrooms := CASE
+    WHEN COALESCE(NEW.metadata->>'bathrooms', '') ~ '^\d+$'
+      THEN (NEW.metadata->>'bathrooms')::integer
+    ELSE NULL
+  END;
+
+  NEW.bedrooms_count := COALESCE(v_bedrooms, NEW.bedrooms_count, 0);
+  NEW.bathrooms_count := COALESCE(v_bathrooms, NEW.bathrooms_count, 0);
+
+  SELECT LOWER(COALESCE(c.slug, ''))
+  INTO v_category_slug
+  FROM public.categories c
+  WHERE c.id = NEW.category_id;
+
+  v_meta_guests := CASE
+    WHEN COALESCE(NEW.metadata->>'max_guests', '') ~ '^\d+$'
+      THEN (NEW.metadata->>'max_guests')::integer
+    ELSE 0
+  END;
+  v_meta_guests_alt := CASE
+    WHEN COALESCE(NEW.metadata->>'guests', '') ~ '^\d+$'
+      THEN (NEW.metadata->>'guests')::integer
+    ELSE 0
+  END;
+  v_seats := CASE
+    WHEN COALESCE(NEW.metadata->>'seats', '') ~ '^\d+$'
+      THEN (NEW.metadata->>'seats')::integer
+    ELSE 0
+  END;
+
+  v_cap := GREATEST(1, COALESCE(NEW.max_capacity, 1));
+
+  IF v_category_slug = 'vehicles'
+    OR v_category_slug IN ('helicopter', 'helicopters') THEN
+    IF v_seats > 0 THEN
+      v_cap := v_seats;
+    ELSE
+      v_cap := GREATEST(v_cap, GREATEST(v_meta_guests, v_meta_guests_alt, 2));
+    END IF;
+  ELSIF v_category_slug LIKE '%tour%'
+    OR v_category_slug LIKE '%yacht%'
+    OR v_category_slug LIKE '%boat%' THEN
+    v_cap := GREATEST(v_cap, v_meta_guests, v_meta_guests_alt);
+    IF v_cap <= 1 THEN
+      v_cap := GREATEST(v_cap, 2);
+    END IF;
+  ELSE
+    v_cap := GREATEST(v_cap, v_meta_guests, v_meta_guests_alt);
+    IF NEW.bedrooms_count > 0 THEN
+      v_from_beds := GREATEST(NEW.bedrooms_count * 2, NEW.bedrooms_count + 1);
+      IF v_cap <= 1 OR v_cap < v_from_beds THEN
+        v_cap := GREATEST(v_cap, v_from_beds);
+      END IF;
+    END IF;
+    -- Draft default only when partner has not set max_guests/guests and no bedroom-derived cap.
+    IF v_cap <= 1
+       AND GREATEST(v_meta_guests, v_meta_guests_alt) < 1
+       AND NEW.bedrooms_count < 1 THEN
+      v_cap := 4;
+    END IF;
+  END IF;
+
+  NEW.max_capacity := GREATEST(1, v_cap);
+
+  IF v_meta_guests < NEW.max_capacity THEN
+    NEW.metadata := jsonb_set(
+      COALESCE(NEW.metadata, '{}'::jsonb),
+      '{max_guests}',
+      to_jsonb(NEW.max_capacity),
+      true
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.sync_listing_counts_from_metadata() IS
+  'Stage 184.0 — sync bedrooms/bathrooms/max_capacity from metadata; property draft default 4 only without explicit max_guests.';
