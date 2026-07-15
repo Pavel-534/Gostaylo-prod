@@ -28,12 +28,9 @@ import { ReferralWithdrawalWaterfall } from '@/components/referral/ReferralWithd
 import { ReferralWithdrawalHistory } from '@/components/referral/ReferralWithdrawalHistory'
 import { ReferralWithdrawalStatusBanner } from '@/components/referral/ReferralWithdrawalStatusBanner'
 import { ReferralWalletStickyWithdraw } from '@/components/referral/ReferralWalletStickyWithdraw'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
+import { useCurrency } from '@/contexts/currency-context'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 
 export default function ProfileWalletPage() {
   const router = useRouter()
@@ -48,7 +45,8 @@ export default function ProfileWalletPage() {
   const { data: referralData, isLoading: referralLoading } = useReferralMeQuery({
     enabled: !authLoading && isAuthenticated,
   })
-  const [displayCurrency, setDisplayCurrency] = useState('THB')
+  const { currency, setCurrency } = useCurrency()
+  const { formatLedgerWithApprox, formatMinPayoutThreshold } = useReferralLedgerDisplay()
   const [withdrawRequesting, setWithdrawRequesting] = useState(false)
 
   useEffect(() => {
@@ -58,8 +56,11 @@ export default function ProfileWalletPage() {
       return
     }
     const reportPrefs = referralData?.referralReport || {}
-    setDisplayCurrency(normalizeReferralDisplayCurrency(reportPrefs?.displayCurrency || 'THB'))
-  }, [authLoading, isAuthenticated, referralData, router])
+    const saved = normalizeReferralDisplayCurrency(reportPrefs?.displayCurrency || '')
+    const headerExplicit =
+      typeof window !== 'undefined' && localStorage.getItem('gostaylo_currency_explicit') === '1'
+    if (saved && saved !== currency && !headerExplicit) setCurrency(saved)
+  }, [authLoading, isAuthenticated, referralData, router, currency, setCurrency])
 
   async function patchProfile(payload) {
     const res = await fetch('/api/v2/profile/me', {
@@ -74,7 +75,7 @@ export default function ProfileWalletPage() {
 
   async function saveDisplayCurrency(nextCur) {
     const safe = normalizeReferralDisplayCurrency(nextCur)
-    setDisplayCurrency(safe)
+    setCurrency(safe)
     try {
       await patchProfile({ referral_display_currency: safe })
       toast.success(t('stage1321_walletCurrencySaved'))
@@ -122,13 +123,19 @@ export default function ProfileWalletPage() {
   const recentTransactions = Array.isArray(walletData?.recentTransactions) ? walletData.recentTransactions : []
   const referralWithdrawRequested = payout?.referralWithdrawalStatus === 'withdrawable_referral'
   const blockerDetails = Array.isArray(payout?.blockerDetails) ? payout.blockerDetails : []
-  const payoutStatusLabel = payout?.payoutEligible
-    ? t('stage1321_walletPayoutEligible')
-    : referralWithdrawRequested
-      ? t('stage1321_walletPayoutRequested')
-      : blockerDetails[0]?.messageKey
-        ? t(blockerDetails[0].messageKey, blockerDetails[0].messageCtx || {})
-        : t('stage1321_walletPayoutBlocked')
+  const payoutStatusLabel = (() => {
+    if (payout?.payoutEligible) return t('stage1321_walletPayoutEligible')
+    if (referralWithdrawRequested) return t('stage1321_walletPayoutRequested')
+    const first = blockerDetails[0]
+    if (first?.messageKey === 'stage1322_blockerBelowMin' || first?.code === 'BELOW_MIN_PAYOUT') {
+      const minThb = Number(first?.messageCtx?.minPayoutThb ?? payout?.minPayoutThb ?? 1000)
+      return t('stage1322_blockerBelowMin', { minAmount: formatMinPayoutThreshold(minThb) })
+    }
+    if (first?.messageKey) {
+      return t(first.messageKey, first.messageCtx || {})
+    }
+    return t('stage1321_walletPayoutBlocked')
+  })()
 
   const withdrawableThb = Number(balance.withdrawable_balance_thb ?? 0)
   const minPayoutThb = Number(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000)
@@ -136,10 +143,7 @@ export default function ProfileWalletPage() {
     payout?.payoutEligible === true ||
     referralWithdrawRequested ||
     withdrawableThb >= minPayoutThb
-  const stickyAmountLabel =
-    withdrawableThb > 0
-      ? `${formatThb(withdrawableThb, locale)} THB`
-      : ''
+  const stickyAmountLabel = withdrawableThb > 0 ? formatLedgerWithApprox(withdrawableThb) : ''
   const stickyDisabled =
     !payout?.payoutEligible ||
     referralWithdrawRequested ||
@@ -188,8 +192,8 @@ export default function ProfileWalletPage() {
                 </div>
                 <div className="w-full sm:w-[220px] space-y-1">
                   <Label htmlFor="referral-display-currency">{t('stage1321_walletDisplayCurrency')}</Label>
-                  <Select value={displayCurrency} onValueChange={(v) => void saveDisplayCurrency(v)}>
-                    <SelectTrigger id="referral-display-currency"><SelectValue placeholder="THB" /></SelectTrigger>
+                  <Select value={currency} onValueChange={(v) => void saveDisplayCurrency(v)}>
+                    <SelectTrigger id="referral-display-currency"><SelectValue placeholder={currency} /></SelectTrigger>
                     <SelectContent>
                       {REFERRAL_DISPLAY_CURRENCY_CODES.map((code) => (
                         <SelectItem key={code} value={code}>{code}</SelectItem>
@@ -224,8 +228,10 @@ export default function ProfileWalletPage() {
                     <Clock3 className="h-4 w-4 text-brand" />
                     <p className="font-medium text-sm">{t('stage1321_walletMinPayoutTitle')}</p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    {formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB
+                  <p className="text-xs text-slate-500 mt-2 break-words tabular-nums">
+                    {formatMinPayoutThreshold(
+                      payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000,
+                    )}
                   </p>
                 </div>
               </div>
@@ -291,9 +297,9 @@ export default function ProfileWalletPage() {
                     {recentTransactions.slice(0, 12).map((tx) => (
                       <tr key={tx.id} className="border-b last:border-0">
                         <td className="py-2 pr-3">{txTypeLabel(tx.tx_type)}</td>
-                        <td className="py-2 pr-3 tabular-nums font-medium text-brand">
+                        <td className="py-2 pr-3 tabular-nums font-medium text-brand break-words">
                           {Number(tx.amount_thb || 0) >= 0 ? '+' : ''}
-                          {formatThb(tx.amount_thb, locale)} THB
+                          <ReferralLedgerAmount thb={tx.amount_thb} />
                         </td>
                         <td className="py-2 tabular-nums text-slate-500">{tx.created_at ? new Date(tx.created_at).toLocaleDateString(locale) : '—'}</td>
                       </tr>

@@ -7,24 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
-import { useCurrency } from '@/contexts/currency-context'
 import { getUIText } from '@/lib/translations'
-import { fetchExchangeRates } from '@/lib/client-data'
-import { formatPrice } from '@/lib/currency'
 import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 const STEPS = [
   { key: 'stage91_loyaltyStep1Title', bodyKey: 'stage91_loyaltyStep1Body', Icon: UserPlus, tone: 'bg-brand' },
   { key: 'stage91_loyaltyStep2Title', bodyKey: 'stage91_loyaltyStep2Body', Icon: Gift, tone: 'bg-emerald-600' },
   { key: 'stage91_loyaltyStep3Title', bodyKey: 'stage91_loyaltyStep3Body', Icon: Share2, tone: 'bg-slate-800' },
 ]
-
-function formatWelcomeThb(n) {
-  const v = Math.round(Number(n))
-  if (!Number.isFinite(v)) return '0'
-  return String(v)
-}
 
 /**
  * @param {{ welcomeBonusThb: number, brandDisplayName: string }} props
@@ -33,10 +25,8 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
   const searchParams = useSearchParams()
   const { language, setLanguage } = useI18n()
   const { isAuthenticated } = useAuth()
-  const { currency } = useCurrency()
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const welcomeStr = formatWelcomeThb(welcomeBonusThb)
-  const [rateMap, setRateMap] = useState(() => ({ THB: 1 }))
 
   useEffect(() => {
     const raw = searchParams?.get('lang')
@@ -45,28 +35,8 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
     if (norm && norm !== language) setLanguage(norm)
   }, [searchParams, language, setLanguage])
 
-  useEffect(() => {
-    let cancelled = false
-    fetchExchangeRates().then((r) => {
-      if (cancelled || !r || typeof r !== 'object') return
-      setRateMap({ THB: 1, ...r })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const welcomeApprox = useMemo(() => {
-    if (!currency || currency === 'THB') return ''
-    const r = Number(rateMap[currency])
-    if (!Number.isFinite(r) || r <= 0) return ''
-    return ` (≈ ${formatPrice(welcomeBonusThb, currency, rateMap, language)})`
-  }, [currency, welcomeBonusThb, rateMap, language])
-
-  const step2Ctx = useMemo(
-    () => ({ welcomeThb: welcomeStr, welcomeApprox }),
-    [welcomeStr, welcomeApprox],
-  )
+  const welcomeAmount = formatThbAsDisplay(welcomeBonusThb)
+  const step2Ctx = useMemo(() => ({ welcomeAmount }), [welcomeAmount])
 
   return (
     <div className="min-h-screen bg-brand-surface">
@@ -84,7 +54,7 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
           {STEPS.map((step, idx) => {
             const Icon = step.Icon
             const titleKey = step.key
-            const ctx = titleKey === 'stage91_loyaltyStep2Title' ? step2Ctx : undefined
+            const ctx = titleKey === 'stage91_loyaltyStep2Title' || step.bodyKey === 'stage91_loyaltyStep2Body' ? step2Ctx : undefined
             return (
               <li key={step.key}>
                 <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">

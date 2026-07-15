@@ -29,14 +29,8 @@ import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
 import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
 import { useReferralModalFollowup } from '@/hooks/useReferralModalFollowup'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { toast } from 'sonner'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 0 })
-}
 
 /**
  * Stage 114.3 — публичная визитка амбассадора `/u/[id]`.
@@ -52,6 +46,7 @@ export function AmbassadorPublicLanding({
   const { language } = useI18n()
   const { user: currentUser } = useAuth()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const { showFollowupBanner, promptRegisterForReferral } = useReferralModalFollowup()
 
   const locale =
@@ -107,9 +102,7 @@ export function AmbassadorPublicLanding({
       ? t('stage76_landingEarningTeaser')
           .replace('{converted}', String(landingEarningPreview.formattedConverted))
           .replace('{currency}', String(landingEarningPreview.visitorCurrencyCode))
-          .replace('{base}', String(landingEarningPreview.formattedThbBaseline || ''))
           .replace('{geo}', visitorCountry.trim().slice(0, 2).toUpperCase())
-          .replace('{ledgerBase}', 'THB')
       : null
 
   const isSelf =
@@ -165,14 +158,14 @@ export function AmbassadorPublicLanding({
                     {
                       key: 'total',
                       label: t('stage1143_statEarnedTotal'),
-                      value: `฿${formatThb(landing?.totalEarnedThb, locale)}`,
+                      value: formatThbAsDisplay(landing?.totalEarnedThb),
                       tip: t('stage1147_statEarnedTooltip'),
                       className: '',
                     },
                     {
                       key: 'month',
                       label: t('stage1143_statEarnedMonth'),
-                      value: `฿${formatThb(landing?.monthlyEarnedThb, locale)}`,
+                      value: formatThbAsDisplay(landing?.monthlyEarnedThb),
                       tip: t('stage1147_statMonthTooltip'),
                       className: '',
                     },

@@ -6,12 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { estimateReferrerIllustrationThb } from '@/lib/referral/referral-earnings-estimator'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 0 })
-}
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { cn } from '@/lib/utils'
 
 /**
  * @param {{
@@ -21,6 +18,7 @@ function formatThb(value, locale = 'ru-RU') {
  * }} props
  */
 export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-RU' }) {
+  const { currency, formatThbAsDisplay } = useReferralLedgerDisplay()
   const welcome = Math.round(Number(referralEstimator?.welcomeBonusThb ?? 500)) || 500
   const reinvest = Math.min(95, Math.max(0, Number(referralEstimator?.referralReinvestmentPercent ?? 45)))
   const split = Math.min(
@@ -51,26 +49,32 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
     [friendCount, avgThb, reinvest, split],
   )
 
+  const avgDisplay = formatThbAsDisplay(avgThb)
+
   return (
     <Card className="rounded-xl border border-brand/20 bg-gradient-to-br from-white to-brand/10 shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-brand" aria-hidden />
+          <Sparkles className="h-5 w-5 text-brand shrink-0" aria-hidden />
           <CardTitle className="text-xl">{t('stage91_estimatorTitle')}</CardTitle>
         </div>
         <CardDescription>{t('stage91_estimatorSubtitle')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="rounded-xl border border-brand/25 bg-white/90 p-4 shadow-inner">
-          <p className="text-xs font-medium uppercase tracking-wide text-brand-hover/90">{t('stage91_estimatorOwnTripLabel')}</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-brand">
-            ฿{formatThb(welcome, locale)}
+          <p className="text-xs font-medium uppercase tracking-wide text-brand-hover/90">
+            {t('stage91_estimatorOwnTripLabel')}
           </p>
-          <p className="mt-2 text-xs text-slate-600 leading-snug">{t('stage91_estimatorOwnTripHint')}</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-brand break-words">
+            <ReferralLedgerAmount thb={welcome} />
+          </p>
+          <p className="mt-2 text-xs text-slate-600 leading-snug">
+            {t('stage91_estimatorOwnTripHint', { currency: currency })}
+          </p>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Label className="text-sm">{t('stage91_estimatorFriends')}</Label>
             <span className="text-sm font-semibold tabular-nums text-slate-900">{friendCount}</span>
           </div>
@@ -78,10 +82,14 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-sm">{t('stage91_estimatorAvg')}</Label>
-            <span className="text-sm font-semibold tabular-nums text-slate-900">
-              ฿{formatThb(avgThb, locale)}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
+            <Label className="text-sm shrink-0">{t('stage91_estimatorAvgCurrency', { currency })}</Label>
+            <span
+              className={cn(
+                'text-sm font-semibold tabular-nums text-slate-900 text-right break-words max-w-full',
+              )}
+            >
+              {avgDisplay}
             </span>
           </div>
           <Slider
@@ -96,8 +104,8 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
 
         <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
           <p className="text-xs text-slate-600">{t('stage91_estimatorFriendsBonusLabel')}</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
-            ฿{formatThb(est.totalReferrerThb, locale)}
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900 break-words">
+            <ReferralLedgerAmount thb={est.totalReferrerThb} />
           </p>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{t('stage91_estimatorDisclaimer')}</p>
         </div>

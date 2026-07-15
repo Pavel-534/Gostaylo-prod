@@ -1,6 +1,7 @@
 import { getPublicSiteUrl } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
+import { formatAmbassadorAmountForOgLangAsync } from '@/lib/pricing/ambassador-og-amount.js'
 
 export async function generateMetadata({ params }) {
   const { id: userId } = await params
@@ -26,10 +27,10 @@ export async function generateMetadata({ params }) {
           if (j.data.displayName) displayName = String(j.data.displayName).trim()
           const earned = Number(j.data.totalEarnedThb)
           if (Number.isFinite(earned) && earned > 0) {
-            const earnedLabel = earned.toLocaleString('ru-RU', { maximumFractionDigits: 0 })
+            const earnedAmount = await formatAmbassadorAmountForOgLangAsync(earned, lang)
             description = getUIText('stage1143_uMetaDescriptionEarned', lang)
               .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
-              .replace('{earned}', earnedLabel)
+              .replace('{earnedAmount}', earnedAmount)
           } else if (displayName) {
             description = getUIText('stage1322_uMetaDescription', lang).replace('{name}', displayName)
           }

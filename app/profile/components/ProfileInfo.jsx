@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { KycUploader } from '@/components/kyc-uploader'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
+import { useCurrency } from '@/contexts/currency-context'
+import { getCurrencySymbol } from '@/lib/currency'
 
 const PENDING_KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -41,6 +43,9 @@ export function ProfileInfo({
   partnerNavBusy,
   partnerNavLanguage = 'ru',
 }) {
+  const { currency } = useCurrency()
+  const payoutSymbol = getCurrencySymbol(currency)
+
   return (
     <>
       <Card className="mb-6">
@@ -149,7 +154,7 @@ export function ProfileInfo({
                 <div className="text-xs text-slate-500">Поддержка</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-teal-600">฿</div>
+                <div className="text-2xl font-bold text-teal-600">{payoutSymbol}</div>
                 <div className="text-xs text-slate-500">Быстрые выплаты</div>
               </div>
             </div>

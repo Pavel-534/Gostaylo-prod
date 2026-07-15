@@ -453,10 +453,32 @@ export function useListingWizardActions(state, derived) {
             }
           })
         }
-        return { ...prev, images: list.filter((_, i) => i !== index) }
+        const next = list.filter((_, i) => i !== index)
+        return { ...prev, images: next, coverImage: next[0] || '' }
       })
     },
     [editId, setFormData],
+  )
+
+  const reorderImages = useCallback(
+    (fromIndex, toIndex) => {
+      setFormData((prev) => {
+        const list = [...(prev.images || [])]
+        if (
+          fromIndex < 0 ||
+          toIndex < 0 ||
+          fromIndex >= list.length ||
+          toIndex >= list.length ||
+          fromIndex === toIndex
+        ) {
+          return prev
+        }
+        const [moved] = list.splice(fromIndex, 1)
+        list.splice(toIndex, 0, moved)
+        return { ...prev, images: list, coverImage: list[0] || '' }
+      })
+    },
+    [setFormData],
   )
 
   const handleGeocode = useCallback(async () => {
@@ -571,6 +593,7 @@ export function useListingWizardActions(state, derived) {
     resolveListingIdForUpload,
     handleImageUpload,
     removeImage,
+    reorderImages,
     handleGeocode,
     selectGeocodeResult,
     handleMapSelect,

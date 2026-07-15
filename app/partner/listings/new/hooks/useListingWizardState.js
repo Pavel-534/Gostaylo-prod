@@ -8,6 +8,8 @@ import { getUIText } from '@/lib/translations'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { WIZARD_DISTRICTS, getDefaultWizardFormData } from '../wizard-constants'
+import { resolveListingWizardStepFromParam } from '@/lib/partner/listing-wizard-step-slugs.js'
+import { useListingWizardStepUrlSync } from '@/lib/hooks/use-listing-wizard-step-url-sync.js'
 import {
   readWizardDraft,
   saveWizardDraft,
@@ -51,8 +53,10 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     initialDraftRef.current = !isEditMode ? readWizardDraft() : null
   }
   const initialDraft = initialDraftRef.current
+  const stepFromUrl = resolveListingWizardStepFromParam(searchParams.get('step'))
 
-  const [currentStep, setCurrentStep] = useState(() => initialDraft?.currentStep || 1)
+  const initialWizardStep = stepFromUrl || initialDraft?.currentStep || 1
+  const [currentStep, setCurrentStep] = useListingWizardStepUrlSync(initialWizardStep)
   const [draftRestored, setDraftRestored] = useState(false)
   const [loading, setLoading] = useState(false)
   const [serverListing, setServerListing] = useState(null)

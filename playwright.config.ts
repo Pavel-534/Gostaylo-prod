@@ -100,6 +100,28 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'partner-calendar-flow',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/partner-calendar-flow.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.partner,
+      },
+    },
+    {
+      name: 'ambassador-currency-isolation',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/ambassador-currency-isolation.spec.ts',
+      timeout: 120_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.user,
+      },
+    },
+    {
       name: 'rbac-partner',
       dependencies: ['setup'],
       testDir: './tests/e2e',

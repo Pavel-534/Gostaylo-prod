@@ -98,6 +98,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     resolveListingIdForUpload: actions.resolveListingIdForUpload,
     handleImageUpload: actions.handleImageUpload,
     removeImage: actions.removeImage,
+    reorderImages: actions.reorderImages,
     applyAirbnbPreview: actions.applyAirbnbPreview,
     WIZARD_DISTRICTS: derived.WIZARD_DISTRICTS,
     refreshAiDescriptionQuota: actions.refreshAiDescriptionQuota,

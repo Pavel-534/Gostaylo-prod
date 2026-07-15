@@ -1,23 +1,45 @@
 ﻿'use client'
 
-import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
+import { BADGE_PROGRESSION_ORDER, EARNED_100K_MIN_THB } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
 import { Award, HelpCircle, Lock } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+
+const BADGE_HINT_CTX = {
+  earned_100k: (formatThbAsDisplay) => ({
+    threshold: formatThbAsDisplay(EARNED_100K_MIN_THB),
+  }),
+}
 
 /**
- * @param {{ badgesEarned?: string[], t: (k: string) => string, compact?: boolean }} props
+ * @param {{ badgesEarned?: string[], t: (k: string, ctx?: object) => string, compact?: boolean }} props
  */
 export function ReferralBadgesGrid({ badgesEarned = [], t, compact = false }) {
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const earned = new Set((badgesEarned || []).map((id) => String(id)))
   const all = BADGE_PROGRESSION_ORDER
+
+  function resolveHint(id) {
+    const ctxFn = BADGE_HINT_CTX[id]
+    const ctx = ctxFn ? ctxFn(formatThbAsDisplay) : undefined
+    return t(`stage1143_badge_${id}_hint`, ctx)
+  }
+
+  function resolveLabel(id) {
+    if (id === 'earned_100k') {
+      return t('stage1143_badge_earned_100k', { threshold: formatThbAsDisplay(EARNED_100K_MIN_THB) })
+    }
+    return t(`stage1143_badge_${id}`)
+  }
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className={cn('grid gap-2', compact ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2')}>
         {all.map((id) => {
           const unlocked = earned.has(id)
-          const hint = t(`stage1143_badge_${id}_hint`)
+          const hint = resolveHint(id)
+          const label = resolveLabel(id)
           return (
             <div
               key={id}
@@ -35,13 +57,13 @@ export function ReferralBadgesGrid({ badgesEarned = [], t, compact = false }) {
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-start gap-1">
-                  <p className="font-medium leading-snug flex-1">{t(`stage1143_badge_${id}`)}</p>
+                  <p className="font-medium leading-snug flex-1">{label}</p>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
                         className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-                        aria-label={t('stage1147_badgeTooltipAria').replace('{badge}', t(`stage1143_badge_${id}`))}
+                        aria-label={t('stage1147_badgeTooltipAria').replace('{badge}', label)}
                       >
                         <HelpCircle className="h-3.5 w-3.5" />
                       </button>

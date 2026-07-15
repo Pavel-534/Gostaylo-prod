@@ -37,6 +37,7 @@ export function CalendarActionOverlay({
         <SheetContent
           side="bottom"
           overlayClassName="z-[340]"
+          data-testid="partner-cal-action-overlay"
           className={cn(
             'z-[350] flex h-[90dvh] max-h-[90dvh] w-full flex-col gap-0 overflow-hidden',
             'rounded-t-2xl border-t border-slate-200 p-0 shadow-2xl',
@@ -67,6 +68,7 @@ export function CalendarActionOverlay({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        data-testid="partner-cal-action-overlay"
         className={cn(
           'gap-0 p-4 sm:p-6',
           wide

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn, Calendar } from 'lucide-react'
+import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn, Calendar, ImageIcon, DollarSign } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
@@ -37,6 +38,7 @@ import {
   usePartnerListingPatch,
   usePartnerListingDelete,
 } from '@/lib/hooks/use-partner-listings'
+import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
 
 function isPartnerHiddenMetadata(metadata) {
   const v = metadata?.partner_hidden
@@ -54,6 +56,7 @@ function isPartnerHiddenMetadata(metadata) {
 
 export default function PartnerListings() {
   const { toast } = useToast()
+  const router = useRouter()
   const { language, t } = useI18n()
   const { user, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const partnerId = user?.id
@@ -148,6 +151,7 @@ export default function PartnerListings() {
         title: t('partnerListings_toastPublishOkTitle'),
         description: t('partnerListings_toastPublishOkBody'),
       })
+      router.push(resolvePostPublishCalendarOnboardingUrl(listing.id))
     } catch (error) {
       console.error('Failed to publish:', error)
       if (error.code === 'LISTING_QUALITY_GATE' || error.errors?.length) {
@@ -601,6 +605,28 @@ export default function PartnerListings() {
                     <Link href={`/partner/listings/${listing.id}`} title={t('partnerListings_edit')}>
                       <Edit className='h-4 w-4 sm:mr-1' />
                       <span className='hidden sm:inline text-xs'>{t('partnerListings_edit')}</span>
+                    </Link>
+                  </Button>
+
+                  {/* Edit pricing */}
+                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
+                    <Link
+                      href={`/partner/listings/${listing.id}?step=pricing`}
+                      title={t('partnerListings_editPricing')}
+                    >
+                      <DollarSign className='h-4 w-4 sm:mr-1' />
+                      <span className='hidden sm:inline text-xs'>{t('partnerListings_editPricing')}</span>
+                    </Link>
+                  </Button>
+
+                  {/* Manage photos */}
+                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
+                    <Link
+                      href={`/partner/listings/${listing.id}?step=photos`}
+                      title={t('partnerListings_editPhotos')}
+                    >
+                      <ImageIcon className='h-4 w-4 sm:mr-1' />
+                      <span className='hidden sm:inline text-xs'>{t('partnerListings_editPhotos')}</span>
                     </Link>
                   </Button>
 

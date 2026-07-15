@@ -3,13 +3,8 @@
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
-import { ReferralDualThbAmount } from '@/components/referral/ReferralDualThbAmount'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-}
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 /**
  * Stage 133 — KPI grid, tier progress, L1/L2 split for tab «Команда».
@@ -17,11 +12,10 @@ function formatThb(value, locale = 'ru-RU') {
 export function ReferralTeamAnalyticsCard({
   teamAnalytics,
   ambassador,
-  displayCurrency = 'THB',
-  midRateRubToThb = null,
   t,
-  locale = 'ru-RU',
+  locale: _locale = 'ru-RU',
 }) {
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const ta = teamAnalytics
   if (!ta?.earnings) return null
 
@@ -60,44 +54,32 @@ export function ReferralTeamAnalyticsCard({
               <p className="text-[10px] uppercase tracking-wide text-slate-500 truncate">
                 {t('stage133_periodEarnings')}
               </p>
-              <p className="text-base sm:text-xl font-bold text-brand truncate">
-                <ReferralDualThbAmount
-                  thb={total}
-                  displayCurrency={displayCurrency}
-                  midRateRubToThb={midRateRubToThb}
-                  locale={locale}
-                  primaryClassName="font-bold"
-                />
+              <p className="text-base sm:text-xl font-bold text-brand break-words">
+                <ReferralLedgerAmount thb={total} className="font-bold" />
               </p>
             </div>
             <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 min-w-0">
               <p className="text-[10px] uppercase tracking-wide text-slate-500 truncate">
                 {t('stage133_lifetimeEarnings')}
               </p>
-              <p className="text-base sm:text-xl font-bold text-slate-900 truncate">
-                <ReferralDualThbAmount
-                  thb={lifetime}
-                  displayCurrency={displayCurrency}
-                  midRateRubToThb={midRateRubToThb}
-                  locale={locale}
-                  primaryClassName="font-bold"
-                />
+              <p className="text-base sm:text-xl font-bold text-slate-900 break-words">
+                <ReferralLedgerAmount thb={lifetime} className="font-bold" />
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between gap-2 text-xs text-slate-600">
+            <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-xs text-slate-600">
               <span className="truncate">{t('stage133_l1Direct')}</span>
-              <span className="tabular-nums shrink-0">
-                {formatThb(l1, locale)} ({l1Pct}%)
+              <span className="tabular-nums shrink-0 break-words text-right">
+                {formatThbAsDisplay(l1)} ({l1Pct}%)
               </span>
             </div>
             <Progress value={l1Pct} className="h-2" />
-            <div className="flex justify-between gap-2 text-xs text-slate-600">
+            <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-xs text-slate-600">
               <span className="truncate">{t('stage133_l2Network')}</span>
-              <span className="tabular-nums shrink-0">
-                {formatThb(l2, locale)} ({l2Pct}%)
+              <span className="tabular-nums shrink-0 break-words text-right">
+                {formatThbAsDisplay(l2)} ({l2Pct}%)
               </span>
             </div>
             <Progress value={l2Pct} className="h-2 bg-slate-100" />
@@ -137,11 +119,9 @@ export function ReferralTeamAnalyticsCard({
           )}
 
           {shadow?.applicable && shadow?.messageKey ? (
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed break-words">
               {t(shadow.messageKey, {
-                amount: shadow.shadowMonthlyThb
-                  ? formatThb(shadow.shadowMonthlyThb, locale)
-                  : '—',
+                amount: shadow.shadowMonthlyThb ? formatThbAsDisplay(shadow.shadowMonthlyThb) : '—',
               })}
             </p>
           ) : null}

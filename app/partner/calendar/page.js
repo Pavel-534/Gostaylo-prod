@@ -36,6 +36,7 @@ import { isSoftHoldDisplayKind } from '@/lib/calendar/calendar-cell-presentation
 import { BLOCK_DISPLAY_KIND } from '@/lib/calendar/block-source-display.js'
 import { resolvePartnerBookingStayRange } from '@/lib/calendar/partner-calendar-booking-range.js'
 import { applyBulkSeasonalPrices } from '@/lib/partner/partner-calendar-bulk-prices.js'
+import { usePartnerCalendarRangeSelection } from '@/lib/hooks/use-partner-calendar-range.js'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -58,11 +59,14 @@ function MasterCalendarContent() {
   const filterListingId = searchParams.get('listingId') || searchParams.get('listing_id') || ''
   const focusDateFromChat = searchParams.get('focusDate') || searchParams.get('date') || ''
   const openedFromChat = searchParams.get('from') === 'chat'
+  const showOnboarding = searchParams.get('onboarding') === 'true'
   const scrollContainerRef = useRef(null)
   const todayGridRef = useRef(null)
   const todayAgendaRef = useRef(null)
   const isNarrowCalendar = useMediaQuery('(max-width: 1023px)')
   const appliedFocusDateRef = useRef(false)
+  const onboardingToastShownRef = useRef(false)
+  const [onboardingBannerOpen, setOnboardingBannerOpen] = useState(showOnboarding)
   const [language, setLanguage] = useState('ru')
 
   useEffect(() => {
@@ -185,6 +189,24 @@ function MasterCalendarContent() {
   const createBookingMutation = useCreateManualBooking()
   const deleteBlockMutation = useDeleteBlock()
 
+  const { clearRangeSelection, getCellRangeRole, processAvailableCellTap } =
+    usePartnerCalendarRangeSelection({ language })
+
+  useEffect(() => {
+    if (!showOnboarding || onboardingToastShownRef.current || authLoading || !partnerId) return
+    if (isLoading) return
+    onboardingToastShownRef.current = true
+    toast.success(getUIText('partnerCal_onboardingWelcomeTitle', language), {
+      description: getUIText('partnerCal_onboardingWelcomeBody', language),
+      duration: 12000,
+    })
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('onboarding')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+    }
+  }, [showOnboarding, authLoading, partnerId, isLoading, language])
+
   const calendarDominantHint = useMemo(() => {
     const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
     return getPartnerCalendarDominantHint(kind, language)
@@ -192,6 +214,7 @@ function MasterCalendarContent() {
 
   // Navigation handlers
   const goToToday = useCallback(() => {
+    clearRangeSelection()
     setStartDate(format(new Date(), 'yyyy-MM-dd'))
     window.requestAnimationFrame(() => {
       setTimeout(() => {
@@ -203,15 +226,17 @@ function MasterCalendarContent() {
         })
       }, 280)
     })
-  }, [isNarrowCalendar])
+  }, [isNarrowCalendar, clearRangeSelection])
   
   const goBack = useCallback(() => {
+    clearRangeSelection()
     setStartDate(format(subDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate])
+  }, [startDate, clearRangeSelection])
   
   const goForward = useCallback(() => {
+    clearRangeSelection()
     setStartDate(format(addDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate])
+  }, [startDate, clearRangeSelection])
 
   const handleIcalSyncAll = useCallback(async () => {
     setIcalSyncing(true)
@@ -237,29 +262,43 @@ function MasterCalendarContent() {
     }
   }, [language, refetch])
   
+  const openSelectActionModal = useCallback(
+    (listing, rangeStart, rangeEnd) => {
+      setActionModal({
+        open: true,
+        type: 'select',
+        listing,
+        date: rangeStart,
+        cellData: null,
+        checkOutDate: rangeEnd,
+      })
+      setBlockForm({ endDate: rangeEnd, reason: '', type: 'OWNER_USE' })
+      setBookingForm({
+        checkOut: format(addDays(parseISO(rangeEnd), 1), 'yyyy-MM-dd'),
+        guestName: '',
+        guestPhone: '',
+        guestEmail: '',
+        priceThb: '',
+        notes: '',
+      })
+    },
+    [],
+  )
+
   // Cell click handler
   const handleCellClick = useCallback(
     (listing, date, cellData) => {
       if (cellData.status === 'AVAILABLE') {
-        setActionModal({
-          open: true,
-          type: 'select',
-          listing,
-          date,
-          cellData: null,
-          checkOutDate: null,
-        })
-        setBlockForm({ endDate: date, reason: '', type: 'OWNER_USE' })
-        setBookingForm({
-          checkOut: format(addDays(parseISO(date), 1), 'yyyy-MM-dd'),
-          guestName: '',
-          guestPhone: '',
-          guestEmail: '',
-          priceThb: '',
-          notes: '',
-        })
+        const row = calendarData?.listings?.find((x) => x.listing.id === listing.id)
+        const tap = processAvailableCellTap(listing, date, row?.availability)
+
+        if (tap.action === 'open-modal' && tap.rangeStart && tap.rangeEnd) {
+          openSelectActionModal(tap.listing || listing, tap.rangeStart, tap.rangeEnd)
+        }
         return
       }
+
+      clearRangeSelection()
 
       if (cellData.status === 'BOOKED') {
         const row = calendarData?.listings?.find((x) => x.listing.id === listing.id)
@@ -318,7 +357,7 @@ function MasterCalendarContent() {
         }
       }
     },
-    [calendarData],
+    [calendarData, processAvailableCellTap, clearRangeSelection, openSelectActionModal],
   )
 
   const handleUnblockSubmit = async () => {
@@ -333,6 +372,7 @@ function MasterCalendarContent() {
       cellData: null,
       checkOutDate: null,
     })
+    clearRangeSelection()
   }
   
   // Submit handlers
@@ -350,6 +390,7 @@ function MasterCalendarContent() {
     })
     
     setActionModal({ open: false, type: null, listing: null, date: null, cellData: null, checkOutDate: null })
+    clearRangeSelection()
   }
   
   const handleBookingSubmit = async () => {
@@ -369,6 +410,7 @@ function MasterCalendarContent() {
     })
     
     setActionModal({ open: false, type: null, listing: null, date: null, cellData: null, checkOutDate: null })
+    clearRangeSelection()
   }
   
   const handlePriceSubmit = async () => {
@@ -493,6 +535,24 @@ function MasterCalendarContent() {
           {getUIText('partnerCal_openedFromChatHint', language)}
         </div>
       ) : null}
+      {onboardingBannerOpen ? (
+        <Alert className="max-w-[1600px] mx-auto border-brand/30 bg-brand/10 text-brand [&>svg]:text-brand">
+          <Sparkles className="h-4 w-4" aria-hidden />
+          <AlertTitle>{getUIText('partnerCal_onboardingWelcomeTitle', language)}</AlertTitle>
+          <AlertDescription className="text-brand-hover">
+            {getUIText('partnerCal_onboardingWelcomeBody', language)}
+          </AlertDescription>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3 min-h-[44px] border-brand/30 text-brand-hover"
+            onClick={() => setOnboardingBannerOpen(false)}
+          >
+            {getUIText('partnerCal_holdInfoClose', language)}
+          </Button>
+        </Alert>
+      ) : null}
       {filterListingId ? (
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-3 py-2.5 text-sm text-brand">
           <span className="font-medium">{getUIText('partnerCal_singleListingMode', language)}</span>
@@ -537,6 +597,7 @@ function MasterCalendarContent() {
           dayWidth={dayWidth}
           viewMode={viewMode}
           onCellClick={handleCellClick}
+          getCellRangeRole={getCellRangeRole}
           todayRef={isNarrowCalendar ? null : todayGridRef}
           scrollContainerRef={scrollContainerRef}
           language={language}
@@ -551,6 +612,7 @@ function MasterCalendarContent() {
           dates={dates}
           listings={listings}
           onCellClick={handleCellClick}
+          getCellRangeRole={getCellRangeRole}
           todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
           initialExpandedListingId={filterListingId || undefined}
           language={language}
@@ -577,6 +639,7 @@ function MasterCalendarContent() {
         createBookingMutation={createBookingMutation}
         deleteBlockMutation={deleteBlockMutation}
         priceSubmitPending={priceSubmitPending}
+        onActionModalClose={clearRangeSelection}
         language={language}
         exchangeRates={midExchangeRates}
       />

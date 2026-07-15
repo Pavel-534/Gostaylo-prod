@@ -24,12 +24,7 @@ import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthl
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 const TZ_FALLBACK_OPTIONS = ['Asia/Bangkok', 'UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York']
 
@@ -38,6 +33,7 @@ export default function ProfileStatusPage() {
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const locale = language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
+  const { currency, formatThbAsDisplay } = useReferralLedgerDisplay()
   const { isAuthenticated, loading: authLoading } = useAuth()
   const [profileSaving, setProfileSaving] = useState(false)
   const {
@@ -149,7 +145,11 @@ export default function ProfileStatusPage() {
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-4">
-            <ReferralMonthlyLeaderboard t={t} formatThb={formatThb} locale={locale} />
+            <ReferralMonthlyLeaderboard
+              t={t}
+              locale={locale}
+              formatAmountLine={(amountThb) => formatThbAsDisplay(amountThb)}
+            />
           </div>
           <div className="md:col-span-8">
             <ReferralActivityFeed />
@@ -177,7 +177,7 @@ export default function ProfileStatusPage() {
             <AccordionContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="monthly-goal-thb">Моя цель на месяц (THB)</Label>
+                  <Label htmlFor="monthly-goal-thb">{t('stage188_monthlyGoalLabel', { currency })}</Label>
                   <Input id="monthly-goal-thb" type="number" min={0} step={100} value={monthlyGoal} onChange={(e) => setMonthlyGoal(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">

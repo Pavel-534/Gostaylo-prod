@@ -5,12 +5,7 @@ import { ArrowDownLeft, Clock, History } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 
 function formatWhen(iso, locale) {
   if (!iso) return '—'
@@ -81,7 +76,7 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
         {withdrawalRows.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500 space-y-3">
             <p>{t('stage1146_withdrawHistoryEmpty')}</p>
-            <Button type="button" variant="outline" size="sm" asChild>
+            <Button type="button" variant="outline" size="sm" asChild className="min-h-[44px]">
               <Link href="/profile/wallet">{t('stage1143_tabNavWallet')}</Link>
             </Button>
           </div>
@@ -107,8 +102,8 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
                       <ArrowDownLeft className="h-4 w-4 text-slate-600 shrink-0 mt-0.5" />
                     )}
                     <div>
-                      <p className="font-semibold text-slate-900 tabular-nums">
-                        {formatThb(row.amountThb, locale)} THB
+                      <p className="font-semibold text-slate-900 break-words">
+                        <ReferralLedgerAmount thb={row.amountThb} />
                       </p>
                       <p className="text-xs text-slate-500">{formatWhen(row.at, locale)}</p>
                     </div>

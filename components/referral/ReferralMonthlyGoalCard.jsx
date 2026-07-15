@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Target, Zap } from 'lucide-react'
-import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 /**
  * Stage 179.7 — monthly goal: header currency + mid FX (payout parity).
@@ -25,7 +25,7 @@ export function ReferralMonthlyGoalCard({
   turboEnabled = false,
   t,
 }) {
-  const { isConvertedDisplay, formatThbAsDisplay } = useAmbassadorDisplayFx()
+  const { isConvertedDisplay, formatThbAsDisplay } = useReferralLedgerDisplay()
 
   const goal = Math.max(1, Number(monthlyGoalThb) || 10000)
   const current = Number(monthlyEarnedThb) || 0
@@ -33,12 +33,11 @@ export function ReferralMonthlyGoalCard({
   const goalMet = pct >= 100
 
   const { currentAmount, goalAmount } = useMemo(() => {
-    const prefix = isConvertedDisplay ? '≈ ' : ''
     return {
-      currentAmount: prefix + formatThbAsDisplay(current),
-      goalAmount: prefix + formatThbAsDisplay(goal),
+      currentAmount: formatThbAsDisplay(current),
+      goalAmount: formatThbAsDisplay(goal),
     }
-  }, [current, goal, isConvertedDisplay, formatThbAsDisplay])
+  }, [current, goal, formatThbAsDisplay])
 
   return (
     <Card className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-white shadow-sm">

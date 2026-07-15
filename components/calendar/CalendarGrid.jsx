@@ -25,6 +25,7 @@ import {
   resolveBookingStatusCellClass,
   isSoftHoldDisplayKind,
 } from '@/lib/calendar/calendar-cell-presentation.js'
+import { calendarRangeHighlightClass } from '@/lib/calendar/partner-calendar-range-utils.js'
 
 const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
 
@@ -70,6 +71,7 @@ export function CalendarGrid({
   dayWidth,
   viewMode,
   onCellClick,
+  getCellRangeRole,
   todayRef,
   scrollContainerRef,
   language = 'ru',
@@ -300,6 +302,10 @@ export function CalendarGrid({
                       isSoftHoldDisplayKind(cellData.blockKind) &&
                       cellData.blockExpiresAt
 
+                    const rangeRole = getCellRangeRole?.(item.listing.id, date) ?? null
+                    const rangeHighlight =
+                      cellData.status === 'AVAILABLE' ? calendarRangeHighlightClass(rangeRole) : ''
+
                     const cellInner = (
                       <div
                         key={date}
@@ -307,6 +313,7 @@ export function CalendarGrid({
                         className={cn(
                           'relative flex min-h-[72px] cursor-pointer items-center justify-center border-b border-r border-slate-100 transition-all',
                           cellClass,
+                          rangeHighlight,
                           flashSaleDay &&
                             !isCurrentDay &&
                             'shadow-[inset_0_0_0_1px_rgba(249,115,22,0.5)]',
@@ -318,6 +325,10 @@ export function CalendarGrid({
                         )}
                         style={{ width: dayWidth, minWidth: dayWidth }}
                         title={showHoldTooltip ? undefined : cellTitle}
+                        data-testid="partner-cal-cell"
+                        data-date={date}
+                        data-status={cellData.status}
+                        data-listing-id={item.listing.id}
                       >
                         {flashSaleDay ? (
                           <span

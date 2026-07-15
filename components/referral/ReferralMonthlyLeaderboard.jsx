@@ -8,12 +8,11 @@ import { fetchReferralLeaderboard } from '@/lib/api/referral-public-client'
 /**
  * @param {{
  *  t: (key: string, ctx?: Record<string, string | number>) => string,
- *  formatThb: (n: number, locale: string) => string,
  *  locale: string,
  *  formatAmountLine?: (amountThb: number) => string,
  * }} props
  */
-export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, locale }) {
+export function ReferralMonthlyLeaderboard({ t, formatAmountLine, locale }) {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(false)
   const [payload, setPayload] = useState(null)
@@ -52,7 +51,7 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
   const fmtLine =
     typeof formatAmountLine === 'function'
       ? formatAmountLine
-      : (amountThb) => `฿${formatThb(amountThb, locale)}`
+      : (amountThb) => String(Number(amountThb) || 0)
 
   return (
     <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">

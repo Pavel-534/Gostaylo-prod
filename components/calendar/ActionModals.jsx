@@ -88,6 +88,7 @@ export function ActionModals({
   createBookingMutation,
   deleteBlockMutation,
   priceSubmitPending = false,
+  onActionModalClose,
   language = 'ru',
   exchangeRates = { THB: 1 },
 }) {
@@ -96,7 +97,7 @@ export function ActionModals({
   const fp = (amountThb) => formatPrice(amountThb, 'THB', exchangeRates, language)
   const t = (key) => getUIText(key, language)
 
-  const closeActionModal = () =>
+  const closeActionModal = () => {
     setActionModal({
       open: false,
       type: null,
@@ -105,6 +106,8 @@ export function ActionModals({
       cellData: null,
       checkOutDate: null,
     })
+    onActionModalClose?.()
+  }
 
   const actionOpenChange = (open) => {
     if (!open) closeActionModal()
@@ -113,6 +116,16 @@ export function ActionModals({
 
   const listingTitle = actionModal.listing?.title || ''
   const tappedDateLabel = actionModal.date ? formatSheetDate(actionModal.date, language) : ''
+  const rangeEndLabel = actionModal.checkOutDate
+    ? formatSheetDate(actionModal.checkOutDate, language)
+    : ''
+  const selectPeriodLabel =
+    actionModal.checkOutDate && actionModal.checkOutDate !== actionModal.date
+      ? trTpl(t('partnerCal_selectedRange'), {
+          start: tappedDateLabel,
+          end: rangeEndLabel,
+        })
+      : tappedDateLabel
 
   const renderSelectBody = () => (
     <div className="grid gap-3">
@@ -456,7 +469,7 @@ export function ActionModals({
 
   const actionDescription = () => {
     if (actionModal.type === 'select') {
-      return `${listingTitle}${tappedDateLabel ? ` • ${tappedDateLabel}` : ''}`
+      return `${listingTitle}${selectPeriodLabel ? ` • ${selectPeriodLabel}` : ''}`
     }
     if (['block', 'booking', 'blocked-manual', 'booked-info'].includes(actionModal.type)) {
       return listingTitle

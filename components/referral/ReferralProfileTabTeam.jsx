@@ -32,28 +32,16 @@ export function ReferralProfileTabTeam({ data: fallbackData, t, locale = 'ru-RU'
     )
   }
 
-  const displayCurrency = data?.stats?.referralDisplayCurrency || 'THB'
-  const midRateRubToThb = data?.sharePitchFx?.midRateRubToThb ?? null
-
   return (
     <div className="space-y-6 pb-2" data-testid="referral-team-tab-ready">
       <ReferralTeamAnalyticsCard
         teamAnalytics={data?.teamAnalytics}
         ambassador={data?.ambassador}
-        displayCurrency={displayCurrency}
-        midRateRubToThb={midRateRubToThb}
         t={t}
         locale={locale}
       />
       <ReferralActivitySection teamMembers={data?.teamMembers} t={t} />
-      <ReferralTeamSection
-        members={data?.teamMembers}
-        displayCurrency={displayCurrency}
-        midRateRubToThb={midRateRubToThb}
-        t={t}
-        language={language}
-        locale={locale}
-      />
+      <ReferralTeamSection members={data?.teamMembers} t={t} language={language} locale={locale} />
     </div>
   )
 }

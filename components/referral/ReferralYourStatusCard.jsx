@@ -11,6 +11,7 @@ import { Loader2, Medal, Smartphone } from 'lucide-react'
 import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
 import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 function round2Display(value) {
   const n = Number(value)
@@ -41,6 +42,7 @@ export function ReferralYourStatusCard({
   /** Stage 131.5 — additive THB boost per booking (not a multiplier). */
   turboBoostThb = 0,
 }) {
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const amb = ambassador
   const shareCardRef = useRef(null)
   const [shareBusy, setShareBusy] = useState(false)
@@ -170,14 +172,13 @@ export function ReferralYourStatusCard({
                       <button
                         type="button"
                         className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand-hover shadow-sm transition hover:bg-brand/15 animate-[pulse_2.8s_ease-in-out_infinite]"
-                        aria-label={`Turbo +${boostThb} THB`}
+                        aria-label={t('stage188_turboBoostAria', { amount: formatThbAsDisplay(boostThb) })}
                       >
-                        Turbo +{boostThb.toLocaleString(locale)} THB / бронь
+                        {t('stage188_turboBoostBadge', { amount: formatThbAsDisplay(boostThb) })}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      Акция Turbo: дополнительно +{boostThb.toLocaleString(locale)} THB к вашей доле с каждой
-                      завершённой брони приглашённого.
+                    <TooltipContent className="max-w-xs">
+                      {t('stage188_turboBoostTooltip', { amount: formatThbAsDisplay(boostThb) })}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

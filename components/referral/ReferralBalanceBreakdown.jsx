@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/contexts/i18n-context'
-import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { getUIText } from '@/lib/translations'
 
 function formatUnlockDate(iso, locale) {
@@ -42,19 +42,8 @@ function BalanceHintPopover({ tooltip, ariaLabel }) {
   )
 }
 
-function FxApproxAmount({ thbAmount, formatAmount, showApprox, className }) {
-  const formatted = formatAmount(thbAmount)
-  if (!showApprox) {
-    return <span className={className}>{formatted}</span>
-  }
-  return (
-    <span className={className}>
-      <span className="opacity-75 font-semibold" aria-hidden>
-        ≈{' '}
-      </span>
-      {formatted}
-    </span>
-  )
+function FxAmount({ thbAmount, formatAmount, className }) {
+  return <span className={className}>{formatAmount(thbAmount)}</span>
 }
 
 function MidFxFootnote({ t }) {
@@ -86,7 +75,7 @@ export function ReferralBalanceBreakdown({
   className = '',
 }) {
   const { language } = useI18n()
-  const { isConvertedDisplay, formatThbAsDisplay: formatAmount } = useAmbassadorDisplayFx()
+  const { isConvertedDisplay, formatThbAsDisplay: formatAmount } = useReferralLedgerDisplay()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
   const amounts = useMemo(() => {
@@ -191,10 +180,9 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceHeldShort')}
             </span>
             <span className="tabular-nums font-medium">
-              <FxApproxAmount
+              <FxAmount
                 thbAmount={amounts.heldReferralBalanceThb}
                 formatAmount={formatAmount}
-                showApprox={isConvertedDisplay}
               />
             </span>
           </div>
@@ -206,10 +194,9 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceSecurityShort')}
             </span>
             <span className="tabular-nums font-medium">
-              <FxApproxAmount
+              <FxAmount
                 thbAmount={amounts.securityHeldReferralBalanceThb}
                 formatAmount={formatAmount}
-                showApprox={isConvertedDisplay}
               />
             </span>
           </div>
@@ -264,10 +251,9 @@ export function ReferralBalanceBreakdown({
                   <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
                 </div>
                 <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
-                  <FxApproxAmount
+                  <FxAmount
                     thbAmount={row.amountThb}
                     formatAmount={formatAmount}
-                    showApprox={isConvertedDisplay}
                   />
                 </p>
               </div>
@@ -302,10 +288,9 @@ export function ReferralBalanceBreakdown({
                 <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
               </div>
               <p className={cn('mt-2 text-2xl sm:text-3xl font-black tabular-nums tracking-tight', textTone[row.tone])}>
-                <FxApproxAmount
+                <FxAmount
                   thbAmount={row.amountThb}
                   formatAmount={formatAmount}
-                  showApprox={isConvertedDisplay}
                 />
               </p>
               {row.sublabel ? (

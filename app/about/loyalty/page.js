@@ -6,6 +6,7 @@ import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getCachedWelcomeBonusAmountThb } from '@/lib/server/welcome-bonus-public'
 import { AboutLoyaltyClient } from '@/components/about/AboutLoyaltyClient'
 import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
+import { formatAmbassadorAmountForOgLangAsync } from '@/lib/pricing/ambassador-og-amount.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,11 @@ function formatWelcomeForMeta(n) {
   return Number.isFinite(v) ? String(v) : '0'
 }
 
+async function buildLoyaltySeoCtx(lang, welcomeBonusThb) {
+  const welcomeAmount = await formatAmbassadorAmountForOgLangAsync(welcomeBonusThb, lang)
+  return { welcomeAmount, welcomeThb: formatWelcomeForMeta(welcomeBonusThb) }
+}
+
 function readLangQuery(searchParams) {
   if (!searchParams) return null
   const raw =
@@ -47,8 +53,7 @@ export async function generateMetadata({ searchParams }) {
   const urlLang = readLangQuery(searchParams)
   const lang = urlLang || getLangFromRequest(cookieStore, headersList)
   const welcomeBonusThb = await getCachedWelcomeBonusAmountThb()
-  const welcomeStr = formatWelcomeForMeta(welcomeBonusThb)
-  const ctx = { welcomeThb: welcomeStr }
+  const ctx = await buildLoyaltySeoCtx(lang, welcomeBonusThb)
   const title = getUIText('seo_loyalty_title', lang, ctx)
   const description = getUIText('seo_loyalty_description', lang, ctx)
   const ogLocale = OG_LOCALE_BY_LANG[lang] || 'en_US'

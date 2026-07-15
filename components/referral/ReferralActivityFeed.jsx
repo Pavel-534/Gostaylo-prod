@@ -9,6 +9,7 @@ import { getUIText } from '@/lib/translations'
 import { fetchReferralActivity } from '@/lib/api/referral-public-client'
 import { isUuidLike } from '@/lib/referral/uuid-like'
 import { formatReferralDateTimeDdMmYyyyHm } from '@/lib/referral/format-referral-datetime'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 const PAGE_LIMIT = 15
 
@@ -57,6 +58,7 @@ function EventIcon({ type }) {
 export function ReferralActivityFeed() {
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
   const locale =
     language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
 
@@ -145,7 +147,7 @@ export function ReferralActivityFeed() {
         const bonus = Number(ev.meta?.bonusThb ?? 0)
         text = t('referralFeed_firstStay')
           .replace('{name}', name)
-          .replace('{amount}', bonus.toLocaleString(locale, { maximumFractionDigits: 2 }))
+          .replace('{amount}', formatThbAsDisplay(bonus))
       } else if (ev.type === 'teammate_new_listing') {
         text = t('referralFeed_newListing').replace('{name}', name)
       } else if (ev.type === 'referral_bonus_earned') {
@@ -155,7 +157,7 @@ export function ReferralActivityFeed() {
         if (rt === 'guest_booking') kind = 'Бонус за друга'
         else if (rt === 'host_activation') kind = t('referralFeed_bonusKind_host_activation')
         text = t('referralFeed_bonusEarned')
-          .replace('{amount}', amount.toLocaleString(locale, { maximumFractionDigits: 2 }))
+          .replace('{amount}', formatThbAsDisplay(amount))
           .replace('{kind}', kind)
       } else {
         text = name
@@ -174,7 +176,7 @@ export function ReferralActivityFeed() {
         partnerStatus,
       }
     })
-  }, [items, t, locale])
+  }, [items, t, formatThbAsDisplay])
 
   const showLoadMore = Boolean(nextCursor)
 

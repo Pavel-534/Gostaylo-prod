@@ -17,11 +17,9 @@ import { postChatConversationFromProfile } from '@/lib/chat/conversation-api-cli
 
 export function ReferralTeamSection({
   members = [],
-  displayCurrency = 'THB',
-  midRateRubToThb = null,
   t,
   language = 'ru',
-  locale = 'ru-RU',
+  locale: _locale = 'ru-RU',
 }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState(null)
@@ -111,22 +109,13 @@ export function ReferralTeamSection({
                   </div>
                   <p className="text-xs text-slate-500 sm:hidden truncate">
                     {t('stage133_memberEarnedPlatform')}:{' '}
-                    <ReferralDualThbAmount
-                      thb={m.earnedForReferrerThb}
-                      displayCurrency={displayCurrency}
-                      midRateRubToThb={midRateRubToThb}
-                      locale={locale}
-                      className="inline"
-                    />
+                    <ReferralDualThbAmount thb={m.earnedForReferrerThb} className="inline" />
                   </p>
                 </div>
                 <div className="hidden sm:flex items-center justify-end min-w-0">
                   <ReferralDualThbAmount
                     thb={m.earnedForReferrerThb}
-                    displayCurrency={displayCurrency}
-                    midRateRubToThb={midRateRubToThb}
-                    locale={locale}
-                    className="text-sm font-semibold text-brand text-right truncate max-w-full"
+                    className="text-sm font-semibold text-brand text-right break-words max-w-full"
                     primaryClassName="font-semibold"
                   />
                 </div>

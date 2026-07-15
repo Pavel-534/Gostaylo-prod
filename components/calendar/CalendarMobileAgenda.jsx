@@ -30,6 +30,7 @@ import {
   resolveBlockedBadgeClass,
   resolveBookingStatusBadgeClass,
 } from '@/lib/calendar/calendar-cell-presentation.js'
+import { calendarRangeHighlightClass } from '@/lib/calendar/partner-calendar-range-utils.js'
 
 const TYPE_ICONS = {
   villa: Home,
@@ -100,6 +101,7 @@ export function CalendarMobileAgenda({
   dates,
   listings,
   onCellClick,
+  getCellRangeRole,
   bare = false,
   todayAnchorRef = null,
   initialExpandedListingId = null,
@@ -305,6 +307,7 @@ export function CalendarMobileAgenda({
                         date={date}
                         item={item}
                         onCellClick={onCellClick}
+                        rangeRole={getCellRangeRole?.(id, date) ?? null}
                         listItemRef={attachTodayAnchor ? todayAnchorRef : undefined}
                         todayScrollMarginClass={attachTodayAnchor ? TODAY_SCROLL_MARGIN : undefined}
                         language={language}
@@ -329,7 +332,7 @@ export function CalendarMobileAgenda({
   return <Card className="overflow-hidden border-0 shadow-lg">{inner}</Card>
 }
 
-function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClass, language = 'ru' }) {
+function AgendaRow({ date, item, onCellClick, rangeRole = null, listItemRef, todayScrollMarginClass, language = 'ru' }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
   const { formatListingPrice } = useCalendarListingPriceFormat()
@@ -433,11 +436,16 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
       <button
         type="button"
         onClick={() => onCellClick(item.listing, date, cellData)}
+        data-testid="partner-cal-cell"
+        data-date={date}
+        data-status={cellData.status}
+        data-listing-id={item.listing.id}
         className={cn(
           'flex w-full min-h-[44px] items-center gap-2 border-b border-slate-100 px-2.5 py-1.5 text-left transition-colors',
           'touch-manipulation active:bg-slate-100',
           today && 'bg-brand/10 ring-1 ring-inset ring-brand/40',
           weekend && cellData.status === 'AVAILABLE' && !today && 'bg-slate-50/40',
+          cellData.status === 'AVAILABLE' && calendarRangeHighlightClass(rangeRole),
         )}
       >
         <div

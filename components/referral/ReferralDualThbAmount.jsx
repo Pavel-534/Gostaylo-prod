@@ -1,16 +1,20 @@
 'use client'
 
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { cn } from '@/lib/utils'
+
 /**
- * Stage 133 — THB ledger amount with optional RUB display (mid rate from referral/me.sharePitchFx).
+ * Stage 188.1 — legacy name; renders ledger THB in header display currency (mid FX).
+ * @deprecated Prefer `<ReferralLedgerAmount thb={…} />` directly.
  */
 export function ReferralDualThbAmount({
   thb,
-  displayCurrency = 'THB',
-  midRateRubToThb = null,
-  locale = 'ru-RU',
+  displayCurrency: _displayCurrency,
+  midRateRubToThb: _midRateRubToThb,
+  locale: _locale,
   className = '',
   primaryClassName = '',
-  secondaryClassName = 'text-slate-500 font-normal text-[0.85em]',
+  secondaryClassName: _secondaryClassName,
   emptyLabel = '—',
 }) {
   const n = Number(thb)
@@ -18,29 +22,11 @@ export function ReferralDualThbAmount({
     return <span className={className}>{emptyLabel}</span>
   }
 
-  const currency = String(displayCurrency || 'THB').toUpperCase()
-  const rate = Number(midRateRubToThb)
-  const showRub = currency === 'RUB' && Number.isFinite(rate) && rate > 0
-
-  if (showRub) {
-    const rub = Math.round(n / rate)
-    return (
-      <span className={`tabular-nums ${className}`}>
-        <span className={primaryClassName}>
-          {rub.toLocaleString(locale, { maximumFractionDigits: 0 })} ₽
-        </span>
-        <span className={secondaryClassName}>
-          {' '}
-          · {n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} THB
-        </span>
-      </span>
-    )
-  }
-
   return (
-    <span className={`tabular-nums ${className}`}>
-      {n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} THB
-    </span>
+    <ReferralLedgerAmount
+      thb={n}
+      className={cn('tabular-nums', className, primaryClassName)}
+    />
   )
 }
 

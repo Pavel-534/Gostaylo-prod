@@ -23,6 +23,8 @@ import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { getUserHeldReferralSummary } from '@/lib/services/marketing/referral-hold.service.js';
 import { resolveDirectReferrerForUser } from '@/lib/referral/resolve-direct-referrer';
 import { buildReferralSharePitchFx } from '@/lib/finance/referral-share-pitch-fx.js';
+import { formatAmbassadorAmountFromThb } from '@/lib/pricing/ambassador-display-amount.js';
+import { getMidMarketDisplayRateMap } from '@/lib/pricing/fx-display.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -377,6 +379,20 @@ export async function GET(request) {
   const oldReferrerBonusWithBoostThb = 0;
   const newReferrerBonusWithBoostThb = Math.round(promoBoostPerBookingThb * referralSplitRatio * 100) / 100;
 
+  const langNormStories = normalizeStoriesLang(profile?.preferred_language || profile?.language);
+  let midRateMapForStories = { THB: 1 };
+  try {
+    midRateMapForStories = await getMidMarketDisplayRateMap();
+  } catch {
+    /* fallback */
+  }
+  const storiesTeamAmountLine = formatAmbassadorAmountFromThb(
+    monthlyNetworkEarnedThb,
+    referralDisplayCurrency,
+    midRateMapForStories,
+    langNormStories,
+  );
+
   let referralGamification = {
     badgesEarned: [],
     primaryBadge: null,
@@ -384,11 +400,11 @@ export async function GET(request) {
     fastStartEligible: false,
     badgeSnapshot: null,
   };
-  let referralStoriesCopy = buildStoriesCopy(normalizeStoriesLang(profile?.preferred_language || profile?.language), {
+  let referralStoriesCopy = buildStoriesCopy(langNormStories, {
     brandName,
     tierName: String(profile?.referral_tier_name || currentTier?.name || ''),
     badgeLabel: '',
-    monthlyNetworkEarnedThb,
+    teamAmountLine: storiesTeamAmountLine,
   });
 
   if (supabaseAdmin) {
@@ -411,7 +427,7 @@ export async function GET(request) {
       brandName,
       tierName: String(profile?.referral_tier_name || currentTier?.name || ''),
       badgeLabel: primaryLabel,
-      monthlyNetworkEarnedThb,
+      teamAmountLine: storiesTeamAmountLine,
     });
   }
 

@@ -14,15 +14,12 @@ import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatus
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
-
-function formatThb(value, locale = 'ru-RU') {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return '0'
-  return n.toLocaleString(locale, { maximumFractionDigits: 2 })
-}
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
   const router = useRouter()
+  const { formatLedgerWithApprox } = useReferralLedgerDisplay()
   const walletTotal = Number(walletData?.wallet?.balance_thb || 0)
   const pending = Number(data?.stats?.expectedPendingThb || 0)
   const totalReferrals = Number(data?.stats?.friendsInvited || 0)
@@ -32,6 +29,11 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
   const withdrawableThb = Number(walletData?.wallet?.withdrawable_balance_thb || 0)
   const payoutEligible = walletData?.payout?.payoutEligible === true
   const tierProgress = Number(data?.ambassador?.tierProgressPercent || 0)
+
+  const withdrawCtaLabel = useMemo(() => {
+    if (!payoutEligible) return t('stage1143_tabNavWallet')
+    return t('stage1143_withdrawCta', { amount: formatLedgerWithApprox(withdrawableThb) })
+  }, [payoutEligible, t, formatLedgerWithApprox, withdrawableThb])
 
   const ambassadorLevels = useMemo(() => {
     const tiers = Array.isArray(data?.ambassador?.tiers) ? data.ambassador.tiers : []
@@ -106,15 +108,21 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
         <Card className="md:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm">
           <CardContent className="p-6">
             <p className="text-xs uppercase tracking-wider text-slate-500">{t('stage1143_earningsTotal')}</p>
-            <p className="text-4xl font-black text-brand mt-2">{formatThb(walletTotal, locale)} THB</p>
+            <p className="text-4xl font-black text-brand mt-2 break-words">
+              <ReferralLedgerAmount thb={walletTotal} />
+            </p>
             <div className="mt-6 flex gap-8 flex-wrap">
               <div>
                 <p className="text-xs text-slate-400">{t('stage1143_pending')}</p>
-                <p className="text-2xl font-semibold text-slate-500">{formatThb(pending, locale)} THB</p>
+                <p className="text-2xl font-semibold text-slate-500 break-words">
+                  <ReferralLedgerAmount thb={pending} />
+                </p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">{t('stage1143_earnedLifetime')}</p>
-                <p className="text-2xl font-semibold text-brand">{formatThb(data?.stats?.earnedThb, locale)} THB</p>
+                <p className="text-2xl font-semibold text-brand break-words">
+                  <ReferralLedgerAmount thb={data?.stats?.earnedThb} />
+                </p>
               </div>
             </div>
             {Array.isArray(data?.stats?.sparklineEarningsThb) && data.stats.sparklineEarningsThb.length > 1 ? (
@@ -132,12 +140,10 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <Button
               type="button"
               variant="secondary"
-              className="w-full bg-white text-brand"
+              className="w-full bg-white text-brand min-h-[44px]"
               onClick={() => router.push('/profile/wallet')}
             >
-              {payoutEligible
-                ? t('stage1143_withdrawCta').replace('{amount}', formatThb(withdrawableThb, locale))
-                : t('stage1143_tabNavWallet')}
+              {withdrawCtaLabel}
             </Button>
           </CardContent>
         </Card>
@@ -150,7 +156,9 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <CardDescription>{t('stage91_statsDirectGuestsDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-brand">{formatThb(l1Monthly, locale)} THB</p>
+            <p className="text-2xl font-semibold text-brand break-words">
+              <ReferralLedgerAmount thb={l1Monthly} />
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -159,7 +167,9 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-brand">{formatThb(l2Monthly, locale)} THB</p>
+            <p className="text-2xl font-semibold text-brand break-words">
+              <ReferralLedgerAmount thb={l2Monthly} />
+            </p>
           </CardContent>
         </Card>
       </div>

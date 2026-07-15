@@ -1,6 +1,7 @@
 'use client'
 
 import { Users, UserCheck } from 'lucide-react'
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
@@ -76,13 +77,13 @@ export function ReferralTeamMetricsStrip({
             <TooltipTrigger asChild>
               <div className={cardCn}>
                 <p className={labelCn}>{t?.('stage133_teamEarningsLabel') || 'Доход команды'}</p>
-                <p className={`${valueCn} flex items-center gap-1.5 mt-0.5 tabular-nums`}>
-                  {Math.round(Number(teamEarningsThb) * 100) / 100}
+                <p className={`${valueCn} flex items-center gap-1.5 mt-0.5 tabular-nums break-words`}>
+                  <ReferralLedgerAmount thb={teamEarningsThb} />
                 </p>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs text-xs">
-              {t?.('stage133_teamEarningsTooltip') || 'За текущий период (L1 + L2), THB'}
+              {t?.('stage133_teamEarningsTooltip') || t('stage133_teamEarningsTooltip')}
             </TooltipContent>
           </Tooltip>
         ) : null}
