@@ -72,7 +72,7 @@ function StepPhotosInner() {
               <Button
                 variant="destructive"
                 size="icon"
-                className="absolute right-2 top-2 h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-2 top-2 min-h-[44px] min-w-[44px] opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()

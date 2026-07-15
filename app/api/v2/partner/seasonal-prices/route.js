@@ -13,116 +13,12 @@
 
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { parseISO, format, isBefore, isAfter, isSameDay, addDays, subDays } from 'date-fns'
-import { revalidateListingPaths } from '@/lib/revalidation'
+import { upsertPartnerSeasonalPrice } from '@/lib/services/calendar/partner-seasonal-price.service.js'
 
 export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-/**
- * Conflict Resolution Logic
- * Handles overlapping date ranges by splitting/trimming existing ranges
- */
-async function resolveConflicts(listingId, newStart, newEnd) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    throw new Error('Supabase not configured')
-  }
-  
-  const newStartDate = parseISO(newStart)
-  const newEndDate = parseISO(newEnd)
-  
-  // Fetch all overlapping ranges
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=eq.${listingId}&or=(and(start_date.lte.${newEnd},end_date.gte.${newStart}))&select=*`,
-    {
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-      }
-    }
-  )
-  
-  const overlapping = await res.json()
-  
-  if (!Array.isArray(overlapping) || overlapping.length === 0) {
-    // No conflicts
-    return { toDelete: [], toUpdate: [] }
-  }
-  
-  const toDelete = []
-  const toUpdate = []
-  
-  for (const existing of overlapping) {
-    const existingStart = parseISO(existing.start_date)
-    const existingEnd = parseISO(existing.end_date)
-    
-    // Case 1: New range completely contains existing → DELETE existing
-    if (
-      (isSameDay(newStartDate, existingStart) || isBefore(newStartDate, existingStart)) &&
-      (isSameDay(newEndDate, existingEnd) || isAfter(newEndDate, existingEnd))
-    ) {
-      toDelete.push(existing.id)
-    }
-    // Case 2: Existing range completely contains new → SPLIT existing into two parts
-    else if (
-      isBefore(existingStart, newStartDate) &&
-      isAfter(existingEnd, newEndDate)
-    ) {
-      // Keep left part
-      toUpdate.push({
-        id: existing.id,
-        start_date: format(existingStart, 'yyyy-MM-dd'),
-        end_date: format(subDays(newStartDate, 1), 'yyyy-MM-dd'),
-        listing_id: existing.listing_id,
-        price_daily: existing.price_daily,
-        season_type: existing.season_type,
-        label: existing.label,
-        min_stay: existing.min_stay || 1
-      })
-      
-      // Create right part as new entry (will be handled by caller)
-      // We'll return it in a special array
-    }
-    // Case 3: Partial overlap on left → TRIM existing end_date
-    else if (
-      isBefore(existingStart, newStartDate) &&
-      isAfter(existingEnd, newStartDate) &&
-      !isAfter(existingEnd, newEndDate)
-    ) {
-      toUpdate.push({
-        id: existing.id,
-        start_date: format(existingStart, 'yyyy-MM-dd'),
-        end_date: format(subDays(newStartDate, 1), 'yyyy-MM-dd'),
-        listing_id: existing.listing_id,
-        price_daily: existing.price_daily,
-        season_type: existing.season_type,
-        label: existing.label,
-        min_stay: existing.min_stay || 1
-      })
-    }
-    // Case 4: Partial overlap on right → TRIM existing start_date
-    else if (
-      isBefore(newStartDate, existingStart) &&
-      isBefore(existingStart, newEndDate) &&
-      isAfter(existingEnd, newEndDate)
-    ) {
-      toUpdate.push({
-        id: existing.id,
-        start_date: format(addDays(newEndDate, 1), 'yyyy-MM-dd'),
-        end_date: format(existingEnd, 'yyyy-MM-dd'),
-        listing_id: existing.listing_id,
-        price_daily: existing.price_daily,
-        season_type: existing.season_type,
-        label: existing.label,
-        min_stay: existing.min_stay || 1
-      })
-    }
-  }
-  
-  return { toDelete, toUpdate, overlapping }
-}
 
 /**
  * GET - Fetch seasonal prices for partner's listings
@@ -240,128 +136,36 @@ export async function POST(request) {
     
     const body = await request.json()
     const { listingId, startDate, endDate, priceDaily, priceMonthly, seasonType, label, minStay } = body
-    
-    // Validation
-    if (!listingId || !startDate || !endDate || !priceDaily) {
-      return NextResponse.json({
-        status: 'error',
-        error: 'Missing required fields: listingId, startDate, endDate, priceDaily'
-      }, { status: 400 })
-    }
-    
-    // Verify listing ownership
-    const listingRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&owner_id=eq.${userId}&select=id`,
-      {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      }
-    )
-    const listing = await listingRes.json()
-    
-    if (!Array.isArray(listing) || listing.length === 0) {
-      return NextResponse.json({
-        status: 'error',
-        error: 'Listing not found or access denied'
-      }, { status: 404 })
-    }
-    
-    console.log(`[SEASONAL-PRICES] Upserting for listing ${listingId}: ${startDate} to ${endDate}`)
-    
-    // Step 1: Resolve conflicts
-    const { toDelete, toUpdate } = await resolveConflicts(listingId, startDate, endDate)
-    
-    console.log(`[SEASONAL-PRICES] Conflicts: ${toDelete.length} to delete, ${toUpdate.length} to update`)
-    
-    // Step 2: Delete fully overlapped ranges
-    if (toDelete.length > 0) {
-      for (const id of toDelete) {
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/seasonal_prices?id=eq.${id}`,
-          {
-            method: 'DELETE',
-            headers: {
-              'apikey': SUPABASE_SERVICE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-            }
-          }
-        )
-      }
-    }
-    
-    // Step 3: Update partially overlapped ranges (trim)
-    if (toUpdate.length > 0) {
-      for (const update of toUpdate) {
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/seasonal_prices?id=eq.${update.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_SERVICE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-              start_date: update.start_date,
-              end_date: update.end_date
-            })
-          }
-        )
-      }
-    }
-    
-    // Step 4: Insert new range
-    const newPrice = {
-      listing_id: listingId,
-      start_date: startDate,
-      end_date: endDate,
-      price_daily: parseFloat(priceDaily),
-      price_monthly: priceMonthly != null && priceMonthly !== '' ? parseFloat(priceMonthly) : null,
-      season_type: seasonType || 'NORMAL',
-      label: label || null,
-      min_stay: minStay ? parseInt(minStay) : 1
-    }
-    
-    const insertRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/seasonal_prices`,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(newPrice)
-      }
-    )
-    
-    if (!insertRes.ok) {
-      const error = await insertRes.json()
-      throw new Error(error.message || 'Failed to insert seasonal price')
-    }
-    
-    const inserted = await insertRes.json()
 
-    try {
-      await revalidateListingPaths('update', listingId)
-    } catch (e) {
-      console.warn('[SEASONAL-PRICES] revalidate:', e?.message)
+    const result = await upsertPartnerSeasonalPrice({
+      partnerId: userId,
+      listingId,
+      startDate,
+      endDate,
+      priceDaily,
+      priceMonthly,
+      seasonType,
+      label,
+      minStay,
+    })
+
+    if (!result.ok) {
+      const status =
+        result.code === 'LISTING_NOT_FOUND'
+          ? 404
+          : result.code === 'VALIDATION_ERROR'
+            ? 400
+            : 500
+      return NextResponse.json({ status: 'error', error: result.error }, { status })
     }
-    
+
     return NextResponse.json({
       status: 'success',
-      data: inserted[0] || inserted,
+      data: result.data,
       meta: {
         partnerId: userId,
-        conflictsResolved: {
-          deleted: toDelete.length,
-          updated: toUpdate.length
-        }
-      }
+        conflictsResolved: result.conflictsResolved,
+      },
     })
     
   } catch (error) {

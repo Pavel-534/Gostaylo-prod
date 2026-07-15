@@ -173,7 +173,7 @@ export function CalendarMobileAgenda({
             type="button"
             onClick={() => setCategoryFilter(key)}
             className={cn(
-              'shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors',
+              'shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition-colors min-h-[44px]',
               categoryFilter === key
                 ? 'border-brand bg-brand text-white'
                 : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100',
@@ -234,7 +234,7 @@ export function CalendarMobileAgenda({
               ref={headerAsTodayAnchor ? todayAnchorRef : undefined}
               onClick={() => !bare && toggleExpanded(id)}
               className={cn(
-                'flex w-full items-center gap-3 border-b border-slate-100 px-3 py-2.5 text-left transition-colors',
+                'flex w-full min-h-[44px] items-center gap-3 border-b border-slate-100 px-3 py-2.5 text-left transition-colors',
                 'touch-manipulation',
                 !bare && 'active:bg-slate-50',
                 headerAsTodayAnchor ? TODAY_SCROLL_MARGIN : undefined,
@@ -283,7 +283,7 @@ export function CalendarMobileAgenda({
                         e.stopPropagation()
                         toggleFullMonth(id)
                       }}
-                      className="text-xs font-semibold text-brand-hover underline-offset-2 hover:underline"
+                      className="min-h-[44px] px-3 py-2 text-xs font-semibold text-brand-hover underline-offset-2 hover:underline"
                     >
                       {showFull
                         ? trTpl(t('partnerCal_collapseToTen'), { n: SHORT_WINDOW })

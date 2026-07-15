@@ -147,7 +147,7 @@ export function CalendarHeader({
               size="sm"
               onClick={onIcalSyncAll}
               disabled={icalSyncing}
-              className="border-brand/30 text-brand hover:bg-brand/10"
+              className="min-h-11 h-11 border-brand/30 text-brand hover:bg-brand/10 lg:min-h-9 lg:h-9"
               title={t('partnerCal_syncAllIcalTitle')}
             >
               {icalSyncing ? (
@@ -163,7 +163,7 @@ export function CalendarHeader({
             variant="outline"
             size="sm"
             onClick={onPriceModalOpen}
-            className="border-0 bg-brand text-white hover:bg-brand-hover"
+            className="min-h-11 h-11 border-0 bg-brand text-white hover:bg-brand-hover lg:min-h-9 lg:h-9"
           >
             <DollarSign className="mr-1 h-4 w-4" />
             {t('partnerCal_setPrices')}
@@ -173,20 +173,20 @@ export function CalendarHeader({
             variant="outline"
             size="sm"
             onClick={onToday}
-            className="border-brand/25 text-brand hover:bg-brand/10"
+            className="min-h-11 h-11 border-brand/25 text-brand hover:bg-brand/10 lg:min-h-9 lg:h-9"
           >
             {t('partnerCal_today')}
           </Button>
 
           <div className="flex items-center overflow-hidden rounded-lg border">
-            <Button variant="ghost" size="sm" onClick={onBack} className="rounded-none">
+            <Button variant="ghost" size="sm" onClick={onBack} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="min-w-[140px] px-3 text-center text-sm font-medium text-slate-700">
               {format(parseISO(startDate), 'd MMM', { locale: dfLocale })} —{' '}
               {format(parseISO(endDate), 'd MMM yyyy', { locale: dfLocale })}
             </span>
-            <Button variant="ghost" size="sm" onClick={onForward} className="rounded-none">
+            <Button variant="ghost" size="sm" onClick={onForward} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -212,18 +212,24 @@ export function CalendarHeader({
             </Button>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={onRefresh} title={t('partnerCal_refresh')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRefresh}
+            title={t('partnerCal_refresh')}
+            className="min-h-11 min-w-11 lg:min-h-9 lg:min-w-9"
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
 
-          <div className="sm:hidden">
+          <div className="lg:hidden">
             <Popover open={legendOpen} onOpenChange={setLegendOpen}>
               <PopoverTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 shrink-0 border-slate-200"
+                  className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 border-slate-200"
                   title={t('partnerCal_legendTitle')}
                 >
                   <Info className="h-4 w-4 text-slate-600" />

@@ -531,7 +531,7 @@ export default function PartnerListings() {
                       asChild
                       size='sm'
                       variant='brand'
-                      className='mt-2.5 h-8 w-full text-xs'
+                      className='mt-2.5 min-h-[44px] h-11 w-full text-xs'
                     >
                       <Link href={`/partner/listings/${listing.id}`}>
                         <Edit className='h-3.5 w-3.5 mr-1.5' />
@@ -556,7 +556,7 @@ export default function PartnerListings() {
                       }}
                       disabled={publishingId === listing.id}
                       variant={ready ? 'brand' : 'outline'}
-                      className={`flex-1 h-9 text-sm ${
+                      className={`flex-1 min-h-[44px] h-11 text-sm ${
                         ready
                           ? ''
                           : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
@@ -583,7 +583,7 @@ export default function PartnerListings() {
                   <Button
                     variant='outline'
                     size='sm'
-                    className='h-9'
+                    className='min-h-[44px] h-11'
                     asChild
                   >
                     <Link href={`/listings/${listing.id}`} target='_blank'>
@@ -595,7 +595,7 @@ export default function PartnerListings() {
                   <Button
                     variant='outline'
                     size='sm'
-                    className='h-9'
+                    className='min-h-[44px] h-11'
                     asChild
                   >
                     <Link href={`/partner/listings/${listing.id}`} title={t('partnerListings_edit')}>
@@ -605,7 +605,7 @@ export default function PartnerListings() {
                   </Button>
 
                   {/* Мастер-календарь, отфильтрованный по этому листингу (не страница редактирования) */}
-                  <Button variant='outline' size='sm' className='h-9' asChild>
+                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
                     <Link
                       href={`/partner/calendar?listingId=${listing.id}`}
                       title={t('partnerListings_calendar')}
@@ -619,7 +619,7 @@ export default function PartnerListings() {
                     <Button
                       variant='outline'
                       size='sm'
-                      className='h-9 text-slate-700'
+                      className='min-h-[44px] h-11 text-slate-700'
                       disabled={visibilityBusyId === listing.id}
                       onClick={(e) => {
                         e.preventDefault()
@@ -638,7 +638,7 @@ export default function PartnerListings() {
                     <Button
                       size='sm'
                       variant='brand'
-                      className='h-9 text-xs'
+                      className='min-h-[44px] h-11 text-xs'
                       disabled={visibilityBusyId === listing.id}
                       onClick={(e) => {
                         e.preventDefault()
@@ -657,7 +657,7 @@ export default function PartnerListings() {
                   <Button
                     variant='outline'
                     size='sm'
-                    className='h-9 text-red-600 hover:text-red-700 hover:bg-red-50'
+                    className='min-h-[44px] h-11 text-red-600 hover:text-red-700 hover:bg-red-50'
                     onClick={(e) => {
                       e.preventDefault()
                       setDeleteId(listing.id)

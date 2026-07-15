@@ -15,9 +15,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth-context'
-import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/lib/hooks/use-partner-calendar'
-import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
+import { usePartnerCalendar, useCreateBlock, useCreateManualBooking, useDeleteBlock } from '@/lib/hooks/use-partner-calendar'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
@@ -33,6 +33,9 @@ import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { postIcalSyncPartnerAll } from '@/lib/api/ical-sync-client'
 import { isSoftHoldDisplayKind } from '@/lib/calendar/calendar-cell-presentation.js'
+import { BLOCK_DISPLAY_KIND } from '@/lib/calendar/block-source-display.js'
+import { resolvePartnerBookingStayRange } from '@/lib/calendar/partner-calendar-booking-range.js'
+import { applyBulkSeasonalPrices } from '@/lib/partner/partner-calendar-bulk-prices.js'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -126,7 +129,9 @@ function MasterCalendarContent() {
   })
   
   const [priceModal, setPriceModal] = useState({ open: false })
+  const [priceSubmitPending, setPriceSubmitPending] = useState(false)
   const [icalSyncing, setIcalSyncing] = useState(false)
+  const queryClient = useQueryClient()
   
   // Form state
   const [blockForm, setBlockForm] = useState({
@@ -178,7 +183,7 @@ function MasterCalendarContent() {
   
   const createBlockMutation = useCreateBlock()
   const createBookingMutation = useCreateManualBooking()
-  const upsertSeasonalPriceMutation = useUpsertSeasonalPrice()
+  const deleteBlockMutation = useDeleteBlock()
 
   const calendarDominantHint = useMemo(() => {
     const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
@@ -233,39 +238,102 @@ function MasterCalendarContent() {
   }, [language, refetch])
   
   // Cell click handler
-  const handleCellClick = useCallback((listing, date, cellData) => {
-    if (cellData.status === 'AVAILABLE') {
-      setActionModal({
-        open: true,
-        type: 'select',
-        listing,
-        date
-      })
-      // Reset forms
-      setBlockForm({ endDate: date, reason: '', type: 'OWNER_USE' })
-      setBookingForm({ 
-        checkOut: format(addDays(parseISO(date), 1), 'yyyy-MM-dd'),
-        guestName: '',
-        guestPhone: '',
-        guestEmail: '',
-        priceThb: '',
-        notes: ''
-      })
-    } else if (cellData.status === 'BOOKED') {
-      /* booked cell — detail drill-down can be added here */
-    } else if (
-      cellData.status === 'BLOCKED' &&
-      (isSoftHoldDisplayKind(cellData.blockKind) || cellData.blockExpiresAt)
-    ) {
-      setActionModal({
-        open: true,
-        type: 'hold-info',
-        listing,
-        date,
-        cellData,
-      })
-    }
-  }, [])
+  const handleCellClick = useCallback(
+    (listing, date, cellData) => {
+      if (cellData.status === 'AVAILABLE') {
+        setActionModal({
+          open: true,
+          type: 'select',
+          listing,
+          date,
+          cellData: null,
+          checkOutDate: null,
+        })
+        setBlockForm({ endDate: date, reason: '', type: 'OWNER_USE' })
+        setBookingForm({
+          checkOut: format(addDays(parseISO(date), 1), 'yyyy-MM-dd'),
+          guestName: '',
+          guestPhone: '',
+          guestEmail: '',
+          priceThb: '',
+          notes: '',
+        })
+        return
+      }
+
+      if (cellData.status === 'BOOKED') {
+        const row = calendarData?.listings?.find((x) => x.listing.id === listing.id)
+        const stay = resolvePartnerBookingStayRange(
+          row?.availability,
+          calendarData?.dates,
+          cellData.bookingId,
+        )
+        setActionModal({
+          open: true,
+          type: 'booked-info',
+          listing,
+          date: stay?.checkIn || date,
+          cellData,
+          checkOutDate: stay?.checkOut || null,
+        })
+        return
+      }
+
+      if (cellData.status === 'BLOCKED') {
+        if (cellData.blockKind === BLOCK_DISPLAY_KIND.ICAL) {
+          setActionModal({
+            open: true,
+            type: 'blocked-ical',
+            listing,
+            date,
+            cellData,
+            checkOutDate: null,
+          })
+          return
+        }
+        if (
+          cellData.blockKind === BLOCK_DISPLAY_KIND.MANUAL &&
+          cellData.blockId &&
+          !isSoftHoldDisplayKind(cellData.blockKind)
+        ) {
+          setActionModal({
+            open: true,
+            type: 'blocked-manual',
+            listing,
+            date,
+            cellData,
+            checkOutDate: null,
+          })
+          return
+        }
+        if (isSoftHoldDisplayKind(cellData.blockKind) || cellData.blockExpiresAt) {
+          setActionModal({
+            open: true,
+            type: 'hold-info',
+            listing,
+            date,
+            cellData,
+            checkOutDate: null,
+          })
+        }
+      }
+    },
+    [calendarData],
+  )
+
+  const handleUnblockSubmit = async () => {
+    const blockId = actionModal.cellData?.blockId
+    if (!blockId || !partnerId) return
+    await deleteBlockMutation.mutateAsync({ blockId, partnerId, language })
+    setActionModal({
+      open: false,
+      type: null,
+      listing: null,
+      date: null,
+      cellData: null,
+      checkOutDate: null,
+    })
+  }
   
   // Submit handlers
   const handleBlockSubmit = async () => {
@@ -277,10 +345,11 @@ function MasterCalendarContent() {
       endDate: blockForm.endDate || actionModal.date,
       reason: blockForm.reason,
       type: blockForm.type,
-      partnerId: partnerId
+      partnerId: partnerId,
+      language,
     })
     
-    setActionModal({ open: false, type: null, listing: null, date: null })
+    setActionModal({ open: false, type: null, listing: null, date: null, cellData: null, checkOutDate: null })
   }
   
   const handleBookingSubmit = async () => {
@@ -295,52 +364,68 @@ function MasterCalendarContent() {
       guestEmail: bookingForm.guestEmail,
       priceThb: bookingForm.priceThb ? parseFloat(bookingForm.priceThb) : undefined,
       notes: bookingForm.notes,
-      partnerId: partnerId
+      partnerId: partnerId,
+      language,
     })
     
-    setActionModal({ open: false, type: null, listing: null, date: null })
+    setActionModal({ open: false, type: null, listing: null, date: null, cellData: null, checkOutDate: null })
   }
   
   const handlePriceSubmit = async () => {
-    if (!priceForm.priceDaily || !priceForm.startDate || !priceForm.endDate) return
-    
-    if (priceForm.listingId === 'all') {
-      const listingsToUpdate = calendarData?.listings || []
-      for (const item of listingsToUpdate) {
-        await upsertSeasonalPriceMutation.mutateAsync({
-          listingId: item.listing.id,
-          startDate: priceForm.startDate,
-          endDate: priceForm.endDate,
-          priceDaily: parseFloat(priceForm.priceDaily),
-          seasonType: priceForm.seasonType,
-          label: priceForm.label || null,
-          minStay: parseInt(priceForm.minStay) || 1,
-          partnerId: partnerId
-        })
-      }
-    } else {
-      await upsertSeasonalPriceMutation.mutateAsync({
-        listingId: priceForm.listingId,
-        startDate: priceForm.startDate,
-        endDate: priceForm.endDate,
-        priceDaily: parseFloat(priceForm.priceDaily),
-        seasonType: priceForm.seasonType,
-        label: priceForm.label || null,
-        minStay: parseInt(priceForm.minStay) || 1,
-        partnerId: partnerId
-      })
+    if (!priceForm.priceDaily || !priceForm.startDate || !priceForm.endDate || !partnerId) return
+
+    const payload = {
+      startDate: priceForm.startDate,
+      endDate: priceForm.endDate,
+      priceDaily: parseFloat(priceForm.priceDaily),
+      seasonType: priceForm.seasonType,
+      label: priceForm.label || null,
+      minStay: parseInt(priceForm.minStay, 10) || 1,
     }
-    
-    setPriceModal({ open: false })
-    setPriceForm({
-      listingId: 'all',
-      startDate: format(new Date(), 'yyyy-MM-dd'),
-      endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-      priceDaily: '',
-      seasonType: 'HIGH',
-      label: '',
-      minStay: 1
-    })
+
+    const listingsToUpdate =
+      priceForm.listingId === 'all'
+        ? (calendarData?.listings || []).map((item) => ({
+            listingId: item.listing.id,
+            listingTitle: item.listing.title,
+          }))
+        : [
+            {
+              listingId: priceForm.listingId,
+              listingTitle:
+                calendarData?.listings?.find((x) => x.listing.id === priceForm.listingId)?.listing
+                  ?.title || '',
+            },
+          ]
+
+    if (listingsToUpdate.length === 0) return
+
+    setPriceSubmitPending(true)
+    try {
+      await applyBulkSeasonalPrices({
+        partnerId,
+        listings: listingsToUpdate,
+        payload,
+        language,
+        strategy: 'concurrent',
+      })
+      await queryClient.invalidateQueries({ queryKey: ['seasonal-prices'] })
+      await queryClient.invalidateQueries({ queryKey: ['partner-calendar'] })
+      await queryClient.invalidateQueries({ queryKey: ['partner-stats'] })
+
+      setPriceModal({ open: false })
+      setPriceForm({
+        listingId: 'all',
+        startDate: format(new Date(), 'yyyy-MM-dd'),
+        endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
+        priceDaily: '',
+        seasonType: 'HIGH',
+        label: '',
+        minStay: 1,
+      })
+    } finally {
+      setPriceSubmitPending(false)
+    }
   }
   
   // Loading state
@@ -487,9 +572,11 @@ function MasterCalendarContent() {
         onBlockSubmit={handleBlockSubmit}
         onBookingSubmit={handleBookingSubmit}
         onPriceSubmit={handlePriceSubmit}
+        onUnblockSubmit={handleUnblockSubmit}
         createBlockMutation={createBlockMutation}
         createBookingMutation={createBookingMutation}
-        upsertSeasonalPriceMutation={upsertSeasonalPriceMutation}
+        deleteBlockMutation={deleteBlockMutation}
+        priceSubmitPending={priceSubmitPending}
         language={language}
         exchangeRates={midExchangeRates}
       />
