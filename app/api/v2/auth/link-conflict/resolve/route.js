@@ -96,9 +96,9 @@ export async function POST(request) {
     if (!merged.ok) return authErrorJson(merged.error_code, 400)
 
     const response = NextResponse.json({ success: true, merged: true })
-    const session = attachSessionForProfile(response, merged.profile)
+    const attached = attachSessionForProfile(response, merged.profile)
     return NextResponse.json(
-      { success: true, merged: true, user: session.user },
+      { success: true, merged: true, user: attached.user },
       { headers: response.headers },
     )
   }
