@@ -63,15 +63,20 @@ test.describe('Stage 12.0 escrow regression', () => {
         data: {
           txId: `stage12-${Date.now()}`,
           gatewayRef: 'stage12-regression',
+          acceptedLegalTerms: true,
         },
         failOnStatusCode: false,
       })
-      expect(pay.status(), 'CONFIRMED -> PAID_ESCROW').toBe(200)
-
       const payJson = (await pay.json().catch(() => ({}))) as {
         success?: boolean
         data?: { status?: string }
+        error?: string
+        code?: string
       }
+      expect(
+        pay.status(),
+        `CONFIRMED -> PAID_ESCROW (${payJson?.code || payJson?.error || pay.status()})`,
+      ).toBe(200)
       expect(payJson?.success).toBeTruthy()
       expect(String(payJson?.data?.status || '').toUpperCase()).toBe('PAID_ESCROW')
 

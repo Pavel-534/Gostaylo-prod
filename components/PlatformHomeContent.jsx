@@ -2,6 +2,7 @@
 
 /**
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
+ * Stage 171.27 — TanStack hydrate from RSC bootstrap (`HomeHydrationBoundary`).
  */
 
 import { useMemo, useEffect } from 'react'

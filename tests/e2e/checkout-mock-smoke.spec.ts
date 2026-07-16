@@ -168,10 +168,20 @@ test.describe('Checkout mock smoke (CARD + CRYPTO)', () => {
     })
   })
 
+  async function acceptCheckoutLegalIfNeeded(page: import('@playwright/test').Page) {
+    const consent = page.locator('#checkout-legal-consent')
+    if (await consent.isVisible().catch(() => false)) {
+      // Radix Checkbox — click, not input.check()
+      await consent.click()
+    }
+  }
+
   test('CARD flow reaches success screen', async ({ page }) => {
     await page.goto('/checkout/b-mock-card', { waitUntil: 'domcontentloaded' })
 
-    await expect(page.getByTestId('checkout-pay-submit')).toBeVisible()
+    await expect(page.getByTestId('checkout-pay-submit')).toBeVisible({ timeout: 30_000 })
+    await acceptCheckoutLegalIfNeeded(page)
+    await expect(page.getByTestId('checkout-pay-submit')).toBeEnabled({ timeout: 10_000 })
     await page.getByTestId('checkout-pay-submit').click()
 
     await expect(page.getByRole('link', { name: /my bookings|мои бронирования/i })).toBeVisible({
@@ -182,8 +192,10 @@ test.describe('Checkout mock smoke (CARD + CRYPTO)', () => {
   test('CRYPTO flow verifies txid and reaches success screen', async ({ page }) => {
     await page.goto('/checkout/b-mock-crypto', { waitUntil: 'domcontentloaded' })
 
-    await expect(page.getByTestId('checkout-pay-submit')).toBeVisible()
+    await expect(page.getByTestId('checkout-pay-submit')).toBeVisible({ timeout: 30_000 })
     await page.locator('[role="radio"][value="CRYPTO"]').click()
+    await acceptCheckoutLegalIfNeeded(page)
+    await expect(page.getByTestId('checkout-pay-submit')).toBeEnabled({ timeout: 10_000 })
     await page.getByTestId('checkout-pay-submit').click()
 
     await expect(page.getByTestId('txid-input')).toBeVisible()

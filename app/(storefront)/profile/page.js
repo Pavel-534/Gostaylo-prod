@@ -1,0 +1,388 @@
+'use client'
+
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/auth-context'
+import { Loader2, Star, Building2 } from 'lucide-react'
+import { KycUploader } from '@/components/kyc-uploader'
+import { useProfileUpdate } from '@/app/(storefront)/profile/hooks/useProfileUpdate'
+import { ProfileInfo } from '@/app/(storefront)/profile/components/ProfileInfo'
+import { ProfileSecurity } from '@/app/(storefront)/profile/components/ProfileSecurity'
+import { ProfilePreferences } from '@/app/(storefront)/profile/components/ProfilePreferences'
+import { ProductPageShell } from '@/components/product/ProductPageShell'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { getSiteDisplayName } from '@/lib/site-url'
+import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
+import { useI18n } from '@/contexts/i18n-context'
+import {
+  useProfileMeQuery,
+  usePartnerApplicationStatusQuery,
+} from '@/lib/hooks/use-profile-queries'
+import { queryKeys } from '@/lib/query-keys'
+import { usePartnerDashboardNav, prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
+
+const KYC_LABELS = {
+  label: 'Документ (паспорт/ID)',
+  requiredBadge: '*',
+  uploading: 'Сжатие и загрузка…',
+  uploaded: 'Документ загружен',
+  remove: 'Удалить',
+  tapToUpload: 'Нажмите для загрузки',
+  fileTypesHint: 'JPG, PNG или PDF (до 4MB)',
+  privacyHint: 'Виден только администраторам.',
+  errorTooLarge: 'Файл слишком большой.',
+  errorUploadFailed: 'Ошибка загрузки',
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<LoadingPageShell />}>
+      <ProfileContent />
+    </Suspense>
+  )
+}
+
+function ProfileContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal, refreshUserFromServer } = useAuth()
+  const queryClient = useQueryClient()
+  const profileId = authUser?.id ?? null
+  const { data: profileFromQuery } = useProfileMeQuery({
+    enabled: !authLoading && isAuthenticated && !!profileId,
+    profileId,
+  })
+  const { data: partnerApplicationStatus } = usePartnerApplicationStatusQuery({
+    enabled: !authLoading && isAuthenticated && !!profileId,
+    profileId,
+  })
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showPartnerModal, setShowPartnerModal] = useState(false)
+  const [partnerForm, setPartnerForm] = useState({
+    phone: '',
+    socialLink: '',
+    experience: '',
+    portfolio: '',
+  })
+  const [verificationDocUrl, setVerificationDocUrl] = useState(null)
+  const [partnerLegalConsent, setPartnerLegalConsent] = useState(false)
+  const { language } = useI18n()
+  const { goToPartnerDashboard, navigating: partnerNavBusy } = usePartnerDashboardNav()
+  const [isPendingPartner, setIsPendingPartner] = useState(false)
+  const [pendingNeedsKyc, setPendingNeedsKyc] = useState(false)
+  const [pendingInlineKycUrl, setPendingInlineKycUrl] = useState(null)
+  const [isRejectedPartner, setIsRejectedPartner] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
+
+  const profileSuccessHandlers = useMemo(
+    () => ({
+      closeModal: () => setShowPartnerModal(false),
+      onSubmitted: () => setIsPendingPartner(true),
+      onKycSaved: async () => {
+        setPendingInlineKycUrl(null)
+        setPendingNeedsKyc(false)
+        if (profileId) {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.profile.partnerApplicationStatus(profileId),
+          })
+        }
+      },
+    }),
+    [profileId, queryClient],
+  )
+
+  const { submitPartnerApplication, savePendingKyc, applyingPartner, savingPendingKyc } = useProfileUpdate({
+    toast,
+    router,
+    onAfterPartnerSuccess: profileSuccessHandlers,
+  })
+
+  useEffect(() => {
+    if (profileFromQuery) setUser(profileFromQuery)
+  }, [profileFromQuery])
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (isAuthenticated && authUser) {
+        if (!profileFromQuery) setUser(authUser)
+        setPartnerForm({
+          phone: authUser.phone || '',
+          socialLink: '',
+          experience: '',
+          portfolio: '',
+        })
+        setLoading(false)
+      } else {
+        const loginParam = searchParams?.get('login')
+        if (loginParam === 'true' && openLoginModal) {
+          openLoginModal('login')
+        } else {
+          router.push('/')
+        }
+      }
+    }
+  }, [authLoading, isAuthenticated, authUser, searchParams, openLoginModal, router])
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !authUser?.id) return
+    refreshUserFromServer().then(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile.me(authUser.id) })
+    })
+  }, [authLoading, isAuthenticated, authUser?.id, refreshUserFromServer, queryClient])
+
+  useEffect(() => {
+    if (!user || user.role === 'PARTNER') {
+      setIsPendingPartner(false)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(false)
+      return
+    }
+    const result = partnerApplicationStatus
+    if (!result || result.success === false) return
+    if (result.status === 'PENDING') {
+      setIsPendingPartner(true)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(!result.hasVerificationDoc)
+    } else if (result.status === 'REJECTED') {
+      setIsRejectedPartner(true)
+      setRejectionReason(result.rejectionReason || 'Заявка не соответствует требованиям')
+      setIsPendingPartner(false)
+      setPendingNeedsKyc(false)
+    } else {
+      setIsPendingPartner(false)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(false)
+    }
+  }, [user, partnerApplicationStatus])
+
+  useEffect(() => {
+    if (user?.role === 'PARTNER') {
+      const welcomeShown = localStorage.getItem('gostaylo_partner_welcome_shown')
+      const wasApplying = localStorage.getItem('gostaylo_partner_applied')
+      if (wasApplying && !welcomeShown) {
+        setShowWelcomeModal(true)
+        localStorage.setItem('gostaylo_partner_welcome_shown', 'true')
+        localStorage.removeItem('gostaylo_partner_applied')
+      }
+    }
+  }, [user])
+
+  const isPartner = authUser?.role === 'PARTNER'
+  const isRenter = user?.role === 'RENTER' && !isPendingPartner && !isRejectedPartner
+
+  useEffect(() => {
+    if (!isPartner) return
+    prefetchPartnerWorkspace(router)
+  }, [isPartner, router])
+
+  function handleLogout() {
+    localStorage.removeItem('gostaylo_user')
+    router.push('/')
+  }
+
+  function onSubmitPartnerForm(e) {
+    e.preventDefault()
+    void submitPartnerApplication(partnerForm, verificationDocUrl, user, partnerLegalConsent)
+  }
+
+  if (loading) {
+    return <LoadingPageShell />
+  }
+  if (!user) {
+    return null
+  }
+
+  return (
+    <>
+    <ProductPageShell narrow containerClassName="max-w-2xl">
+        <ProfileInfo
+          user={user}
+          isPartner={isPartner}
+          isRenter={isRenter}
+          isPendingPartner={isPendingPartner}
+          isRejectedPartner={isRejectedPartner}
+          pendingNeedsKyc={pendingNeedsKyc}
+          pendingInlineKycUrl={pendingInlineKycUrl}
+          onPendingKycUrlChange={setPendingInlineKycUrl}
+          savingPendingKyc={savingPendingKyc}
+          onSavePendingKyc={() => void savePendingKyc(pendingInlineKycUrl)}
+          rejectionReason={rejectionReason}
+          onRetryPartner={() => {
+            setVerificationDocUrl(null)
+            setShowPartnerModal(true)
+          }}
+          onOpenPartnerModal={() => setShowPartnerModal(true)}
+          toast={toast}
+          router={router}
+          onOpenPartnerDashboard={goToPartnerDashboard}
+          partnerNavBusy={partnerNavBusy}
+          partnerNavLanguage={language}
+        />
+
+        <ProfilePreferences
+          user={user}
+          isPartner={isPartner}
+          onLogout={handleLogout}
+          router={router}
+          onOpenPartnerDashboard={goToPartnerDashboard}
+          partnerNavBusy={partnerNavBusy}
+          partnerNavLanguage={language}
+        />
+
+        <ProfileSecurity user={user} onToast={(o) => toast(o)} />
+    </ProductPageShell>
+
+      <Dialog open={showPartnerModal} onOpenChange={setShowPartnerModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-white pb-2 z-10">
+            <DialogTitle>Заявка на партнёрство</DialogTitle>
+            <DialogDescription>Расскажите о себе и своей недвижимости</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={onSubmitPartnerForm}
+            className="space-y-4 pb-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="phone">
+                Телефон <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+66 XX XXX XXXX"
+                value={partnerForm.phone}
+                onChange={(e) => setPartnerForm({ ...partnerForm, phone: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                required
+                className="text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="socialLink">Telegram / WhatsApp / Соцсети</Label>
+              <Input
+                id="socialLink"
+                type="text"
+                placeholder="@username или ссылка"
+                value={partnerForm.socialLink}
+                onChange={(e) => setPartnerForm({ ...partnerForm, socialLink: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="experience">
+                Опыт в аренде <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="experience"
+                placeholder="Расскажите о вашем опыте: сколько объектов, какие типы недвижимости, как давно сдаёте..."
+                value={partnerForm.experience}
+                onChange={(e) => setPartnerForm({ ...partnerForm, experience: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                rows={3}
+                required
+                className="text-base resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="portfolio">Ссылка на портфолио (необязательно)</Label>
+              <Input
+                id="portfolio"
+                type="text"
+                placeholder="airbnb.com/users/... или booking.com/..."
+                value={partnerForm.portfolio}
+                onChange={(e) => setPartnerForm({ ...partnerForm, portfolio: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="text-base"
+              />
+            </div>
+            <KycUploader
+              value={verificationDocUrl}
+              onChange={setVerificationDocUrl}
+              disabled={applyingPartner}
+              strings={KYC_LABELS}
+              onUploadError={(msg) => toast({ title: 'Ошибка загрузки', description: msg, variant: 'destructive' })}
+              onUploadSuccess={() => toast({ title: 'Документ загружен', description: 'Файл успешно сохранён' })}
+            />
+            <LegalConsentCheckboxRow
+              variant="partner"
+              language={language}
+              checked={partnerLegalConsent}
+              onCheckedChange={setPartnerLegalConsent}
+              id="partner-legal-consent"
+            />
+            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4 -mx-6 px-6">
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowPartnerModal(false)}
+                  className="flex-1"
+                  disabled={applyingPartner}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  disabled={applyingPartner || !partnerLegalConsent}
+                >
+                  {applyingPartner ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Отправка...
+                    </>
+                  ) : (
+                    'Отправить заявку'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
+        <DialogContent className="sm:max-w-md">
+          <div className="text-center py-6">
+            <div className="relative mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                <Star className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Добро пожаловать в партнёры!</h2>
+            <p className="text-slate-600 mb-6">
+              Ваша заявка одобрена. Теперь вы можете добавлять свои объекты и получать бронирования через{' '}
+              {getSiteDisplayName()}.
+            </p>
+            <div className="space-y-3">
+              <Button
+                className="w-full bg-teal-600 hover:bg-teal-700"
+                onClick={() => {
+                  setShowWelcomeModal(false)
+                  goToPartnerDashboard()
+                }}
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                Перейти в панель партнёра
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setShowWelcomeModal(false)}>
+                Остаться на странице
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

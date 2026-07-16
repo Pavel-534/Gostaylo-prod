@@ -1,20 +1,34 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+/**
+ * PDP primary view data: listing (TanStack Query), reviews, locale/currency, favorites.
+ * Stage 171.24 (PR-3) — listing detail via `useQuery` + shared prefetch/hydrate key.
+ *
+ * Listing SSOT cache key: `queryKeys.listing.detail(id)` — same as catalog hover/touch prefetch
+ * and RSC `buildListingPdpDehydratedState` (PR-4). Fresh prefetched/hydrated data → no refetch on mount
+ * (`refetchOnMount: false` in `lib/query-client.js`).
+ */
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { detectLanguage } from '@/lib/translations'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { fetchListingDetail } from '@/lib/catalog/fetch-listing-detail'
 import { queryKeys } from '@/lib/query-keys'
+import { LISTING_DETAIL_STALE_MS } from '@/lib/query-prefetch/listing-detail-query-constants'
 import { useFavoriteState } from '@/lib/hooks/useFavoriteState'
 
 /**
+ * Sync read of listing detail cache — used before `useQuery` hydrates and for catalog → PDP
+ * instant shell (no skeleton when prefetch populated the same key).
+ *
  * @param {import('@tanstack/react-query').QueryClient} queryClient
  * @param {string} listingId
+ * @returns {{ listing: object | null, loading: boolean, moderationPending: boolean }}
  */
-function readListingViewCacheSnapshot(queryClient, listingId) {
+export function readListingViewCacheSnapshot(queryClient, listingId) {
   const id = String(listingId || '').trim()
   if (!id) {
     return { listing: null, loading: false, moderationPending: false }
@@ -30,23 +44,38 @@ function readListingViewCacheSnapshot(queryClient, listingId) {
 }
 
 /**
- * PDP primary view data: listing + reviews load, locale/currency, favorites, recently viewed.
- * Stage 171.21 — sync React Query cache on init to avoid skeleton flash after prefetch.
+ * @param {string} listingId
+ * @param {object} options
+ * @param {object | null} options.user
+ * @param {() => void} options.openLoginModal
+ * @param {(item: object) => void} options.addToRecent
+ * @param {string} [options.initialLang] — SSR locale from RSC shell (`getLangFromRequest`)
  */
-export function useListingViewData(listingId, { user, openLoginModal, addToRecent }) {
+export function useListingViewData(listingId, { user, openLoginModal, addToRecent, initialLang }) {
   const queryClient = useQueryClient()
+  const id = String(listingId || '').trim()
+  const queryKey = useMemo(() => queryKeys.listing.detail(id), [id])
 
-  const [listing, setListing] = useState(
-    () => readListingViewCacheSnapshot(queryClient, listingId).listing,
+  const listingQuery = useQuery({
+    queryKey,
+    queryFn: () => fetchListingDetail(id),
+    staleTime: LISTING_DETAIL_STALE_MS,
+    enabled: Boolean(id),
+  })
+
+  const listingData = listingQuery.data
+  const listing =
+    listingData && typeof listingData === 'object' && listingData.moderationPending
+      ? null
+      : (listingData ?? null)
+  const moderationPending = Boolean(
+    listingData && typeof listingData === 'object' && listingData.moderationPending,
   )
+  // Pending only when no cached/prefetched/hydrated payload yet (catalog prefetch avoids flash).
+  const loading = listingQuery.isPending && listingData === undefined
+
   const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(
-    () => readListingViewCacheSnapshot(queryClient, listingId).loading,
-  )
-  const [moderationPending, setModerationPending] = useState(
-    () => readListingViewCacheSnapshot(queryClient, listingId).moderationPending,
-  )
-  const [language, setLanguage] = useState('ru')
+  const [language, setLanguage] = useState(() => initialLang || detectLanguage())
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
 
@@ -56,9 +85,20 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     handleFavoriteClick,
   } = useFavoriteState(listingId, { user, openLoginModal, language })
 
+  const setListing = useCallback(
+    (updater) => {
+      if (!id) return
+      queryClient.setQueryData(queryKey, (prev) =>
+        typeof updater === 'function' ? updater(prev ?? null) : updater,
+      )
+    },
+    [id, queryClient, queryKey],
+  )
+
   const loadReviews = useCallback(async () => {
+    if (!id) return
     try {
-      const res = await fetch(`/api/v2/reviews?listing_id=${encodeURIComponent(listingId)}`)
+      const res = await fetch(`/api/v2/reviews?listing_id=${encodeURIComponent(id)}`)
       const data = await res.json()
       if (data.success) {
         const raw = data.data
@@ -67,48 +107,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     } catch {
       /* ignore */
     }
-  }, [listingId])
-
-  const loadListing = useCallback(async () => {
-    const id = String(listingId || '').trim()
-    if (!id) {
-      setLoading(false)
-      return
-    }
-
-    const queryKey = queryKeys.listing.detail(id)
-    const cached = queryClient.getQueryData(queryKey)
-    if (cached) {
-      if (cached.moderationPending) {
-        setModerationPending(true)
-        setListing(null)
-      } else {
-        setListing(cached)
-        setModerationPending(false)
-      }
-      setLoading(false)
-      return
-    }
-
-    try {
-      const mapped = await fetchListingDetail(id)
-      if (mapped?.moderationPending) {
-        setModerationPending(true)
-        setListing(null)
-        queryClient.setQueryData(queryKey, { moderationPending: true })
-      } else if (mapped) {
-        queryClient.setQueryData(queryKey, mapped)
-        setListing(mapped)
-        setModerationPending(false)
-      } else {
-        setModerationPending(false)
-      }
-    } catch (error) {
-      console.error('Failed to load listing:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [listingId, queryClient])
+  }, [id])
 
   useEffect(() => {
     setLanguage(detectLanguage())
@@ -118,17 +117,11 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     } catch {
       /* ignore */
     }
+  }, [])
 
-    const snapshot = readListingViewCacheSnapshot(queryClient, listingId)
-    setListing(snapshot.listing)
-    setModerationPending(snapshot.moderationPending)
-    setLoading(snapshot.loading)
-
-    if (snapshot.loading) {
-      void loadListing()
-    }
-    loadReviews()
-  }, [listingId, queryClient, loadListing, loadReviews])
+  useEffect(() => {
+    void loadReviews()
+  }, [loadReviews])
 
   useEffect(() => {
     const handler = (e) => {

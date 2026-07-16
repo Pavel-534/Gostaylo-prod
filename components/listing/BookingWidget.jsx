@@ -100,6 +100,8 @@ function HeroPriceHeadline({
       <div
         className={cn('font-bold text-slate-900 tabular-nums leading-tight', sizeClass)}
         data-testid="listing-hero-price"
+        data-test-hero-mode={hero.mode}
+        data-test-hero-nights={String(hero.nights || 0)}
         data-test-raw-value={displayPriceRawForTest(hero.amountThb, currency, exchangeRates)}
       >
         {formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)}

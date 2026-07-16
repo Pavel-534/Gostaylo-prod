@@ -25,7 +25,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth-context';
-import { useChatContext } from '@/lib/context/ChatContext';
+import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext';
 
 // Admin navigation items - Full Control Panel per ARCHITECTURAL_PASSPORT
 const ADMIN_NAV = [
@@ -162,7 +162,7 @@ export function AppSidebar() {
     // Context not available, fallback to localStorage
   }
   
-  const { totalUnread } = useChatContext();
+  const { totalUnread } = useChatUnreadBadge();
   const [user, setUser] = useState(authContext?.user || null);
   
   useEffect(() => {

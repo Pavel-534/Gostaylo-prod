@@ -287,7 +287,7 @@ Parallel после hydrate: `usePublicCategoriesQuery`, `fetchHomeFeatured`, `u
 | ID | Проблема | Доказательство | iOS impact |
 |----|----------|----------------|------------|
 | **IOS-P0-01** | First Load JS **749–751 KB** на home/catalog | `next build` route table | Slow TTI, battery |
-| **IOS-P0-02** | SW precache **50 chunks**, incl. **613 KB** vendor | `public/sw.js`, `generate-sw-precache.mjs` | Install failure, eviction |
+| **IOS-P0-02** | SW precache **50 chunks**, incl. **613 KB** vendor | `public/sw.js`, `generate-sw-precache.mjs` | Install failure, eviction | **Mitigated (171.28):** **14 entries / 149 KB gzip** — map/TanStack/provider chunks runtime-only |
 | **IOS-P0-03** | PDP **double fetch** listing (layout + client) | `listing-layout-data.js` + `useListingViewData` | +RTT, skeleton time |
 | **IOS-P0-04** | Catalog **double search** (SSR ItemList + client) | `ListingsCatalogItemListSchema` + `useListingsFetch` | +RTT, TTFB→LCP gap |
 | **IOS-P1-01** | Global **Chat/Realtime/Push** on all routes | `app/layout.js` | Baseline JS + SW work |

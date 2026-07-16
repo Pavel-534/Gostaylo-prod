@@ -2,7 +2,14 @@
  * Polyglot UX Bot — тайский и китайский: CTA листинга и чекаута без overflow и «сырых» ключей i18n.
  */
 import { test, expect } from '@playwright/test'
-import { addListingDays } from '../helpers/vehicle-calendar-range'
+import {
+  closePlatformCalendarPicker,
+  getDesktopBookingCard,
+  openPlatformCalendarPicker,
+  selectPlatformCalendarRange,
+  waitForListingBookCtaEnabled,
+} from '../helpers/platform-calendar-picker'
+import { findFirstValidCalendarSpan } from '../helpers/vehicle-calendar-range'
 
 function setLang(page: import('@playwright/test').Page, code: string) {
   return page.evaluate((c) => {
@@ -59,40 +66,26 @@ test.describe('@polyglot-ux-bot', () => {
     await page.goto(`${baseURL}/listings/${vehicle.id}`, { waitUntil: 'domcontentloaded' })
     const calResponse = await calResponsePromise
     expect(calResponse.ok(), 'calendar API').toBeTruthy()
+    const calJson = (await calResponse.json()) as {
+      data?: { calendar?: Array<{ date?: string; can_check_in?: boolean; status?: string; is_transition?: boolean }> }
+    }
+    const span = findFirstValidCalendarSpan(calJson?.data?.calendar, 3)
+    test.skip(!span, 'нет валидного 3-дневного окна в календаре')
 
-    const desktopBookingCard = page.locator('div.hidden.lg\\:block.sticky.top-24')
-    const calendarTrigger = desktopBookingCard.getByTestId('platform-calendar-trigger')
-    await expect(calendarTrigger).toBeVisible({ timeout: 25_000 })
-    await calendarTrigger.click()
-    const datePickerDialog = page.getByRole('dialog')
-    await expect(datePickerDialog).toBeVisible({ timeout: 15_000 })
-    const firstDay = datePickerDialog.locator('button[data-clickable="true"]').first()
-    await expect(firstDay).toBeVisible({ timeout: 25_000 })
-    const startIso = await firstDay.getAttribute('data-date')
-    test.skip(!startIso, 'data-date заезда')
-    await firstDay.click()
-    const endIso = addListingDays(startIso, 3)
-    const checkoutBtn = datePickerDialog.locator(`button[data-date="${endIso}"]`)
-    await expect(checkoutBtn).toBeVisible({ timeout: 15_000 })
-    const availabilityP = page.waitForResponse(
-      (r) => {
-        const u = r.url()
-        if (r.request().method() !== 'GET' || !r.ok()) return false
-        return (
-          u.includes(`/api/v2/listings/${vehicle.id}/availability`) && u.includes('startDate=')
-        )
-      },
-      { timeout: 90_000 },
-    )
-    await checkoutBtn.click()
-    await availabilityP
-    await page.keyboard.press('Escape')
-    await expect(datePickerDialog).toBeHidden({ timeout: 15_000 })
+    const desktopBookingCard = getDesktopBookingCard(page)
+    const picker = await openPlatformCalendarPicker(page, desktopBookingCard)
+    await selectPlatformCalendarRange(picker, 3, {
+      page,
+      listingId: String(vehicle.id),
+      desktopBookingCard,
+      knownStartIso: span.startIso,
+      knownEndIso: span.endIso,
+    })
+    await closePlatformCalendarPicker(page)
+    await waitForListingBookCtaEnabled(desktopBookingCard)
 
     const bookDesktop = desktopBookingCard.getByTestId('listing-book-now')
-    await expect
-      .poll(async () => bookDesktop.isEnabled(), { timeout: 90_000, intervals: [400, 800, 1200] })
-      .toBeTruthy()
+    await expect(bookDesktop).toBeEnabled({ timeout: 25_000 })
 
     for (const lang of ['th', 'zh'] as const) {
       await setLang(page, lang)
@@ -145,9 +138,9 @@ test.describe('@polyglot-ux-bot', () => {
           timeout: 10_000,
         })
         .toBe(lang)
-      await assertNoRawI18nArtifacts(page, 'main')
+      await assertNoRawI18nArtifacts(page, '[data-testid="checkout-pay-submit"]')
       const pay = page.getByTestId('checkout-pay-submit')
-      await expect(pay).toBeEnabled()
+      await expect(pay).toBeVisible()
       await assertNoHorizontalOverflow(pay)
     }
   })

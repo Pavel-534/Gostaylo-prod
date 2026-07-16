@@ -26,7 +26,7 @@ import {
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
-import { useChatContext } from '@/lib/context/ChatContext'
+import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
@@ -34,7 +34,7 @@ export function UserMenuDropdown() {
   const router = useRouter()
   const { language } = useI18n()
   const { user, logout, openLoginModal, isAdmin, isPartner, refreshUserFromServer } = useAuth()
-  const { totalUnread } = useChatContext()
+  const { totalUnread } = useChatUnreadBadge()
 
   const navigate = (href) => router.push(href)
 

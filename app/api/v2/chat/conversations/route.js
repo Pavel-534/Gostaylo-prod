@@ -13,12 +13,12 @@ import { effectiveRoleFromProfile, isStaffRole } from '@/lib/services/chat/acces
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { PushService } from '@/lib/services/push.service.js'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
-import { isMarkedE2eTestData } from '@/lib/e2e/test-data-tag'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { attachReviewFlagsToBookings } from '@/lib/booking/attach-review-flags-to-bookings.js'
 import { enrichBookingFinancialSnapshot } from '@/lib/chat/booking-enrich-financial.js'
 import { resolveConversationInboxStatusLabel } from '@/lib/chat/conversation-inbox-status.js'
+import { filterOutE2eConversationRows } from '@/lib/chat/filter-out-e2e-conversation-rows.js'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -92,45 +92,6 @@ function mapConversationRow(c) {
     type: c.type ?? null,
     isPriority: c.is_priority === true,
   }
-}
-
-async function filterOutE2eRows(rows) {
-  if (!rows.length) return rows
-
-  const listingIds = [...new Set(rows.map((r) => r.listing_id).filter(Boolean))]
-  const bookingIds = [...new Set(rows.map((r) => r.booking_id).filter(Boolean))]
-  const listingById = new Map()
-  const bookingById = new Map()
-
-  if (listingIds.length) {
-    const inList = listingIds.map((id) => encodeURIComponent(id)).join(',')
-    const lr = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?id=in.(${inList})&select=id,title,description,metadata`,
-      { headers: hdr, cache: 'no-store' }
-    )
-    const list = await lr.json()
-    if (Array.isArray(list)) {
-      for (const row of list) listingById.set(String(row.id), row)
-    }
-  }
-
-  if (bookingIds.length) {
-    const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
-    const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,special_requests,guest_name`,
-      { headers: hdr, cache: 'no-store' }
-    )
-    const list = await br.json()
-    if (Array.isArray(list)) {
-      for (const row of list) bookingById.set(String(row.id), row)
-    }
-  }
-
-  return rows.filter((c) => {
-    const listing = c.listing_id ? listingById.get(String(c.listing_id)) : null
-    const booking = c.booking_id ? bookingById.get(String(c.booking_id)) : null
-    return !isMarkedE2eTestData(listing) && !isMarkedE2eTestData(booking)
-  })
 }
 
 async function enrichConversationRows(rows, viewerUserId) {
@@ -404,7 +365,7 @@ export async function GET(request) {
     }
 
     if (!staff && !e2eBypass) {
-      rows = await filterOutE2eRows(rows)
+      rows = await filterOutE2eConversationRows(rows)
     }
 
     const payload = enrich

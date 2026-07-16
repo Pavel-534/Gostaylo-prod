@@ -1,0 +1,26 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.app.airento.shell",
+        "paths": [
+          "/checkout/*",
+          "/messages",
+          "/messages/*",
+          "/listings/*",
+          "/my-bookings",
+          "/my-bookings/*",
+          "/partner/*",
+          "/renter/*",
+          "/profile",
+          "/profile/*",
+          "/login"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.app.airento.shell"]
+  }
+}

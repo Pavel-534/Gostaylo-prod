@@ -101,7 +101,10 @@ test.describe('@seo-spy-bot', () => {
 
       await page.goto(pageUrl, { waitUntil: 'domcontentloaded' })
 
-      const heroLoc = page.getByTestId(E2E_TEST_IDS.listingHeroPrice).first()
+      // Desktop sticky booking column only (mobile mirror may be lg:hidden → "hidden")
+      const heroLoc = page
+        .locator('div.hidden.lg\\:block.sticky.top-24')
+        .getByTestId(E2E_TEST_IDS.listingHeroPrice)
       await expect(heroLoc, `hero price visible ${pageUrl}`).toBeVisible({ timeout: 35_000 })
       const heroPrice = normWs((await heroLoc.textContent()) || '')
 

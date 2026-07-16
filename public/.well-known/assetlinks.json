@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "ru.airento.app",
+      "package_name": "app.airento.shell",
       "sha256_cert_fingerprints": [
-        "78:C0:FE:A1:19:83:C0:CE:3D:6C:C4:64:ED:FB:DE:22:D2:19:E0:C5:30:CE:52:71:4D:CC:F9:34:B7:DE:BB:8A"
+        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256"
       ]
     }
   }

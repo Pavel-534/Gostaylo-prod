@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useChatContext } from '@/lib/context/ChatContext';
+import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext';
 import { useI18n } from '@/contexts/i18n-context';
 import { getUIText } from '@/lib/translations';
 import {
@@ -72,7 +72,7 @@ export function MobileBottomNav() {
   const navRef = useRef(null);
   const pathname = usePathname();
   const { user, openLoginModal } = useAuth();
-  const { totalUnread } = useChatContext();
+  const { totalUnread } = useChatUnreadBadge();
   const { language } = useI18n();
 
   const navVisible = useMemo(

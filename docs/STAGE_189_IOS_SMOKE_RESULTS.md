@@ -1,67 +1,67 @@
-# Stage 189.1 — iOS Real Device Smoke Results (iPhone 11 Pro)
+# Stage 189.1 — результаты smoke на реальном iOS (iPhone 11 Pro)
 
-**Status: WAITING ON OWNER** — no measured rows yet (all TBD).  
-**Checklist:** [`docs/PWA_IOS_REAL_DEVICE_SMOKE.md`](PWA_IOS_REAL_DEVICE_SMOKE.md)  
-**After fill:** agent runs Stage **189.2** analysis + code fixes (not invent timings).
+**Статус: ЖДЁМ ВЛАДЕЛЬЦА** — замеров ещё нет (все строки TBD).  
+**Чек-лист:** [`docs/PWA_IOS_REAL_DEVICE_SMOKE.md`](PWA_IOS_REAL_DEVICE_SMOKE.md)  
+**После заполнения:** агент делает анализ Stage **189.2** + точечные фиксы (тайминги не выдумывать).
 
-| Field | Value |
-|-------|--------|
-| Date | _TBD by owner_ |
-| Device | iPhone 11 Pro (A13) |
+| Поле | Значение |
+|------|----------|
+| Дата | _заполнит владелец_ |
+| Устройство | iPhone 11 Pro (A13) |
 | iOS | _TBD_ |
 | Origin | Staging HTTPS / prod |
-| Build / commit | `main` (Stage 189.1 PWA) |
-| Network | Wi‑Fi + 4G Phuket |
+| Сборка / commit | `main` (Stage 189.1 PWA) |
+| Сеть | Wi‑Fi + 4G Пхукет |
 
-## Results matrix (owner)
+## Матрица результатов (владелец)
 
-| Check | Result (pass/fail + timing) | Notes |
-|-------|----------------------------|-------|
-| Cold start standalone | ⏳ | Target: catalog usable &lt; ~4s on 4G |
+| Проверка | Результат (pass/fail + тайминг) | Заметки |
+|----------|----------------------------------|---------|
+| Cold start standalone | ⏳ | Цель: каталог usable &lt; ~4 с на 4G |
 | SW activated + controlling | ⏳ | Web Inspector → Service Workers |
-| Soft kill → reopen | ⏳ | No reload loop |
-| Home → Catalog → PDP → dates → checkout stub | ⏳ | No live charge |
-| Background 30s → resume | ⏳ | No refetch storm; expect `[Airento PWA 189]` resume log |
-| Safe areas | ⏳ | Home indicator vs nav/composer |
-| Partner chat Confirm | ⏳ | PENDING thread |
-| Push (optional) | ⏳ | iOS PWA push often limited |
-| After deploy SW update | ⏳ | `updateViaCache: none` |
+| Soft kill → повторное открытие | ⏳ | Нет цикла reload |
+| Home → Каталог → PDP → даты → checkout stub | ⏳ | Без реального списания |
+| Фон 30 с → resume | ⏳ | Нет refetch-шторма; ожидать resume-лог `[Airento PWA 189]` |
+| Safe areas | ⏳ | Home indicator vs nav/композер |
+| Подтверждение в чате партнёра | ⏳ | Тред PENDING |
+| Push (опционально) | ⏳ | У iOS PWA push часто ограничен |
+| После деплоя — обновление SW | ⏳ | `updateViaCache: none` |
 
-### Optional: paste console snapshot
+### Опционально: вставить снимок из Console
 
-After cold open in standalone, Safari Web Inspector → Console → copy `[Airento PWA 189]` object (`stage: "189.1"`, includes `paint.fcpMs` + `swStatus`).
+После холодного открытия в standalone: Safari Web Inspector → Console → скопировать объект `[Airento PWA 189]` (`stage: "189.1"`, есть `paint.fcpMs` + `swStatus`).
 
-Also after 30s background → resume: copy the resume event line.
-
-```
-(paste cold-start here)
-```
+Также после 30 с в фоне → resume: скопировать строку события resume.
 
 ```
-(paste resume here)
+(вставить cold-start сюда)
 ```
 
-### Optional: localStorage
+```
+(вставить resume сюда)
+```
+
+### Опционально: localStorage
 
 ```js
 JSON.parse(localStorage.getItem('airento_pwa_perf_v1'))
 JSON.parse(localStorage.getItem('airento_pwa_resume_v1'))
 ```
 
-## Agent code baseline (pre-device)
+## Базовая линия кода (до замеров на устройстве)
 
-| Item | Status |
-|------|--------|
-| Telemetry cold + resume + FCP + SW status | ✅ 189.1 |
-| iOS image constrained heuristic (no NIA) | ✅ 189.0 |
-| Calendar horizon 90d when constrained | ✅ 189.1 |
-| SW skipWaiting before precache | ✅ 189.1 |
-| Standalone SW update throttle (30m) | ✅ 189.1 |
-| Standalone refetch focus/reconnect off | ✅ 171.32 / 189.0 |
-| Composer `pb-safe-chat-composer` + standalone CSS | ✅ 189.1 |
+| Пункт | Статус |
+|-------|--------|
+| Телеметрия cold + resume + FCP + SW status | ✅ 189.1 |
+| iOS: изображения constrained без NIA | ✅ 189.0 |
+| Горизонт календаря 90 дн. при constrained | ✅ 189.1 |
+| SW skipWaiting до precache | ✅ 189.1 |
+| Throttle обновления SW в standalone (30 мин) | ✅ 189.1 |
+| Standalone: refetch focus/reconnect выключен | ✅ 171.32 / 189.0 |
+| Композер `pb-safe-chat-composer` + standalone CSS | ✅ 189.1 |
 | Playwright mobile-chat | ✅ 172 verification |
 
-## Sign-off
+## Подпись
 
-- Owner: ________________  
-- Phuket guest install pass: ☐ Yes ☐ No — blockers: ________
+- Владелец: ________________  
+- Гостевая установка на Пхукете прошла: ☐ Да ☐ Нет — блокеры: ________

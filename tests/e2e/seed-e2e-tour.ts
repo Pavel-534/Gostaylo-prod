@@ -46,17 +46,49 @@ export async function seedE2eTourListingIfNeeded(): Promise<void> {
 
   const { data: existing, error: eErr } = await sb
     .from('listings')
-    .select('id')
+    .select('id, status, instant_booking, max_capacity, metadata')
     .eq('owner_id', prof.id)
     .eq('category_id', cat.id)
-    .limit(1)
+    .order('created_at', { ascending: false })
+    .limit(5)
 
   if (eErr) {
     console.warn('[Playwright] E2E tours seed: query failed', eErr.message)
     return
   }
   if (existing?.length) {
-    console.log('[Playwright] E2E tours listing: already present')
+    // Stage 171.41 — keep inquiry-capable shared tours listing for golden-path
+    const row = existing[0]
+    const meta =
+      row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? { ...row.metadata }
+        : {}
+    delete meta.is_deleted
+    meta.group_size_min = meta.group_size_min ?? 1
+    meta.group_size_max = meta.group_size_max ?? 10
+    meta.test_data_tag = E2E_TEST_DATA_TAG
+
+    const { error: upErr } = await sb
+      .from('listings')
+      .update({
+        status: 'ACTIVE',
+        title: `${TAG} Playwright`,
+        instant_booking: false,
+        max_capacity: Math.max(2, Number(row.max_capacity) || 10),
+        available: true,
+        district: 'Kata',
+        latitude: 7.8208,
+        longitude: 98.2987,
+        metadata: meta,
+      })
+      .eq('id', row.id)
+    if (upErr) {
+      console.warn('[Playwright] E2E tours listing: patch failed', upErr.message)
+    } else {
+      console.log(
+        `[Playwright] E2E tours listing: inquiry-ready id=${row.id} owner=${prof.id}`,
+      )
+    }
     return
   }
 
@@ -67,8 +99,11 @@ export async function seedE2eTourListingIfNeeded(): Promise<void> {
     title: `${TAG} Playwright`,
     description: 'Автосид для Playwright; можно удалить.',
     district: 'Kata',
+    latitude: 7.8208,
+    longitude: 98.2987,
     base_price_thb: 1200,
     commission_rate: 15,
+    instant_booking: false,
     images: [],
     cover_image: null,
     metadata: { group_size_min: 1, group_size_max: 10, test_data_tag: E2E_TEST_DATA_TAG },

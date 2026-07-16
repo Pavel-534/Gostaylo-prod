@@ -1,9 +1,9 @@
 # P0: RSC shell для PDP (`/listings/[id]`) — план реализации
 
 **Дата:** 2026-07-15  
-**Статус:** план (код не менялся)  
+**Статус:** **✅ P0 завершён (PR-1…PR-6, 2026-07-15)**  
 **Синтез аудитов:** [RSC](AUDIT_RSC_OPTIMIZATION.md) · [Data Fetching](AUDIT_DATA_FETCHING.md) · [iOS PWA](AUDIT_IOS_PWA_PERFORMANCE.md)  
-**Связанные Stage:** 171.21 (loading shell + RQ init), 171.23 (memo details column, RQ calendar)
+**Связанные Stage:** 171.21 (loading shell + RQ init), 171.23 (memo details column, RQ calendar), **171.24 (RSC shell closure)**
 
 ---
 
@@ -642,3 +642,66 @@ PR-4 ──→ PR-6
 ---
 
 *После merge PR-4+PR-6 обновить Stage-запись в `docs/TECHNICAL_MANIFESTO.md` (новый Stage, напр. 171.24 — PDP RSC shell + RQ dehydrate) и `docs/ARCHITECTURAL_PASSPORT.md` (маршрут `/listings/[id]`, data flow diagram).*
+
+---
+
+## 12. P0 closure — measured metrics & outcomes (PR-6, 2026-07-15)
+
+### 12.1. Bundle (`npm run build`, production)
+
+| Metric | Before (audit 2026-07) | After P0 (measured) | Δ |
+|--------|--------------------------|---------------------|---|
+| Route page JS `/listings/[id]` | 47.6 kB | **51.1 kB** | +3.5 kB (RSC bridge + provider) |
+| **First Load JS** `/listings/[id]` | **557 kB** | **561 kB** | +4 kB (HydrationBoundary path; composer still client) |
+| Shared First Load JS | ~89 kB | **89 kB** | — |
+
+> **Вывод:** P0 win — **network / LCP**, не уменьшение JS bundle. Крупный TTI gain — отдельный трек (route groups, §10).
+
+### 12.2. Network (guest, cold direct URL, Disable cache)
+
+| Request | Before | After P0 |
+|---------|--------|----------|
+| `GET /api/v2/listings/[id]` on mount | **1** | **0** |
+| Server full listing SQL (bootstrap) | 0 (via client API) | **1** (RSC) |
+| Server layout lite SQL | 1 | 1 (P0.5 merge — backlog) |
+| Reviews / FX / calendar / availability / favorites | ~4 parallel client | **unchanged** |
+| **Client APIs before interactive hero** | ~5 | **~4** |
+
+### 12.3. Web Vitals (estimate — staging Lighthouse recommended)
+
+| Metric | Before | After P0 (model) | Notes |
+|--------|--------|------------------|-------|
+| **LCP** | Hero after JS + listing RTT | Hero after hydrate (no listing RTT) | **−0.5…1.0 s** on Slow 4G (audit model) |
+| **FCP** | Skeleton → wait API | Skeleton → faster content | `loading.js` unchanged |
+| **TTI** | Parse 557 KB + waterfalls | Parse 561 KB, −1 await | Major TTI = route groups (P1) |
+| **CLS** | 171.23 baseline | No regression expected | Keep `pdp-hero-layout.js` |
+
+### 12.4. PR deliverables (all merged)
+
+| PR | Deliverable |
+|----|-------------|
+| PR-1 | `get-public-listing-detail.js`, thin API route |
+| PR-2 | Bootstrap cache, server QueryClient, dehydrate, HydrationBoundary |
+| PR-3 | `useListingViewData` → `useQuery` |
+| PR-4 | RSC `page.js`, `ListingPdpClient`, gate views |
+| PR-5 | `ListingBookingProvider`, context in booking sections |
+| PR-6 | Docs + metrics (this section) |
+
+### 12.5. Risks accepted / P1 backlog
+
+| Item | Status |
+|------|--------|
+| Layout lite + page full = 2 server SELECTs | **P0.5** — unify bootstrap + OG |
+| Reviews not dehydrated | **P1** — RQ `listing.reviews` |
+| First Load JS still ~561 kB | **P1** — route groups `(storefront)` vs chat |
+| Catalog still client-only bootstrap | **P1** — reuse prefetch pattern |
+| SW precache scope | **P1** — trim / PDP shell chunks |
+
+### 12.6. Verification checklist (release)
+
+- [ ] Chrome Network: cold PDP → **0** listing GET
+- [ ] Catalog → PDP: prefetch, no skeleton flash
+- [ ] `npx playwright test e2e/booking-flow.spec.ts`
+- [ ] `npx playwright test tests/e2e/guest-inquiry-golden-path.spec.ts`
+- [ ] `npm run build` green
+

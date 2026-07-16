@@ -7,17 +7,16 @@
 import path from 'path'
 import { test, expect, request as playwrightRequest, type APIRequestContext } from '@playwright/test'
 import { E2E_FIXTURE_SECRET, E2E_HEADERS, E2E_ROUTES } from './constants'
+import { pickDatesOnDesktopBookingCard } from './helpers/platform-calendar-picker'
+import { findFirstValidCalendarSpan } from './helpers/vehicle-calendar-range'
 
 const AUTH_PARTNER = path.resolve(process.cwd(), 'playwright/.auth/partner.json')
 const AUTH_RENTER = path.resolve(process.cwd(), 'playwright/.auth/user.json')
 
-function addListingDays(isoDate: string, days: number): string {
-  const d = new Date(`${isoDate}T12:00:00.000Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-async function getPartnerListingId(partnerApi: APIRequestContext, baseURL: string): Promise<string | null> {
+async function getPartnerInquiryListingId(
+  partnerApi: APIRequestContext,
+  baseURL: string,
+): Promise<string | null> {
   const meRes = await partnerApi.get(`${baseURL}/api/v2/auth/me`, { failOnStatusCode: false })
   if (!meRes.ok()) return null
   const meJson = (await meRes.json().catch(() => ({}))) as { user?: { id?: string } }
@@ -25,16 +24,37 @@ async function getPartnerListingId(partnerApi: APIRequestContext, baseURL: strin
   if (!partnerId) return null
 
   const res = await partnerApi.get(
-    `${baseURL}/api/v2/partner/listings?partnerId=${encodeURIComponent(String(partnerId))}&limit=10`,
+    `${baseURL}/api/v2/partner/listings?partnerId=${encodeURIComponent(String(partnerId))}&limit=40`,
     { failOnStatusCode: false },
   )
   if (!res.ok()) return null
   const json = (await res.json().catch(() => ({}))) as {
     success?: boolean
-    data?: Array<{ id?: string; status?: string }>
+    data?: Array<{
+      id?: string
+      status?: string
+      title?: string
+      instantBooking?: boolean
+      instant_booking?: boolean
+      category?: { slug?: string }
+      categorySlug?: string
+      maxCapacity?: number
+      max_capacity?: number
+    }>
   }
-  const row = (json.data || []).find((l) => l?.id && String(l.status || '').toUpperCase() === 'ACTIVE')
-  return row?.id ? String(row.id) : null
+  const active = (json.data || []).filter((l) => l?.id && String(l.status || '').toUpperCase() === 'ACTIVE')
+  if (!active.length) return null
+
+  // Stage 171.41 — golden path requires shared tours listing (special/private CTAs)
+  const isTours = (l: (typeof active)[number]) => {
+    const slug = String(l.categorySlug || l.category?.slug || '').toLowerCase()
+    return slug === 'tours' || slug.includes('tour')
+  }
+  const tourSeed =
+    active.find((l) => /E2E_SEED_TOUR/i.test(String(l.title || ''))) ||
+    active.find((l) => isTours(l) && !(l.instantBooking === true || l.instant_booking === true)) ||
+    active.find((l) => isTours(l))
+  return tourSeed?.id ? String(tourSeed.id) : null
 }
 
 async function promoteBookingPaidEscrow(baseURL: string, bookingId: string) {
@@ -62,40 +82,40 @@ test.describe('Guest inquiry golden path (Wave 1E)', () => {
     const partnerApi = partnerContext.request
     const renterApi = renterContext.request
 
-    const listingId = await getPartnerListingId(partnerApi, baseURL!)
-    test.skip(!listingId, 'Partner has no ACTIVE listing for E2E')
+    const listingId = await getPartnerInquiryListingId(partnerApi, baseURL!)
+    test.skip(!listingId, 'Partner has no ACTIVE tours listing for E2E (seed-e2e-tour)')
 
     const renterPage = await renterContext.newPage()
     await renterPage.setViewportSize({ width: 1280, height: 900 })
 
     try {
-      const calResponsePromise = renterPage.waitForResponse(
-        (r) =>
-          r.url().includes(`/api/v2/listings/${listingId}/calendar`) &&
-          r.request().method() === 'GET' &&
-          r.ok(),
-        { timeout: 120_000 },
+      const calProbe = await renterPage.request.get(
+        `${baseURL}/api/v2/listings/${listingId}/calendar?days=180`,
       )
+      expect(calProbe.ok(), `calendar probe ${calProbe.status()}`).toBeTruthy()
 
       await renterPage.goto(`${baseURL}/listings/${listingId}`, { waitUntil: 'domcontentloaded' })
-      await calResponsePromise
+      await expect(
+        renterPage.locator('div.hidden.lg\\:block.sticky.top-24').getByTestId('platform-calendar-trigger'),
+      ).toBeVisible({ timeout: 45_000 })
+      const calJson = (await calProbe.json().catch(() => ({}))) as {
+        data?: { calendar?: Array<{ date?: string; can_check_in?: boolean; status?: string; is_transition?: boolean }> }
+      }
+      const span = findFirstValidCalendarSpan(calJson?.data?.calendar, 3)
+      test.skip(!span, 'No valid 3-day calendar window for partner listing')
 
-      const desktopBookingCard = renterPage.locator('div.hidden.lg\\:block.sticky.top-24')
-      const calendarTrigger = desktopBookingCard.getByTestId('platform-calendar-trigger')
-      await expect(calendarTrigger).toBeVisible({ timeout: 30_000 })
-      await calendarTrigger.click()
+      const { desktopBookingCard } = await pickDatesOnDesktopBookingCard(renterPage, 3, {
+        closeAfter: false,
+        listingId: listingId!,
+        knownStartIso: span.startIso,
+        knownEndIso: span.endIso,
+      })
 
-      const datePickerDialog = renterPage.getByRole('dialog')
-      await expect(datePickerDialog).toBeVisible({ timeout: 20_000 })
-      const firstDay = datePickerDialog.locator('button[data-clickable="true"]').first()
-      await expect(firstDay).toBeVisible({ timeout: 25_000 })
-      const startIso = await firstDay.getAttribute('data-date')
-      expect(startIso).toBeTruthy()
-      await firstDay.click()
-      const endIso = addListingDays(String(startIso), 3)
-      const checkoutBtn = datePickerDialog.locator(`button[data-date="${endIso}"]`)
-      await expect(checkoutBtn).toBeVisible({ timeout: 15_000 })
-      await checkoutBtn.click()
+      await renterPage.evaluate(() => {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('guest_next_steps_dismissed_')) localStorage.removeItem(key)
+        }
+      })
 
       const specialBtn = desktopBookingCard.getByRole('button', {
         name: /особую цену|special price|запросить особую/i,
@@ -103,13 +123,15 @@ test.describe('Guest inquiry golden path (Wave 1E)', () => {
       const privateBtn = desktopBookingCard.getByRole('button', {
         name: /приватн|private trip|индивидуал/i,
       })
+      // Prefer special/private (stay on PDP + next-steps). Avoid contact CTA — it navigates to /messages.
+      const hasSpecial = await specialBtn.isVisible().catch(() => false)
+      const hasPrivate = await privateBtn.isVisible().catch(() => false)
+      test.skip(!hasSpecial && !hasPrivate, 'Tours listing missing shared inquiry CTAs (special/private)')
 
-      if (await specialBtn.isVisible().catch(() => false)) {
+      if (hasSpecial) {
         await specialBtn.click()
-      } else if (await privateBtn.isVisible().catch(() => false)) {
-        await privateBtn.click()
       } else {
-        await desktopBookingCard.getByRole('button', { name: /забронировать|book|бронь/i }).first().click()
+        await privateBtn.click()
       }
 
       const bookingPost = renterPage.waitForResponse(
@@ -135,6 +157,9 @@ test.describe('Guest inquiry golden path (Wave 1E)', () => {
         booking?: { id?: string; status?: string }
       }
       expect(bookingJson.success).toBeTruthy()
+      if (!bookingJson.inquiry) {
+        test.skip(true, 'Partner ACTIVE listing is instant-book (vehicles/exclusive) — seed shared/inquiry listing for golden path')
+      }
       const bookingId = String(bookingJson.booking?.id || '')
       expect(bookingId).toBeTruthy()
 

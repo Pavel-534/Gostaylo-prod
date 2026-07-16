@@ -6,8 +6,8 @@ import { memo } from 'react'
  * PDP hero band: gallery + flash/urgency (full content width).
  * Headline stays a separate export so the page can keep it inside the lg:col-span-2 column.
  */
-import { ListingGallery } from '@/app/listings/[id]/components/ListingGallery'
-import ListingHeader from '@/app/listings/[id]/components/ListingHeader'
+import { ListingGallery } from '@/app/(storefront)/listings/[id]/components/ListingGallery'
+import ListingHeader from '@/app/(storefront)/listings/[id]/components/ListingHeader'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'

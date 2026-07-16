@@ -160,15 +160,19 @@ test.describe('Mobile chat UI', () => {
   test('фикстура: подтвердить/отклонить видны; тактильный отклик по pointerdown', async ({
     page,
     baseURL,
+    request,
   }) => {
-    test.skip(!fixtureConvId, 'Нужен E2E_FIXTURE_SECRET и успешный POST fixture API')
     test.skip(!baseURL, 'baseURL')
-    await openThread(page, baseURL)
+    // Fresh PENDING fixture — beforeAll thread may already be confirmed by prior tests/runs.
+    const convId = await createFixtureConversation(request)
+    test.skip(!convId, 'Нужен E2E_FIXTURE_SECRET и успешный POST fixture API')
+    await page.goto(`${baseURL}/messages/${convId}/`, { waitUntil: 'domcontentloaded' })
+    await page.waitForURL(/\/messages\/[^/]+/, { timeout: 30_000 })
 
-    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm)
-    const decline = page.getByTestId(E2E_TEST_IDS.chatActionDecline)
+    // Prefer sticky ChatActionBar CTA (first); milestone cards may remount during realtime sync.
+    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm).first()
+    const decline = page.getByTestId(E2E_TEST_IDS.chatActionDecline).first()
     await expect(confirm).toBeVisible({ timeout: 60_000 })
-    await confirm.scrollIntoViewIfNeeded()
     await expect(confirm).toBeEnabled()
     await expect(decline).toBeVisible()
     await expect(decline).toBeEnabled()
@@ -192,9 +196,8 @@ test.describe('Mobile chat UI', () => {
     await page.goto(`${baseURL}/messages/${ownConvId}/`, { waitUntil: 'domcontentloaded' })
     await page.waitForURL(/\/messages\/[^/]+/, { timeout: 30_000 })
 
-    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm)
+    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm).first()
     await expect(confirm).toBeVisible({ timeout: 60_000 })
-    await confirm.scrollIntoViewIfNeeded()
     await expect(confirm).toBeEnabled()
 
     const putBooking = page.waitForResponse(
@@ -204,7 +207,7 @@ test.describe('Mobile chat UI', () => {
         !r.url().includes('?'),
       { timeout: 90_000 },
     )
-    await confirm.click()
+    await confirm.click({ force: true })
     const putRes = await putBooking
     expect(
       putRes.ok(),

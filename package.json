@@ -12,6 +12,7 @@
     "prebuild": "node scripts/bump-sw-cache.mjs",
     "build": "node scripts/next-build-resilient.mjs",
     "postbuild": "node scripts/generate-sw-precache.mjs",
+    "check:sw-precache": "node scripts/check-sw-precache-budget.mjs",
     "start": "next start",
     "vercel-build": "npm run build",
     "lint": "eslint . --max-warnings 50",

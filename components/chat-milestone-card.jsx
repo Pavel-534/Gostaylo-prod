@@ -10,6 +10,7 @@
  *   booking_pending, passport_request, refund, completed
  */
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -48,6 +49,15 @@ const MILESTONE_CFG = {
     iconColor: 'text-slate-500',
     textColor: 'text-slate-700',
     label: { ru: 'Ожидает подтверждения', en: 'Awaiting confirmation' },
+  },
+  /** PENDING createBooking system card — same chrome as booking_pending */
+  booking_created: {
+    icon: CalendarCheck,
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-brand',
+    textColor: 'text-slate-700',
+    label: { ru: 'Новый запрос на бронирование', en: 'New booking request' },
   },
   booking_declined: {
     icon: XCircle,
@@ -226,10 +236,14 @@ function resolveAnnouncementCopy(meta, language, fallbackBody) {
  * @param {{ onConfirm?: () => void, onDecline?: () => void, loading?: boolean } | null} [partnerInquiryActions] — мобилка: подтвердить/отклонить под inquiry
  */
 export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerInquiryActions = null }) {
+  const [pressDecline, setPressDecline] = useState(false)
+  const [pressConfirm, setPressConfirm] = useState(false)
+  const tactile =
+    'transition-[opacity,transform] transition-duration-100 ease-out active:opacity-70 active:scale-[0.98]'
   const meta = message.metadata || {}
   const sk = meta.system_key
-  const cfg = getConfig(sk, meta, language)
-  const Icon = cfg.icon
+  const milestoneCfg = getConfig(sk, meta, language)
+  const Icon = milestoneCfg.icon
   const lang = language === 'en' ? 'en' : language === 'zh' ? 'zh' : language === 'th' ? 'th' : 'ru'
 
   const isInquirySystem =
@@ -304,20 +318,20 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
         className={cn(
           'inline-flex w-full max-w-sm flex-col gap-3 rounded-2xl border px-4 py-4 text-left',
           'shadow-[0_4px_24px_-6px_rgba(15,23,42,0.12),0_2px_10px_-4px_rgba(15,23,42,0.07)]',
-          cfg.border,
-          cfg.bg,
+          milestoneCfg.border,
+          milestoneCfg.bg,
         )}
       >
         <div className="flex items-start gap-3">
-          <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', cfg.iconColor)} />
+          <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', milestoneCfg.iconColor)} />
           <div className="min-w-0 flex-1 space-y-1.5">
             {listingTitle ? (
               <p className="text-base font-bold leading-snug tracking-tight text-slate-900">
                 {listingTitle}
               </p>
             ) : null}
-            <p className={cn('text-[11px] font-bold uppercase tracking-wide', cfg.textColor)}>
-              {announcement.title || cfg.label[lang] || cfg.label.ru}
+            <p className={cn('text-[11px] font-bold uppercase tracking-wide', milestoneCfg.textColor)}>
+              {announcement.title || milestoneCfg.label[lang] || milestoneCfg.label.ru}
             </p>
             {roleAwareBodyText && (
               <p className="text-sm leading-snug text-slate-700 whitespace-pre-wrap">{roleAwareBodyText}</p>
@@ -348,7 +362,17 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
               variant="outline"
               size="sm"
               disabled={partnerInquiryActions.loading}
-              className="h-9 min-h-0 flex-1 rounded-xl border-slate-200 text-xs font-semibold"
+              data-testid="chat-action-decline"
+              data-pressing={pressDecline ? 'true' : 'false'}
+              onPointerDown={() => setPressDecline(true)}
+              onPointerUp={() => setPressDecline(false)}
+              onPointerCancel={() => setPressDecline(false)}
+              onPointerLeave={() => setPressDecline(false)}
+              className={cn(
+                'h-11 min-h-[44px] min-w-[44px] flex-1 rounded-xl border-slate-200 text-xs font-semibold',
+                tactile,
+                pressDecline && 'opacity-70 scale-[0.98]',
+              )}
               onClick={partnerInquiryActions.onDecline}
             >
               {getUIText('chatHeader_declineBooking', language)}
@@ -357,7 +381,17 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
               type="button"
               size="sm"
               disabled={partnerInquiryActions.loading}
-              className="h-9 min-h-0 flex-1 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand-hover"
+              data-testid="chat-action-confirm"
+              data-pressing={pressConfirm ? 'true' : 'false'}
+              onPointerDown={() => setPressConfirm(true)}
+              onPointerUp={() => setPressConfirm(false)}
+              onPointerCancel={() => setPressConfirm(false)}
+              onPointerLeave={() => setPressConfirm(false)}
+              className={cn(
+                'h-11 min-h-[44px] min-w-[44px] flex-1 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand-hover',
+                tactile,
+                pressConfirm && 'opacity-70 scale-[0.98]',
+              )}
               onClick={partnerInquiryActions.onConfirm}
             >
               {getUIText('chatHeader_confirmBooking', language)}

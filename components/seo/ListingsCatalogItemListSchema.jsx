@@ -3,9 +3,14 @@
  */
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getPublicSiteUrl } from '@/lib/site-url'
-import { fetchListingsForCatalogItemList } from '@/lib/seo/listings-catalog-itemlist'
+import { getCatalogBootstrapFromSearchParams } from '@/lib/listing/get-cached-catalog-bootstrap.js'
 
-export default async function ListingsCatalogItemListSchema({ searchParams }) {
+/**
+ * @param {object} props
+ * @param {import('@/lib/listing/get-cached-catalog-bootstrap.js').CatalogBootstrapResult} [props.bootstrap]
+ * @param {import('next').SearchParams | Record<string, string | string[] | undefined>} [props.searchParams]
+ */
+export default async function ListingsCatalogItemListSchema({ bootstrap, searchParams }) {
   let baseUrl
   try {
     baseUrl = await getRequestSiteUrl()
@@ -14,7 +19,10 @@ export default async function ListingsCatalogItemListSchema({ searchParams }) {
   }
   const origin = baseUrl.replace(/\/$/, '')
 
-  const listings = await fetchListingsForCatalogItemList(searchParams)
+  const boot =
+    bootstrap ??
+    (searchParams != null ? await getCatalogBootstrapFromSearchParams(searchParams) : null)
+  const listings = boot?.itemListListings ?? []
   if (!listings.length) return null
 
   const schema = {

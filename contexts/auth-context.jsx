@@ -10,7 +10,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from '@/lib/auth';
 import { useI18n } from '@/contexts/i18n-context';
-import { AuthModalShell } from '@/components/auth/modals/AuthModalShell';
+import { AuthModalLazy } from '@/components/auth/modals/AuthModalLazy';
+import { preloadAuthModalShell } from '@/lib/auth/preload-auth-modal';
 import { useAuthSessionSync } from '@/contexts/auth/auth-session-sync';
 import {
   useReferralCapture,
@@ -101,7 +102,7 @@ export function AuthProvider({ children }) {
     setRegisterLegalConsent,
     googleOAuthBusy,
     setGoogleOAuthBusy,
-    openLoginModal,
+    openLoginModal: openLoginModalBase,
     closeLoginModal,
     registerAuthModalOnClose,
     handleLoginModalOpenChange,
@@ -110,6 +111,14 @@ export function AuthProvider({ children }) {
     pendingRefLsKey: PENDING_REF_LS,
     persistOAuthLegalCookie,
   });
+
+  const openLoginModal = useCallback(
+    (mode) => {
+      preloadAuthModalShell();
+      openLoginModalBase(mode);
+    },
+    [openLoginModalBase],
+  );
 
   const {
     startGoogleOAuth,
@@ -260,7 +269,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={value}>
       {children}
 
-      <AuthModalShell
+      <AuthModalLazy
         language={language}
         loginModalOpen={loginModalOpen}
         onLoginModalOpenChange={handleLoginModalOpenChange}

@@ -1,44 +1,44 @@
-# PWA iOS — real-device smoke (iPhone 11 Pro+)
+# PWA iOS — smoke на реальном устройстве (iPhone 11 Pro+)
 
-**Stage 189.0+** — checklist for Phuket / SEA guest install.  
-**Fill measured results:** [`docs/STAGE_189_IOS_SMOKE_RESULTS.md`](STAGE_189_IOS_SMOKE_RESULTS.md) (not the legacy 172 filename).
+**Stage 189.0+** — чек-лист гостевой установки для Пхукета / SEA.  
+**Заполнить замеры:** [`docs/STAGE_189_IOS_SMOKE_RESULTS.md`](STAGE_189_IOS_SMOKE_RESULTS.md) (не использовать устаревшее имя файла 172).
 
-After cold open in **standalone**, optional: Safari Web Inspector → Console → copy `[Airento PWA 189]` snapshot into the results doc (`stage` should be **`189.1`**). After ~30s background → resume, also copy the resume log / `airento_pwa_resume_v1`.
+После холодного открытия в режиме **standalone** (с иконки на домашнем экране): Safari Web Inspector → Console → скопировать снимок `[Airento PWA 189]` в документ результатов (`stage` должен быть **`189.1`**). После ~30 с в фоне → возврат в приложение — также скопировать resume-лог / `airento_pwa_resume_v1`.
 
-## Preflight
+## Подготовка
 
-1. Staging HTTPS with valid TLS (no self-signed).
-2. Fresh Safari (clear Website Data for the origin) **or** delete Home Screen icon and re-add.
-3. Wi‑Fi + one pass on cellular (4G).
+1. Staging на HTTPS с валидным TLS (без self-signed).
+2. Чистый Safari (очистить Website Data для origin) **или** удалить иконку с Home Screen и добавить заново.
+3. Прогон на Wi‑Fi + один прогон на сотовой сети (4G).
 
-## Cold start
+## Холодный старт
 
-1. Add to Home Screen → open icon (standalone).
-2. Confirm first paint shell (no white flash >2s on home/catalog).
+1. «На экран „Домой“» → открыть иконку (standalone).
+2. Проверить первый paint shell (нет белого экрана >2 с на home/каталоге).
 3. Safari Web Inspector → Application → Service Workers: **activated + controlling**.
-4. Soft kill app → reopen: still controlled; no infinite reload loop.
+4. Soft kill приложения → снова открыть: SW по-прежнему controlling; нет бесконечного цикла reload.
 
-## Standalone behaviour
+## Поведение в standalone
 
-1. Navigate Home → Catalog → PDP → pick dates → checkout stub (no live charge).
-2. Background 30s → resume: **no API refetch storm** (171.32 `refetchOnWindowFocus: false` in standalone).
-3. Safe areas: bottom nav / chat composer clear of home indicator (`viewport-fit=cover`).
+1. Пройти Home → Каталог → PDP → выбрать даты → заглушка checkout (**без** реального списания).
+2. Увести в фон на 30 с → вернуться: **нет шторма повторных API-запросов** (171.32: `refetchOnWindowFocus: false` в standalone).
+3. Safe areas: нижняя навигация / композер чата не перекрыты home indicator (`viewport-fit=cover`).
 
-## Messaging / booking
+## Сообщения / бронирование
 
-1. Partner: open `/messages/[id]` PENDING → Confirm visible (action bar and/or milestone).
-2. Renter: open checkout → legal consent → mock pay if enabled.
+1. Партнёр: открыть `/messages/[id]` со статусом PENDING → видна кнопка «Подтвердить» (action bar и/или milestone).
+2. Арендатор: открыть checkout → согласие с офертой → mock-оплата, если включена.
 
-## After deploy
+## После деплоя
 
-1. New SW installs without stuck old chunks (register `updateViaCache: 'none'`).
-2. Critical update toast only when release gate says so (Stage 175).
+1. Новый SW ставится без «залипания» старых чанков (регистрация с `updateViaCache: 'none'`).
+2. Toast критического обновления — только когда срабатывает release-gate (Stage 175).
 
-## Pass criteria (Phuket)
+## Критерии прохождения (Пхукет)
 
-| Check | Pass |
-|-------|------|
-| Cold standalone LCP feel | Catalog usable &lt; ~4s on 4G |
-| SW controlling | Yes on first launch after install |
-| Focus resume | No visible jank / duplicate loaders |
-| Chat confirm | Partner can confirm on phone |
+| Проверка | Проход |
+|----------|--------|
+| Ощущение cold standalone LCP | Каталог usable &lt; ~4 с на 4G |
+| SW controlling | Да при первом запуске после установки |
+| Resume после фона | Нет заметных дёрганий / дублирующих лоадеров |
+| Подтверждение в чате | Партнёр может подтвердить на телефоне |

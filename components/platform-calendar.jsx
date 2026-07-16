@@ -40,7 +40,10 @@ const locales = { ru, en: enUS, th, zh: zhCN }
  */
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState(null)
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  })
   React.useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
@@ -499,7 +502,7 @@ export function PlatformCalendar({
       <>
         {TriggerButton}
         <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="max-h-[90vh]">
+          <DrawerContent className="max-h-[90vh]" data-testid="platform-calendar-picker">
             <DrawerHeader className="relative border-b pb-4">
               <DrawerTitle className="text-center">
                 {getUIText('datePickerTitle', language)}
@@ -523,7 +526,10 @@ export function PlatformCalendar({
       <>
         {TriggerButton}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="!max-w-[min(700px,90vw)] w-[min(700px,90vw)] max-h-[50vh] min-h-[400px] overflow-hidden p-0 gap-0 [&>button]:hidden">
+          <DialogContent
+            data-testid="platform-calendar-picker"
+            className="!max-w-[min(700px,90vw)] w-[min(700px,90vw)] max-h-[50vh] min-h-[400px] overflow-hidden p-0 gap-0 [&>button]:hidden"
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <DialogTitle className="text-lg font-semibold m-0">
                 {getUIText('datePickerTitle', language)}
@@ -549,7 +555,6 @@ export function PlatformCalendar({
     )
   }
   
-  // SSR: Show button only
   return TriggerButton
 }
 

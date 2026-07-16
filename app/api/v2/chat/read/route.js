@@ -10,6 +10,7 @@ import {
   isStaffRole,
 } from '@/lib/services/chat/access'
 import { viewerConversationSide } from '@/lib/chat/read-receipts'
+import { getUserChatUnreadCount } from '@/lib/services/chat/user-unread-count.service.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,48 +134,7 @@ export async function POST(request) {
  * Работает по принципу fire-and-forget — не блокирует ответ API.
  */
 async function syncBadgeCount(userId) {
-  const uidEnc = encodeURIComponent(String(userId))
-  const uid = String(userId)
-
-  const convRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/conversations?or=(renter_id.eq.${uidEnc},partner_id.eq.${uidEnc},owner_id.eq.${uidEnc})&select=id,renter_id,partner_id,owner_id`,
-    { headers: hdr, cache: 'no-store' }
-  )
-  const convRows = await convRes.json()
-  if (!Array.isArray(convRows) || convRows.length === 0) return
-
-  const renterCids = []
-  const hostCids = []
-  for (const c of convRows) {
-    const isRenter = String(c.renter_id) === uid
-    const isHostSide =
-      String(c.renter_id) !== uid &&
-      (String(c.partner_id) === uid || String(c.owner_id) === uid)
-    if (isRenter) renterCids.push(encodeURIComponent(c.id))
-    else if (isHostSide) hostCids.push(encodeURIComponent(c.id))
-  }
-
-  let totalUnread = 0
-  if (renterCids.length) {
-    const inR = renterCids.join(',')
-    const unreadRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inR})&sender_id=neq.${uidEnc}&read_at_renter=is.null&select=id`,
-      { headers: hdr, cache: 'no-store' }
-    )
-    const unreadRows = await unreadRes.json()
-    totalUnread += Array.isArray(unreadRows) ? unreadRows.length : 0
-  }
-  if (hostCids.length) {
-    const inH = hostCids.join(',')
-    const unreadRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inH})&sender_id=neq.${uidEnc}&read_at_partner=is.null&select=id`,
-      { headers: hdr, cache: 'no-store' }
-    )
-    const unreadRows = await unreadRes.json()
-    totalUnread += Array.isArray(unreadRows) ? unreadRows.length : 0
-  }
-
-  // 2. Тихий push «обнови badge» — по всем устройствам пользователя.
+  const { count: totalUnread } = await getUserChatUnreadCount(userId)
   const { PushService } = await import('@/lib/services/push.service.js')
   await PushService.sendSilentBadgeUpdateToUser(userId, totalUnread)
 }

@@ -16,6 +16,7 @@ import { submitHomeWaitingListLead } from '@/lib/home/platform-home-api-client'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { buildHomeFeaturedKeyParams, fetchHomeFeatured } from '@/lib/home/fetch-home-featured'
 import { queryKeys } from '@/lib/query-keys'
+import { HOME_FEATURED_STALE_MS } from '@/lib/query-prefetch/home-query-constants'
 import { getUIText } from '@/lib/translations'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { selectHeroCategoryTabs } from '@/lib/home/hero-category-tabs'
@@ -128,7 +129,7 @@ export function usePlatformHomePage() {
     queryFn: () => fetchHomeFeatured(featuredKeyParams),
     enabled: featuredEnabled,
     placeholderData: keepPreviousData,
-    staleTime: 5 * 60 * 1000,
+    staleTime: HOME_FEATURED_STALE_MS,
     gcTime: 30 * 60 * 1000,
   })
 

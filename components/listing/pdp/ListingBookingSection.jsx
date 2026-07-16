@@ -1,58 +1,83 @@
 'use client'
 
-import { DesktopBookingWidget } from '@/app/listings/[id]/components/BookingWidget'
+import { useMemo } from 'react'
+import { DesktopBookingWidget } from '@/app/(storefront)/listings/[id]/components/BookingWidget'
 import { BookingModal } from '@/components/listing/BookingModal'
+import { useListingBooking } from '@/components/listing/pdp/ListingBookingProvider'
 
 /**
- * PDP desktop booking column: sticky **`DesktopBookingWidget`** + **`BookingModal`** (POST flow via parent `onSubmit`).
+ * PDP desktop booking column: sticky **`DesktopBookingWidget`** + **`BookingModal`**.
+ * Booking state from **`useListingBooking()`**; chat actions via optional `chat` bridge prop.
+ *
+ * @param {object} [props]
+ * @param {object} [props.chat] — from `useListingChat` (contact partner UI only)
+ * @param {boolean} [props.chat.showAskPartner]
+ * @param {() => void} [props.chat.onAskPartner]
+ * @param {boolean} [props.chat.askPartnerLoading]
+ * @param {boolean} [props.chat.hasExistingConversation]
+ * @param {string | null} [props.chat.lastMessagePreview]
+ * @param {boolean} [props.chat.hasUnreadFromHost]
  */
-export function ListingBookingSection({
-  listing,
-  dateRange,
-  setDateRange,
-  guests,
-  setGuests,
-  priceCalc,
-  currency,
-  exchangeRates,
-  language,
-  calendarKey,
-  onBookingClick,
-  showAskPartner,
-  onAskPartner,
-  onAskPartnerUnavailable,
-  askPartnerLoading,
-  hasExistingConversation,
-  lastMessagePreview,
-  hasUnreadFromHost,
-  bookingUiMode,
-  vehicleStartTime,
-  vehicleEndTime,
-  onVehicleStartTimeChange,
-  onVehicleEndTimeChange,
-  availabilityLoading,
-  availabilitySnapshot,
-  durationDiscountPercentActive,
-  showDurationDiscountTeaser,
-  onPrivateTripClick,
-  onSpecialPriceClick,
-  canInstantBook,
-  exclusiveDatesUnavailable,
-  bookingModalOpen,
-  setBookingModalOpen,
-  setBookingModalIntent,
-  guestName,
-  setGuestName,
-  guestEmail,
-  setGuestEmail,
-  guestPhone,
-  setGuestPhone,
-  message,
-  setMessage,
-  submitting,
-  onBookingSubmit,
-  bookingModalIntent,
-}) {
+export function ListingBookingSection({ chat = {} }) {
+  const {
+    listing,
+    user,
+    openLoginModal,
+    language,
+    currency,
+    exchangeRates,
+    dateRange,
+    setDateRange,
+    guests,
+    setGuests,
+    priceCalc,
+    calendarKey,
+    bookingUiMode,
+    vehicleStartTime,
+    vehicleEndTime,
+    setVehicleStartTime,
+    setVehicleEndTime,
+    availabilityLoading,
+    availabilitySnapshot,
+    durationDiscountPercentActive,
+    hasDurationDiscountTiers,
+    exclusiveDatesUnavailable,
+    canInstantBook,
+    bookingModalOpen,
+    setBookingModalOpen,
+    setBookingModalIntent,
+    guestName,
+    setGuestName,
+    guestEmail,
+    setGuestEmail,
+    guestPhone,
+    setGuestPhone,
+    message,
+    setMessage,
+    submitting,
+    bookingModalIntent,
+    openBookModal,
+    handleBookCtaClick,
+    handleAskPartnerUnavailable,
+    handleBookingSubmit,
+  } = useListingBooking()
+
+  const onPrivateTripClick = useMemo(
+    () =>
+      bookingUiMode === 'shared'
+        ? () => (user ? openBookModal('private') : openLoginModal())
+        : undefined,
+    [bookingUiMode, user, openBookModal, openLoginModal],
+  )
+
+  const onSpecialPriceClick = useMemo(
+    () =>
+      bookingUiMode === 'shared'
+        ? () => (user ? openBookModal('special') : openLoginModal())
+        : undefined,
+    [bookingUiMode, user, openBookModal, openLoginModal],
+  )
+
   return (
     <>
       <DesktopBookingWidget
@@ -66,23 +91,23 @@ export function ListingBookingSection({
         exchangeRates={exchangeRates}
         language={language}
         calendarKey={calendarKey}
-        onBookingClick={onBookingClick}
-        showAskPartner={showAskPartner}
-        onAskPartner={onAskPartner}
-        onAskPartnerUnavailable={onAskPartnerUnavailable}
-        askPartnerLoading={askPartnerLoading}
-        hasExistingConversation={hasExistingConversation}
-        lastMessagePreview={lastMessagePreview}
-        hasUnreadFromHost={hasUnreadFromHost}
+        onBookingClick={() => handleBookCtaClick('book')}
+        showAskPartner={chat.showAskPartner}
+        onAskPartner={chat.onAskPartner}
+        onAskPartnerUnavailable={handleAskPartnerUnavailable}
+        askPartnerLoading={chat.askPartnerLoading}
+        hasExistingConversation={chat.hasExistingConversation}
+        lastMessagePreview={chat.lastMessagePreview}
+        hasUnreadFromHost={chat.hasUnreadFromHost}
         bookingUiMode={bookingUiMode}
         vehicleStartTime={vehicleStartTime}
         vehicleEndTime={vehicleEndTime}
-        onVehicleStartTimeChange={onVehicleStartTimeChange}
-        onVehicleEndTimeChange={onVehicleEndTimeChange}
+        onVehicleStartTimeChange={setVehicleStartTime}
+        onVehicleEndTimeChange={setVehicleEndTime}
         availabilityLoading={availabilityLoading}
         availabilitySnapshot={availabilitySnapshot}
         durationDiscountPercentActive={durationDiscountPercentActive}
-        showDurationDiscountTeaser={showDurationDiscountTeaser}
+        showDurationDiscountTeaser={hasDurationDiscountTiers}
         onPrivateTripClick={onPrivateTripClick}
         onSpecialPriceClick={onSpecialPriceClick}
         canInstantBook={canInstantBook}
@@ -109,13 +134,13 @@ export function ListingBookingSection({
         exchangeRates={exchangeRates}
         language={language}
         submitting={submitting}
-        onSubmit={onBookingSubmit}
+        onSubmit={handleBookingSubmit}
         modalIntent={bookingModalIntent}
         listingCategorySlug={listing?.categorySlug}
         vehicleStartTime={vehicleStartTime}
         vehicleEndTime={vehicleEndTime}
-        setVehicleStartTime={onVehicleStartTimeChange}
-        setVehicleEndTime={onVehicleEndTimeChange}
+        setVehicleStartTime={setVehicleStartTime}
+        setVehicleEndTime={setVehicleEndTime}
       />
     </>
   )

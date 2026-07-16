@@ -9,6 +9,45 @@ export function addListingDays(isoDate: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** First can_check_in window where each night in [start, end) passes PlatformCalendar validation. */
+export function findFirstValidCalendarSpan(
+  calRows: Array<{
+    date?: string
+    can_check_in?: boolean
+    status?: string
+    is_transition?: boolean
+  }> | null | undefined,
+  spanDays: number,
+): { startIso: string; endIso: string } | null {
+  if (!Array.isArray(calRows)) return null
+  const byDate = new Map(calRows.filter((r) => r?.date).map((r) => [String(r.date), r]))
+
+  for (const row of calRows) {
+    if (!row?.can_check_in || !row.date) continue
+    const startIso = String(row.date)
+    const endIso = addListingDays(startIso, spanDays)
+    if (!byDate.has(endIso)) continue
+
+    let valid = true
+    let cursor = startIso
+    while (cursor < endIso) {
+      const day = byDate.get(cursor)
+      if (
+        day &&
+        day.status === 'BLOCKED' &&
+        !day.is_transition &&
+        !day.can_check_in
+      ) {
+        valid = false
+        break
+      }
+      cursor = addListingDays(cursor, 1)
+    }
+    if (valid) return { startIso, endIso }
+  }
+  return null
+}
+
 export async function pickVehicleNDayRange(
   request: APIRequestContext,
   baseURL: string,

@@ -2,6 +2,8 @@
  * Accountant Bot — Deep Financial Math (Playwright).
  * 3 суток / 3 ночи: Итог ≈ Субтотал + Сервисный сбор; выплата партнёру; RUB/THB/USD и точность знаков.
  * Алерт [FINANCIAL_ERROR]: POST …/financial-error-alert при расхождении > 0.01 (нужен E2E_FIXTURE_SECRET).
+ *
+ * Stage 171.42: hero в режиме stay = subtotal+fee (не «за сутки»); host commission ≠ guest fee.
  */
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import {
@@ -10,7 +12,14 @@ import {
   E2E_HEADERS,
   E2E_ROUTES,
 } from '../constants'
-import { addListingDays, pickVehicleNDayRange } from '../helpers/vehicle-calendar-range'
+import { findFirstValidCalendarSpan, pickVehicleNDayRange } from '../helpers/vehicle-calendar-range'
+import {
+  closePlatformCalendarPicker,
+  getDesktopBookingCard,
+  openPlatformCalendarPicker,
+  selectPlatformCalendarRange,
+  waitForBookingPriceTotal,
+} from '../helpers/platform-calendar-picker'
 
 function parseRawAmount(s: string | null): number {
   if (s == null || s === '') return NaN
@@ -71,6 +80,24 @@ function assertUsdTwoDecimals(raw: string) {
   expect(raw, 'USD ровно 2 знака').toMatch(/^\d+\.\d{2}$/)
 }
 
+async function probeVehicleCalendar(
+  request: APIRequestContext,
+  baseURL: string,
+  listingId: string,
+) {
+  const calRes = await request.get(`${baseURL}/api/v2/listings/${listingId}/calendar?days=180`, {
+    failOnStatusCode: false,
+  })
+  if (!calRes.ok()) return null
+  const calJson = (await calRes.json()) as {
+    success?: boolean
+    data?: { calendar?: Array<{ date?: string; can_check_in?: boolean }> }
+  }
+  const calRows = calJson?.data?.calendar
+  if (!Array.isArray(calRows)) return null
+  return calRows
+}
+
 test.describe('@accountant-bot', () => {
   test('3 суток: субтотал + сбор = итог; выплата; THB/RUB/USD; мин. 100 THB', async ({
     page,
@@ -91,52 +118,28 @@ test.describe('@accountant-bot', () => {
       rows.find((r) => Number(r.basePriceThb) * 3 >= 80) || rows[0]
     test.skip(!vehicle?.id, 'Нет листинга vehicles для сценария')
 
-    await page.setViewportSize({ width: 1280, height: 900 })
-
-    const calResponsePromise = page.waitForResponse(
-      (r) => {
-        const u = r.url()
-        return (
-          u.includes(`/api/v2/listings/${vehicle.id}/calendar`) &&
-          u.includes('days=180') &&
-          r.request().method() === 'GET'
-        )
-      },
-      { timeout: 90_000 },
-    )
-    await page.goto(`${baseURL}/listings/${vehicle.id}`, { waitUntil: 'domcontentloaded' })
-    const calResponse = await calResponsePromise
-    expect(calResponse.ok(), 'calendar API').toBeTruthy()
-    const calJson = (await calResponse.json()) as {
-      success?: boolean
-      data?: { calendar?: Array<{ date?: string; can_check_in?: boolean }> }
-    }
-    const calRows = calJson?.data?.calendar
-    test.skip(!Array.isArray(calRows), 'calendar rows')
+    const calRows = await probeVehicleCalendar(api, baseURL!, String(vehicle.id))
+    test.skip(!calRows, 'calendar rows')
     const checkInDays = calRows.filter((d) => d?.can_check_in === true)
     test.skip(checkInDays.length === 0, 'нет can_check_in')
+    const span = findFirstValidCalendarSpan(calRows, 3)
+    test.skip(!span, 'нет валидного 3-дневного окна')
 
-    const desktopBookingCard = page.locator('div.hidden.lg\\:block.sticky.top-24')
-    const calendarTrigger = desktopBookingCard.getByTestId('platform-calendar-trigger')
-    await expect(calendarTrigger).toBeVisible({ timeout: 25_000 })
-    await calendarTrigger.click()
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto(`${baseURL}/listings/${vehicle.id}`, { waitUntil: 'domcontentloaded' })
 
-    const datePickerDialog = page.getByRole('dialog')
-    await expect(datePickerDialog).toBeVisible({ timeout: 15_000 })
-    const firstDay = datePickerDialog.locator('button[data-clickable="true"]').first()
-    await expect(firstDay).toBeVisible({ timeout: 25_000 })
-    const startIso = await firstDay.getAttribute('data-date')
-    test.skip(!startIso, 'data-date заезда')
-    await firstDay.click()
-    const endIso = addListingDays(startIso, 3)
-    const checkoutBtn = datePickerDialog.locator(`button[data-date="${endIso}"]`)
-    await expect(checkoutBtn).toBeVisible({ timeout: 15_000 })
-    await checkoutBtn.click()
-    await page.keyboard.press('Escape')
-    await expect(datePickerDialog).toBeHidden({ timeout: 15_000 })
+    const desktopBookingCard = getDesktopBookingCard(page)
+    const picker = await openPlatformCalendarPicker(page, desktopBookingCard)
+    await selectPlatformCalendarRange(picker, 3, {
+      page,
+      listingId: String(vehicle.id),
+      desktopBookingCard,
+      knownStartIso: span.startIso,
+      knownEndIso: span.endIso,
+    })
+    await closePlatformCalendarPicker(page)
 
-    const totalLoc = desktopBookingCard.getByTestId('booking-price-total')
-    await expect(totalLoc).toBeVisible({ timeout: 20_000 })
+    const totalLoc = await waitForBookingPriceTotal(desktopBookingCard)
 
     const heroPriceEl = desktopBookingCard.getByTestId('listing-hero-price')
 
@@ -182,19 +185,41 @@ test.describe('@accountant-bot', () => {
         assertIntegerString(code, String(totalRaw))
       }
 
+      // Vehicles: tax typically 0 — guest payable = subtotal + guest service fee.
       await assertApprox(api, baseURL!, sub + fee, total, `${code} subtotal+fee vs total`)
 
-      const perNightRaw = await heroPriceEl.getAttribute('data-test-raw-value')
-      const pn = parseRawAmount(perNightRaw)
-      if (Number.isFinite(pn) && pn > 0) {
-        await assertApprox(
-          api,
-          baseURL!,
-          pn * 3 + fee,
-          total,
-          `${code} (цена за суток × 3) + сбор vs итог`,
-          Math.max(2, total * 0.02),
-        )
+      const heroMode = (await heroPriceEl.getAttribute('data-test-hero-mode')) || ''
+      const heroRaw = await heroPriceEl.getAttribute('data-test-raw-value')
+      const hero = parseRawAmount(heroRaw)
+      if (Number.isFinite(hero) && hero > 0) {
+        if (heroMode === 'stay') {
+          // SSOT getPdpHeroGuestPriceThb: stay headline = subtotal + guest fee (not per-night × N).
+          await assertApprox(
+            api,
+            baseURL!,
+            hero,
+            sub + fee,
+            `${code} hero stay = subtotal+fee`,
+            Math.max(1, total * 0.01),
+          )
+          await assertApprox(
+            api,
+            baseURL!,
+            hero,
+            total,
+            `${code} hero stay ≈ guest total`,
+            Math.max(1, total * 0.01),
+          )
+        } else {
+          await assertApprox(
+            api,
+            baseURL!,
+            hero * 3 + fee,
+            total,
+            `${code} (цена за суток × 3) + сбор vs итог`,
+            Math.max(2, total * 0.02),
+          )
+        }
       }
 
       await expect(payoutEl).toBeAttached({ timeout: 5000 })
@@ -214,14 +239,11 @@ test.describe('@accountant-bot', () => {
         const feeThb = parseRawAmount(await feeEl.getAttribute('data-test-fee-thb'))
         const payThb = parseRawAmount(await payoutEl.getAttribute('data-test-payout-thb'))
         expect(Number.isFinite(subThb) && Number.isFinite(feeThb) && Number.isFinite(payThb)).toBeTruthy()
-        await assertApprox(
-          api,
-          baseURL!,
-          subThb - payThb,
-          feeThb,
-          'THB (канон) субтотал − выплата партнёру = комиссия/сбор',
-          0.01,
-        )
+        // Host commission (SSOT) = subtotal − partner payout — independent of guest service fee.
+        const hostCommissionThb = subThb - payThb
+        expect(hostCommissionThb, 'host commission THB').toBeGreaterThan(0)
+        expect(payThb, 'partner payout < subtotal').toBeLessThan(subThb)
+        expect(feeThb, 'guest service fee').toBeGreaterThan(0)
       }
     }
   })
@@ -262,13 +284,25 @@ test.describe('accountant-bot anti-tamper', () => {
       const range = await pickVehicleNDayRange(ctx, baseURL, 3)
       test.skip(!range, 'vehicle calendar')
 
-      const postRes = await ctx.post('/api/v2/bookings', {
+      // Prefer far-future window to avoid 409 date conflicts from parallel fixtures.
+      const farCheckIn = (() => {
+        const d = new Date()
+        d.setUTCDate(d.getUTCDate() + 180)
+        return d.toISOString().slice(0, 10)
+      })()
+      const farCheckOut = (() => {
+        const d = new Date(`${farCheckIn}T12:00:00.000Z`)
+        d.setUTCDate(d.getUTCDate() + 3)
+        return d.toISOString().slice(0, 10)
+      })()
+
+      let postRes = await ctx.post('/api/v2/bookings', {
         headers: { 'Content-Type': 'application/json' },
         data: {
           listingId: range.listingId,
           renterId,
-          checkIn: range.checkIn,
-          checkOut: range.checkOut,
+          checkIn: farCheckIn,
+          checkOut: farCheckOut,
           guestName: 'E2E Price Guard',
           guestEmail: E2E_EMAILS.renter,
           guestPhone: '+66000000000',
@@ -277,8 +311,28 @@ test.describe('accountant-bot anti-tamper', () => {
           clientQuotedSubtotalThb: 1,
         },
       })
-      expect(postRes.status()).toBe(400)
-      const body = (await postRes.json()) as { code?: string }
+      if (postRes.status() === 409) {
+        postRes = await ctx.post('/api/v2/bookings', {
+          headers: { 'Content-Type': 'application/json' },
+          data: {
+            listingId: range.listingId,
+            renterId,
+            checkIn: range.checkIn,
+            checkOut: range.checkOut,
+            guestName: 'E2E Price Guard',
+            guestEmail: E2E_EMAILS.renter,
+            guestPhone: '+66000000000',
+            currency: 'THB',
+            guestsCount: 1,
+            clientQuotedSubtotalThb: 1,
+          },
+        })
+      }
+      const body = (await postRes.json()) as { code?: string; error?: string }
+      expect(
+        postRes.status(),
+        `expected PRICE_MISMATCH guard, got ${postRes.status()} ${body?.code || body?.error || ''}`,
+      ).toBe(400)
       expect(body.code).toBe('PRICE_MISMATCH')
     } finally {
       await ctx.dispose()

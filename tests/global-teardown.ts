@@ -1,7 +1,44 @@
 import path from 'path'
+import { spawn } from 'child_process'
 import { loadEnvConfig } from '@next/env'
 import { createClient } from '@supabase/supabase-js'
 import { E2E_TEST_DATA_TAG } from '../lib/e2e/test-data-tag.js'
+
+/** Playwright/CJS cannot `import()` package `.js` ESM services — run via Node ESM entrypoints. */
+function runNodeScript(scriptRel: string, args: string[] = []): Promise<{ ok: boolean; detail: string }> {
+  return new Promise((resolve) => {
+    const scriptPath = path.resolve(process.cwd(), scriptRel)
+    const child = spawn(process.execPath, [scriptPath, ...args], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        // Stage 172.0 — silence MODULE_TYPELESS_PACKAGE_JSON from nested ESM imports under CJS root package.json
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON']
+          .filter(Boolean)
+          .join(' '),
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let out = ''
+    child.stdout?.on('data', (b) => {
+      out += String(b)
+    })
+    child.stderr?.on('data', (b) => {
+      out += String(b)
+    })
+    child.on('error', (err) => {
+      resolve({ ok: false, detail: err.message })
+    })
+    child.on('close', (code) => {
+      const detail = out
+        .split(/\r?\n/)
+        .filter((line) => !/MODULE_TYPELESS_PACKAGE_JSON|Reparsing as ES module/i.test(line))
+        .join('\n')
+        .trim()
+      resolve({ ok: code === 0, detail: detail || `exit ${code}` })
+    })
+  })
+}
 
 const MAX_IN = 200
 
@@ -83,21 +120,21 @@ export default async function globalTeardown() {
     `[Playwright teardown] surgical E2E cleanup: bookings=${bookingIds.length}, conversations=${uniqueConversationIds.length}`,
   )
 
-  try {
-    const { runCleanupTestData } = await import('../lib/e2e/cleanup-test-data.service.js')
-    const listingReport = await runCleanupTestData(sb, { dryRun: false })
-    console.log('[Playwright teardown] test listings cleanup:', listingReport.deleted)
-  } catch (e) {
-    console.warn('[Playwright teardown] listing cleanup failed:', (e as Error)?.message || e)
+  {
+    const listingCleanup = await runNodeScript('scripts/cleanup-test-data.mjs', ['--execute'])
+    if (listingCleanup.ok) {
+      console.log('[Playwright teardown] test listings cleanup ok:', listingCleanup.detail.slice(0, 500))
+    } else {
+      console.warn('[Playwright teardown] listing cleanup failed:', listingCleanup.detail.slice(0, 800))
+    }
   }
 
   if (process.env.PLAYWRIGHT_E2E_DEEP_PROFILE_CLEANUP === '1') {
-    try {
-      const { deepCleanupE2eTestActors } = await import('../lib/e2e/deep-cleanup-e2e-actors.js')
-      const deep = await deepCleanupE2eTestActors(sb, { dryRun: false })
-      console.log('[Playwright teardown] deep profile/referral/wallet cleanup:', deep)
-    } catch (e) {
-      console.warn('[Playwright teardown] deep cleanup failed:', (e as Error)?.message || e)
+    const deep = await runNodeScript('scripts/deep-cleanup-e2e-actors.mjs', ['--execute'])
+    if (deep.ok) {
+      console.log('[Playwright teardown] deep profile cleanup ok:', deep.detail.slice(0, 500))
+    } else {
+      console.warn('[Playwright teardown] deep cleanup failed:', deep.detail.slice(0, 800))
     }
   }
 }

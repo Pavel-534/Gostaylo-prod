@@ -28,7 +28,7 @@ test('notification integrity: deep link, ics attachment, telegram ban token', as
   expect(body.data?.hasConversationDeepLink).toBeTruthy()
   expect(body.data?.calendarTokenPresent).toBeTruthy()
   expect(body.data?.icsAttachmentPresent).toBeTruthy()
-  expect(body.data?.icsAttachmentName).toBe('gostaylo-stay.ics')
+  expect(body.data?.icsAttachmentName).toBe('platform-stay.ics')
   expect(body.data?.banTokenValid).toBeTruthy()
   expect(body.data?.zhPrefersIcsCopy).toBeTruthy()
 

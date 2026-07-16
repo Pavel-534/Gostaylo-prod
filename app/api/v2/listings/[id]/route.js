@@ -9,32 +9,9 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { revalidateListingPaths } from '@/lib/revalidation'
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
-import PricingService from '@/lib/services/pricing.service'
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
-import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getSessionPayload, requirePartnerSession } from '@/lib/services/session-service'
-import { isStaffRole } from '@/lib/services/chat/access'
-import { resolveListingPublicGuestAccess } from '@/lib/listing/listing-public-guest-gate'
-import {
-  resolveCoordinateRevealLevel,
-  serializePublicCoordinates,
-} from '@/lib/geo/listing-public-coordinates'
-import { fetchRenterBookingsForListingReveal } from '@/lib/geo/public-coordinate-viewer-context'
+import { getPublicListingDetail } from '@/lib/listing/get-public-listing-detail.js'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
-import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
-import { ReputationService } from '@/lib/services/reputation.service'
-import {
-  fetchActivePromoRowsForCatalog,
-  computeCatalogPromoBadgeForListing,
-  computeCatalogFlashUrgencyForListing,
-  computeCatalogFlashSocialProofForListing,
-  fetchBookingsCreatedTodayCountsByPromoCodes,
-} from '@/lib/promo/catalog-promo-badges'
-import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js'
-import {
-  getGuestDisplayPerNight,
-  normalizeGuestServiceFeePercent,
-} from '@/lib/pricing/guest-display-price.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,247 +53,33 @@ async function cleanupListingStorage(listingId, images) {
 
 export async function GET(request, context) {
   try {
-    // In Next.js 13+, params can be async - await it to be safe
     const params = await Promise.resolve(context.params)
     const { id } = params
-    
-    const { data: listing, error } = await supabaseAdmin
-      .from('listings')
-      .select(`
-        *,
-        categories (id, name, slug, icon, wizard_profile),
-        owner:profiles!owner_id (id, first_name, last_name, is_verified, verification_status, avatar, email, phone)
-      `)
-      .eq('id', id)
-      .single();
-    
-    if (error || !listing) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Listing not found' 
-      }, { status: 404 });
-    }
 
     const session = await getSessionPayload()
     const viewerId = session?.userId ? String(session.userId) : null
     const viewerRole = String(session?.role || '').toUpperCase()
-    const guestAccess = resolveListingPublicGuestAccess({
-      listing,
+
+    const result = await getPublicListingDetail({
+      listingId: id,
       viewerId,
       viewerRole,
-    })
-    if (!guestAccess.allowed) {
-      const isModeration = guestAccess.code === 'LISTING_UNDER_MODERATION'
-      return NextResponse.json(
-        {
-          success: false,
-          error: isModeration
-            ? 'This listing is under moderation'
-            : 'Listing not found',
-          code: guestAccess.code,
-        },
-        { status: guestAccess.httpStatus },
-      )
-    }
-    
-    // Increment views (non-blocking) — only for publicly visible listings
-    supabaseAdmin
-      .from('listings')
-      .update({ views: (listing.views || 0) + 1 })
-      .eq('id', id)
-      .then(() => {})
-      .catch(() => {});
-    
-    // Parallelize slow dependent reads - each wrapped in try-catch for stability
-    const seasonalPricesPromise = (async () => {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('seasonal_prices')
-          .select('*')
-          .eq('listing_id', id)
-          .order('start_date', { ascending: true })
-        return error ? [] : (data || [])
-      } catch (e) {
-        console.warn('[LISTING] seasonal_prices error:', e?.message)
-        return []
-      }
-    })()
-
-    const reviewsCountPromise = (async () => {
-      try {
-        const rc = listing.reviews_count
-        if (rc !== null && rc !== undefined) return rc
-        const { count, error: countError } = await supabaseAdmin
-          .from('reviews')
-          .select('id', { count: 'exact', head: true })
-          .eq('listing_id', id)
-        return countError ? 0 : (count || 0)
-      } catch (e) {
-        console.warn('[LISTING] reviews count error:', e?.message)
-        return 0
-      }
-    })()
-
-    const commissionSnapshotPromise = (async () => {
-      try {
-        const dummyPrice = 1000
-        const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id)
-        const hostRate =
-          commissionCalc?.commissionRate ?? (await resolveDefaultCommissionPercent())
-        const feeSnapshot = await getCommissionRate(listing.owner_id)
-        return {
-          commissionRate: hostRate,
-          guestServiceFeePercent: feeSnapshot.guestServiceFeePercent,
-        }
-      } catch (e) {
-        console.warn('[LISTING] commission error:', e?.message)
-        const feeSnapshot = await getCommissionRate(listing.owner_id).catch(() => null)
-        return {
-          commissionRate: await resolveDefaultCommissionPercent(),
-          guestServiceFeePercent: feeSnapshot?.guestServiceFeePercent,
-        }
-      }
-    })()
-
-    const [seasonalPrices, reviewsCount, commissionSnapshot] = await Promise.all([
-      seasonalPricesPromise,
-      reviewsCountPromise,
-      commissionSnapshotPromise,
-    ])
-
-    const dynamicCommissionRate = commissionSnapshot.commissionRate
-    const guestServiceFeePercent = normalizeGuestServiceFeePercent(
-      commissionSnapshot.guestServiceFeePercent,
-    )
-    const basePriceThbParsed = parseFloat(listing.base_price_thb)
-    const guestDisplayPriceThb = getGuestDisplayPerNight({
-      base_price_thb: basePriceThbParsed,
-      basePriceThb: basePriceThbParsed,
-      guestServiceFeePercent,
+      incrementViews: true,
     })
 
-    let partnerTrust = null
-    if (listing.owner_id) {
-      try {
-        partnerTrust = await ReputationService.getPartnerTrustPublic(String(listing.owner_id))
-      } catch (e) {
-        console.warn('[LISTING GET] partner trust', e?.message)
+    if (!result.ok) {
+      const body = {
+        success: false,
+        error: result.error,
       }
+      if (result.code) body.code = result.code
+      return NextResponse.json(body, { status: result.httpStatus })
     }
 
-    let catalog_promo_badge = null
-    let catalog_flash_urgency = null
-    let catalog_flash_social_proof = null
-    try {
-      const promoRows = await fetchActivePromoRowsForCatalog(supabaseAdmin)
-      catalog_promo_badge = computeCatalogPromoBadgeForListing(listing, promoRows, 0)
-      catalog_flash_urgency = computeCatalogFlashUrgencyForListing(listing, promoRows)
-      const flashCodes = (promoRows || [])
-        .filter((p) => p.is_flash_sale)
-        .map((p) => String(p.code || '').trim().toUpperCase())
-        .filter(Boolean)
-      const flashTodayCounts = await fetchBookingsCreatedTodayCountsByPromoCodes(supabaseAdmin, flashCodes)
-      catalog_flash_social_proof = computeCatalogFlashSocialProofForListing(
-        listing,
-        promoRows,
-        flashTodayCounts,
-      )
-    } catch (e) {
-      console.warn('[LISTING GET] catalog promo', e?.message)
-    }
-
-    const canSeeOwnerPii =
-      viewerId &&
-      (viewerId === String(listing.owner_id) || isStaffRole(viewerRole))
-
-    let renterBookingsForReveal = []
-    if (viewerId && !canSeeOwnerPii) {
-      renterBookingsForReveal = await fetchRenterBookingsForListingReveal(viewerId, id)
-    }
-    const coordReveal = resolveCoordinateRevealLevel({
-      viewerId,
-      viewerRole,
-      listing,
-      renterBookings: renterBookingsForReveal,
-    })
-    const publicCoords = serializePublicCoordinates(listing, coordReveal)
-    
-    // Transform for frontend
-    const transformed = {
-      id: listing.id,
-      ownerId: listing.owner_id,
-      categoryId: listing.category_id,
-      category: listing.categories,
-      status: listing.status,
-      title: listing.title,
-      description: listing.description,
-      district: listing.district,
-      latitude: publicCoords.latitude,
-      longitude: publicCoords.longitude,
-      isApproximate: publicCoords.isApproximate,
-      locationPrivacyMode: publicCoords.locationPrivacyMode,
-      address: publicCoords.address,
-      basePriceThb: basePriceThbParsed,
-      guestDisplayPriceThb,
-      guestServiceFeePercent,
-      baseCurrency: listing.base_currency || 'THB',
-      commissionRate: dynamicCommissionRate,
-      images: mapPublicImageUrls(listing.images || []),
-      coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
-      metadata: listing.metadata || {},
-      available: listing.available,
-      isFeatured: listing.is_featured,
-      minBookingDays: listing.min_booking_days,
-      maxBookingDays: listing.max_booking_days,
-      cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
-      maxCapacity: (() => {
-        const n = parseInt(listing.max_capacity, 10)
-        return Number.isFinite(n) && n > 0 ? n : null
-      })(),
-      views: (listing.views || 0) + 1,
-      bookingsCount: listing.bookings_count || 0,
-      rating: parseFloat(listing.rating) || 0,
-      avgRating: parseFloat(listing.avg_rating ?? listing.rating) || 0,
-      average_rating: parseFloat(listing.avg_rating ?? listing.rating) || 0,
-      reviewsCount: reviewsCount || 0,
-      ownerVerified: listing.owner?.is_verified === true,
-      createdAt: listing.created_at,
-      owner: listing.owner
-        ? {
-            id: listing.owner.id,
-            first_name: listing.owner.first_name,
-            last_name: listing.owner.last_name,
-            is_verified: listing.owner.is_verified,
-            verification_status: listing.owner.verification_status,
-            avatar: listing.owner.avatar ? toPublicImageUrl(listing.owner.avatar) : null,
-            ...(canSeeOwnerPii
-              ? {
-                  email: listing.owner.email ?? null,
-                  phone: listing.owner.phone ?? null,
-                }
-              : {}),
-          }
-        : null,
-      seasonalPrices: (seasonalPrices || [])?.map(sp => ({
-        id: sp.id,
-        startDate: sp.start_date,
-        endDate: sp.end_date,
-        label: sp.label,
-        seasonType: sp.season_type,
-        priceDaily: parseFloat(sp.price_daily),
-        priceMonthly: sp.price_monthly ? parseFloat(sp.price_monthly) : null
-      })) || [],
-      partnerTrust,
-      catalog_promo_badge,
-      catalog_flash_urgency,
-      catalog_flash_social_proof,
-    };
-    
-    return NextResponse.json({ success: true, data: transformed });
-    
+    return NextResponse.json({ success: true, data: result.data })
   } catch (error) {
-    console.error('[LISTING GET ERROR]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[LISTING GET ERROR]', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 

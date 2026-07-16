@@ -5,7 +5,7 @@
  */
 import { Separator } from '@/components/ui/separator'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
-import AppListingDescription from '@/app/listings/[id]/components/ListingDescription'
+import AppListingDescription from '@/app/(storefront)/listings/[id]/components/ListingDescription'
 
 export function ListingDescription({ listing, language, amenities = [], belowDescription = null }) {
   return (
