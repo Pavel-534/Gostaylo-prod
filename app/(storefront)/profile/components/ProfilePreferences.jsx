@@ -42,14 +42,23 @@ export function ProfilePreferences({
           </Button>
         )}
         {user?.telegram_id ? (
-          <div className="flex items-center justify-between p-2 rounded-md bg-green-50 border border-green-200">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-green-700">Telegram привязан</span>
+          <div className="flex items-center justify-between gap-2 rounded-md border border-brand/20 bg-brand/5 p-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <MessageSquare className="h-4 w-4 shrink-0 text-brand" />
+              <span className="truncate text-sm text-brand">Telegram привязан</span>
             </div>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 shrink-0 text-brand" />
           </div>
-        ) : null}
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => router.push('/profile#account-connections')}
+          >
+            <MessageSquare className="mr-2 h-4 w-4 text-slate-500" />
+            Привязать способы входа
+          </Button>
+        )}
         <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/settings')}>
           <Settings className="h-4 w-4 mr-2 text-slate-500" />
           Настройки

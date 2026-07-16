@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.189.1.0 | **Last Updated**: 2026-07-16 | **Stage 189.1:** PWA iOS polish on main (SW early skipWaiting, calendar 90d constrained, resume telemetry, composer safe-area); smoke results **waiting on owner** → 189.2.
+> **Version**: 12.189.3.0 | **Last Updated**: 2026-07-16 | **Stage 189.3:** PWA & Mobile App Shell — single safe-area tab bar, AccountConnections in `/profile`, Telegram dual-mode (Login Widget vs deep-link).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -75,7 +75,50 @@
 #### Stage 171.32 — PWA focus refetch guard (2026-07-15, IOS-P1-02)
 - **`getRefetchOnWindowFocusDefault()`** — `false` in standalone PWA (`isStandaloneDisplayMode`); `true` in browser tabs.
 
-#### Stage 189.1 — PWA iOS deep polish (2026-07-16)
+### Stage 189.0 — Immersive Dynamic Auth (2026-07-16)
+
+| Слой | SSOT / маршрут | Поведение |
+|------|----------------|-----------|
+| **Fullscreen UI** | `app/auth/login`, `register`, `forgot-password`, `verify-email` + `components/auth/AuthPageShell.jsx` | Вне `(storefront)` — **без** `AppHeader` / `MobileBottomNav`; инпуты/CTA **`h-12` (48px)** |
+| **Provider policy** | `lib/auth/auth-provider-policy.js` | **Всегда:** phone, email, Telegram, Yandex, VK. **Только non-RU IP:** Google, Apple (`isRussia` из middleware geo) |
+| **Phone OTP** | `POST /api/v2/auth/phone/send`, `verify` + `lib/auth/phone-otp.service.js` + `auth_phone_otp_challenges` | `InputOTP` 6 ячеек; SMS SSOT **`lib/auth/sms-dispatch.service.js`** (Stage 189.2) |
+| **Telegram Login** | `POST /api/v2/auth/telegram` + `lib/auth/telegram-login-verify.js` | Widget: `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` + `TELEGRAM_BOT_TOKEN` |
+| **OAuth** | Supabase PKCE `app/auth/callback/` | Yandex/VK/Google/Apple — `AuthProviderButtons.jsx`; RU IP: callback `region_restricted` для foreign SSO |
+| **Entry redirect** | `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`; middleware guard → `/auth/login?redirect=` | Booking resume: `gostaylo-auth-close` event + `gostaylo_redirect_after_login` |
+
+### Stage 189.1 — Account linking & gateways (2026-07-16)
+
+| Слой | SSOT / маршрут | Поведение |
+|------|----------------|-----------|
+| **DB trigger** | `migrations/stage189_1_account_linking.sql` → `handle_new_user()` | Auto-link `auth.users` → `profiles` **только** при `email_verified`; иначе skip (без takeover) |
+| **Identity registry** | `profile_auth_identities` + `lib/auth/account-linking.service.js` | Провайдеры: email, phone, telegram, google, apple, yandex, vk |
+| **Conflict queue** | `auth_link_conflicts` + `/auth/link-conflict` | OAuth clash → token; UX: войти в старый аккаунт или merge через SMS OTP |
+| **OAuth sync** | `oauth-profile-sync.service.js` | Verified-email merge; `AUTH_PROFILE_AUTH_CONFLICT` → `createAuthLinkConflict`; callback → `/auth/link-conflict?token=` |
+| **Connections UI** | `components/profile/AccountConnections.jsx` + `GET/DELETE /api/v2/auth/connections` | Статусы Подключено/Привязать; unlink если не последний метод |
+| **Legal SSOT** | `components/auth/AuthLegalConsentBlock.jsx` | Единый блок оферты **под** формами на `/auth/register` |
+
+### Stage 189.2 — Dual-route SMS gateways (2026-07-16)
+
+| Слой | SSOT / маршрут | Поведение |
+|------|----------------|-----------|
+| **Dispatch** | `lib/auth/sms-dispatch.service.js` | `+7` → **SMSC.ru** REST (`SMSC_LOGIN` / `SMSC_PASSWORD`); иначе → **Twilio** (`TWILIO_*`) |
+| **OTP wiring** | `lib/auth/phone-otp.service.js` → `dispatchAuthOtpSms` | Challenge в БД только после успешной отправки; rollback при `AUTH_SMS_DELIVERY_FAILED` |
+| **Mock** | `AUTH_PHONE_OTP_MOCK=1` | Только `NODE_ENV !== production` или E2E/smoke (`E2E_TEST_RUN`, `SMOKE_FINANCIAL_RUN`) |
+| **Rate limit** | `sms_otp` (1/min per phone+IP) + `sms_otp_ip` (8/min per IP) + DB cooldown 60s | `POST /api/v2/auth/phone/send` |
+| **Errors** | `AUTH_SMS_DELIVERY_FAILED`, `AUTH_PHONE_SMS_NOT_CONFIGURED` | Логи с `maskPhoneE164`, без полного номера/кода |
+
+### Stage 189.3 — PWA & Mobile App Shell Polish (2026-07-16)
+
+| Слой | SSOT / маршрут | Поведение |
+|------|----------------|-----------|
+| **Bottom nav safe-area** | `MobileBottomNav` + `.safe-area-pb`; `--app-bottom-nav-height` | Inset **один раз** на nav; shell padding = только measured height (без повторного `env(safe-area-inset-bottom)`) |
+| **Keyboard** | `visualViewport` shrink &gt; 120px | Таб-бар скрыт, высота CSS-var → `0` |
+| **Account connections** | `AccountConnections` + `hooks/use-account-connections.js` на `/profile` (`ProfileSecurity`) | `GET/DELETE /api/v2/auth/connections`; секция `#account-connections` |
+| **Telegram dual-mode** | Login Widget на `/auth/*`; deep-link `t.me/?start=link_<userId>` в кабинете | Один `TELEGRAM_BOT_TOKEN`; виджет ≠ notify-link |
+| **Profile ≤375px** | `ProfileInfo.jsx` | `truncate` / `min-w-0`; partner CTA `flex-col` → row с `min-[375px]:`; brand tokens |
+| **PWA iOS icon** | `app/layout.js` + `public/icons/icon-180x180.png` | `apple-touch-icon` 180×180 |
+
+#### Stage 189.3b — PWA iOS deep polish backlog (was 189.3 polish on main)
 - SW: first-install **`skipWaiting` before precache**; client `GET_STATUS` → cache name for smoke.
 - Calendar: **`getPublicCalendarDaysAhead()`** → 90 days when constrained / iOS (was 120).
 - Telemetry: cold + resume + FCP; `localStorage` `airento_pwa_perf_v1` / `airento_pwa_resume_v1`.

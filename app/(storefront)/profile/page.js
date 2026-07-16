@@ -124,8 +124,8 @@ function ProfileContent() {
         setLoading(false)
       } else {
         const loginParam = searchParams?.get('login')
-        if (loginParam === 'true' && openLoginModal) {
-          openLoginModal('login')
+        if (loginParam === 'true') {
+          router.replace('/auth/login')
         } else {
           router.push('/')
         }
@@ -239,7 +239,7 @@ function ProfileContent() {
           partnerNavLanguage={language}
         />
 
-        <ProfileSecurity user={user} onToast={(o) => toast(o)} />
+        <ProfileSecurity />
     </ProductPageShell>
 
       <Dialog open={showPartnerModal} onOpenChange={setShowPartnerModal}>

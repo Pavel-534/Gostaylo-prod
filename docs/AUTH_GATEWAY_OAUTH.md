@@ -22,7 +22,7 @@ In **Authentication → Providers**:
 
 - **Google**: enable; add **Client ID** and **Client secret** from Google Cloud Console (OAuth 2.0 Web client). Authorized redirect URIs must include Supabase callback, e.g. `https://<project-ref>.supabase.co/auth/v1/callback` and your app URL if using PKCE hosted flow.
 
-Продуктовый UI (**`contexts/auth-context.jsx`**) вызывает только **`signInWithOAuth({ provider: 'google' })`**; другие провайдеры в Dashboard не обязательны для текущего флоу.
+Продуктовый UI (**`components/auth/AuthProviderButtons.jsx`**) вызывает **`signInWithOAuth`** для **`google`**, **`apple`**, **`yandex`**, **`vk`** — видимость по **`lib/auth/auth-provider-policy.js`**: Google/Apple только при **`!isRussia`** (IP РФ); Yandex/VK — везде. Полноэкранный вход: **`/auth/login`**, **`/auth/register`**.
 
 ## Environment variables (typical)
 
@@ -38,6 +38,26 @@ SUPABASE_SERVICE_ROLE_KEY=
 # Site origin (letters, OAuth redirectTo context)
 NEXT_PUBLIC_APP_URL=https://airento.ru
 NEXT_PUBLIC_BASE_URL=https://airento.ru
+
+# Phone OTP SMS — Stage 189.2 dual-route (`lib/auth/sms-dispatch.service.js`)
+# RU (+7) → SMSC.ru
+SMSC_LOGIN=
+SMSC_PASSWORD=
+SMSC_SENDER=              # optional alphanumeric sender (if approved in SMSC cabinet)
+
+# International (+66, etc.) → Twilio
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=       # E.164, e.g. +12025551234
+
+# Local / E2E only (ignored in production)
+AUTH_PHONE_OTP_MOCK=1
+
+# Telegram — same bot for notifications + Login Widget (Stage 189.3 dual-mode)
+TELEGRAM_BOT_TOKEN=           # server: verify Login Widget + sendMessage
+NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=   # BotFather @username (Login Widget data-telegram-login)
+# BotFather → Domain: allow prod/staging host for Login Widget
+# Profile link (logged-in): t.me/<username>?start=link_<profileId> via webhook /start
 ```
 
 Keep secrets out of client bundles unless using public anon flows documented by Supabase.

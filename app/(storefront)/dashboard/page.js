@@ -26,7 +26,7 @@ export default function DashboardRouter() {
       const payload = await res.json().catch(() => ({}));
 
       if (res.status === 401 || !payload?.success || !payload?.user) {
-        router.push('/login');
+        router.push('/auth/login');
         return;
       }
 

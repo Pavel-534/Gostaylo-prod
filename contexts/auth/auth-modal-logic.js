@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { AUTH_CLOSE_EVENT } from '@/lib/auth/auth-redirect'
 
 /** @typedef {'success' | 'dismiss'} AuthModalCloseOutcome */
 
@@ -35,6 +36,15 @@ export function useAuthModalLogic({
       }
     }
   }, [])
+
+  useEffect(() => {
+    const onAuthClose = (event) => {
+      const outcome = event?.detail?.outcome === 'dismiss' ? 'dismiss' : 'success'
+      emitAuthModalClose(outcome)
+    }
+    window.addEventListener(AUTH_CLOSE_EVENT, onAuthClose)
+    return () => window.removeEventListener(AUTH_CLOSE_EVENT, onAuthClose)
+  }, [emitAuthModalClose])
 
   const registerAuthModalOnClose = useCallback((listener) => {
     if (typeof listener !== 'function') return () => {}

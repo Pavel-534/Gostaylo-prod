@@ -67,7 +67,7 @@ export default function AdminLayout({ children }) {
     if (!isAuthenticated) {
       const loc = typeof window !== 'undefined' ? window.location : null;
       const path = loc ? encodeURIComponent(`${loc.pathname || ''}${loc.search || ''}`) : '';
-      router.replace(path ? `/login?redirect=${path}` : '/login');
+      router.replace(path ? `/auth/login?redirect=${encodeURIComponent(path)}` : '/auth/login');
       return;
     }
     if (typeof window !== 'undefined') {

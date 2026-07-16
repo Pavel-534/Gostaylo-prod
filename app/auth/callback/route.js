@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
+import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
 import {
   attachGostayloSessionCookie,
   signJwtForProfile,
@@ -43,6 +44,13 @@ function redirectToOAuthError(origin, reason) {
   return NextResponse.redirect(
     `${origin}/auth/oauth-error/?reason=${encodeURIComponent(String(reason))}`,
   );
+}
+
+function redirectToLinkConflict(origin, token, provider) {
+  const url = new URL('/auth/link-conflict', origin);
+  if (token) url.searchParams.set('token', String(token));
+  if (provider) url.searchParams.set('provider', String(provider));
+  return NextResponse.redirect(url.href, 302);
 }
 
 /** Канонический origin за reverse-proxy (VPS / Cloudflare → Vercel). */
@@ -139,6 +147,15 @@ export async function GET(request) {
   }
   jwtSecret = jwtCheck.secret;
 
+  let challengerProfileId = null;
+  const priorSession = request.cookies.get('gostaylo_session')?.value;
+  if (priorSession && jwtSecret) {
+    const prior = verifyAppSessionJwt(priorSession, jwtSecret);
+    if (prior.ok && prior.payload?.userId) {
+      challengerProfileId = String(prior.payload.userId);
+    }
+  }
+
   let sync;
   try {
     sync = await upsertOAuthProfile({
@@ -146,6 +163,7 @@ export async function GET(request) {
       authUser,
       legalAcceptedFromRegisterFlow: oauthLegalAccepted,
       request,
+      challengerProfileId,
     });
   } catch (e) {
     console.error('[AUTH CALLBACK SYNC ERROR]', e);
@@ -158,12 +176,10 @@ export async function GET(request) {
       ok: sync.ok,
       hasProfile: Boolean(sync.profile),
     });
-    const reason =
-      sync.error === 'AUTH_PROFILE_AUTH_CONFLICT'
-        ? 'account_link'
-        : sync.error === 'ACCOUNT_SUSPENDED'
-          ? 'suspended'
-          : 'sync';
+    if (sync.error === 'AUTH_PROFILE_AUTH_CONFLICT' && sync.conflictToken) {
+      return redirectToLinkConflict(origin, sync.conflictToken, sync.conflictProvider);
+    }
+    const reason = sync.error === 'ACCOUNT_SUSPENDED' ? 'suspended' : sync.error === 'AUTH_PROFILE_AUTH_CONFLICT' ? 'account_link' : 'sync';
     return redirectToOAuthError(origin, reason);
   }
 

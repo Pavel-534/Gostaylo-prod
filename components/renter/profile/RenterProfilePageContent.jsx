@@ -29,7 +29,6 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { getUIText } from '@/lib/translations'
-import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationModal'
@@ -360,21 +359,21 @@ export default function RenterProfilePageContent() {
         </Card>
       )}
       
-      {/* Connect Telegram */}
+      {/* Account connections — SSOT on /profile (Stage 189.3) */}
       <Card id="telegram-connect" className="scroll-mt-24 md:scroll-mt-8">
         <CardHeader>
-          <CardTitle className="text-lg">{getUIText('telegramNotifications', language)}</CardTitle>
+          <CardTitle className="text-lg">{getUIText('auth_connections_title', language)}</CardTitle>
           <CardDescription>
-            {getUIText('instantUpdates', language)}
+            {getUIText('auth_connections_subtitle', language)}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           {telegramLinked ? (
-            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-green-900">{getUIText('renterTelegramConnectedTitle', language)}</p>
-                <p className="text-sm text-green-700">
+            <div className="flex items-center gap-3 rounded-lg border border-brand/20 bg-brand/5 p-4">
+              <CheckCircle className="h-6 w-6 shrink-0 text-brand" />
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-900">{getUIText('renterTelegramConnectedTitle', language)}</p>
+                <p className="truncate text-sm text-slate-600">
                   {user.telegram_username
                     ? `@${String(user.telegram_username).replace(/^@/, '')}`
                     : getUIText('renterTelegramConnectedNoUsername', language)}
@@ -382,22 +381,14 @@ export default function RenterProfilePageContent() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-slate-600">{getUIText('telegramLinkOneTapHint', language)}</p>
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={!user?.id}
-                onClick={() => {
-                  if (!user?.id) return
-                  window.open(telegramAccountLinkUrl(user.id), '_blank', 'noopener,noreferrer')
-                }}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {getUIText('telegramLinkOneTap', language)}
-              </Button>
-              <p className="text-xs text-slate-500">{getUIText('telegramLinkAltEmail', language)}</p>
-            </div>
+            <p className="text-sm text-slate-600">{getUIText('telegramLinkOneTapHint', language)}</p>
           )}
+          <Button variant="brand" className="h-12 w-full" asChild>
+            <Link href="/profile#account-connections">
+              <Settings className="mr-2 h-4 w-4" />
+              {getUIText('auth_connections_title', language)}
+            </Link>
+          </Button>
         </CardContent>
       </Card>
       

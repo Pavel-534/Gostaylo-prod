@@ -1,7 +1,9 @@
 /**
- * Mobile Bottom Navigation Bar (ADR-100).
+ * Mobile Bottom Navigation Bar (ADR-100 / Stage 189.3).
  *
- * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>.
+ * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
+ * (height already includes safe-area padding on the nav itself — do not add inset again in shell).
+ * Hidden while soft keyboard is open (visualViewport).
  */
 
 'use client';
@@ -56,6 +58,9 @@ const NAV_ITEMS = [
   },
 ];
 
+/** Soft keyboard typically shrinks visualViewport vs layout viewport. */
+const KEYBOARD_VIEWPORT_SHRINK_PX = 120;
+
 function shouldRenderBottomNav(pathname) {
   if (!pathname) return false;
   if (pathname.startsWith('/partner') || pathname.startsWith('/admin')) return false;
@@ -69,22 +74,53 @@ function shouldRenderBottomNav(pathname) {
 
 export function MobileBottomNav() {
   const [mounted, setMounted] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const navRef = useRef(null);
   const pathname = usePathname();
   const { user, openLoginModal } = useAuth();
   const { totalUnread } = useChatUnreadBadge();
   const { language } = useI18n();
 
-  const navVisible = useMemo(
+  const routeAllowsNav = useMemo(
     () => mounted && shouldRenderBottomNav(pathname),
     [mounted, pathname],
   );
+
+  const navVisible = routeAllowsNav && !keyboardOpen;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // ADR-100: dynamic --app-bottom-nav-height (includes safe-area padding on nav)
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const syncKeyboard = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        setKeyboardOpen(false);
+        return;
+      }
+      const shrink = window.innerHeight - vv.height;
+      setKeyboardOpen(shrink > KEYBOARD_VIEWPORT_SHRINK_PX);
+    };
+
+    syncKeyboard();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', syncKeyboard);
+    vv?.addEventListener('scroll', syncKeyboard);
+    window.addEventListener('focusin', syncKeyboard);
+    window.addEventListener('focusout', syncKeyboard);
+
+    return () => {
+      vv?.removeEventListener('resize', syncKeyboard);
+      vv?.removeEventListener('scroll', syncKeyboard);
+      window.removeEventListener('focusin', syncKeyboard);
+      window.removeEventListener('focusout', syncKeyboard);
+    };
+  }, []);
+
+  // ADR-100: --app-bottom-nav-height includes safe-area (measured from nav with .safe-area-pb)
   useEffect(() => {
     const root = document.documentElement;
     if (!navVisible || !navRef.current) {
@@ -140,8 +176,9 @@ export function MobileBottomNav() {
     <nav
       ref={navRef}
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 rounded-t-2xl shadow-[0_-4px_12px_rgba(0,102,102,0.04)] safe-area-pb"
+      aria-label="Mobile navigation"
     >
-      <div className="flex items-center justify-around h-20 px-3">
+      <div className="flex h-16 items-center justify-around px-2 min-[375px]:h-20 min-[375px]:px-3">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
@@ -156,7 +193,7 @@ export function MobileBottomNav() {
               href={href}
               onClick={(e) => handleNavClick(item, e)}
               data-testid={item.interceptSearchTab ? 'mobile-nav-search' : undefined}
-              className={`flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all duration-200 ${
+              className={`flex min-h-12 min-w-12 flex-1 flex-col items-center justify-center rounded-xl transition-all duration-200 ${
                 active
                   ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
                   : 'text-slate-400 hover:text-slate-600'
@@ -173,7 +210,7 @@ export function MobileBottomNav() {
                   </span>
                 )}
               </span>
-              <span className={`text-[10px] mt-1 ${active ? 'font-semibold' : 'font-medium'}`}>
+              <span className={`mt-1 text-[10px] ${active ? 'font-semibold' : 'font-medium'}`}>
                 {getUIText(item.labelKey, language)}
               </span>
             </Link>

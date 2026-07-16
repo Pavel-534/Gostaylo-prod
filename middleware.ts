@@ -111,7 +111,7 @@ function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
 /** Нет сессии / битая сессия / бан → единая точка входа (см. TECHNICAL_MANIFESTO). */
 function redirectToLogin(request: NextRequest, pathname: string, nonce?: string): NextResponse {
   const dest = pathname + request.nextUrl.search;
-  const url = new URL('/login', request.url);
+  const url = new URL('/auth/login', request.url);
   url.searchParams.set('redirect', dest);
   return withGeo(request, NextResponse.redirect(url), nonce);
 }

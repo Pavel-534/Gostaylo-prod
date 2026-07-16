@@ -148,17 +148,20 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   padding-bottom: max(1rem, env(safe-area-inset-bottom, 16px));
 }
 
-/* ADR-100 — App Shell insets (SSOT: --app-header-height, --app-bottom-nav-height) */
+/* ADR-100 / Stage 189.3 — App Shell insets.
+ * --app-bottom-nav-height is measured from MobileBottomNav (includes .safe-area-pb).
+ * Do NOT add env(safe-area-inset-bottom) again here — that double-pads iPhone home indicator.
+ */
 @layer utilities {
   .app-shell-main {
     padding-top: var(--app-header-height, 64px);
-    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--app-bottom-nav-height, 80px);
   }
   .app-shell-main-top-only {
     padding-top: var(--app-header-height, 64px);
   }
   .app-shell-main-bottom-only {
-    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--app-bottom-nav-height, 80px);
   }
   @screen md {
     .app-shell-main,
@@ -168,7 +171,7 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   }
   /* Renter / legacy workspace: bottom inset tracks live nav height (ADR-100) */
   .pb-bottom-nav {
-    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--app-bottom-nav-height, 80px);
   }
   @screen md {
     .pb-bottom-nav {
@@ -180,7 +183,7 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
     top: var(--app-header-height, 64px);
   }
   .app-fixed-above-bottom-nav {
-    bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+    bottom: var(--app-bottom-nav-height, 80px);
   }
   /** Fixed chrome flush to screen bottom (PDP booking bar — no bottom nav) */
   .app-padb-safe-screen-bottom {
@@ -220,7 +223,7 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
     max-height: calc(100dvh - var(--app-public-top-offset, var(--app-header-height, 64px)));
   }
   .app-shell-scroll-pad-bottom-nav {
-    padding-bottom: calc(var(--app-bottom-nav-height, 80px) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--app-bottom-nav-height, 80px);
   }
   @screen md {
     .app-shell-scroll-pad-bottom-nav {

@@ -25,7 +25,8 @@ function LoginRedirectInner() {
         /* ignore quota / private mode */
       }
     }
-    router.replace('/profile?login=true')
+    const qs = redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''
+    router.replace(`/auth/login${qs}`)
   }, [router, searchParams])
 
   return (

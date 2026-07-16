@@ -10,8 +10,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from '@/lib/auth';
 import { useI18n } from '@/contexts/i18n-context';
-import { AuthModalLazy } from '@/components/auth/modals/AuthModalLazy';
-import { preloadAuthModalShell } from '@/lib/auth/preload-auth-modal';
+import { persistRedirectBeforeAuth } from '@/lib/auth/auth-redirect';
 import { useAuthSessionSync } from '@/contexts/auth/auth-session-sync';
 import {
   useReferralCapture,
@@ -19,7 +18,6 @@ import {
   readPendingRefFromCookie,
 } from '@/contexts/auth/auth-referral-handler';
 import { useAuthModalLogic } from '@/contexts/auth/auth-modal-logic';
-import { useAuthActions } from '@/contexts/auth/auth-actions';
 
 const AuthContext = createContext(null);
 
@@ -73,39 +71,8 @@ export function AuthProvider({ children }) {
 
   const {
     loginModalOpen,
-    setLoginModalOpen,
-    authMode,
-    setAuthMode,
-    email,
-    setEmail,
-    password,
-    setPassword,
-    name,
-    setName,
-    showPassword,
-    setShowPassword,
-    submitting,
-    setSubmitting,
-    error,
-    setError,
-    promoCode,
-    setPromoCode,
-    promoStatus,
-    setPromoStatus,
-    promoMessage,
-    setPromoMessage,
-    verificationEmail,
-    setVerificationEmail,
-    forgotPasswordSent,
-    setForgotPasswordSent,
-    registerLegalConsent,
-    setRegisterLegalConsent,
-    googleOAuthBusy,
-    setGoogleOAuthBusy,
-    openLoginModal: openLoginModalBase,
     closeLoginModal,
     registerAuthModalOnClose,
-    handleLoginModalOpenChange,
   } = useAuthModalLogic({
     readPendingRefFromCookie,
     pendingRefLsKey: PENDING_REF_LS,
@@ -114,42 +81,14 @@ export function AuthProvider({ children }) {
 
   const openLoginModal = useCallback(
     (mode) => {
-      preloadAuthModalShell();
-      openLoginModalBase(mode);
+      const actualMode = typeof mode === 'string' ? mode : 'login';
+      const path = actualMode === 'register' ? '/auth/register' : '/auth/login';
+      const current = `${pathname || '/'}${typeof window !== 'undefined' ? window.location.search || '' : ''}`;
+      persistRedirectBeforeAuth(current);
+      router.push(path);
     },
-    [openLoginModalBase],
+    [pathname, router],
   );
-
-  const {
-    startGoogleOAuth,
-    handleLogin,
-    handleRegister,
-    validatePromoCode,
-    handleForgotPassword,
-  } = useAuthActions({
-    authMode,
-    registerLegalConsent,
-    language,
-    pathname,
-    router,
-    persistOAuthLegalCookie,
-    email,
-    password,
-    name,
-    promoCode,
-    closeLoginModal,
-    setAuthMode,
-    setError,
-    setSubmitting,
-    setGoogleOAuthBusy,
-    setVerificationEmail,
-    setUser,
-    normalizeAuthUser,
-    setPromoStatus,
-    setPromoMessage,
-    setPromoCode,
-    setForgotPasswordSent,
-  });
 
   const { refreshUserFromServer } = useAuthSessionSync({
     setUser,
@@ -210,24 +149,7 @@ export function AuthProvider({ children }) {
   }, [refreshUserFromServer, closeLoginModal]);
 
 
-  /** Автофокус первого поля при открытии модалки / смене вкладки (язык — только `useI18n().language`). */
-  useEffect(() => {
-    if (!loginModalOpen) return;
-    const id = window.requestAnimationFrame(() => {
-      if (authMode === 'verification_pending') {
-        document.getElementById('auth-verify-email-field')?.focus();
-      } else if (authMode === 'register') {
-        document.getElementById('auth-name')?.focus();
-      } else if (authMode === 'login') {
-        document.getElementById('auth-email')?.focus();
-      } else if (authMode === 'forgot_password') {
-        document.getElementById('forgot-email')?.focus();
-      }
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [loginModalOpen, authMode]);
-
-
+  /** После accept-legal на `/auth/complete-legal/` — обновить сессию. */
   // Logout handler
   const logout = useCallback(async () => {
     await signOut();
@@ -268,74 +190,6 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-
-      <AuthModalLazy
-        language={language}
-        loginModalOpen={loginModalOpen}
-        onLoginModalOpenChange={handleLoginModalOpenChange}
-        authMode={authMode}
-        setAuthMode={setAuthMode}
-        verificationEmail={verificationEmail}
-        forgotPasswordSent={forgotPasswordSent}
-        setForgotPasswordSent={setForgotPasswordSent}
-        registerLegalConsent={registerLegalConsent}
-        setRegisterLegalConsent={setRegisterLegalConsent}
-        submitting={submitting}
-        googleOAuthBusy={googleOAuthBusy}
-        startGoogleOAuth={startGoogleOAuth}
-        setError={setError}
-        loginProps={{
-          language,
-          email,
-          setEmail,
-          password,
-          setPassword,
-          showPassword,
-          setShowPassword,
-          submitting,
-          error,
-          onSubmit: handleLogin,
-          onForgotPassword: () => {
-            setAuthMode('forgot_password')
-            setError('')
-            setForgotPasswordSent(false)
-          },
-        }}
-        registerProps={{
-          language,
-          submitting,
-          error,
-          name,
-          setName,
-          promoCode,
-          setPromoCode,
-          promoStatus,
-          setPromoStatus,
-          promoMessage,
-          setPromoMessage,
-          validatePromoCode,
-          email,
-          setEmail,
-          password,
-          setPassword,
-          showPassword,
-          setShowPassword,
-          registerLegalConsent,
-          setRegisterLegalConsent,
-          onSubmit: handleRegister,
-        }}
-        resetProps={{
-          language,
-          email,
-          setEmail,
-          error,
-          submitting,
-          forgotPasswordSent,
-          setForgotPasswordSent,
-          setAuthMode,
-          onSubmit: handleForgotPassword,
-        }}
-      />
     </AuthContext.Provider>
   );
 }
