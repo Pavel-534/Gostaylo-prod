@@ -1,5 +1,8 @@
 'use client'
 
+/** Ensure auth UI strings exist in the client `uiTranslations` bag (Stage 189 hotfix). */
+import '@/lib/translations/register-auth-i18n'
+
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -13,7 +16,8 @@ import { AuthEmailLoginForm } from '@/components/auth/AuthEmailLoginForm'
 import { AuthProviderButtons } from '@/components/auth/AuthProviderButtons'
 import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton'
 
-const TABS = ['phone', 'email']
+/** Login defaults to email/password — phone is one tap away. */
+const TABS = ['email', 'phone']
 
 function safeInternalRedirect(raw) {
   if (!raw || typeof raw !== 'string') return null
@@ -26,7 +30,7 @@ function AuthLoginInner() {
   const searchParams = useSearchParams()
   const { language } = useI18n()
   const brand = getSiteDisplayName()
-  const [tab, setTab] = useState('phone')
+  const [tab, setTab] = useState('email')
 
   useEffect(() => {
     const redirect = safeInternalRedirect(searchParams.get('redirect'))
@@ -45,22 +49,31 @@ function AuthLoginInner() {
       backHref="/"
     >
       <div className="flex flex-1 flex-col gap-5 py-2">
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-          {TABS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={`min-h-12 rounded-lg text-sm font-medium transition ${
-                tab === id ? 'bg-white text-brand shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              {getUIText(id === 'phone' ? 'auth_tab_phone' : 'auth_tab_email', language)}
-            </button>
-          ))}
+        <div
+          className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1"
+          role="tablist"
+          aria-label={getUIText('loginTitle', language)}
+        >
+          {TABS.map((id) => {
+            const selected = tab === id
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setTab(id)}
+                className={`min-h-12 rounded-lg text-sm font-medium transition ${
+                  selected ? 'bg-white text-brand shadow-sm' : 'text-slate-600'
+                }`}
+              >
+                {getUIText(id === 'phone' ? 'auth_tab_phone' : 'auth_tab_email', language)}
+              </button>
+            )
+          })}
         </div>
 
-        {tab === 'phone' ? <AuthPhoneFlow /> : <AuthEmailLoginForm />}
+        {tab === 'email' ? <AuthEmailLoginForm /> : <AuthPhoneFlow />}
 
         <AuthOauthDivider />
 

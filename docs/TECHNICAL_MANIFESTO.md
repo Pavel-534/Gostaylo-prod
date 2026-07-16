@@ -275,7 +275,7 @@
 
 **Stage 171.32 (2026-07-15, IOS-P1-02):** **PWA focus refetch guard** — TanStack `refetchOnWindowFocus: false` в installed standalone (`navigator.standalone` / `display-mode: standalone`); browser tabs без изменений. SSOT: **`lib/query/query-default-options.js`**.
 
-**Stage 189.0 Auth (2026-07-16):** **Immersive Dynamic Auth** — fullscreen `app/auth/login|register|forgot-password|verify-email` (no storefront chrome); SSOT `lib/auth/auth-provider-policy.js` (Yandex/VK/phone/email/Telegram global; Google/Apple only when `!isRussia`); phone OTP `POST /api/v2/auth/phone/*` + `auth_phone_otp_challenges`; Telegram Login `POST /api/v2/auth/telegram`; `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`.
+**Stage 189.0 Auth (2026-07-16):** **Immersive Dynamic Auth** — fullscreen `app/auth/login|register|forgot-password|verify-email` (no storefront chrome); SSOT `lib/auth/auth-provider-policy.js` (Yandex/VK/phone/email/Telegram global; Google/Apple only when `!isRussia`); phone OTP `POST /api/v2/auth/phone/*` + `auth_phone_otp_challenges`; Telegram Login `POST /api/v2/auth/telegram`; `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`. **Login UX:** default tab **email** (password fields visible on first paint); phone via second tab.
 
 **Stage 189.1 Auth (2026-07-16):** **Account linking** — `migrations/stage189_1_account_linking.sql` (`handle_new_user` verified-email gate, `profile_auth_identities`, `auth_link_conflicts`); SSOT `lib/auth/account-linking.service.js`; OAuth sync conflict → `/auth/link-conflict` (`GET/POST /api/v2/auth/link-conflict/*`); `components/profile/AccountConnections.jsx` + `GET/DELETE /api/v2/auth/connections`; legal consent SSOT `AuthLegalConsentBlock` under register forms.
 

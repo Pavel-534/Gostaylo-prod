@@ -80,7 +80,7 @@
 
 | Слой | SSOT / маршрут | Поведение |
 |------|----------------|-----------|
-| **Fullscreen UI** | `app/auth/login`, `register`, `forgot-password`, `verify-email` + `components/auth/AuthPageShell.jsx` | Вне `(storefront)` — **без** `AppHeader` / `MobileBottomNav`; инпуты/CTA **`h-12` (48px)** |
+| **Fullscreen UI** | `app/auth/login`, `register`, `forgot-password`, `verify-email` + `components/auth/AuthPageShell.jsx` | Вне `(storefront)` — **без** `AppHeader` / `MobileBottomNav`; инпуты/CTA **`h-12` (48px)**; **login** default tab = **email** (поля пароля сразу видны), phone — вторая вкладка |
 | **Provider policy** | `lib/auth/auth-provider-policy.js` | **Всегда:** phone, email, Telegram, Yandex, VK. **Только non-RU IP:** Google, Apple (`isRussia` из middleware geo) |
 | **Phone OTP** | `POST /api/v2/auth/phone/send`, `verify` + `lib/auth/phone-otp.service.js` + `auth_phone_otp_challenges` | `InputOTP` 6 ячеек; SMS SSOT **`lib/auth/sms-dispatch.service.js`** (Stage 189.2) |
 | **Telegram Login** | `POST /api/v2/auth/telegram` + `lib/auth/telegram-login-verify.js` | Widget: `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` + `TELEGRAM_BOT_TOKEN` |

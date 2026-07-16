@@ -4,13 +4,14 @@ import { useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/contexts/i18n-context'
-import { getAuthErrorMessage } from '@/lib/translations'
+import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { finishAuthNavigation } from '@/lib/auth/auth-redirect'
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
 import { useAuth } from '@/contexts/auth-context'
 
 /**
  * Stage 189.0 / 189.3 — Telegram Login Widget (auth screens only; profile uses deep-link).
+ * Shows a labeled fallback so the row is never an empty white box if the iframe fails.
  */
 export function TelegramLoginButton({ requireLegalConsent = false, legalConsent = true, onLegalRequired }) {
   const containerRef = useRef(null)
@@ -67,6 +68,7 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
     script.setAttribute('data-telegram-login', botUsername)
     script.setAttribute('data-size', 'large')
     script.setAttribute('data-radius', '12')
+    script.setAttribute('data-userpic', 'false')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
     script.setAttribute('data-request-access', 'write')
 
@@ -86,8 +88,20 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
   if (!botUsername) return null
 
   return (
-    <div className="flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-200/90 bg-white px-2 py-1 shadow-sm">
-      <div ref={containerRef} className="flex min-h-12 items-center justify-center [&_iframe]:!min-h-12" />
+    <div className="relative flex min-h-12 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200/90 bg-white px-4 shadow-sm">
+      <div
+        className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center gap-2.5 text-sm font-medium text-slate-800"
+        aria-hidden
+      >
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-brand-navy text-[10px] font-bold text-white">
+          TG
+        </span>
+        {getUIText('auth_continueTelegram', language)}
+      </div>
+      <div
+        ref={containerRef}
+        className="relative z-10 flex min-h-12 w-full items-center justify-center [&_iframe]:opacity-100"
+      />
     </div>
   )
 }
