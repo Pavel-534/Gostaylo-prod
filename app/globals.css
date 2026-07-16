@@ -143,6 +143,11 @@ code {
   padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
+/* Stage 189.1 — standalone Home Screen: ensure min bottom inset when env() is 0 briefly */
+html[data-pwa-standalone='1'] .pb-safe-chat-composer {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 16px));
+}
+
 /* ADR-100 — App Shell insets (SSOT: --app-header-height, --app-bottom-nav-height) */
 @layer utilities {
   .app-shell-main {

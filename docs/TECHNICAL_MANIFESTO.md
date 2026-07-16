@@ -112,7 +112,7 @@
 
 **Stage 188.2 (2026-07-15):** **Ledger isolation** — non-THB users never see THB/฿/hybrid thresholds; **`lib/pricing/ambassador-display-amount.js`** (RUB → nearest 100, USD whole dollars); **`lib/pricing/ambassador-og-amount.js`** for SEO/OG; withdrawal input in header currency → **`convertDisplayToThb`** before API; E2E **`tests/e2e/ambassador-currency-isolation.spec.ts`**.
 
-**Stage 188.3 (2026-07-15):** Withdrawal min-payout edge cases — **`convertAmbassadorDisplayToThbGuarded`** (exact min display → snap to floor THB; ≤2% tolerance below min); **`convertDisplayToThbForWithdrawal`** in **`useReferralLedgerDisplay`**; client validation **`stage188_withdrawMinRequired`** + **`localizeWithdrawValidationError`** (no THB leak in errors); unit **`__tests__/ambassador-display-amount.test.js`**; E2E below-min input case.
+**Stage 188.3 (2026-07-15):** Withdrawal min-payout edge cases — **`convertAmbassadorDisplayToThbGuarded`** (exact min display → snap to floor THB; ≤2% tolerance below min); **`convertDisplayToThbForWithdrawal`** in **`useReferralLedgerDisplay`**; client validation **`stage188_withdrawMinRequired`** + **`localizeWithdrawValidationError`** (no THB leak in errors); unit **`__tests__/ambassador-display-amount.test.js`**; E2E below-min input case. **Hotfix:** `useReferralLedgerDisplay` reads **`exchangeRates`/`rateMap`** from **`useMidMarketDisplayFx`** (was destructuring nonexistent `rateMap` → ₽0/$0 threshold); **`getUIText`** interpolates **`{minAmount}`** / **`{currency}`**; **`mergeAmbassadorDisplayRateMaps`** + retail cache bootstrap in **`useFxRatesQuery` placeholder** (`readExchangeRatesCacheSnapshot`).
 
 **Stage 185.1 (2026-07-14):** Partner bookings UX rescue — drawer header stack on mobile (`OrderCardHeader` `variant="drawer"`); **`Dialog` z-index 220** (above partner sheet) fixes payout snapshot freeze; partner **`OrderPriceBreakdown`** compact (guest paid / host commission / net); **`chatBookingStatus_INQUIRY`** → «Запрос»; status tabs → **`PartnerFinancesPillSubNav`** scroll; list card **Confirm + Decline**; **`PartnerHostLedgerAmount`** `whitespace-nowrap`; partner help → chat link in drawer (no heavy modal).
 
@@ -172,11 +172,136 @@
 
 **Stage 171.22 (2026-06-22):** PWA update toast redesign + lifecycle reload; hero thumb warmup on touch-prefetch; View Transitions API catalog→PDP (`listing-hero-transition.js`).
 
+**Stage 171.24 (2026-07-15, P0 closure PR-1…PR-6):** PDP **RSC shell** + TanStack **HydrationBoundary** + **`ListingBookingProvider`**.
+
+| PR | Суть |
+|----|------|
+| PR-1 | **`lib/listing/get-public-listing-detail.js`** — SSOT GET body; **`app/api/v2/listings/[id]/route.js`** thin wrapper |
+| PR-2 | **`get-cached-listing-pdp-bootstrap.js`** (`React.cache`), **`create-server-query-client.js`**, **`prefetch-listing-pdp-queries.js`**, **`ListingPdpHydrationBoundary`**; **`LISTING_DETAIL_STALE_MS`** → **`listing-detail-query-constants.js`** (client-safe) |
+| PR-3 | **`useListingViewData`** → **`useQuery`** (`queryKeys.listing.detail`, shared staleTime) |
+| PR-4 | **`app/listings/[id]/page.js`** Server Component; **`ListingPdpClient`**, **`ListingPdpGateViews`**; cold PDP **0× client `GET /api/v2/listings/[id]`**; bootstrap **`incrementViews: true`** |
+| PR-5 | **`ListingBookingProvider`** + **`useListingBooking()`** — prop drill → context в **`ListingBookingSection`** / **`ListingMobileActions`** |
+| PR-6 | Docs + measured metrics — **`docs/PLAN_PDP_RSC_SHELL_P0.md`** §12 |
+
+**Data path (guest cold load):** RSC `getCachedListingPdpBootstrap` → `mapListingDetailFromApi` → `buildListingPdpDehydratedState` → client `useQuery` hydrate (no mount refetch). Catalog prefetch — тот же RQ key. Reviews / FX / calendar / commission — client islands без изменений в P0.
+
+**Measured (`npm run build`, 2026-07-15):** `/listings/[id]` **51.1 kB** page / **561 kB** First Load JS (audit baseline **47.6 / 557 kB** — +~4 kB hydration shell; основной win — network/LCP, не bundle). Client listing API on cold PDP: **0** (was **1**).
+
+**Stage 171.25 (2026-07-15):** **Route groups** — split root providers by surface (`docs/AUDIT_RSC_OPTIMIZATION.md` §5).
+
+| Group | Paths (URL unchanged) | Layout / shell |
+|-------|----------------------|----------------|
+| **`(storefront)`** | `/`, `/listings*`, `/checkout*`, `/profile*`, `/renter*`, `/my-bookings`, `/login`, … | **`StorefrontAppShell`** — `AppQueryProvider`, analytics, PWA chrome, **`ChatUnreadBadgeProvider`** (light poll, no Realtime) |
+| **`(chat)`** | `/messages*`, `/chat/[id]` redirect | **`ChatAppShell`** — `SupabaseRealtimeAuthSync`, `PushClientInit`, `PresenceProvider`, **`ChatProvider`** |
+| **`(partner)`** | `/partner*` | **`PartnerRouteShell`** — unread badge only; workspace chrome — **`app/(partner)/partner/layout.js`** |
+| **`(marketing)`** | `/help*`, `/about*`, `/terms`, `/legal/*` | **`MarketingAppShell`** — header + insets; i18n/currency from root |
+
+**Root `app/layout.js`:** html/fonts, **`I18nProvider`**, **`CurrencyProvider`**, **`GeoProvider`**, **`AuthProvider`**, **`SwRegister`**, **`ChunkLoadResilience`**, global **`Toaster`**. Nav chrome — **не** в root.
+
+**Unread SSOT outside chat:** **`lib/context/ChatUnreadBadgeContext.jsx`** + **`useChatUnreadBadge()`** (nav/header/partner/renter); full **`useChatContext()`** — только под **`(chat)`** (+ **`useListingChat`** fallback fetch when no provider).
+
+**Measured (`npm run build`, 2026-07-15, post–route groups):** `/listings/[id]` **51.1 kB / 561 kB** (без регрессии vs 171.24); `/listings` **16.3 kB / 752 kB**; `/` **21.1 kB / 750 kB**; `/messages` **3.53 kB / 479 kB** (chat stack изолирован). Shared root FLJS **89 kB**.
+
+**Stage 171.26 (2026-07-15, P0.2):** **Catalog server bootstrap** — тот же паттерн, что PDP 171.24.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`get-cached-catalog-bootstrap.js`** | `React.cache` + categories snapshot + `resolveCatalogSearchServer` + ItemList rows |
+| **`build-catalog-bootstrap-search-params.js`** | URL → `searchKeyParams` (SSOT с cold client fetch) |
+| **`run-catalog-search-server.js`** | `runListingsSearchGet` без HTTP; date-mismatch fallback |
+| **`prefetch-catalog-queries.js`** | `buildCatalogDehydratedState` → categories + search RQ keys |
+| **`CatalogHydrationBoundary`** | client `HydrationBoundary` → `listings-catalog-client` |
+
+**Cold `/listings`:** **0× client `GET /api/v2/categories`** и **0× client `GET /api/v2/listings/search`** при совпадении queryKey (default THB); server request dedupe: metadata + page + ItemList → один bootstrap.
+
+**Measured (`npm run build`, 2026-07-15):** `/listings` **16.4 kB / 756 kB** (+hydration shell vs 171.25).
+
+**Stage 171.27 (2026-07-15):** **Home RSC bootstrap** — завершение триады Home → Catalog → PDP.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`get-cached-home-bootstrap.js`** | `React.cache` — categories snapshot + default featured (`featured=true`, limit 12) |
+| **`fetch-home-featured-server.js`** | `runListingsSearchGet` без HTTP |
+| **`buildHomeDefaultFeaturedKeyParams()`** | SSOT cold featured queryKey |
+| **`prefetch-home-queries.js`** | `buildHomeDehydratedState` → `queryKeys.public.categories()` + `queryKeys.home.featured` |
+| **`HomeHydrationBoundary`** | client `HydrationBoundary` → `PlatformHomeContent` |
+
+**Cold `/`:** **0× client `GET /api/v2/categories`** и **0× client `GET /api/v2/search?featured=…`** при совпадении default featured key. Categories cache **shared** с catalog (`queryKeys.public.categories()`).
+
+**Measured (`npm run build`, 2026-07-15):** `/` **21.1 kB / 754 kB** (+HydrationBoundary; cold load без client GET categories/featured).
+
+**Stage 171.28 (2026-07-15, IOS-P0-02):** **SW precache trim** — guest install shell ≤150 KB gzip.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`scripts/lib/sw-precache-policy.mjs`** | SSOT deny/allow + gzip budget |
+| **`generate-sw-precache.mjs`** | postbuild: core runtime + layout entry; route-group manifest paths |
+| **`check-sw-precache-budget.mjs`** | CI guard: `npm run check:sw-precache` |
+| **`sw.template.js`** | map/leaflet → runtime **cache-first**; lazy numeric chunks excluded from install precache |
+
+**Measured (postbuild, 2026-07-15, 171.31):** **15 entries / 149 KB gzip** — framework + layout shell + **globals CSS** (priority precache); mega-chunk **8977** removed (**1538** ~141 KB gzip runtime-only). TanStack **8666** ~139 KB gzip — runtime SWR.
+
+**Stage 171.29 (2026-07-15):** **Dedicated chat unread-count** — nav badge без загрузки inbox.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`GET /api/v2/chat/unread-count`** | `{ success, count, lastUpdated }` — auth only |
+| **`user-unread-count.service.js`** | Supabase `count=exact` head queries by renter/partner side |
+| **`ChatUnreadBadgeContext`** | `fetchChatUnreadCount()` — poll 60s, dedup TTL 45s, no focus refetch |
+| **`filter-out-e2e-conversation-rows.js`** | Shared E2E exclusion (conversations + unread) |
+
+**Before/after (typical):** badge poll **~200–800 KB** enriched conversations (`limit=100`) → **~80 B** JSON; server work: messages scan in enrich → **3× head COUNT** batched.
+
+**Stage 171.30 (2026-07-15, P0.5):** **PDP layout unification** — один listings SELECT на cold PDP request.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`fetchPublicListingDbRow`** | Single Supabase SELECT (listings + categories + owner) |
+| **`getCachedListingPdpBootstrap`** | `React.cache` — layoutRow + page DTO; views +1 once |
+| **`map-listing-layout-row.js`** | OG / JSON-LD subset без второго SQL |
+
+**Before/after (cold PDP RSC):** listings SELECT **2 → 1** (layout lite + page full merged); enrichment SQL (seasonal, reviews, promo, …) unchanged when page renders.
+
+**Stage 171.31 (2026-07-15, P1):** **Provider chunk split** — root layout baseline JS + SW precache policy.
+
+| Компонент | Назначение |
+|-----------|------------|
+| **`RootClientProviders`** | I18n/Currency/Geo sync; Auth `dynamic(ssr:true)`; SW/toast deferred |
+| **`translation-state.js`** | Storefront i18n core only (~141 KB gzip vs legacy **8977** ~210 KB) |
+| **`register-*-i18n-slice.js`** | Partner / profile / chat strings on route-group layout |
+| **`GlobalStyles.jsx`** | `globals.css` отдельный chunk; SW precache CSS priority 120 |
+
+**Before/after (prod build):** FLJS `/` **749→684 kB**, `/listings/[id]` **561→492 kB**; SW precache **15 entries / 149 KB gzip** incl. **globals CSS** (runtime SWR для остальных chunks **>48 KB**).
+
+**Stage 171.32 (2026-07-15, IOS-P1-02):** **PWA focus refetch guard** — TanStack `refetchOnWindowFocus: false` в installed standalone (`navigator.standalone` / `display-mode: standalone`); browser tabs без изменений. SSOT: **`lib/query/query-default-options.js`**.
+
+**Stage 189.0 (2026-07-16):** **PWA iOS deep + numbering lock** — Stage IDs jump to **189+** (`docs/STAGE_189_NUMBERING.md`; avoid colliding ADR-172 / Jul verification “172”). Waiting on owner fill of **`docs/STAGE_189_IOS_SMOKE_RESULTS.md`**. Shipped without device data: iOS image **constrained** when NIA missing (`network-quality.js`); cold-start telemetry (`lib/pwa/pwa-ios-telemetry.js` + `PwaIosTelemetry`); standalone **`refetchOnReconnect: false`**; Capacitor integration plan **`docs/STAGE_189_CAPACITOR_INTEGRATION_PLAN.md`**; backlog **`docs/STAGE_189_PWA_IOS_BACKLOG.md`**. Financial SSOT unchanged.
+
+**Stage 189.1 (2026-07-16):** **PWA iOS deep polish on `main`** — SW first-install **`skipWaiting` before precache** + `GET_STATUS` handshake; public calendar horizon **90d** when constrained (`getPublicCalendarDaysAhead`); telemetry **FCP + resume** (`airento_pwa_resume_v1`); standalone **SW update throttle 30m**; chat **`pb-safe-chat-composer`** + `data-pwa-standalone`; messages **visualViewport scroll** sync. Cap plan updated (Cap stays on `feature/capacitor-shell`). Owner smoke still open → **189.2** after matrix fill. Financial SSOT unchanged.
+
+**Stage 172.0 (2026-07-16):** **Full verification lock** — (1) key E2E regression (booking-flow, polyglot, golden-path, accountant, escrow, mobile-chat, checkout-mock). (2) Checkout route fix: move `app/checkout/layout.js` → `app/(storefront)/checkout/layout.js` (segment conflict with route group left blank page). (3) Teardown ESM: `lib/e2e/package.json` `"type":"module"` + teardown child `--disable-warning=MODULE_TYPELESS_PACKAGE_JSON`. (4) Capacitor scaffold lock: `lib/capacitor/*` deep-links + push-bridge → `POST /api/v2/push`, `.well-known` AASA/assetlinks, `docs/CAPACITOR_SHELL_PREP.md`; unit `__tests__/capacitor-deep-links.test.js`. (5) iOS real-device: `docs/STAGE_172_IOS_SMOKE_RESULTS.md` (owner fills physical iPhone 11 Pro). Financial SSOT unchanged.
+
+**Stage 171.42 (2026-07-16):** **E2E close-out + PWA iOS + Capacitor prep** — (1) accountant-math: API calendar probe + `findFirstValidCalendarSpan`; hero `data-test-hero-mode=stay` asserts stay=subtotal+fee (not ×3); host commission ≠ guest fee. (2) stage12-escrow: `acceptedLegalTerms: true` on payment/confirm. (3) mobile-chat: root cause `ConversationList` StatusBadge referenced undeclared `cfg` (WebKit overlay); fixed to `cls`. Milestone CTAs get `chat-action-*` testids + tactile press; `suppressMobileHostBar` only for **INQUIRY** (PENDING keeps ChatActionBar). (4) Playwright teardown: spawn `scripts/cleanup-test-data.mjs` / `deep-cleanup-e2e-actors.mjs` (no CJS `import()` of ESM services). (5) PWA iOS: SW first-install `skipWaiting`, `updateViaCache: 'none'`, `viewportFit: 'cover'`, smoke doc `docs/PWA_IOS_REAL_DEVICE_SMOKE.md`. (6) Capacitor scaffold: `capacitor.config.ts` + `docs/CAPACITOR_SHELL_PREP.md` (`feature/capacitor-shell`). Financial SSOT unchanged.
+
+**Stage 171.41 (2026-07-16):** **E2E stability / booking reliability (P1)** — (1) similar listings: `ANCHOR_SELECT = LISTINGS_SELECT_LITE` only (no duplicate `categories` embed → PostgREST `listings_categories_1`); unit guard `__tests__/similar-listings-select.test.js`. (2) guest inquiry golden path: `seed-e2e-tour` clears `metadata.is_deleted`, forces `instant_booking=false` + coordinates; test prefers tours `[E2E_SEED_TOUR]` + special/private CTAs. (3) checkout mock smoke: accept `#checkout-legal-consent` before pay. (4) calendar E2E helper + ICS expect `platform-stay.ics`; SEO Spy hero price scoped to desktop sticky card.
+
+**Stage 171.38 (2026-07-15, P0):** **Client i18n bootstrap** — lazy `register-*-i18n` slices merged on client via **`I18nSliceBootstrap`** (`components/i18n/`) + presets in **`lib/translations/i18n-client-slice-presets.js`**. Server layouts keep SSR merge; client shells mirror before `getUIText` / `useI18n`. Fixes raw keys (`perBookingDay`, `checkout_payCta`) after Stage 171.31–171.37 splits.
+
+**Stage 171.37 (2026-07-15):** **Final i18n lazy pass** — `errorsUi` + `promoErrorsUi` → **`register-errors-i18n.js`**; `renterReviewsFlowUi` → **`register-renter-reviews-i18n.js`**. Root core **1538 ~84→81 KB gzip**; lazy errors **169 ~3 KB gzip**. Precache cap **48 KB** not reached (~33 KB over) — **recommend stopping i18n splits**; remaining bulk is **`coreUi`** + verticals + i18n runtime in **1538**, not splittable slices.
+
+**Stage 171.36 (2026-07-15):** **Common/auth i18n lazy** — `commonCoreUi` + PWA + profile chrome → **`register-storefront-common-i18n.js`**; `authUi` + `authErrors` → **`register-auth-i18n.js`** (auth modal preload); `bookingUi` → checkout/order routes. Root core **1538 ~105→84 KB gzip** (precache **48 KB** still open).
+
+**Stage 171.35 (2026-07-15):** **Order-flow i18n lazy** — `orderFlowUi` → **`register-order-flow-i18n.js`** in `(storefront)/my-bookings` + `(storefront)/bookings` layouts (partner layout too). Core **1538 ~118→105 KB gzip**; lazy **7785 ~20 KB gzip**. Precache cap **48 KB** not reached — backlog **`commonUi`** split.
+
+**Stage 171.34 (2026-07-15):** **Auth modal lazy** — **`AuthModalLazy`** + **`preloadAuthModalShell()`**; Radix Dialog/Drawer + login/register/reset forms off cold path. **`AuthProvider`** (session) still eager via **`RootClientProviders` dynamic import**; modal chunks **~14 KB gzip** load on first open. FLJS `/` **684→659 kB**, `/listings/[id]` **492→465 kB**.
+
+**Stage 171.33 (2026-07-15):** **Listings/checkout i18n lazy** — `listingsPublicUi` + `checkoutUi` вынесены из `translation-state.js`; core chunk **1538 ~141→118 KB gzip** (precache **>48 KB**, цель не достигнута — backlog `orderFlowUi`).
+
 **Stage 171.21 (2026-06-22):** PDP instant shell + media SSOT — **`app/listings/[id]/loading.js`**; **`useListingViewData`** sync RQ cache init; touch prefetch (`onTouchStart`/`onPointerDown`); **`image-delivery.js`** PDP hero/lightbox URLs + connection-aware bento/carousel.
 
 **Stage 171.20 (2026-06-22):** SW template + Media Delivery SSOT — **`src/pwa/sw.template.js`** (Git) → **`public/sw.js`** (gitignored, `prebuild`/`postbuild`); **`lib/media/image-delivery.js`** + **`hooks/use-network-quality.js`** (save-data / 2g–3g → lighter `sizes`, no LCP priority). Upload SSOT unchanged: **`media-profiles.js`**.
 
-**Stage 171.18–171.19 (2026-06-22):** PWA app shell + CI cache — **`scripts/bump-sw-cache.mjs`** (prebuild: `CACHE_NAME` ← `VERCEL_GIT_COMMIT_SHA`); **`scripts/generate-sw-precache.mjs`** (postbuild: `/listings` shell chunks → `PRECACHE_URLS`); catalog image hints (superseded by **`image-delivery.js`** in 171.20).
+**Stage 171.18–171.19 (2026-06-22):** PWA app shell + CI cache — **`scripts/bump-sw-cache.mjs`** (prebuild: `CACHE_NAME` ← `VERCEL_GIT_COMMIT_SHA`); **`scripts/generate-sw-precache.mjs`** (postbuild: listings shell chunks → `PRECACHE_URLS`; superseded trim policy **171.28**); catalog image hints (superseded by **`image-delivery.js`** in 171.20).
 
 **Stage 171.17 (2026-06-22):** PWA + map assets industrial polish — self-hosted Leaflet sprites **`public/leaflet/images/`** + SSOT **`lib/maps/leaflet-default-icon.js`** (`configureLeafletDefaultIcons`); убран unpkg CDN из SW. **`public/sw.js`** → **`airento-assets-v3`**, precache leaflet markers, `SKIP_WAITING` message (install без auto-`skipWaiting`). **`components/sw-register.jsx`** — toast bottom-center при `registration.waiting`, reload on `controllerchange`. i18n **`pwaSwUpdate_*`**.
 

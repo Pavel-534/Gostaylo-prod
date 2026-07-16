@@ -35,7 +35,7 @@ export function HomePageSkeleton() {
           </div>
         </div>
       </section>
-      <section className="py-10 sm:py-14 bg-slate-50" aria-hidden>
+      <section className="py-10 sm:py-14 bg-slate-50 [content-visibility:auto] [contain-intrinsic-size:auto_640px]" aria-hidden>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-6 min-h-[3.5rem]">
             <div className="space-y-2 w-full max-w-sm">
@@ -49,7 +49,7 @@ export function HomePageSkeleton() {
           </div>
         </div>
       </section>
-      <footer className="bg-slate-900 text-white py-10" aria-hidden>
+      <footer className="bg-slate-900 text-white py-10 [content-visibility:auto] [contain-intrinsic-size:auto_220px]" aria-hidden>
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (

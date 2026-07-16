@@ -7,18 +7,23 @@ import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
 import { SW_MESSAGE_SKIP_WAITING } from '@/lib/pwa/service-worker-messages.js'
 import { shouldShowSwUpdatePrompt } from '@/lib/pwa/client-display-channel.js'
 import { isBelowCriticalRelease } from '@/lib/pwa/release-version.js'
+import { isStandaloneDisplayMode } from '@/lib/pwa/pwa-platform.js'
 import { PwaSwUpdateToast } from '@/components/pwa/PwaSwUpdateToast'
+import { PwaIosTelemetry } from '@/components/pwa/PwaIosTelemetry'
 
 const SW_UPDATE_TOAST_ID = 'airento-sw-update'
+/** Stage 189.1 — avoid SW update thrash on every iOS focus/resume in standalone. */
+const STANDALONE_UPDATE_MIN_MS = 30 * 60 * 1000
 
 /**
  * Silent SW by default (Stage 175). Toast only for critical release + PWA/mobile.
  */
 export function SwRegister() {
   const { language } = useI18n()
-  const languageRef = useRef(language)
+    const languageRef = useRef(language)
   const updateToastShownRef = useRef(false)
   const pendingReloadRef = useRef(false)
+  const lastUpdateCheckAtRef = useRef(0)
 
   useEffect(() => {
     languageRef.current = language
@@ -102,6 +107,11 @@ export function SwRegister() {
 
     const onFocus = () => {
       if (disposed) return
+      const now = Date.now()
+      if (isStandaloneDisplayMode()) {
+        if (now - lastUpdateCheckAtRef.current < STANDALONE_UPDATE_MIN_MS) return
+      }
+      lastUpdateCheckAtRef.current = now
       void navigator.serviceWorker.ready
         .then((registration) => registration.update())
         .catch(() => {})
@@ -123,5 +133,6 @@ export function SwRegister() {
     }
   }, [])
 
-  return null
+  // Stage 189.1 — mount telemetry with SW so both legacy root layout and DeferredRootChrome work.
+  return <PwaIosTelemetry />
 }

@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.188.3.0 | **Last Updated**: 2026-07-15 | **Stage 188.3:** withdrawal min-payout FX snap guard + localized client validation (display currency only).
+> **Version**: 12.189.1.0 | **Last Updated**: 2026-07-16 | **Stage 189.1:** PWA iOS polish on main (SW early skipWaiting, calendar 90d constrained, resume telemetry, composer safe-area); smoke results **waiting on owner** → 189.2.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -32,7 +32,95 @@
 
 #### Stage 128.2 — Unified categories + PDP prefetch (Iteration 1b)
 - **`queryKeys.public.categories()`** + **`usePublicCategoriesQuery`** (`lib/hooks/use-public-catalog-queries.js`) — один кэш главная ↔ каталог (без повторного GET `/api/v2/categories`).
-- **Hover prefetch:** **`useListingDetailPrefetch`** (debounce 120ms) → **`queryKeys.listing.detail(id)`**; **`lib/catalog/fetch-listing-detail.js`**; **`useListingViewData`** читает prefetch cache при открытии PDP.
+- **Hover prefetch:** **`useListingDetailPrefetch`** (debounce 120ms) → **`queryKeys.listing.detail(id)`**; **`lib/catalog/fetch-listing-detail.js`**; **`useListingViewData`** — **`useQuery`** + RSC dehydrate (Stage 171.24).
+
+#### Stage 171.38 — Client i18n slice bootstrap (2026-07-15, P0)
+- **`I18nSliceBootstrap.jsx`** + **`i18n-client-slice-presets.js`** — `applyI18nSlices` on client (sync before paint + `useLayoutEffect`); mirrors server `register-*-i18n` layouts.
+- Wired: **`StorefrontAppShell`** (`storefront`), **`ListingPdpClient`** (`pdp`), **`CheckoutClientShell`** (`checkout`), **`RouteI18nBootstrap`** on my-bookings/bookings/profile/renter-reviews layouts, **`ChatAppShell`**, **`PartnerRouteShell`**.
+- **E2E:** `booking-flow` ✅ after fix; checkout shows localized CTA (submit disabled = consent/pricing mock, not i18n).
+
+#### Stage 171.37 — Errors + renter-review i18n lazy split (2026-07-15, final i18n pass)
+- **`register-errors-i18n.js`** — `errorsUi` + `promoErrorsUi` off root; `(storefront)/layout.js`, `checkout/layout.js`, `auth/layout.js`, `(partner)/layout.js`; auth modal preload.
+- **`register-renter-reviews-i18n.js`** — `renterReviewsFlowUi`; `(storefront)/renter/reviews/layout.js`.
+- Root core: **`authChromeUi`** + **`coreUi`** + verticals + **`bookingStatusUi`** only.
+- Core chunk **1538 ~84→81 KB gzip**; lazy errors **169 ~3 KB gzip**; **1538 still >48 KB** (~33 KB over cap) — **stop further i18n slice splits**; next wins: non-i18n bundle work (TanStack **4321**, auth modal prefetch intent, etc.).
+- **FLJS:** `/` **625→621 kB**, `/listings/[id]` **430→426 kB**; SW precache **15 / 149 KB**.
+
+#### Stage 171.36 — Common / auth i18n lazy split (2026-07-15)
+- **`register-storefront-common-i18n.js`** — `commonCoreUi` + `profileUi` + `pwaInstallUi` off root; `(storefront)/layout.js`, `checkout/layout.js`, `auth/layout.js`.
+- **`register-auth-i18n.js`** — `authUi` + `authErrorsUi`; preloaded with auth modal (`preload-auth-modal.js`).
+- **`register-booking-common-i18n.js`** — `bookingUi`; checkout + my-bookings + renter layout.
+- **`register-reviews-i18n.js`** — `reviewsUi`; my-bookings.
+- Root core: **`authChromeUi`** (login/logout only) + errors/status/verticals.
+- Core chunk **1538 ~105→84 KB gzip**; precache cap **48 KB** not reached — next: split **`errorsUi`** / **`renterReviewsFlowUi`** (done **171.37**).
+- **FLJS:** `/` **646→625 kB**, `/listings/[id]` **451→430 kB**; SW precache **15 / 149 KB**.
+
+#### Stage 171.35 — Order-flow i18n lazy split (2026-07-15)
+- **`register-order-flow-i18n.js`** — `orderFlowUi` (~50 KB source) out of `translation-state.js`.
+- Layouts: **`(storefront)/my-bookings`**, **`(storefront)/bookings`**; partner hub also imports register (order cards on partner bookings).
+- Core chunk **1538 ~118→105 KB gzip**; lazy chunk **7785 ~20 KB gzip**; **1538 still >48 KB** precache cap — next: split **`commonUi`** / **`auth-errors`**.
+- **Measured FLJS:** `/` **659→646 kB**, `/listings/[id]` **465→451 kB**; SW precache **15 / 149 KB** unchanged.
+
+#### Stage 171.34 — Auth modal lazy (2026-07-15)
+- **`AuthModalLazy.jsx`** — `dynamic(AuthModalShell, { ssr: false })`; mount only when **`loginModalOpen`**; lightweight overlay while chunk loads.
+- **`lib/auth/preload-auth-modal.js`** — **`preloadAuthModalShell()`** on **`openLoginModal()`** (same-tick prefetch before open).
+- **`AuthProvider`** stays in **`RootClientProviders`** via **`dynamic()`** (session / **`useAuth`** on cold path); modal graph (**Dialog/Drawer**, forms) in separate chunks **~1041 + ~8190 (~14 KB gzip total)**, not in FLJS.
+- **Measured FLJS (after 171.33):** `/` **684→659 kB**, `/listings/[id]` **492→465 kB**; SW precache unchanged (**15 / 149 KB**).
+
+#### Stage 171.33 — Listings/checkout i18n lazy split (2026-07-15)
+- **`register-listings-public-i18n.js`** — `listingsPublicUi` + `catalogSeoUi`; `(storefront)/listings/layout.js` + home `page.js`.
+- **`register-checkout-i18n.js`** — `checkoutUi`; `app/checkout/layout.js`.
+- Core chunk **1538 ~141→118 KB gzip**; precache **>48 KB** — next: `orderFlowUi` lazy.
+
+#### Stage 171.32 — PWA focus refetch guard (2026-07-15, IOS-P1-02)
+- **`getRefetchOnWindowFocusDefault()`** — `false` in standalone PWA (`isStandaloneDisplayMode`); `true` in browser tabs.
+
+#### Stage 189.1 — PWA iOS deep polish (2026-07-16)
+- SW: first-install **`skipWaiting` before precache**; client `GET_STATUS` → cache name for smoke.
+- Calendar: **`getPublicCalendarDaysAhead()`** → 90 days when constrained / iOS (was 120).
+- Telemetry: cold + resume + FCP; `localStorage` `airento_pwa_perf_v1` / `airento_pwa_resume_v1`.
+- Standalone: SW `registration.update()` throttled 30m; `html[data-pwa-standalone]`; composer **`.pb-safe-chat-composer`**.
+- Cap: plan only (`STAGE_189_CAPACITOR_INTEGRATION_PLAN.md`); code on `feature/capacitor-shell`.
+- Owner smoke: **`STAGE_189_IOS_SMOKE_RESULTS.md`** → analysis in **189.2**.
+- Global TanStack defaults via **`lib/query/query-default-options.js`**; FX hook aligned.
+
+#### Stage 171.31 — Provider chunk split (2026-07-15, P1)
+- **`RootClientProviders`** — slim sync shell (I18n/Currency/Geo) + **`dynamic()`** Auth + deferred SW/toast.
+- **`translation-state.js`** — storefront core i18n only; lazy **`register-*-i18n-slice.js`** per route group (chat/partner/profile).
+- **`GlobalStyles.jsx`** — `globals.css` in dedicated client chunk; SW precache prioritizes layout CSS (dynamic hash from `/layout` manifest).
+- **Measured FLJS:** `/` **749→684 kB**, `/listings` **751→687 kB**, `/listings/[id]` **561→492 kB**; root mega-chunk **8977 (~210 KB gzip) → 1538 (~141 KB gzip)**.
+
+#### Stage 171.30 — PDP layout unification (2026-07-15, P0.5)
+- **`getCachedListingPdpBootstrap`** — one `fetchPublicListingDbRow` per request; `layoutRow` + `activeLayoutRow` for SEO; full DTO when guest-gate passes.
+- **`layout.js`** + **`page.js`** share bootstrap (`getCachedListingForLayoutAndPage` alias).
+- Legacy **`getCachedListingForGuestGate`** / **`getCachedActiveListingForLayout`** delegate to bootstrap.
+
+#### Stage 171.29 — Chat unread-count endpoint (2026-07-15)
+- **`GET /api/v2/chat/unread-count`** — auth-only `{ count, lastUpdated }`; SSOT **`lib/services/chat/user-unread-count.service.js`** (head count, no conversation payloads).
+- **`ChatUnreadBadgeProvider`** — poll 60s + client dedup 45s; on `/messages*` — **`chat-unread-bridge`**; no window-focus refetch.
+- E2E filter SSOT: **`lib/chat/filter-out-e2e-conversation-rows.js`** (shared with conversations list).
+
+#### Stage 171.28 — SW precache trim (2026-07-15, IOS-P0-02)
+- **`scripts/lib/sw-precache-policy.mjs`** — SSOT allow/deny + **150 KB gzip** install budget.
+- **`generate-sw-precache.mjs`** — core runtime + layout shell only; excludes map/chat/admin lazy graph + chunks **>48 KB gzip** (e.g. TanStack **8666**, core i18n **1538**).
+- **`sw.template.js`** — map/leaflet runtime **cache-first**; RSC/API bypass unchanged.
+- **`check-sw-precache-budget.mjs`** — postbuild validation.
+
+#### Stage 171.27 — Home server bootstrap (2026-07-15)
+- **`app/(storefront)/page.js`** — RSC: `getCachedHomeBootstrap` → `buildHomeDehydratedState` → **`HomeHydrationBoundary`**.
+- SSOT: **`lib/listing/get-cached-home-bootstrap.js`**, **`lib/home/fetch-home-featured-server.js`**, **`lib/query-prefetch/prefetch-home-queries.js`**.
+- Shared categories RQ key with catalog/home (`queryKeys.public.categories()`).
+
+#### Stage 171.26 — Catalog server bootstrap (2026-07-15, P0.2)
+- **`app/(storefront)/listings/page.js`** — RSC: `getCatalogBootstrapFromSearchParams` → `buildCatalogDehydratedState` → **`CatalogHydrationBoundary`**.
+- SSOT: **`lib/listing/get-cached-catalog-bootstrap.js`**, **`lib/catalog/build-catalog-bootstrap-search-params.js`**, **`lib/query-prefetch/prefetch-catalog-queries.js`**.
+- Metadata + ItemList JSON-LD reuse bootstrap (`React.cache` per request).
+
+#### Stage 171.25 — Route groups & provider split (2026-07-15)
+- **`app/layout.js`** — global only (auth, i18n, currency, geo, SW, toaster).
+- **`components/layout/*AppShell.jsx`** — storefront / chat / marketing / partner shells.
+- **`ChatUnreadBadgeProvider`** — nav badges без **`ChatProvider`** Realtime на витрине.
+- URLs **не меняются** (route groups invisible in path).
 
 #### Stage 128.3 — FX + featured + profiles (Iteration 2)
 - **FX SSOT UI:** **`useFxRatesQuery()`** (`lib/hooks/use-fx-rates-query.js`) — обёртка **`fetchExchangeRates`** (localStorage v3 + **`GET /api/v2/exchange-rates`**); `staleTime` 2h; **`FX_RATES_UPDATED_EVENT`** → `setQueryData`; **`invalidateExchangeRatesCache()`** → LS + **`invalidateFxRatesQueriesOnly`**.
@@ -203,9 +291,9 @@
 | **Сортировка каталога** | **`lib/recommendations/ranking-policy.js`** — единственный SSOT | `ranking.js` / `spatial-filter` — re-export / deprecated |
 | **Discovery analytics (169.0)** | `lib/analytics/recommendation-rail-analytics.js`; events `recommendation_impression`, `recommendation_click`, `catalog_sort_change` via `product-analytics.js` | Ad-hoc `trackProductEvent` в rail-компонентах |
 | **PWA install (169.4)** | Smart prompt mobile only: **`PwaInstallPrompt`**, **`hooks/use-pwa-install.js`**, **`lib/pwa/`**; events `pwa_prompt_*`; manifest **`app/manifest.js`** | Desktop prompt; first-visit nag |
-| **Service Worker (171.13 → 171.20)** | SSOT template **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (**.gitignore**); **`prebuild`** `bump-sw-cache.mjs` + **`postbuild`** `generate-sw-precache.mjs`; push module + SWR; **`sw-register.jsx`** update toast | Коммитить **`public/sw.js`** |
+| **Service Worker (171.13 → 171.28)** | SSOT template **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (**.gitignore**); **`prebuild`** `bump-sw-cache.mjs` + **`postbuild`** `generate-sw-precache.mjs` (guest shell ≤150 KB gzip, **`scripts/lib/sw-precache-policy.mjs`**); map lazy → runtime cache-first; остальное SWR; **`npm run check:sw-precache`** | Коммитить **`public/sw.js`** |
 | **Media delivery (171.20 → 171.21)** | Guest images: **`lib/media/image-delivery.js`** — catalog cards + **PDP hero/lightbox** (`getPdpHeroImageUrls`, `getPdpLightboxImageUrls`, connection-aware carousel/bento); **`hooks/use-network-quality.js`** | Дубли `sizes`/URL в карточках и `BentoGallery` |
-| **PDP navigation (171.21 → 171.23)** | **`loading.js`** shell; RQ sync init; touch prefetch + **`hero-image-warmup.js`**; View Transitions; **`pdp-hero-layout.js`** CLS; **`ListingGalleryEmptyFallback`**; map viewport gate; **`useListingPublicCalendarQuery`** + **`useListingAvailabilityQuery`**; **`ListingPdpDetailsColumn`** memo | Hover-only prefetch; map eager load; calendar fetch in component state |
+| **PDP navigation (171.21 → 171.24 P0)** | **`loading.js`** shell; RSC **`page.js`** bootstrap → **`ListingPdpHydrationBoundary`**; RQ **`useListingViewData`** + catalog prefetch; **`ListingBookingProvider`** / **`useListingBooking()`**; touch prefetch + **`hero-image-warmup.js`**; View Transitions; **`pdp-hero-layout.js`** CLS; calendar/availability RQ; **`ListingPdpDetailsColumn`** memo | Client-only listing GET on cold PDP; booking prop drill |
 | **Partner calendar blocks (175.1)** | `calendar_blocks.source` → **`resolveBlockDisplayKind`** (`lib/calendar/block-source-display.js`); partner grid `blockKind` + `blockExpiresAt`; UI SSOT **`calendar-cell-presentation.js`** | Binary manual/iCal `blockKind` |
 | **Partner finances mobile (175.1 → 175.2)** | Ledger / Documents / **TransactionHistory** — dual layout `md+` table, `<md` card stack | Horizontal scroll on mobile |
 | **Calendar block sources (175.2)** | SSOT **`lib/calendar/block-source-display.js`** — `MANUAL_BLOCK_SOURCE`, `INVOICE_HOLD_SOURCE`, `INQUIRY_HOLD_SOURCE`; all `calendar_blocks` writers import | String literals in services |
@@ -883,18 +971,55 @@
 - **Порядок шагов:** **basics+specs** → **location** → **gallery** → **pricing** → **live preview**; данные не сбрасываются при переходах.
 - **Тексты (Stage 4.2 / 109.1):** партнёрский визард — merge **`lib/translations/listings-partner.js`** из слайсов **`listings-partner-{core,wizard,finances,calendar}.js`**; профиль — **`slices/profile-app.js`** ← **`profile-app-{core,partner,renter,referral}.js`**; re-export **`lib/translations/index.js`**.
 
-### 0.0h Guest listing page — modular shell (Stage 5.1 + Stage 70.1–70.2 PDP)
-- **Маршрут:** `app/listings/[id]/page.js` — **композитор** сетки + **`GalleryModal`**; **`Suspense`** + **`ListingPageSkeleton`**; **`hooks/useListingViewData.js`** — первичные данные; **`hooks/useListingBookingFlow.js`** — бронь/даты/availability/pricing/**`POST /api/v2/bookings`**; **`hooks/useListingChat.js`** — чат с хозяином; **`useListingPricing`** из **`hooks/pricing/useListingPricing.js`** только внутри **`useListingBookingFlow`** (не **`pricing.service`** на клиенте).
-- **PDP `components/listing/pdp/` (70.1–70.3, 178.2):** **`ListingHeroGallery`**, **`ListingHeroHeadline`**, **`ListingDescription`** (тело + проп **`belowDescription`** — мобильный блок **`ListingMobileActions`** + **`AmenitiesGrid`**), **`ListingMap`** (mobile **`cooperativeTouch`** — tap-to-pan, vertical title via **`verticalTransport_whereYoullBe`** / **`verticalService_whereYoullBe`**), **`ListingReviews`**, **`ListingBookingSection`** (десктоп **`DesktopBookingWidget`** + **`BookingModal`**), **`ListingMobileActions`** (**`PlatformCalendar`** / гости / breakdown + **`MobileBookingBar`**; anchor **`data-pdp-booking-dates-anchor`**), **`ListingChatPreview`** (lg-only подсказка + превью треда, без второй кнопки чата). **`handleBookCtaClick`** — без дат scroll к календарю, с датами → modal. **`next/dynamic`** — карта и отзывы (как в 70.1). Тонкие обёртки **`app/listings/[id]/components/*`** — вход для галереи/заголовка из **`pdp`**.
-- **SSoT URL картинок для гостя:** `getListingDisplayImageUrls(listing)` в **`lib/listing-display-images.js`** — cover первым, дедуп, нормализация через **`toPublicImageUrl`** (same-origin **`/_storage/...`**) → **`next/image`** (WebP/AVIF) в **`BentoGallery`**.
-- **Компоненты страницы** (`app/listings/[id]/components/`):
-  - **`ListingGallery.jsx`** — обёртка над **`BentoGallery`**, тот же список URL, что и для **`GalleryModal`**.
-  - **`ListingPageNav.jsx`** — липкий верх: назад, избранное (i18n **`listingDetail_*`**).
-  - **`ListingHeader.jsx`** / **`ListingDescription.jsx`** — тонкие оболочки над **`GuestListingTitleBlock`** / **`GuestListingBodyBlock`** из **`components/listing/ListingInfo.jsx`** (используются из **`pdp`**).
-  - **`ListingPageSkeleton.jsx`** — скелетон при **`loading`** и в **`Suspense`**.
-  - **`BookingWidget.jsx`** — реэкспорт **`DesktopBookingWidget`**, **`MobileBookingBar`**, **`PriceBreakdownBlock`** (подключаются из **`pdp`**-обёрток).
-- **Хуки:** **`hooks/useListingBookingFlow.js`** владеет **`useListingPricing`** (**`hooks/pricing/useListingPricing.js`**); **`hooks/useListingViewData.js`**, **`hooks/useListingChat.js`**.
-- **i18n:** публичные строки гостевой карточки в **`lib/translations/listings-public.js`** (ключи **`listingDetail_*`**, `listingInfo_*`, `listingGallery_*` и др.).
+### 0.0h Guest listing page — modular shell (Stage 5.1 + Stage 70.1–70.2 PDP + Stage 171.24 RSC P0)
+
+#### Маршрут и слои (RSC vs client islands)
+
+| Файл | Слой | Роль |
+|------|------|------|
+| `app/(storefront)/listings/[id]/layout.js` | **Server** | `generateMetadata`, JSON-LD — **`getCachedListingPdpBootstrap`** (shared with page) |
+| `app/(storefront)/listings/[id]/page.js` | **Server** | Bootstrap gate + dehydrate → **`ListingPdpHydrationBoundary`** |
+| `app/listings/[id]/ListingPdpGateViews.jsx` | **Server** | Moderation / not found (no client island) |
+| `app/listings/[id]/ListingPdpClient.jsx` | **Client** | Composer: nav, hero, gallery, grid |
+| `app/listings/[id]/loading.js` | **Server** | **`ListingPageSkeleton`** on client navigation |
+| `components/listing/pdp/ListingPdpHydrationBoundary.jsx` | **Client** | TanStack **`HydrationBoundary`** → **`ListingPdpClient`** |
+| `components/listing/pdp/ListingBookingProvider.jsx` | **Client** | **`useListingBookingFlow`** context; **`useListingBooking()`** |
+
+#### Data flow (cold PDP, guest)
+
+```
+layout.js + page.js → getCachedListingPdpBootstrap (one listings SELECT, views+1 when gate passes)
+                   → layoutRow / activeLayoutRow (metadata + JSON-LD subset)
+                   → buildListingPdpDehydratedState(queryKeys.listing.detail) [page only when kind=ok]
+ListingPdpClient   → useListingViewData (useQuery, hydrate, no listing GET)
+                   → ListingBookingProvider → calendar / modal / POST bookings
+                   → useListingChat (sibling under provider, booking state from context)
+Client APIs (unchanged P0): reviews, FX, calendar, availability, commission, favorites/check
+```
+
+#### Server bootstrap modules
+
+- **`lib/listing/get-public-listing-detail.js`** — SSOT listing DTO; **`fetchPublicListingDbRow`** + **`buildPublicListingDetailFromDbRow`**
+- **`lib/listing/map-listing-layout-row.js`** — layout/SEO subset from DB row
+- **`lib/listing/get-cached-listing-pdp-bootstrap.js`** — `React.cache`, unified layout + page, `incrementViews: true` once
+- **`lib/query-prefetch/prefetch-listing-pdp-queries.js`** — server `QueryClient` + `dehydrate`
+- **`lib/query-prefetch/listing-detail-query-constants.js`** — `LISTING_DETAIL_STALE_MS` (client + server safe)
+- **`lib/catalog/map-listing-detail-api.js`** — mapped shape in RQ cache
+
+#### Client hooks / islands
+
+- **`hooks/useListingViewData.js`** — **`useQuery`** + reviews fetch + favorites
+- **`hooks/useListingBookingFlow.js`** — logic unchanged; consumed via **`ListingBookingProvider`**
+- **`hooks/useListingChat.js`** — inquiry/contact; reads booking dates from **`useListingBooking()`** in grid
+- **`lib/hooks/use-listing-detail-prefetch.js`** — catalog hover/touch; same **`queryKeys.listing.detail`**
+
+#### PDP `components/listing/pdp/` (70.1–70.3, 178.2, 171.24)
+
+**`ListingHeroGallery`**, **`ListingPdpDetailsColumn`**, **`ListingBookingSection`** (desktop widget + modal via context), **`ListingMobileActions`** (inline calendar + **`MobileBookingBar`**), **`ListingChatPreview`**. Booking sections use **`useListingBooking()`**; chat bridge prop only for contact-partner UI.
+
+- **SSoT URL картинок:** `getListingDisplayImageUrls` / **`lib/media/image-delivery.js`** (hero/lightbox)
+- **Компоненты `app/listings/[id]/components/`:** nav, skeleton, **`BookingWidget`** re-exports
+- **i18n:** **`lib/translations/listings-public.js`** (`listingDetail_*`)
 
 ### 0.0i Messenger thread — modular shell (Stage 6.1)
 - **Маршрут:** `app/messages/[id]/page.js` — рендер **`UnifiedMessagesClient`** (~500 строк, Stage 109.3 — композиция).

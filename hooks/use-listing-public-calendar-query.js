@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { fetchPublicListingCalendar } from '@/lib/api/partner-calendar-client'
-import { getNetworkQualitySnapshot } from '@/lib/media/network-quality'
+import { getPublicCalendarDaysAhead } from '@/lib/media/network-quality'
 
 const CALENDAR_STALE_MS = 3 * 60 * 1000
 const CALENDAR_GC_MS = 10 * 60 * 1000
@@ -16,8 +16,7 @@ const CALENDAR_GC_MS = 10 * 60 * 1000
 export function useListingPublicCalendarQuery(listingId, { guests = 1, enabled = true } = {}) {
   const id = String(listingId || '').trim()
   const guestsNum = Math.max(1, Number.parseInt(String(guests), 10) || 1)
-  const constrained = getNetworkQualitySnapshot().constrained
-  const calendarDays = constrained ? 120 : 180
+  const calendarDays = getPublicCalendarDaysAhead()
 
   const query = useQuery({
     queryKey: queryKeys.listing.calendar(id, { guests: guestsNum, days: calendarDays }),
