@@ -34,6 +34,8 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#0d9488',
+  /** Stage 171.42 / 189.1 — iOS standalone safe-area (notch / home indicator). */
+  viewportFit: 'cover',
 }
 
 export async function generateMetadata() {
