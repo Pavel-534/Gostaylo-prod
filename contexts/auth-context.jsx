@@ -119,12 +119,7 @@ export function AuthProvider({ children }) {
     });
   }, [normalizeAuthUser, refreshUserFromServer]);
 
-  useReferralCapture({
-    language,
-    setPromoCode,
-    setPromoStatus,
-    setPromoMessage,
-  });
+  useReferralCapture({ language });
 
   // Если согласие уже зафиксировано, не держим пользователя на `/auth/complete-legal/`.
   useEffect(() => {

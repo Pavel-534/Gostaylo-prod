@@ -94,7 +94,7 @@ export function useReferralCapture({
   setPromoCode,
   setPromoStatus,
   setPromoMessage,
-}) {
+} = {}) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
@@ -109,14 +109,15 @@ export function useReferralCapture({
       void trackProductEvent(ProductAnalyticsEvents.REFERRAL_CAPTURED, {
         source: fromUrl ? 'url' : fromCookie ? 'cookie' : 'localStorage',
       })
-      setPromoCode(String(picked).trim().toUpperCase())
-      setPromoStatus('checking')
-      setPromoMessage('')
+      const code = String(picked).trim().toUpperCase()
+      setPromoCode?.(code)
+      setPromoStatus?.('checking')
+      setPromoMessage?.('')
       void fetch('/api/v2/referral/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: String(picked).trim().toUpperCase(),
+          code,
           email: '',
           fingerprint: getStableReferralFingerprint(),
         }),
@@ -124,16 +125,16 @@ export function useReferralCapture({
         .then(async (res) => {
           const json = await res.json().catch(() => ({}))
           if (res.ok && json?.valid) {
-            setPromoStatus('valid')
-            setPromoMessage(getUIText('auth_referral_landingSaved', language))
+            setPromoStatus?.('valid')
+            setPromoMessage?.(getUIText('auth_referral_landingSaved', language))
           } else {
-            setPromoStatus('invalid')
-            setPromoMessage(getAuthErrorMessage(json?.error_code, language))
+            setPromoStatus?.('invalid')
+            setPromoMessage?.(getAuthErrorMessage(json?.error_code, language))
           }
         })
         .catch(() => {
-          setPromoStatus('invalid')
-          setPromoMessage(getUIText('auth_referral_landingCheckFailed', language))
+          setPromoStatus?.('invalid')
+          setPromoMessage?.(getUIText('auth_referral_landingCheckFailed', language))
         })
     } catch {
       /* ignore */
