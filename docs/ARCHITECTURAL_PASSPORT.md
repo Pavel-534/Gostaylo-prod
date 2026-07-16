@@ -36,7 +36,8 @@
 
 #### Stage 171.38 — Client i18n slice bootstrap (2026-07-15, P0)
 - **`I18nSliceBootstrap.jsx`** + **`i18n-client-slice-presets.js`** — `applyI18nSlices` on client (sync before paint + `useLayoutEffect`); mirrors server `register-*-i18n` layouts.
-- Wired: **`StorefrontAppShell`** (`storefront`), **`ListingPdpClient`** (`pdp`), **`CheckoutClientShell`** (`checkout`), **`RouteI18nBootstrap`** on my-bookings/bookings/profile/renter-reviews layouts, **`ChatAppShell`**, **`PartnerRouteShell`**.
+- Wired: **`StorefrontAppShell`** (`storefront`), **`ListingPdpClient`** (`pdp`), **`CheckoutClientShell`** (`checkout`), **`RouteI18nBootstrap`** on my-bookings/bookings/profile/renter-reviews layouts, **`ChatAppShell`**, **`PartnerRouteShell`**, **`app/auth/layout.js`** (`auth` preset — Stage 189 hotfix: immersive `/auth/*` showed raw keys without client bootstrap).
+- Profile preset also applies **`applyAuthI18nSlice`** for **`AccountConnections`** provider labels.
 - **E2E:** `booking-flow` ✅ after fix; checkout shows localized CTA (submit disabled = consent/pricing mock, not i18n).
 
 #### Stage 171.37 — Errors + renter-review i18n lazy split (2026-07-15, final i18n pass)

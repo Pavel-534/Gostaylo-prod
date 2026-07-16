@@ -184,7 +184,7 @@ export function AuthModalShell(props) {
             <div className='mx-auto mt-5 w-full max-w-[300px] flex-shrink-0 flex flex-col gap-3 pb-1'>
               <div className='relative flex w-full items-center justify-center py-2'>
                 <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
-                <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
+                <span className='relative bg-white px-3 text-center text-xs font-medium tracking-wide text-slate-400'>
                   {getUIText('auth_oauthDivider', language)}
                 </span>
               </div>

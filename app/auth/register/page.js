@@ -6,6 +6,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { AuthPageShell } from '@/components/auth/AuthPageShell'
+import { AuthOauthDivider } from '@/components/auth/AuthOauthDivider'
 import { AuthPhoneFlow } from '@/components/auth/AuthPhoneFlow'
 import { AuthEmailRegisterForm } from '@/components/auth/AuthEmailRegisterForm'
 import { AuthProviderButtons } from '@/components/auth/AuthProviderButtons'
@@ -65,12 +66,7 @@ export default function AuthRegisterPage() {
           id="auth-register-legal"
         />
 
-        <div className="relative py-2">
-          <span className="absolute inset-x-0 top-1/2 h-px bg-slate-200" aria-hidden />
-          <p className="relative mx-auto w-fit bg-slate-50 px-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            {getUIText('auth_oauthDivider', language)}
-          </p>
-        </div>
+        <AuthOauthDivider />
 
         <TelegramLoginButton
           requireLegalConsent

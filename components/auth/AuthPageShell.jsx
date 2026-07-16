@@ -21,18 +21,20 @@ export function AuthPageShell({ children, title, subtitle, backHref = '/', class
         className,
       )}
     >
-      <header className="flex shrink-0 items-center gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top,0px))]">
+      <header className="flex shrink-0 items-start gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))]">
         <Link
           href={backHref}
-          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          className="mt-0.5 inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
           aria-label={getUIText('auth_backToHome', language)}
         >
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </Link>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-brand">{brand}</p>
-          {title ? <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1> : null}
-          {subtitle ? <p className="truncate text-sm text-slate-500">{subtitle}</p> : null}
+        <div className="min-w-0 flex-1 pt-1.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">{brand}</p>
+          {title ? (
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+          ) : null}
+          {subtitle ? <p className="mt-1 text-sm leading-snug text-slate-500">{subtitle}</p> : null}
         </div>
       </header>
 
