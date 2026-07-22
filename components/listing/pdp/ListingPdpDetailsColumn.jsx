@@ -28,6 +28,9 @@ function ListingPdpDetailsColumnInner({
     <div className="lg:col-span-2 space-y-8">
       <ListingHeroHeadline listing={listing} language={language} />
       <Separator />
+      {/* Stage 191.0 — reviews above description/map for trust CRO */}
+      <ListingReviews listing={listing} reviews={reviews} language={language} />
+      <Separator />
       <ListingDescription
         listing={listing}
         language={language}
@@ -37,8 +40,6 @@ function ListingPdpDetailsColumnInner({
       <Separator />
       <ListingMap listing={listing} language={language} />
       <ListingChatPreview {...chatPreviewProps} />
-      <Separator />
-      <ListingReviews listing={listing} reviews={reviews} language={language} />
       <Separator />
       <SimilarListingsRail
         listingId={listing.id}

@@ -44,6 +44,15 @@ const PLATFORMS = [
   { value: 'Custom', label: 'Custom', color: 'bg-slate-100 text-slate-700 border-slate-200' },
 ]
 
+/** Stage 193.2 — listing sync_settings SSOT without legacy per-listing interval. */
+function toPersistableSyncSettings(settings) {
+  return {
+    sources: Array.isArray(settings?.sources) ? settings.sources : [],
+    auto_sync: Boolean(settings?.auto_sync),
+    last_sync: settings?.last_sync || null,
+  }
+}
+
 function detectPlatform(url) {
   if (!url) return 'Custom'
   const lowerUrl = url.toLowerCase()
@@ -66,7 +75,6 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   const [syncSettings, setSyncSettings] = useState({
     sources: [],
     auto_sync: false,
-    sync_interval_hours: 24,
     last_sync: null,
   })
   const [loading, setLoading] = useState(true)
@@ -125,16 +133,16 @@ export default function CalendarSyncManager({ listingId, onSync }) {
           settings = {
             sources: listing.metadata.sync_settings,
             auto_sync: listing.metadata.auto_sync || false,
-            sync_interval_hours: listing.metadata.sync_interval_hours || 24,
             last_sync: listing.metadata.last_ical_sync,
           }
         }
-        setSyncSettings({
-          sources: settings.sources || [],
-          auto_sync: settings.auto_sync || false,
-          sync_interval_hours: settings.sync_interval_hours || 24,
-          last_sync: settings.last_sync || null,
-        })
+        setSyncSettings(
+          toPersistableSyncSettings({
+            sources: settings.sources || [],
+            auto_sync: settings.auto_sync || false,
+            last_sync: settings.last_sync || null,
+          }),
+        )
       }
       setLoading(false)
     } catch (error) {
@@ -168,10 +176,11 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function saveSyncSettings(newSettings, { silent = false } = {}) {
     setSaving(true)
     try {
-      const { ok } = await patchPartnerListing(listingId, { sync_settings: newSettings })
+      const payload = toPersistableSyncSettings(newSettings)
+      const { ok } = await patchPartnerListing(listingId, { sync_settings: payload })
 
       if (ok) {
-        setSyncSettings(newSettings)
+        setSyncSettings(payload)
         if (!silent) toast.success(language === 'ru' ? 'Сохранено' : 'Saved')
       } else {
         toast.error(language === 'ru' ? 'Ошибка сохранения' : 'Save failed')
@@ -220,16 +229,23 @@ export default function CalendarSyncManager({ listingId, onSync }) {
         events_count: testData.futureEvents || 0,
       }
 
+      const isFirstSource = syncSettings.sources.length === 0
+      // Stage 193.2 — host pastes URL; throttle SSOT = admin + cron-job.org (no listing interval).
       const newSettings = {
         ...syncSettings,
         sources: [...syncSettings.sources, newSource],
+        ...(isFirstSource ? { auto_sync: true } : {}),
       }
 
       await saveSyncSettings(newSettings, { silent: true })
       toast.success(
         language === 'ru'
-          ? `Добавлено: ${platform} (${testData.futureEvents || 0} событий)`
-          : `Added: ${platform} (${testData.futureEvents || 0} events)`
+          ? isFirstSource
+            ? `Добавлено: ${platform} (${testData.futureEvents || 0} событий). Авто-защита календаря включена.`
+            : `Добавлено: ${platform} (${testData.futureEvents || 0} событий)`
+          : isFirstSource
+            ? `Added: ${platform} (${testData.futureEvents || 0} events). Calendar auto-protection enabled.`
+            : `Added: ${platform} (${testData.futureEvents || 0} events)`
       )
       setNewUrl('')
       setNewPlatform('')
@@ -479,30 +495,35 @@ export default function CalendarSyncManager({ listingId, onSync }) {
               <p className="text-xs text-slate-500">{tr('partnerCal_findIcal')}</p>
             </div>
 
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="auto-sync" className="text-sm text-slate-700">
-                  {tr('partnerCal_autoSync')}
-                </Label>
-                <Switch
-                  id="auto-sync"
-                  checked={syncSettings.auto_sync}
-                  onCheckedChange={handleToggleAutoSync}
-                  disabled={saving}
-                />
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="auto-sync" className="text-sm text-slate-700">
+                    {tr('partnerCal_autoSync')}
+                  </Label>
+                  <Switch
+                    id="auto-sync"
+                    checked={syncSettings.auto_sync}
+                    onCheckedChange={handleToggleAutoSync}
+                    disabled={saving}
+                  />
+                </div>
+                {syncSettings.sources.length > 0 && (
+                  <Button
+                    onClick={handleSyncAll}
+                    disabled={syncing}
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11 border-indigo-300 text-indigo-700"
+                  >
+                    {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                    {tr('partnerCal_syncAll')}
+                  </Button>
+                )}
               </div>
-              {syncSettings.sources.length > 0 && (
-                <Button
-                  onClick={handleSyncAll}
-                  disabled={syncing}
-                  variant="outline"
-                  size="sm"
-                  className="border-indigo-300 text-indigo-700"
-                >
-                  {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                  {tr('partnerCal_syncAll')}
-                </Button>
-              )}
+              <p className="text-xs leading-relaxed text-slate-500">
+                {tr('partnerCal_autoSyncHint')}
+              </p>
             </div>
 
             {syncSettings.sources.length > 0 ? (

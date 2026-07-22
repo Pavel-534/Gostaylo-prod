@@ -39,20 +39,40 @@ export function CheckoutFullPageSpinner() {
   )
 }
 
-export function CheckoutAccessDeniedView({ language }) {
+export function CheckoutAccessDeniedView({ language, bookingId = null }) {
+  const checkoutPath = bookingId
+    ? `/checkout/${encodeURIComponent(String(bookingId))}`
+    : '/checkout'
+  const loginHref = `/auth/login?redirect=${encodeURIComponent(checkoutPath)}`
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <Card className="max-w-md">
-        <CardContent className="pt-6 text-center">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <Card className="max-w-md w-full">
+        <CardContent className="pt-6 text-center space-y-4">
           <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_accessDeniedTitle', language)}</h3>
-          <p className="text-slate-600 mb-4">{getUIText('checkout_accessDeniedBody', language)}</p>
-          <div className="flex gap-2 justify-center">
-            <Button asChild>
-              <Link href="/">{getUIText('checkout_home', language)}</Link>
+          <p className="text-slate-600 mb-2">{getUIText('checkout_accessDeniedBody', language)}</p>
+          <div className="flex flex-col gap-2">
+            <Button asChild variant="brand" className="min-h-11 w-full font-semibold" data-testid="checkout-access-denied-login">
+              <Link
+                href={loginHref}
+                onClick={() => trackCheckoutEscapeClick('access_denied_login', bookingId)}
+              >
+                {getUIText('checkout_accessDeniedLogin', language)}
+              </Link>
             </Button>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              {getUIText('checkout_refresh', language)}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button asChild variant="outline" className="min-h-11">
+                <Link href="/">{getUIText('checkout_home', language)}</Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={() => window.location.reload()}
+              >
+                {getUIText('checkout_refresh', language)}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

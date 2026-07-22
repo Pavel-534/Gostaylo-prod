@@ -47,6 +47,11 @@ export function FilterBar({
   listingsForFiltersHistogram = [],
   priceHistogram = null,
   filterResultCount = 0,
+  /**
+   * Stage 190.6 — build search params for draft «Show N» preview (catalog).
+   * @type {((extra: import('@/lib/search/listings-page-url.js').ListingsExtraFilters) => URLSearchParams) | null}
+   */
+  buildDraftSearchParams = null,
   textQuery = '',
   setTextQuery,
   smartSearchOn = true,
@@ -66,6 +71,8 @@ export function FilterBar({
   categorySelectPortalClassName,
   /** Stage 178.7 — true inside CatalogMobileSearchSheet (<md unified editor). */
   mobileSheetEditor = false,
+  /** Stage 190.6 — sheet open flag to collapse accordion steps on reopen. */
+  mobileSheetOpen = false,
   /** Stage 179.1 — coming soon / hero parity for category chips in sheet. */
   onCategoryTabClick,
 }) {
@@ -202,12 +209,17 @@ export function FilterBar({
               semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
               onSearchSubmit={onSearchSubmit}
               categorySelectPortalClassName={categorySelectPortalClassName}
+              pickerPresentation={mobileSheetEditor ? 'wizardStep' : undefined}
+              mobileSheetOpen={mobileSheetOpen}
             />
           </div>
           <Button
             type="button"
             variant="outline"
-            className="h-auto min-h-[36px] shrink-0 border-slate-300 px-4 md:self-stretch md:py-0"
+            className={cn(
+              'h-auto min-h-[36px] shrink-0 border-slate-300 px-4 md:self-stretch md:py-0',
+              mobileSheetEditor && 'min-h-11 w-full',
+            )}
             onClick={() => setFiltersOpen(true)}
             data-testid="search-filters-button"
           >
@@ -281,6 +293,7 @@ export function FilterBar({
           listingsSample={listingsForFiltersHistogram}
           priceHistogram={priceHistogram}
           resultCount={filterResultCount}
+          buildDraftSearchParams={buildDraftSearchParams}
         />
       ) : null}
     </>

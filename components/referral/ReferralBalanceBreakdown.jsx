@@ -3,18 +3,19 @@
 import { useMemo } from 'react'
 import {
   Banknote,
+  CheckCircle2,
   Clock,
   Info,
   Lock,
   PiggyBank,
   ShieldAlert,
-  Wallet,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/contexts/i18n-context'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { getUIText } from '@/lib/translations'
+import { estimateLifetimeReferralPaidOutThb } from '@/lib/referral/estimate-lifetime-paid-out-thb'
 
 function formatUnlockDate(iso, locale) {
   if (!iso) return null
@@ -56,8 +57,7 @@ function MidFxFootnote({ t }) {
 }
 
 /**
- * Stage 132.0 / 179.7 — SSOT разбор баланса амбассадора.
- * Ledger в THB на сервере; UI — `useCurrency` + mid FX (`useAmbassadorDisplayFx`, retail=0).
+ * Stage 132.0 / 179.7 / 192.0 — Ambassador balance triad (Available / 14-day hold / Paid out).
  *
  * @param {{
  *   walletData?: object | null,
@@ -95,6 +95,7 @@ export function ReferralBalanceBreakdown({
     )
     const securityHeldReferralBalanceThb = Number(balances.securityHeldReferralBalanceThb ?? 0)
     const nearestUnlockAt = referralData?.stats?.nearestUnlockAt || null
+    const paidOutLifetimeThb = estimateLifetimeReferralPaidOutThb(walletData)
 
     return {
       totalBalanceThb,
@@ -102,23 +103,15 @@ export function ReferralBalanceBreakdown({
       internalCreditsThb,
       heldReferralBalanceThb,
       securityHeldReferralBalanceThb,
+      paidOutLifetimeThb,
       nearestUnlockAt,
       unlockLabel: formatUnlockDate(nearestUnlockAt, locale),
     }
   }, [walletData, referralData, locale])
 
-  const rows = useMemo(() => {
-    /** @type {Array<{ id: string, label: string, amountThb: number, sublabel?: string, icon: typeof Wallet, tone: string, tooltip: string, always?: boolean }>} */
-    const list = [
-      {
-        id: 'total',
-        label: t('stage1321_balanceTotal'),
-        amountThb: amounts.totalBalanceThb,
-        icon: Wallet,
-        tone: 'brand',
-        tooltip: t('stage1321_balanceTotalTooltip'),
-        always: true,
-      },
+  const triadRows = useMemo(() => {
+    /** @type {Array<{ id: string, label: string, amountThb: number, sublabel?: string | null, hint?: string, icon: import('lucide-react').LucideIcon, tone: string, tooltip: string }>} */
+    return [
       {
         id: 'withdrawable',
         label: t('stage1321_balanceWithdrawable'),
@@ -126,33 +119,45 @@ export function ReferralBalanceBreakdown({
         icon: Banknote,
         tone: 'emerald',
         tooltip: t('stage1321_balanceWithdrawableTooltip'),
-        always: true,
       },
       {
+        id: 'period-hold',
+        label: t('stage1321_balancePeriodHoldLabel'),
+        amountThb: amounts.heldReferralBalanceThb,
+        sublabel: amounts.unlockLabel
+          ? t('stage1321_balancePeriodHoldSublabel', { date: amounts.unlockLabel })
+          : null,
+        hint: t('stage1321_balancePeriodHoldHint'),
+        icon: Lock,
+        tone: 'amber',
+        tooltip: t('stage1321_balancePeriodHoldTooltip'),
+      },
+      {
+        id: 'paid-out',
+        label: t('stage1321_balancePaidOut'),
+        amountThb: amounts.paidOutLifetimeThb,
+        sublabel: t('stage1321_balancePaidOutSublabel'),
+        icon: CheckCircle2,
+        tone: 'slate',
+        tooltip: t('stage1321_balancePaidOutTooltip'),
+      },
+    ]
+  }, [amounts, t])
+
+  const extraRows = useMemo(() => {
+    /** @type {Array<{ id: string, label: string, amountThb: number, sublabel?: string, icon: import('lucide-react').LucideIcon, tone: string, tooltip: string, always?: boolean }>} */
+    const list = []
+    if (variant !== 'header') {
+      list.push({
         id: 'internal',
         label: t('stage1321_balanceInternal'),
         amountThb: amounts.internalCreditsThb,
         icon: PiggyBank,
         tone: 'slate',
         tooltip: t('stage1321_balanceInternalTooltip'),
-        always: variant !== 'header',
-      },
-    ]
-
-    if (amounts.heldReferralBalanceThb > 0) {
-      list.push({
-        id: 'period-hold',
-        label: amounts.unlockLabel
-          ? t('stage1321_balanceUnlocksOn', { date: amounts.unlockLabel })
-          : t('stage1321_balancePendingUnlock'),
-        amountThb: amounts.heldReferralBalanceThb,
-        sublabel: t('stage1321_balancePeriodHoldSublabel'),
-        icon: Lock,
-        tone: 'amber',
-        tooltip: t('stage1321_balancePeriodHoldTooltip'),
+        always: true,
       })
     }
-
     if (amounts.securityHeldReferralBalanceThb > 0) {
       list.push({
         id: 'security-hold',
@@ -164,7 +169,6 @@ export function ReferralBalanceBreakdown({
         tooltip: t('stage1321_balanceSecurityHoldTooltip'),
       })
     }
-
     return list.filter((r) => r.always || r.amountThb > 0)
   }, [amounts, variant, t])
 
@@ -180,10 +184,7 @@ export function ReferralBalanceBreakdown({
               {t('stage1321_balanceHeldShort')}
             </span>
             <span className="tabular-nums font-medium">
-              <FxAmount
-                thbAmount={amounts.heldReferralBalanceThb}
-                formatAmount={formatAmount}
-              />
+              <FxAmount thbAmount={amounts.heldReferralBalanceThb} formatAmount={formatAmount} />
             </span>
           </div>
         ) : null}
@@ -229,33 +230,35 @@ export function ReferralBalanceBreakdown({
           {isConvertedDisplay ? <MidFxFootnote t={t} /> : null}
         </div>
         <div className="space-y-2">
-          {rows.map((row) => {
+          {[...triadRows, ...extraRows].map((row) => {
             const Icon = row.icon
             return (
               <div
                 key={row.id}
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5',
+                  'rounded-lg border px-3 py-2.5 space-y-1',
                   toneClasses[row.tone] || toneClasses.slate,
                   row.id === 'security-hold' && 'shadow-sm',
                 )}
               >
-                <div className="flex items-start gap-2 min-w-0">
-                  <Icon className={cn('h-4 w-4 shrink-0 mt-0.5', textTone[row.tone])} aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium leading-snug text-slate-800">{row.label}</p>
-                    {row.sublabel ? (
-                      <p className="text-[10px] text-slate-500 mt-0.5">{row.sublabel}</p>
-                    ) : null}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <Icon className={cn('h-4 w-4 shrink-0 mt-0.5', textTone[row.tone])} aria-hidden />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium leading-snug text-slate-800">{row.label}</p>
+                      {row.sublabel ? (
+                        <p className="text-[10px] text-slate-500 mt-0.5">{row.sublabel}</p>
+                      ) : null}
+                    </div>
+                    <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
                   </div>
-                  <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
+                  <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
+                    <FxAmount thbAmount={row.amountThb} formatAmount={formatAmount} />
+                  </p>
                 </div>
-                <p className={cn('text-sm font-bold tabular-nums shrink-0', textTone[row.tone])}>
-                  <FxAmount
-                    thbAmount={row.amountThb}
-                    formatAmount={formatAmount}
-                  />
-                </p>
+                {row.hint ? (
+                  <p className="text-[10px] leading-snug text-slate-600 pl-6">{row.hint}</p>
+                ) : null}
               </div>
             )
           })}
@@ -265,18 +268,22 @@ export function ReferralBalanceBreakdown({
   }
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {rows.map((row) => {
+    <div className={cn('space-y-3', className)} data-testid="referral-balance-triad">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">{t('stage1321_balanceBreakdownTitle')}</p>
+        {isConvertedDisplay ? <MidFxFootnote t={t} /> : null}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {triadRows.map((row) => {
           const Icon = row.icon
           return (
             <div
               key={row.id}
               className={cn(
-                'rounded-xl border p-4 transition-shadow hover:shadow-sm',
+                'rounded-xl border p-4 transition-shadow hover:shadow-sm flex flex-col',
                 toneClasses[row.tone] || toneClasses.slate,
-                row.id === 'security-hold' && 'sm:col-span-2 lg:col-span-1 shadow-md',
               )}
+              data-testid={`referral-balance-${row.id}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -288,10 +295,7 @@ export function ReferralBalanceBreakdown({
                 <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
               </div>
               <p className={cn('mt-2 text-2xl sm:text-3xl font-black tabular-nums tracking-tight', textTone[row.tone])}>
-                <FxAmount
-                  thbAmount={row.amountThb}
-                  formatAmount={formatAmount}
-                />
+                <FxAmount thbAmount={row.amountThb} formatAmount={formatAmount} />
               </p>
               {row.sublabel ? (
                 <p className="mt-1.5 text-[11px] text-slate-600 leading-snug flex items-center gap-1">
@@ -299,10 +303,48 @@ export function ReferralBalanceBreakdown({
                   {row.sublabel}
                 </p>
               ) : null}
+              {row.hint ? (
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-600 border-t border-black/5 pt-2">
+                  {row.hint}
+                </p>
+              ) : null}
             </div>
           )
         })}
       </div>
+      {extraRows.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {extraRows.map((row) => {
+            const Icon = row.icon
+            return (
+              <div
+                key={row.id}
+                className={cn(
+                  'rounded-xl border p-4',
+                  toneClasses[row.tone] || toneClasses.slate,
+                  row.id === 'security-hold' && 'shadow-md',
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon className={cn('h-4 w-4 shrink-0', textTone[row.tone])} aria-hidden />
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-600 leading-snug">
+                      {row.label}
+                    </p>
+                  </div>
+                  <BalanceHintPopover tooltip={row.tooltip} ariaLabel={t('stage1321_tooltipAria')} />
+                </div>
+                <p className={cn('mt-2 text-xl font-bold tabular-nums', textTone[row.tone])}>
+                  <FxAmount thbAmount={row.amountThb} formatAmount={formatAmount} />
+                </p>
+                {row.sublabel ? (
+                  <p className="mt-1 text-[11px] text-slate-600 leading-snug">{row.sublabel}</p>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
     </div>
   )
 }

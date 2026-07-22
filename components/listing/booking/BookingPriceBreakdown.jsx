@@ -4,7 +4,10 @@ import { Separator } from '@/components/ui/separator'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
-import { BOOKING_PRICE_BREAKDOWN_ID } from '@/lib/pricing/guest-display-price'
+import {
+  BOOKING_PRICE_BREAKDOWN_ID,
+  getGuestPayableTotalThb,
+} from '@/lib/pricing/guest-display-price'
 
 function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
@@ -43,6 +46,15 @@ export function BookingPriceBreakdown({
 }) {
   if (!priceCalc) return null
 
+  const nights = Math.max(0, Math.round(Number(priceCalc.nights) || 0))
+  const subtotal = Math.round(
+    Number(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice ?? priceCalc.subtotal) || 0,
+  )
+  const serviceFee = Math.round(Number(priceCalc.serviceFee) || 0)
+  const taxAmount = Math.round(Number(priceCalc.taxAmountThb) || 0)
+  const taxRate = Number(priceCalc.taxRatePercent) || 0
+  const payableTotal = getGuestPayableTotalThb(priceCalc)
+
   const baseRaw = priceCalc.baseRawSubtotal
   const seasonalAdj = priceCalc.seasonalAdjustment
   const dur = priceCalc.durationDiscountAmount
@@ -50,26 +62,58 @@ export function BookingPriceBreakdown({
   const hasDur = dur > 0
   const seasonalIsDiscount = hasSeasonal && seasonalAdj < 0
   const highlightTotalForDiscount = hasDur || seasonalIsDiscount
-  const baseLineLabel =
+  const hasAdjustments = hasSeasonal || hasDur
+
+  const periodWord =
     rentalPeriodMode === 'day'
-      ? getUIText('breakdownBaseTimesDays', language)
-      : language === 'ru'
-        ? 'База × ночей'
-        : 'Base rate × nights'
+      ? getUIText('listingPriceUnitDay', language)
+      : getUIText('night', language)
+
+  const fmt = (thb) => formatPrice(thb, currency, exchangeRates, language)
+
+  /** `$X × N nights` — list base when known, else average of lodging subtotal. */
+  const formulaUnitThb =
+    baseRaw != null && nights > 0
+      ? Math.round(Number(baseRaw) / nights)
+      : nights > 0
+        ? Math.round(subtotal / nights)
+        : 0
+  const baseTimesLabel =
+    nights > 0 && formulaUnitThb > 0
+      ? getUIText('breakdownBaseTimesNights', language)
+          .replace(/\{\{unit\}\}/g, fmt(formulaUnitThb))
+          .replace(/\{\{nights\}\}/g, String(nights))
+          .replace(/\{\{period\}\}/g, periodWord)
+      : rentalPeriodMode === 'day'
+        ? getUIText('breakdownBaseTimesDays', language)
+        : language === 'ru'
+          ? 'База × ночей'
+          : 'Base rate × nights'
+
+  const taxLabel =
+    taxAmount > 0
+      ? getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(taxRate))
+      : getUIText('breakdownTaxIncluded', language)
 
   return (
     <div id={BOOKING_PRICE_BREAKDOWN_ID} className="space-y-2 pt-4 border-t text-sm scroll-mt-24">
-      {baseRaw != null && (
+      {baseRaw != null ? (
         <div className="flex justify-between gap-2">
-          <span className="text-slate-600">{baseLineLabel}</span>
+          <span className="text-slate-600">{baseTimesLabel}</span>
           <span
             className="font-medium tabular-nums"
             data-test-base-subtotal-value={priceRawForTest(baseRaw, currency, exchangeRates)}
+            {...(!hasAdjustments
+              ? {
+                  'data-test-subtotal-value': priceRawForTest(subtotal, currency, exchangeRates),
+                  'data-test-subtotal-thb': String(subtotal),
+                }
+              : {})}
           >
-            {formatPrice(baseRaw, currency, exchangeRates, language)}
+            {fmt(baseRaw)}
           </span>
         </div>
-      )}
+      ) : null}
 
       {hasSeasonal && (
         <div className="flex justify-between gap-2">
@@ -85,7 +129,7 @@ export function BookingPriceBreakdown({
             )}
           >
             {seasonalAdj > 0 ? '+' : ''}
-            {formatPrice(seasonalAdj, currency, exchangeRates, language)}
+            {fmt(seasonalAdj)}
           </span>
         </div>
       )}
@@ -96,47 +140,52 @@ export function BookingPriceBreakdown({
             {durationStayDiscountLabel(priceCalc, language, rentalPeriodMode)}
           </span>
           <span className="font-semibold tabular-nums text-emerald-600">
-            −{formatPrice(dur, currency, exchangeRates, language)}
+            −{fmt(dur)}
             {priceCalc.durationDiscountPercent > 0 ? ` (${priceCalc.durationDiscountPercent}%)` : ''}
           </span>
         </div>
       )}
 
-      <div className="flex justify-between gap-2 pt-1">
-        <span className="text-slate-600">{getUIText('subtotal', language)}</span>
-        <span
-          className="font-medium tabular-nums"
-          data-test-subtotal-value={priceRawForTest(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates)}
-          data-test-subtotal-thb={String(Math.round(Number(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice) || 0))}
-        >
-          {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates, language)}
-        </span>
-      </div>
-
-      {Number(priceCalc.taxAmountThb) > 0 ? (
-        <div className="flex justify-between gap-2 text-slate-600">
-          <span>
-            {getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(Number(priceCalc.taxRatePercent) || 0))}
+      {/* Lodging subtotal: primary line if no list-base; or after seasonal/duration adjustments. */}
+      {(baseRaw == null || hasAdjustments) && (
+        <div className="flex justify-between gap-2 pt-1">
+          <span className="text-slate-600">
+            {baseRaw == null
+              ? baseTimesLabel
+              : getUIText('subtotal', language)}
           </span>
-          <span className="font-medium tabular-nums">
-            {formatPrice(priceCalc.taxAmountThb, currency, exchangeRates, language)}
-          </span>
-        </div>
-      ) : null}
-
-      {priceCalc.serviceFee > 0 && (
-        <div className="flex justify-between gap-2">
-          <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
           <span
             className="font-medium tabular-nums"
-            data-testid="booking-breakdown-service-fee"
-            data-test-fee-value={priceRawForTest(priceCalc.serviceFee, currency, exchangeRates)}
-            data-test-fee-thb={String(Math.round(Number(priceCalc.serviceFee) || 0))}
+            data-test-subtotal-value={priceRawForTest(subtotal, currency, exchangeRates)}
+            data-test-subtotal-thb={String(subtotal)}
           >
-            {formatPrice(priceCalc.serviceFee, currency, exchangeRates, language)}
+            {fmt(subtotal)}
           </span>
         </div>
       )}
+
+      <div className="flex justify-between gap-2">
+        <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
+        <span
+          className="font-medium tabular-nums"
+          data-testid="booking-breakdown-service-fee"
+          data-test-fee-value={priceRawForTest(serviceFee, currency, exchangeRates)}
+          data-test-fee-thb={String(serviceFee)}
+        >
+          {fmt(serviceFee)}
+        </span>
+      </div>
+
+      <div className="flex justify-between gap-2 text-slate-600">
+        <span>{taxLabel}</span>
+        <span
+          className="font-medium tabular-nums"
+          data-testid="booking-breakdown-tax"
+          data-test-tax-thb={String(taxAmount)}
+        >
+          {taxAmount > 0 ? fmt(taxAmount) : getUIText('breakdownTaxZero', language)}
+        </span>
+      </div>
 
       <Separator />
       <div
@@ -160,10 +209,10 @@ export function BookingPriceBreakdown({
             highlightTotalForDiscount ? 'text-xl text-emerald-700 sm:text-2xl' : 'text-lg text-slate-900',
           )}
           data-testid="booking-price-total"
-          data-test-raw-value={priceRawForTest(priceCalc.finalTotal, currency, exchangeRates)}
-          data-test-total-thb={String(Math.round(Number(priceCalc.finalTotal) || 0))}
+          data-test-raw-value={priceRawForTest(payableTotal, currency, exchangeRates)}
+          data-test-total-thb={String(payableTotal)}
         >
-          {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
+          {fmt(payableTotal)}
         </span>
       </div>
 

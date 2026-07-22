@@ -16,7 +16,11 @@ import {
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
-import { upsertSystemSetting } from '@/lib/admin/system-settings-store.js'
+import {
+  readSystemSettingsByKeys,
+  upsertSystemSetting,
+} from '@/lib/admin/system-settings-store.js'
+import { resolveIcalPlatformSyncPolicy } from '@/lib/ical/ical-platform-sync-interval.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -57,6 +61,24 @@ async function runSync() {
   const startTime = Date.now()
   const MAX_RUNTIME = 55000
 
+  // Stage 193.1 — throttle SSOT = admin `ical_sync_settings.frequency` (not partner UI).
+  // Heartbeat = cron-job.org (~30m); this interval only skips listings synced too recently.
+  const byKey = await readSystemSettingsByKeys(['ical_sync_settings'])
+  const platformPolicy = resolveIcalPlatformSyncPolicy(byKey.ical_sync_settings?.value)
+  if (!platformPolicy.enabled) {
+    console.log('[ICAL-SYNC] Platform ical_sync_settings.enabled=false — skip run')
+    return {
+      success: true,
+      total: 0,
+      synced: 0,
+      errors: 0,
+      skipped: 0,
+      platform_frequency: platformPolicy.frequency,
+      disabled: true,
+    }
+  }
+  const platformIntervalMs = platformPolicy.intervalMs
+
   const { data: listings, error } = await supabase
     .from('listings')
     .select('id, sync_settings')
@@ -72,12 +94,13 @@ async function runSync() {
     const settings = l.sync_settings
     if (!settings?.sources?.length) return false
     if (!settings.auto_sync) return false
-    const interval = (settings.sync_interval_hours || 24) * 60 * 60 * 1000
     const lastSync = settings.last_sync ? new Date(settings.last_sync).getTime() : 0
-    return Date.now() - lastSync >= interval
+    return Date.now() - lastSync >= platformIntervalMs
   })
 
-  console.log(`[ICAL-SYNC] Found ${toSync.length} listings to sync`)
+  console.log(
+    `[ICAL-SYNC] Found ${toSync.length} listings to sync (platform frequency=${platformPolicy.frequency})`,
+  )
 
   const results = {
     total: toSync.length,

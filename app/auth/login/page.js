@@ -93,7 +93,7 @@ function AuthLoginInner() {
 
 export default function AuthLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-slate-50" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-gradient-to-tr from-slate-50 via-slate-50 to-brand/10" />}>
       <AuthLoginInner />
     </Suspense>
   )

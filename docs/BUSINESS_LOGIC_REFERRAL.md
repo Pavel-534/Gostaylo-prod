@@ -10,11 +10,11 @@ Canonical engine: `lib/services/marketing/referral-pnl.service.js`.
 
 - `PlatformGross` = `GuestServiceFee + HostCommission`.
 - `BaseNetProfitOrder` = `PlatformGross - InsuranceReserve`.
-- `acquiring_fee_percent` (from `system_settings.general`): variable PSP/bank cost share.
-- `operational_reserve_percent` (from `system_settings.general`): operational reserve share.
-- `AdjustedNetProfitOrder` = `BaseNetProfitOrder - AcquiringFee - OperationalReserve`.
-- `referral_reinvestment_percent` (from `system_settings.general`): how much of `NetProfitOrder` is reinvested into referral rewards.
-- `referral_split_ratio` (from `system_settings.general`): referrer share in `[0..1]`, where:
+- `acquiring_fee_percent` / waterfall (USN, VAT, reserves): via **`system_fintech_settings`** (`SystemConfigService`) — Stage 131.
+- `AdjustedNetProfitOrder` = owner net after waterfall (see ADR-131 / `fintech-waterfall.js`).
+- `referral_reinvestment_percent` (from **`system_fintech_settings`**, not legacy `system_settings.general`): share of Net Platform Margin reinvested into the referral pool.
+- Guest pool split when L2 enabled: `ambassador_guest_pool_l1/l2/referee_percent` (launch **45 / 12 / 43**).
+- Legacy `referral_split_ratio`: referrer share in `[0..1]` when guest L2 flag is off:
   - `bonus` (referrer) = `ReferralPool × referral_split_ratio`,
   - `cashback` (referee) = `ReferralPool × (1 - referral_split_ratio)`.
 
@@ -70,10 +70,14 @@ Expense Control Panel applies costs in this order:
 
 ## Default Policy (if missing in settings)
 
-- `referral_reinvestment_percent`: `70`.
-- `referral_split_ratio`: `0.5` (50/50).
+**SSOT bootstrap:** `lib/config/fintech-config-defaults.js` → `system_fintech_settings` (ADR-131).
 
-These defaults are conservative bootstraps and should be tuned by business targets (CAC, LTV, refund rate, PSP costs).
+- `referral_reinvestment_percent`: **`45`** (share of Net Platform Margin → referral pool).
+- Guest pool (L2 Live): L1 **`45`** / L2 **`12`** / referee **`43`**.
+- Legacy `referral_split_ratio`: `0.5` (50/50) when guest L2 disabled.
+- Host activation MLM (promo tank, unchanged): L1 **`70`** / L2 **`30`**.
+
+Tune by business targets (CAC, LTV, refund rate, PSP costs). Do **not** confuse reinvestment **45%** with host-activation **70/30**.
 
 ## Security Rules (Stage 71.2)
 

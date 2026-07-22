@@ -101,7 +101,7 @@ export default function MarketingSettingsPage() {
   const [retryBookingId, setRetryBookingId] = useState('');
   const [retryBusy, setRetryBusy] = useState(false);
   const [form, setForm] = useState({
-    referralReinvestmentPercent: 70,
+    referralReinvestmentPercent: 45,
     acquiringFeePercent: 0,
     operationalReservePercent: 0,
     partnerActivationBonus: 500,
@@ -129,7 +129,7 @@ export default function MarketingSettingsPage() {
         setSnapshot(s);
         setForm({
           referralReinvestmentPercent: clamp(
-            s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 70,
+            s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 45,
             0,
             95,
           ),

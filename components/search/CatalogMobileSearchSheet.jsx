@@ -4,6 +4,7 @@
  * CatalogMobileSearchSheet — unified mobile search editor (<md) for home + catalog.
  * Single-tab FilterBar / UnifiedSearchBar variant="filter"; SSOT filter state in parent.
  * Stage 179.0 — overview-only sheet (FAB / catalog summary); no programmatic nested picker opens.
+ * Stage 190.6 — Where/Dates/Guests use accordion + `presentation="wizardStep"` (no nested drawers).
  */
 
 import { useCallback, useEffect, useRef } from 'react'
@@ -84,7 +85,7 @@ export function CatalogMobileSearchSheet({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-full"
+            className="min-h-11 min-w-11 h-11 w-11 rounded-full"
             onClick={onClose}
             aria-label="Close"
             data-testid="catalog-mobile-search-close"
@@ -97,6 +98,7 @@ export function CatalogMobileSearchSheet({
           <FilterBar
             {...filterBarProps}
             mobileSheetEditor
+            mobileSheetOpen={open}
             categorySelectPortalClassName={CATALOG_MOBILE_SEARCH_SHEET_SELECT_Z}
             shellWrapper={false}
             catalogHeadline={null}

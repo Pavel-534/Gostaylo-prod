@@ -5,21 +5,42 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 
-const STEPS = [
-  { id: 'browse', href: '/listings', match: (p) => p.startsWith('/listings') },
-  { id: 'chat', href: '/messages', match: (p) => p.startsWith('/messages') },
-  { id: 'pay', href: null, match: (p) => p.startsWith('/checkout') },
-  { id: 'trips', href: '/my-bookings', match: (p) => p.startsWith('/my-bookings') || p.startsWith('/renter/bookings') },
-]
+function isCatalogPath(p) {
+  return p === '/listings' || p.startsWith('/listings?')
+}
+
+function isListingPdpPath(p) {
+  return /^\/listings\/[^/?]+/.test(p)
+}
 
 /**
- * Stage 115.0 — мягкий контекст пути гостя (без смены логики бронирования).
- * @param {{ t: (key: string) => string, className?: string }} props
+ * Stage 115.0 / 190.3 — мягкий контекст пути гостя (без смены логики бронирования).
+ * `bookingMode`: Instant Book → browse → book → pay → trips; request → … → request → …
+ * @param {{ t: (key: string) => string, className?: string, bookingMode?: 'instant' | 'request' }} props
  */
-export function GuestBookingFlowHint({ t, className }) {
+export function GuestBookingFlowHint({ t, className, bookingMode = 'request' }) {
   const pathname = usePathname() || ''
-  const activeIdx = STEPS.findIndex((s) => s.match(pathname))
+  const instant = bookingMode === 'instant'
+  const midStep = instant
+    ? { id: 'book', href: null, match: isListingPdpPath }
+    : { id: 'request', href: null, match: isListingPdpPath }
+
+  const steps = [
+    { id: 'browse', href: '/listings', match: isCatalogPath },
+    midStep,
+    { id: 'chat', href: '/messages', match: (p) => p.startsWith('/messages') },
+    { id: 'pay', href: null, match: (p) => p.startsWith('/checkout') },
+    { id: 'trips', href: '/my-bookings', match: (p) => p.startsWith('/my-bookings') || p.startsWith('/renter/bookings') },
+  ]
+
+  const activeIdx = steps.findIndex((s) => s.match(pathname))
   if (activeIdx < 0) return null
+
+  /** On PDP / catalog / checkout — hide chat pill so Instant path doesn’t imply mandatory chat. */
+  const visibleSteps = steps.filter((s, idx) => {
+    if (s.id !== 'chat') return true
+    return pathname.startsWith('/messages') || idx === activeIdx
+  })
 
   return (
     <nav
@@ -28,10 +49,12 @@ export function GuestBookingFlowHint({ t, className }) {
         className,
       )}
       aria-label={t('stage115_guestFlowAria')}
+      data-booking-mode={instant ? 'instant' : 'request'}
     >
-      {STEPS.map((step, idx) => {
-        const done = idx < activeIdx
-        const current = idx === activeIdx
+      {visibleSteps.map((step, idx) => {
+        const fullIdx = steps.findIndex((s) => s.id === step.id)
+        const done = fullIdx < activeIdx
+        const current = fullIdx === activeIdx
         const label = t(`stage115_guestFlow_${step.id}`)
         const pillClass = cn(
           'rounded-lg px-2 py-0.5 transition-colors',

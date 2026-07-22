@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -44,6 +46,13 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
   const showPriceSkeleton =
     Boolean(c.commissionLoading) && Boolean(c.promoDiscount || c.promoLoading)
 
+  const listingId = p.listing?.id ? String(p.listing.id) : null
+  const listingHref = listingId ? `/listings/${encodeURIComponent(listingId)}` : null
+  const coverSrc =
+    typeof p.listing?.coverImage === 'string' && p.listing.coverImage.trim()
+      ? p.listing.coverImage.trim()
+      : null
+
   return (
     <div>
       <Card>
@@ -51,17 +60,46 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
           <CardTitle className="text-lg">{getUIText('checkout_orderTitle', c.language)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <p className="font-semibold text-slate-900">{p.listing?.title}</p>
-            <p className="text-sm text-slate-600 mt-1">
-              {new Date(p.booking.checkIn).toLocaleDateString(c.dateNumberLocale)} –{' '}
-              {new Date(p.booking.checkOut).toLocaleDateString(c.dateNumberLocale)}
-            </p>
-            {p.invoice?.id && (
-              <p className="text-xs text-slate-500 mt-1">
-                Invoice #{String(p.invoice.id).slice(-8)} • {String(p.invoice.currency || 'THB').toUpperCase()}
+          <div className="flex gap-3 items-start">
+            {coverSrc ? (
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                {listingHref ? (
+                  <Link href={listingHref} className="absolute inset-0 block" data-testid="checkout-listing-thumb-link">
+                    <Image
+                      src={coverSrc}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  </Link>
+                ) : (
+                  <Image src={coverSrc} alt="" fill sizes="80px" className="object-cover" />
+                )}
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              {listingHref ? (
+                <Link
+                  href={listingHref}
+                  className="font-semibold text-slate-900 hover:text-brand transition-colors"
+                  data-testid="checkout-listing-title-link"
+                >
+                  {p.listing?.title}
+                </Link>
+              ) : (
+                <p className="font-semibold text-slate-900">{p.listing?.title}</p>
+              )}
+              <p className="text-sm text-slate-600 mt-1">
+                {new Date(p.booking.checkIn).toLocaleDateString(c.dateNumberLocale)} –{' '}
+                {new Date(p.booking.checkOut).toLocaleDateString(c.dateNumberLocale)}
               </p>
-            )}
+              {p.invoice?.id && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Invoice #{String(p.invoice.id).slice(-8)} • {String(p.invoice.currency || 'THB').toUpperCase()}
+                </p>
+              )}
+            </div>
           </div>
 
           {!c.hasInvoiceCheckout ? (
@@ -136,7 +174,7 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
                 {showPriceSkeleton ? (
                   <span className="h-6 w-24 rounded gsl-shimmer" aria-hidden />
                 ) : (
-                  <span className="text-teal-600">
+                  <span className="text-brand">
                     {c.formatDisplayPrice(c.totalWithFee, p.booking?.currency || 'THB')}
                   </span>
                 )}
@@ -146,7 +184,7 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full mt-3 border-red-200 text-red-700 hover:bg-red-50"
+                className="w-full mt-3 min-h-11 border-red-200 text-red-700 hover:bg-red-50"
                 onClick={onOpenCancel}
               >
                 {getUIText('renterCancel_button', c.language)}

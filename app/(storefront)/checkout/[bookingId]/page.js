@@ -86,7 +86,7 @@ function CheckoutPageInner({ params: paramsProp }) {
     return <CheckoutFullPageSpinner />
   }
   if (p.accessDenied) {
-    return <CheckoutAccessDeniedView language={c.language} />
+    return <CheckoutAccessDeniedView language={c.language} bookingId={params.bookingId} />
   }
   const listingCategorySlug =
     p.listing?.category_slug ||
@@ -189,13 +189,25 @@ function CheckoutPageInner({ params: paramsProp }) {
 
   const flowT = (key) => getUIText(key, c.language)
 
+  const listingId = p.listing?.id ? String(p.listing.id) : null
+  const checkoutBackHref = listingId
+    ? `/listings/${encodeURIComponent(listingId)}`
+    : '/my-bookings'
+  const checkoutBackLabel = listingId
+    ? tCheckout('checkout_backToListing')
+    : tCheckout('checkout_backToTrips')
+
   return (
     <div className="gsl-page">
       <div className="mx-auto max-w-4xl px-3 sm:px-4 py-6 sm:py-8 space-y-5">
         <GuestBookingFlowHint t={flowT} />
-        <Link href="/" className="inline-flex items-center text-brand hover:text-brand-hover text-sm font-medium">
+        <Link
+          href={checkoutBackHref}
+          className="inline-flex min-h-11 items-center text-brand hover:text-brand-hover text-sm font-medium"
+          data-testid="checkout-back-link"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {tCheckout('checkout_back')}
+          {checkoutBackLabel}
         </Link>
 
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{tCheckout('checkout_title')}</h1>

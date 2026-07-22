@@ -1,5 +1,6 @@
 /**
- * POST /api/v2/auth/telegram — Telegram Login Widget callback (Stage 189.0).
+ * POST /api/v2/auth/telegram — Telegram Login Widget callback (Stage 189.0 / 189.3.1).
+ * RU IP segment: primary SSO via Login Widget blocked (AccountConnections deep-link ≠ this route).
  */
 import { NextResponse } from 'next/server'
 import { rateLimitCheck } from '@/lib/rate-limit'
@@ -9,12 +10,17 @@ import {
   attachSessionForProfile,
   resolveProfileByTelegramLogin,
 } from '@/lib/auth/alternate-auth-session.service'
+import { isRussia } from '@/lib/geo'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
   const rl = await rateLimitCheck(request, 'auth')
   if (rl) return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers })
+
+  if (isRussia(request)) {
+    return authErrorJson(AuthErrorCode.AUTH_OAUTH_REGION_RESTRICTED, 403)
+  }
 
   let body
   try {

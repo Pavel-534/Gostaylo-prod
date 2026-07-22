@@ -131,14 +131,27 @@ export function UnifiedSearchBar({
   onFiltersClick,
   /** Raised z-index for Radix Select portal inside bottom sheets (e.g. CatalogMobileSearchSheet z-120). */
   categorySelectPortalClassName,
+  /**
+   * Stage 190.6 — `wizardStep` inside CatalogMobileSearchSheet: accordion inline panels (no nested drawers).
+   * @type {'wizardStep' | undefined}
+   */
+  pickerPresentation,
+  /** When CatalogMobileSearchSheet opens, collapse accordion steps. */
+  mobileSheetOpen = false,
   className,
   innerClassName,
 }) {
   const [categories, setCategories] = useState([])
+  const [sheetStep, setSheetStep] = useState(null)
   const locations = useMemo(() => getStaticLocationsSeed(), [])
   const whereRef = useRef(null)
   const datesRef = useRef(null)
   const guestsTriggerRef = useRef(null)
+  const isSheetWizard = pickerPresentation === 'wizardStep' && variant === 'filter'
+
+  useEffect(() => {
+    if (mobileSheetOpen) setSheetStep(null)
+  }, [mobileSheetOpen])
 
   useEffect(() => {
     if (variant !== 'filter') return
@@ -286,6 +299,179 @@ export function UnifiedSearchBar({
   ) : null
 
   if (variant === 'filter') {
+    const whereLabel =
+      resolveWhereLabel(where, whereOptionsFull) || getUIText('whereShort', language)
+    const datesLabel =
+      formatDateRangeShort(dateRange, language) || getUIText('dates', language)
+    const guestsLabel =
+      formatGuestsSummaryText(guestsBreakdown || { adults: Number(guests) || 1, children: 0, infants: 0 }, language) ||
+      getUIText('mobileSearchWhoTitle', language)
+
+    const toggleSheetStep = (step) => {
+      setSheetStep((prev) => (prev === step ? null : step))
+    }
+
+    const sheetStepButtonClass =
+      'flex min-h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm font-medium text-slate-800 transition-colors hover:border-brand/30 hover:bg-brand/5'
+
+    if (isSheetWizard) {
+      return (
+        <div
+          className="flex min-w-0 flex-col gap-3 overflow-visible rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+          data-testid="unified-search-sheet-wizard"
+        >
+          {textSearchRowFilter ? (
+            <div className="overflow-hidden rounded-xl" data-search-section="keywords">
+              {textSearchRowFilter}
+            </div>
+          ) : null}
+
+          <div data-search-section="what" className="min-w-0">
+            <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <Layers className="h-4 w-4 mr-2 text-brand" />
+                <span className="truncate">
+                  {category && category !== 'all'
+                    ? getCategoryName(category, language) || category
+                    : getUIText('whatPlaceholder', language)}
+                </span>
+              </SelectTrigger>
+              <SelectContent className={categorySelectPortalClassName}>
+                <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
+                {orderedCategoryRows.map(({ cat: c, depth }) => (
+                  <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
+                    {depth ? '· ' : ''}
+                    {getCategoryName(c.slug, language) || c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div data-search-section="where" className="min-w-0 space-y-2">
+            {sheetStep === 'where' ? (
+              <div className="rounded-xl border border-brand/20 bg-slate-50/80 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {getUIText('whereShort', language)}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-brand"
+                    onClick={() => setSheetStep(null)}
+                  >
+                    {language === 'ru' ? 'Свернуть' : 'Done'}
+                  </button>
+                </div>
+                <WhereCombobox
+                  options={whereOptionsFull}
+                  value={where || 'all'}
+                  onChange={setWhere}
+                  placeholder={getUIText('whereShort', language)}
+                  fetchSuggestions={fetchWhereSuggestions}
+                  loading={false}
+                  variant="compact"
+                  language={language}
+                  className="min-w-0"
+                  presentation="wizardStep"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={sheetStepButtonClass}
+                onClick={() => toggleSheetStep('where')}
+                data-testid="sheet-wizard-where-trigger"
+              >
+                <MapPin className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{whereLabel}</span>
+              </button>
+            )}
+          </div>
+
+          <div data-search-section="dates" className="min-w-0 space-y-2">
+            {sheetStep === 'dates' ? (
+              <div className="rounded-xl border border-brand/20 bg-slate-50/80 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {getUIText('dates', language)}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-brand"
+                    onClick={() => setSheetStep(null)}
+                  >
+                    {language === 'ru' ? 'Свернуть' : 'Done'}
+                  </button>
+                </div>
+                <SearchCalendar
+                  value={dateRange}
+                  onChange={setDateRange}
+                  locale={language}
+                  placeholder={getUIText('dates', language)}
+                  className="w-full"
+                  presentation="wizardStep"
+                />
+                {transportIntervalMode && dateRange?.from && dateRange?.to ? (
+                  <div className="mt-2 grid grid-cols-2 gap-1">
+                    <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-9 text-xs" />
+                    <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-9 text-xs" />
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={sheetStepButtonClass}
+                onClick={() => toggleSheetStep('dates')}
+                data-testid="sheet-wizard-dates-trigger"
+              >
+                <Calendar className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{datesLabel}</span>
+              </button>
+            )}
+          </div>
+
+          <div data-search-section="guests" className="min-w-0 space-y-2">
+            {sheetStep === 'guests' ? (
+              <div className="rounded-xl border border-brand/20 bg-slate-50/80 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {getUIText('mobileSearchWhoTitle', language)}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-brand"
+                    onClick={() => setSheetStep(null)}
+                  >
+                    {language === 'ru' ? 'Свернуть' : 'Done'}
+                  </button>
+                </div>
+                <GuestsPopover
+                  language={language}
+                  guests={guests}
+                  setGuests={setGuests}
+                  guestsBreakdown={guestsBreakdown}
+                  setGuestsBreakdown={setGuestsBreakdown}
+                  presentation="wizardStep"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={sheetStepButtonClass}
+                onClick={() => toggleSheetStep('guests')}
+                data-testid="sheet-wizard-guests-trigger"
+              >
+                <Users className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">{guestsLabel}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex min-w-0 flex-col overflow-visible rounded-lg border border-slate-200 bg-white shadow-sm">
         {textSearchRowFilter ? (

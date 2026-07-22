@@ -55,7 +55,7 @@ export function SystemSettingsMarketing() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settingsSnapshot, setSettingsSnapshot] = useState(null)
-  const [reinvestmentPercent, setReinvestmentPercent] = useState(70)
+  const [reinvestmentPercent, setReinvestmentPercent] = useState(45)
   const [referrerSharePercent, setReferrerSharePercent] = useState(50)
   const [acquiringFeePercent, setAcquiringFeePercent] = useState(0)
   const [operationalReservePercent, setOperationalReservePercent] = useState(0)
@@ -89,7 +89,7 @@ export function SystemSettingsMarketing() {
         if (settingsResult.ok && settingsResult.data) {
           const s = settingsResult.data
           setSettingsSnapshot(s)
-          const rp = clamp(s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 70, 0, 95)
+          const rp = clamp(s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 45, 0, 95)
           const splitRatio = clamp(s.referralSplitRatio ?? s.referral_split_ratio ?? 0.5, 0, 1)
           const acquiring = clamp(s.acquiringFeePercent ?? s.acquiring_fee_percent ?? 0, 0, 100)
           const operational = clamp(

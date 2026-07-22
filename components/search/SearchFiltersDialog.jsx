@@ -2,6 +2,7 @@
 
 /**
  * Catalog «Все фильтры» — draft SSOT + SearchFiltersShell (ADR-102).
+ * Stage 190.6 — Apply CTA «Show N» from draft filters (preview count), not committed page size.
  */
 
 import { useCallback } from 'react'
@@ -12,6 +13,7 @@ import {
   SEARCH_FILTERS_SHELL_SELECT_DRAWER_Z,
 } from '@/components/search/SearchFiltersShell'
 import { useCatalogExtraFiltersDraft } from '@/lib/hooks/use-catalog-extra-filters-draft'
+import { useDraftFilterResultCount } from '@/lib/hooks/use-draft-filter-result-count'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 export function SearchFiltersDialog({
@@ -24,7 +26,13 @@ export function SearchFiltersDialog({
   onExtraFiltersChange,
   listingsSample = [],
   priceHistogram = null,
+  /** Baseline when draft === committed (usually meta.available). */
   resultCount = 0,
+  /**
+   * Build /api/v2/search params for a draft extra-filters snapshot (core filters stay current).
+   * @type {((extra: import('@/lib/search/listings-page-url.js').ListingsExtraFilters) => URLSearchParams) | null}
+   */
+  buildDraftSearchParams = null,
 }) {
   const isMobile = useIsMobile()
   const t = (ru, en) => (language === 'ru' ? ru : en)
@@ -43,6 +51,14 @@ export function SearchFiltersDialog({
       open,
     })
 
+  const { count: draftResultCount, loading: draftCountLoading } = useDraftFilterResultCount({
+    open,
+    committedCount: resultCount,
+    draftExtraFilters,
+    committedExtraFilters: extraFilters,
+    buildSearchParams: buildDraftSearchParams,
+  })
+
   const handleOpenChange = useCallback(
     (nextOpen) => {
       if (!nextOpen) {
@@ -60,7 +76,9 @@ export function SearchFiltersDialog({
 
   const title = t('Все фильтры', 'All filters')
   const resetLabel = t('Сбросить всё', 'Clear all')
-  const applyLabel = `${t('Показать', 'Show')} ${resultCount} ${t('вариантов', 'results')}`
+  const applyLabel = draftCountLoading
+    ? `${t('Показать', 'Show')}…`
+    : `${t('Показать', 'Show')} ${draftResultCount} ${t('вариантов', 'results')}`
 
   return (
     <SearchFiltersShell

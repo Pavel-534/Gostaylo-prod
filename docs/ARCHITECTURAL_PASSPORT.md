@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.189.3.0 | **Last Updated**: 2026-07-16 | **Stage 189.3:** PWA & Mobile App Shell — single safe-area tab bar, AccountConnections in `/profile`, Telegram dual-mode (Login Widget vs deep-link).
+> **Version**: 12.193.2.0 | **Last Updated**: 2026-07-22 | **Stage 193.2:** iCal clean SSOT — no listing `sync_interval_hours` in partner UI persist; frequency = admin + cron-job.org.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -81,11 +81,19 @@
 | Слой | SSOT / маршрут | Поведение |
 |------|----------------|-----------|
 | **Fullscreen UI** | `app/auth/login`, `register`, `forgot-password`, `verify-email` + `components/auth/AuthPageShell.jsx` | Вне `(storefront)` — **без** `AppHeader` / `MobileBottomNav`; инпуты/CTA **`h-12` (48px)**; **login** default tab = **email** (поля пароля сразу видны), phone — вторая вкладка |
-| **Provider policy** | `lib/auth/auth-provider-policy.js` | **Всегда:** phone, email, Telegram, Yandex, VK. **Только non-RU IP:** Google, Apple (`isRussia` из middleware geo) |
+| **Provider policy** | `lib/auth/auth-provider-policy.js` | **Всегда:** phone, email, Yandex, VK. **Только non-RU IP:** Google, Apple, **Telegram Login Widget** (`isRussia` из middleware geo) |
 | **Phone OTP** | `POST /api/v2/auth/phone/send`, `verify` + `lib/auth/phone-otp.service.js` + `auth_phone_otp_challenges` | `InputOTP` 6 ячеек; SMS SSOT **`lib/auth/sms-dispatch.service.js`** (Stage 189.2) |
-| **Telegram Login** | `POST /api/v2/auth/telegram` + `lib/auth/telegram-login-verify.js` | Widget: `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` + `TELEGRAM_BOT_TOKEN` |
+| **Telegram Login** | `POST /api/v2/auth/telegram` + `lib/auth/telegram-login-verify.js` | Widget: `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` + `TELEGRAM_BOT_TOKEN`; **RU → 403** `AUTH_OAUTH_REGION_RESTRICTED` |
 | **OAuth** | Supabase PKCE `app/auth/callback/` | Yandex/VK/Google/Apple — `AuthProviderButtons.jsx`; RU IP: callback `region_restricted` для foreign SSO |
 | **Entry redirect** | `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`; middleware guard → `/auth/login?redirect=` | Booking resume: `gostaylo-auth-close` event + `gostaylo_redirect_after_login` |
+
+### Stage 189.3.1 — Smart Auth Gateway + Immersive Auth polish (2026-07-17)
+
+| Слой | SSOT / маршрут | Поведение |
+|------|----------------|-----------|
+| **TG Login Widget (RU)** | `AUTH_FOREIGN_SSO_PROVIDERS` includes `telegram`; `TelegramLoginButton` + `POST /api/v2/auth/telegram` | Primary SSO hidden/blocked for `isRussia`; **не** затрагивает `AccountConnections` deep-link notify-link |
+| **AccountConnections** | `buildAccountConnectionStates` — `telegram.available` always | Post-login привязка бота для транзакционных уведомлений — для всех гео |
+| **Immersive UI** | `AuthPageShell` | Hero brand (`text-3xl`/`4xl`), `bg-gradient-to-tr … to-brand/10`, form card `rounded-3xl` + `shadow-xl shadow-brand/5` + `backdrop-blur` |
 
 ### Stage 189.1 — Account linking & gateways (2026-07-16)
 
@@ -115,7 +123,7 @@
 | **Bottom nav safe-area** | `MobileBottomNav` + `.safe-area-pb`; `--app-bottom-nav-height` | Inset **один раз** на nav; shell padding = только measured height (без повторного `env(safe-area-inset-bottom)`) |
 | **Keyboard** | `visualViewport` shrink &gt; 120px | Таб-бар скрыт, высота CSS-var → `0` |
 | **Account connections** | `AccountConnections` + `hooks/use-account-connections.js` на `/profile` (`ProfileSecurity`) | `GET/DELETE /api/v2/auth/connections`; секция `#account-connections` |
-| **Telegram dual-mode** | Login Widget на `/auth/*`; deep-link `t.me/?start=link_<userId>` в кабинете | Один `TELEGRAM_BOT_TOKEN`; виджет ≠ notify-link |
+| **Telegram dual-mode** | Login Widget на `/auth/*` (**non-RU only**, 189.3.1); deep-link `t.me/?start=link_<userId>` в кабинете | Один `TELEGRAM_BOT_TOKEN`; виджет ≠ notify-link; RU: виджет скрыт, deep-link доступен |
 | **Profile ≤375px** | `ProfileInfo.jsx` | `truncate` / `min-w-0`; partner CTA `flex-col` → row с `min-[375px]:`; brand tokens |
 | **PWA iOS icon** | `app/layout.js` + `public/icons/icon-180x180.png` | `apple-touch-icon` 180×180 |
 
@@ -324,7 +332,7 @@
 | **API** | Поиск: `guestDisplayPriceThb` + **`guestServiceFeePercent`** (календарь в `pricing` при датах); PDP: **`GET /api/v2/listings/[id]`** → те же поля. | **`lib/api/run-listings-search-get.js`**, **`app/api/v2/listings/[id]/route.js`** |
 | **Партнёрский wizard** | Витрина: `storefrontGuestDisplayThb` + конвертация в `baseCurrency` через **retail** `rateMap` (**`computeWizardStorefrontPricePreview`**); **`chatInvoiceReferenceThb`** — ориентир чат-счёта (THB × multiplier), не подменяет каталог. | **`lib/pricing/fx-display.js`**, **`listing-wizard-step-validation.js`**, **`useListingWizardState`** (`fetchExchangeRates({ retail: true })`) |
 | **Каталог / карта** | Цена на карточке и маркере — SSOT; без дат: «X / ночь» (или / сутки); с датами: «X за N ночей». | **`components/card/CardPriceDisplay.jsx`**, **`components/listing-card.jsx`**, **`InteractiveSearchMap`**, **`TopListingsGrid`** |
-| **PDP hero** | Desktop **`BookingWidget`** + mobile **`MobileBookingBar`**: `getPdpHeroGuestPriceThb`; подпись «+ сервисный сбор и налоги» → scroll к **`#booking-price-breakdown`**. | **`components/listing/BookingWidget.jsx`**, **`components/listing/booking/BookingPriceBreakdown.jsx`** |
+| **PDP hero** | Desktop **`BookingWidget`** + mobile **`MobileBookingBar`**: stay = **`getGuestPayableTotalThb`** / `getPdpHeroGuestPriceThb` (subtotal + fee + tax = breakdown total); composition `{{unit}} × N + fee + taxes`; scroll к **`#booking-price-breakdown`**. | **`components/listing/BookingWidget.jsx`**, **`components/listing/booking/BookingPriceBreakdown.jsx`**, **`lib/pricing/guest-display-price.js`** |
 | **SEO / structured data** | Meta title/description и Schema.org `Offer.price` — гостевая цена (не голый `base_price_thb`). | **`app/listings/[id]/layout.js`**, **`lib/seo/listing-schema-org.js`** |
 | **Избранное / недавние** | **`GET /api/v2/favorites`** SSOT list/toggle; **`GET /api/v2/favorites/check?listingId=`** O(1) на PDP (`useFavoriteState`); **`GET .../check?listingIds=`** batch map на каталоге (`useFavoritesBatch`, max 50/chunk); **`/api/v2/renter/favorites`** — thin proxy; PDP **`RecentlyViewedRail`** (`useRecentlyViewed` localStorage). | **`app/api/v2/favorites/route.js`**, **`app/api/v2/favorites/check/route.js`**, **`lib/favorites/`**, **`hooks/use-favorites-batch.js`**, **`lib/hooks/useFavoriteState.js`**, **`components/recommendations/RecentlyViewedRail.jsx`** |
 | **«Для вас» (167.2)** | `GET /api/v2/recommendations/for-you`; `personalization-v1.service.js`; `ForYouRail`; min 6 API / mobile max 5 visible; catalog hidden ≤480px | Ad-hoc home scoring в компонентах |
@@ -1113,7 +1121,7 @@ Client APIs (unchanged P0): reviews, FX, calendar, availability, commission, fav
 
 - **Morph SSOT:** **`lib/search/public-search-chrome-constants.js`** — progress 0→1 (expanded bottom → header bottom); visual **`morphT`** from surface-specific start; **`interpolatePublicSearchChromeHeight`** for CSS vars.
 - **Главная:** hero anchor **`HomeHeroLuxe`** `[data-public-search-chrome-expanded]`; compact **`PublicSearchChrome surface="home"`** opacity+translate; CSS height **0 → compact** by progress.
-- **Каталог:** expanded **`FilterBar`** fades `1-morphT`; compact cross-fade from progress **0.28**; CSS height **expanded → compact** lerp. **Mobile `<md`:** in-flow **`FilterBar`** заменён на **`CatalogSearchSummaryBar`** (`gsl-premium-glass`); поиск — **`CatalogMobileSearchSheet`** (overview: FAB / summary tap) с **`FilterBar`** / **`UnifiedSearchBar variant="filter"`**; «Что?» — **`CategoryQuickChips`** (179.1, **`selectHeroCategoryTabs`**), state **`usePublicSearchFilters`**. **Главная `<md`:** hero direct pickers (179.0); sheet FAB; hero/sheet share **`CategoryQuickChips`**. **Tab bar «Поиск»** (178.8): **`mobile-search-tab-action.js`**.
+- **Каталог:** expanded **`FilterBar`** fades `1-morphT`; compact cross-fade from progress **0.28**; CSS height **expanded → compact** lerp. **Mobile `<md`:** in-flow **`FilterBar`** заменён на **`CatalogSearchSummaryBar`** (`gsl-premium-glass`); поиск — **`CatalogMobileSearchSheet`** (overview: FAB / summary tap) с **`FilterBar`** / **`UnifiedSearchBar variant="filter"`** + **Stage 190.6** accordion **`pickerPresentation="wizardStep"`** (Where/Dates/Guests inline, без nested Drawer); «Все фильтры» Apply — **`useDraftFilterResultCount`** + **`fetchSearchAvailableCount`** (draft extras, URL SSOT не трогается до Apply); «Что?» — **`CategoryQuickChips`** (179.1, **`selectHeroCategoryTabs`**), state **`usePublicSearchFilters`**. **Главная `<md`:** hero direct pickers (179.0); sheet FAB; hero/sheet share **`CategoryQuickChips`**. **Tab bar «Поиск»** (178.8): **`mobile-search-tab-action.js`**.
 - **State:** **`usePublicSearchFilters`**. **Layout:** catalog **`lg:items-start`**; map **`.app-sticky-below-public-chrome`**.
 - **Поиск (без дублирования ядра):** **`lib/api/run-listings-search-get.js`** — **единая** реализация **`runListingsSearchGet`**; её вызывают **`GET /api/v2/search`**, **`GET /api/v2/listings/search`** (прокси/сигнатуры) и **SSR ItemList** (`lib/seo/listings-catalog-itemlist.js`). По умолчанию **`isLite: true`**: **`LISTINGS_SELECT_LITE`** (без колонки **`description`** в SELECT), в JSON — до **3** URL изображений, **`metadata`** через **`pickLiteListingMetadata`** (`lib/api/search/listing-search-payload.js`); полная карточка — только **`GET /api/v2/listings/[id]`** (или иной детальный эндпоинт). Для полной выдачи списка (редко): **`runListingsSearchGet(req, { isLite: false })`**. В **`meta.payloadProfile`** — **`lite`** | **`full`**; размер тела логируется как **`[SEARCH API] catalog JSON UTF-8 size`**. При **`checkIn`/`checkOut`** фильтр **`min_price`/`max_price`** и **`meta.priceHistogram`** используют календарную среднюю за период (**`listingMatchesSearchPriceRange`**, **`lib/search/effective-unit-price-for-search.js`**); без дат — SQL по **`base_price_thb`**. API **v1** отдельного движка поиска **нет** в `app/api/v1/`.
 - **Карта query-параметров каталога (онбординг):** **`docs/SEARCH_FILTERS_QUERY_MAP.md`** — таблица «параметр → клиент / сервер / SQL / пост-фильтр / availability» и чеклист при добавлении фильтра.

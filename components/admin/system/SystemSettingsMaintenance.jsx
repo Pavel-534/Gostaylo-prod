@@ -136,13 +136,20 @@ export function SystemSettingsMaintenance({
             </div>
           </div>
 
-          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-orange-200">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-medium">Частота синхронизации</span>
+          <div className="flex flex-col gap-2 bg-white rounded-lg p-3 border border-orange-200 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2 min-w-0">
+              <Clock className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <span className="text-sm font-medium">Частота синхронизации (платформа)</span>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Троттлинг перезапроса OTA на объявление. Фактический «пульс» — cron-job.org
+                  (~каждые 30 мин → /api/cron/ical-sync). Частота быстрее 30 мин не ускорит синк,
+                  пока внешний cron реже.
+                </p>
+              </div>
             </div>
             <Select value={icalSyncFrequency} onValueChange={onIcalFrequencyChange}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-32 shrink-0 min-h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

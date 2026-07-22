@@ -132,9 +132,23 @@ export function GuestBookingNextStepsCard({
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
           {showPay || showChat ? (
-            <div className="flex flex-wrap gap-2 pt-0.5">
+            <div
+              className={cn(
+                'flex flex-wrap gap-2 pt-0.5',
+                surface === 'pdp' && showPay ? 'w-full flex-col sm:flex-row' : null,
+              )}
+            >
               {showPay ? (
-                <Button asChild variant="brand" size="sm">
+                <Button
+                  asChild
+                  variant="brand"
+                  size={surface === 'pdp' ? 'default' : 'sm'}
+                  className={cn(
+                    surface === 'pdp' &&
+                      'min-h-11 w-full sm:w-auto sm:min-w-[10rem] font-semibold',
+                  )}
+                  data-testid="guest-next-steps-pay"
+                >
                   <Link href={payHref}>{getUIText('guestNextSteps_payNow', language)}</Link>
                 </Button>
               ) : null}

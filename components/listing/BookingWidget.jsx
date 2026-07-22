@@ -23,7 +23,10 @@ import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 import { useBookingWidgetLogic } from '@/hooks/pricing/useBookingWidgetLogic'
 import { BookingPriceBreakdown } from '@/components/listing/booking/BookingPriceBreakdown'
 import { BookingDateGuestsPicker } from '@/components/listing/booking/BookingDateGuestsPicker'
-import { BookingActionButtons } from '@/components/listing/booking/BookingActionButtons'
+import {
+  BookingActionButtons,
+  resolveListingInstantBooking,
+} from '@/components/listing/booking/BookingActionButtons'
 
 function formatSpecialOfferLine(tier, language, rentalPeriodMode) {
   const pct = Math.round(Number(tier.percent) || 0)
@@ -90,10 +93,23 @@ function HeroPriceHeadline({
 }) {
   const hero = useHeroGuestPrice(listing, priceCalc)
   const spanMode = rentalPeriodMode === 'day' ? 'day' : 'night'
-  const periodLine =
+  const periodWord =
+    rentalPeriodMode === 'day'
+      ? getUIText('listingPriceUnitDay', language)
+      : getUIText('night', language)
+
+  let secondaryLine =
     hero.mode === 'stay' && hero.nights > 0
       ? formatRentalSpanLabel(hero.nights, spanMode, language)
       : tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')
+
+  if (hero.mode === 'stay' && hero.nights > 0 && hero.unitThb > 0) {
+    const unitFmt = formatDisplayPriceInCurrency(hero.unitThb, currency, exchangeRates, language)
+    secondaryLine = getUIText('listingHero_priceComposition', language)
+      .replace(/\{\{unit\}\}/g, unitFmt)
+      .replace(/\{\{nights\}\}/g, String(hero.nights))
+      .replace(/\{\{period\}\}/g, periodWord)
+  }
 
   return (
     <div>
@@ -102,12 +118,16 @@ function HeroPriceHeadline({
         data-testid="listing-hero-price"
         data-test-hero-mode={hero.mode}
         data-test-hero-nights={String(hero.nights || 0)}
+        data-test-hero-payable="1"
         data-test-raw-value={displayPriceRawForTest(hero.amountThb, currency, exchangeRates)}
       >
         {formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)}
       </div>
-      <p className={cn('text-slate-500', compact ? 'text-xs' : 'text-sm')} data-testid="booking-per-period-label">
-        {periodLine}
+      <p
+        className={cn('text-slate-500 leading-snug', compact ? 'text-[11px] sm:text-xs' : 'text-sm')}
+        data-testid="booking-per-period-label"
+      >
+        {secondaryLine}
       </p>
       {!compact ? (
         <button
@@ -117,7 +137,16 @@ function HeroPriceHeadline({
         >
           {getUIText('listingHero_priceFeesNote', language)}
         </button>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          className="mt-0.5 inline-flex min-h-11 max-w-full items-center text-left text-[11px] leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2"
+          onClick={scrollToBookingPriceBreakdown}
+          data-testid="listing-mobile-fee-link"
+        >
+          {getUIText('listingHero_priceFeesNote', language)}
+        </button>
+      )}
     </div>
   )
 }
@@ -307,6 +336,7 @@ export function DesktopBookingWidget({
             bookingUiMode={bookingUiMode}
             availabilityLoading={availabilityLoading}
             canInstantBook={canInstantBook}
+            isInstantBookListing={resolveListingInstantBooking(listing)}
             exclusiveDatesUnavailable={exclusiveDatesUnavailable}
             onPrivateTripClick={onPrivateTripClick}
             onSpecialPriceClick={onSpecialPriceClick}
@@ -348,6 +378,10 @@ export function MobileBookingBar({
     askPartnerLoading,
   })
   const mobileOfferTiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
+  const isInstantBookListing = resolveListingInstantBooking(listing)
+  const payHintTitle = isInstantBookListing
+    ? tx('listingBookingPayHintInstant')
+    : tx('listingBookingPayHintInquiry')
   const onChatClick = exclusiveDatesUnavailable ? onAskPartnerUnavailable || onAskPartner : onAskPartner
   const showChatButton = exclusiveDatesUnavailable
     ? !!(onAskPartnerUnavailable || onAskPartner)
@@ -449,7 +483,7 @@ export function MobileBookingBar({
             }
             variant="brand"
             data-testid="listing-book-now"
-            title={tx('listingBookingPayHint')}
+            title={payHintTitle}
             className="h-12 min-h-11 min-w-[7rem] shrink-0 rounded-xl px-4 text-sm font-semibold sm:min-w-[7.5rem] sm:text-base"
           >
             {exclusiveDatesUnavailable

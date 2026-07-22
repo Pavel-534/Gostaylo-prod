@@ -39,7 +39,7 @@ let mockSettings = {
   guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
   hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
   insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
-  referralReinvestmentPercent: 70,
+  referralReinvestmentPercent: 45,
   referralSplitRatio: 0.5,
   acquiringFeePercent: 0,
   operationalReservePercent: 0,
@@ -175,7 +175,7 @@ export async function GET(request) {
       referralReinvestmentPercent:
         Number.isFinite(rawReferralReinvestment) && rawReferralReinvestment >= 0 && rawReferralReinvestment <= 95
           ? rawReferralReinvestment
-          : 70,
+          : 45,
       referralSplitRatio: Number.isFinite(rawReferralSplit) && rawReferralSplit >= 0 && rawReferralSplit <= 1 ? rawReferralSplit : 0.5,
       acquiringFeePercent: Number.isFinite(rawAcquiringFee) && rawAcquiringFee >= 0 && rawAcquiringFee <= 100 ? rawAcquiringFee : 0,
       operationalReservePercent:

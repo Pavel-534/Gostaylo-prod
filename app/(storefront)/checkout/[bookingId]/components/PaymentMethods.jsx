@@ -178,8 +178,9 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
           !p.paymentMethod ||
           (p.checkoutNeedsLegalConsent && !p.checkoutLegalConsent)
         }
+        variant="brand"
         data-testid="checkout-pay-submit"
-        className="w-full bg-teal-600 hover:bg-teal-700 h-12 text-lg"
+        className="w-full min-h-12 h-12 text-lg font-semibold"
       >
         {p.processing ? (
           <>

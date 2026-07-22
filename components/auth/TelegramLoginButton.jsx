@@ -3,22 +3,26 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { useGeo } from '@/contexts/geo-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { finishAuthNavigation } from '@/lib/auth/auth-redirect'
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
+import { isAuthProviderVisible } from '@/lib/auth/auth-provider-policy'
 import { useAuth } from '@/contexts/auth-context'
 
 /**
- * Stage 189.0 / 189.3 — Telegram Login Widget (auth screens only; profile uses deep-link).
- * Shows a labeled fallback so the row is never an empty white box if the iframe fails.
+ * Stage 189.0 / 189.3.1 — Telegram Login Widget (auth screens only; profile uses deep-link).
+ * Hidden for RU IP (`isRussia`) — primary SSO gate. AccountConnections linking stays open.
  */
 export function TelegramLoginButton({ requireLegalConsent = false, legalConsent = true, onLegalRequired }) {
   const containerRef = useRef(null)
   const router = useRouter()
   const { language } = useI18n()
+  const { isRussia } = useGeo()
   const { refreshUserFromServer } = useAuth()
   const botUsername = getTelegramBotUsername()
+  const visible = isAuthProviderVisible('telegram', { isRussia })
 
   const onTelegramAuth = useCallback(
     async (user) => {
@@ -58,7 +62,7 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
   )
 
   useEffect(() => {
-    if (!botUsername || !containerRef.current) return undefined
+    if (!visible || !botUsername || !containerRef.current) return undefined
 
     window.onTelegramAuth = onTelegramAuth
 
@@ -83,9 +87,9 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
         window.onTelegramAuth = undefined
       }
     }
-  }, [botUsername, onTelegramAuth])
+  }, [visible, botUsername, onTelegramAuth])
 
-  if (!botUsername) return null
+  if (!visible || !botUsername) return null
 
   return (
     <div className="relative flex min-h-12 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200/90 bg-white px-4 shadow-sm">

@@ -41,7 +41,7 @@ These **must** use cron-job.org in production; Vercel daily alone is insufficien
 
 | cron-job.org title | API path | cron-job.org schedule | Vercel fallback (`vercel.json`) | Notes |
 |--------------------|----------|----------------------|---------------------------------|-------|
-| `Airento: ical-sync` | `/api/cron/ical-sync` | `*/30 * * * *` (~30 min) | `0 0 * * *` (00:00 UTC) | `maxDuration` 60 s; `last_sync` only on ≥1 successful source |
+| `Airento: ical-sync` | `/api/cron/ical-sync` | `*/30 * * * *` (~30 min) | `0 0 * * *` (00:00 UTC) | `maxDuration` 60 s; `last_sync` only on ≥1 successful source. **Throttle SSOT (Stage 193.1):** admin `ical_sync_settings.frequency` (not per-listing `sync_interval_hours`). Heartbeat cannot be faster than this cron-job.org schedule. |
 | `Airento: notification-outbox` | `/api/cron/notification-outbox` | `*/5 * * * *` | `15 4 * * *` (04:15 UTC) | Requires `NOTIFICATION_OUTBOX=1`; batch 20/run |
 | `Airento: exchange-rates-refresh` | `/api/cron/exchange-rates-refresh` | `0 */3 * * *` or `0 */6 * * *` | `0 0 * * *` | FX step target ~3 h — external if more than daily |
 | `Airento: push-sweeper` | `/api/cron/push-sweeper` | `*/10 * * * *` (recommended) | *(not in vercel.json)* | Stale chat push batches |

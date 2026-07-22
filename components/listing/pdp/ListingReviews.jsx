@@ -1,20 +1,8 @@
 'use client'
 
-import nextDynamic from 'next/dynamic'
+import { ReviewsSection } from '@/components/listing/ReviewsSection'
 
-const ReviewsSectionLazy = nextDynamic(
-  () =>
-    import('@/components/listing/ReviewsSection').then((mod) => ({
-      default: mod.ReviewsSection,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="rounded-xl border border-slate-100 bg-slate-50 h-40 animate-pulse" aria-hidden />
-    ),
-  },
-)
-
+/** Eager (above-fold after Stage 191.0 reorder) — no lazy delay for review trust block. */
 export function ListingReviews(props) {
-  return <ReviewsSectionLazy {...props} />
+  return <ReviewsSection {...props} />
 }

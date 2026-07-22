@@ -48,17 +48,27 @@ function ListingPdpPostInquiryBanner({ language, listing }) {
   const { postInquiryBooking } = useListingBooking()
   if (!postInquiryBooking) return null
 
-  const postInquiryChatHref = postInquiryBooking.conversationId
-    ? `/messages/${encodeURIComponent(postInquiryBooking.conversationId)}`
+  const bookingId = postInquiryBooking.bookingId
+    ? String(postInquiryBooking.bookingId)
     : null
+  const status = String(postInquiryBooking.status || '').toUpperCase()
+  const postInquiryChatHref = postInquiryBooking.conversationId
+    ? `/messages/${encodeURIComponent(String(postInquiryBooking.conversationId))}`
+    : null
+  // Same checkout contract as chat `BookingInfoSidebar` / my-bookings next-steps.
+  const payHref =
+    bookingId && status === 'AWAITING_PAYMENT'
+      ? `/checkout/${encodeURIComponent(bookingId)}`
+      : null
 
   return (
     <GuestBookingNextStepsCard
-      bookingId={postInquiryBooking.bookingId}
-      status={postInquiryBooking.status}
+      bookingId={bookingId}
+      status={status}
       language={language}
       categorySlug={listing?.categorySlug}
       chatHref={postInquiryChatHref}
+      payHref={payHref}
       compact
       surface="pdp"
       className="mb-4 max-w-2xl"
@@ -225,7 +235,15 @@ function ListingPdpContent({ listingId, lang }) {
         />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 app-pad-mobile-booking-chrome">
-          <GuestBookingFlowHint t={(key) => getUIText(key, language)} className="mb-4 max-w-2xl" />
+          <GuestBookingFlowHint
+            t={(key) => getUIText(key, language)}
+            className="mb-4 max-w-2xl"
+            bookingMode={
+              listing?.instantBooking === true || listing?.instant_booking === true
+                ? 'instant'
+                : 'request'
+            }
+          />
           <ListingBookingProvider
             listing={listing}
             user={user}

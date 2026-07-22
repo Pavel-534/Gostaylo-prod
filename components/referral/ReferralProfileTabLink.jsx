@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { ArrowRight, Coins, Copy, Plane } from 'lucide-react'
@@ -8,15 +9,47 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
 import { ReferralAmbassadorWaveGuide } from '@/components/referral/ReferralAmbassadorWaveGuide'
+import {
+  AMBASSADOR_UTM_CHANNELS,
+  buildAmbassadorUtmLink,
+} from '@/lib/referral/ambassador-utm-link'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
+const CHANNEL_LABEL_KEYS = {
+  telegram: 'stage192_utmChannelTelegram',
+  instagram: 'stage192_utmChannelInstagram',
+  youtube: 'stage192_utmChannelYoutube',
+  vk: 'stage192_utmChannelVk',
+}
+
+/**
+ * Stage 192.0 — Link tab + Creator Pack UTM channel chips (presentation-only).
+ */
 export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBonusThb }) {
   const router = useRouter()
+  const [utmChannel, setUtmChannel] = useState('telegram')
   const displayName = String(data?.marketingCard?.displayName || '').trim() || 'Ambassador'
   const brand = String(data?.brandName || '').trim() || 'Platform'
-  const inviteLink = String(data?.referralLandingUrl || data?.referralLink || '').trim()
+  const baseInviteLink = String(data?.referralLandingUrl || data?.referralLink || '').trim()
   const welcomeCode = String(data?.code || '').trim() || 'AIR-XXXXXX'
-  const directPartnersInvited = Number(data?.stats?.directPartnersInvited ?? data?.ambassador?.directPartnersInvited ?? 0)
+  const campaignId = String(data?.code || data?.userId || data?.id || 'ambassador')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, 64) || 'ambassador'
+
+  const taggedInviteLink = useMemo(
+    () =>
+      buildAmbassadorUtmLink(baseInviteLink, {
+        channel: utmChannel,
+        campaign: campaignId,
+      }) || baseInviteLink,
+    [baseInviteLink, utmChannel, campaignId],
+  )
+
+  const directPartnersInvited = Number(
+    data?.stats?.directPartnersInvited ?? data?.ambassador?.directPartnersInvited ?? 0,
+  )
   const stories = data?.referralStoriesCopy || {}
   const storiesCardHeadline = String(t('stage73_storiesCardHeadline')).replace(/\{brand\}/g, brand)
   const tierName = String(stories.tierName || data?.ambassador?.currentTier?.name || '').trim()
@@ -25,12 +58,13 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
     .replace(/\{brand\}/g, brand)
     .replace(/\{tier\}/g, tierName || '—')
     .replace(/\{badge\}/g, badgeFromStories || '—')
-  async function copyText(value) {
+
+  async function copyText(value, successKey = 'referralStage726_linkCopied') {
     const v = String(value || '').trim()
     if (!v) return
     try {
       await navigator.clipboard.writeText(v)
-      toast.success(t('referralStage726_linkCopied'))
+      toast.success(t(successKey))
     } catch {
       toast.error(t('referralStage726_copyFail'))
     }
@@ -72,11 +106,12 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <CardHeader>
             <CardTitle>{t('stage1143_qrCardTitle')}</CardTitle>
+            <CardDescription className="text-slate-600">{t('stage192_creatorPackTitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="mx-auto w-fit rounded-xl border-2 border-dashed border-slate-200 p-4 bg-slate-50">
-              {inviteLink ? (
-                <QRCodeSVG value={inviteLink} size={180} level="M" includeMargin />
+              {taggedInviteLink ? (
+                <QRCodeSVG value={taggedInviteLink} size={180} level="M" includeMargin />
               ) : (
                 <div className="h-[180px] w-[180px] rounded bg-slate-100" />
               )}
@@ -84,12 +119,51 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
             <div className="space-y-2">
               <p className="text-xs text-slate-500">{t('stage1143_yourCode')}</p>
               <Input value={welcomeCode} readOnly className="font-semibold tracking-wide" />
+
+              <div className="space-y-2 pt-1" data-testid="referral-utm-builder">
+                <p className="text-sm font-medium text-slate-900">{t('stage192_utmBuilderTitle')}</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{t('stage192_utmBuilderHint')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {AMBASSADOR_UTM_CHANNELS.map((ch) => {
+                    const selected = utmChannel === ch
+                    return (
+                      <button
+                        key={ch}
+                        type="button"
+                        data-testid={`referral-utm-channel-${ch}`}
+                        aria-pressed={selected}
+                        onClick={() => setUtmChannel(ch)}
+                        className={cn(
+                          'inline-flex min-h-11 items-center rounded-full border px-3.5 text-sm font-medium transition',
+                          selected
+                            ? 'border-brand bg-brand text-white shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-brand/40 hover:bg-brand/5',
+                        )}
+                      >
+                        {t(CHANNEL_LABEL_KEYS[ch])}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <p className="text-xs text-slate-500">{t('stage1143_yourLink')}</p>
-              <div className="flex gap-2">
-                <Input value={inviteLink} readOnly />
-                <Button type="button" variant="brand" onClick={() => void copyText(inviteLink)}>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={taggedInviteLink}
+                  readOnly
+                  className="min-w-0 text-xs sm:text-sm"
+                  data-testid="referral-utm-link-input"
+                />
+                <Button
+                  type="button"
+                  variant="brand"
+                  className="min-h-11 shrink-0 w-full sm:w-auto"
+                  data-testid="referral-utm-copy"
+                  onClick={() => void copyText(taggedInviteLink, 'stage192_utmCopied')}
+                >
                   <Copy className="h-4 w-4 mr-1" />
-                  {t('stage1143_copyLink')}
+                  {t('stage192_utmCopyLink')}
                 </Button>
               </div>
             </div>
@@ -108,8 +182,15 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       </section>
 
       <ReferralMarketingKit
-        referralLink={data?.referralLink || ''}
-        landingShareUrl={data?.referralLandingUrl || ''}
+        referralLink={
+          buildAmbassadorUtmLink(String(data?.referralLink || '').trim(), {
+            channel: utmChannel,
+            campaign: campaignId,
+          }) ||
+          data?.referralLink ||
+          ''
+        }
+        landingShareUrl={taggedInviteLink || data?.referralLandingUrl || ''}
         landingShortLabel={data?.referralLandingShortDisplay || ''}
         loyaltyExplainerHref="/about/loyalty"
         loyaltyExplainerLabel={t('stage91_shareColdAudienceLoyaltyLink')}
@@ -157,7 +238,11 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
           <ArrowRight className="h-4 w-4 text-brand" />
           <span>
             {t('stage1143_walletHint')}{' '}
-            <button type="button" className="font-medium text-brand underline" onClick={() => router.push('/profile/wallet')}>
+            <button
+              type="button"
+              className="font-medium text-brand underline min-h-11 inline-flex items-center"
+              onClick={() => router.push('/profile/wallet')}
+            >
               {t('stage1143_tabNavWallet')}
             </button>
           </span>

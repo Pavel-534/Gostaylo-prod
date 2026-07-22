@@ -30,11 +30,40 @@ import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
 const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
 const BOOKING_MODAL_INTENT_KEY = 'gostaylo_booking_modal_intent'
+/** Stage 190.5 — mid-flow login: guest form draft (name/email/phone/message). */
+const BOOKING_MODAL_DRAFT_KEY = 'gostaylo_booking_modal_draft'
 const INQUIRY_MODAL_INTENTS = new Set(['private', 'special', 'contact'])
 
 function normalizeBookingModalIntent(savedIntent) {
   const s = String(savedIntent || 'book')
   return INQUIRY_MODAL_INTENTS.has(s) ? s : 'book'
+}
+
+/**
+ * Prefer draft (manual mid-flow) → existing non-empty field → profile.
+ * @param {unknown} draftVal
+ * @param {unknown} prev
+ * @param {unknown} profileVal
+ */
+function pickGuestFieldAfterAuth(draftVal, prev, profileVal) {
+  const fromDraft = String(draftVal ?? '').trim()
+  if (fromDraft) return fromDraft
+  const fromPrev = String(prev ?? '').trim()
+  if (fromPrev) return String(prev)
+  return String(profileVal ?? '').trim()
+}
+
+function readAndClearBookingFormDraft() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(BOOKING_MODAL_DRAFT_KEY)
+    if (!raw) return null
+    sessionStorage.removeItem(BOOKING_MODAL_DRAFT_KEY)
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -68,14 +97,6 @@ export function useListingBookingFlow({
     [pathname, searchParams],
   )
 
-  const openLoginForBooking = useCallback(
-    (intent = 'book') => {
-      persistBookingAuthContext(intent)
-      openLoginModal()
-    },
-    [openLoginModal, persistBookingAuthContext],
-  )
-
   useAuthModalState({
     onClose: (outcome) => {
       if (outcome !== 'success') return
@@ -90,6 +111,48 @@ export function useListingBookingFlow({
       }
     },
   })
+
+  const [bookingModalOpen, setBookingModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestEmail, setGuestEmail] = useState('')
+  const [guestPhone, setGuestPhone] = useState('')
+  const [dateRange, setDateRange] = useState({ from: null, to: null })
+  const [vehicleStartTime, setVehicleStartTime] = useState('07:00')
+  const [vehicleEndTime, setVehicleEndTime] = useState('07:00')
+  const [guests, setGuests] = useState(2)
+  const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
+  const [message, setMessage] = useState('')
+  const [calendarKey, _setCalendarKey] = useState(0)
+  const [bookingModalIntent, setBookingModalIntent] = useState('book')
+  const [postInquiryBooking, setPostInquiryBooking] = useState(null)
+
+  const persistBookingFormDraft = useCallback(() => {
+    try {
+      sessionStorage.setItem(
+        BOOKING_MODAL_DRAFT_KEY,
+        JSON.stringify({
+          v: 1,
+          guestName,
+          guestEmail,
+          guestPhone,
+          message,
+          guests,
+        }),
+      )
+    } catch {
+      /* non-critical */
+    }
+  }, [guestName, guestEmail, guestPhone, message, guests])
+
+  const openLoginForBooking = useCallback(
+    (intent = 'book') => {
+      persistBookingFormDraft()
+      persistBookingAuthContext(intent)
+      openLoginModal()
+    },
+    [openLoginModal, persistBookingAuthContext, persistBookingFormDraft],
+  )
 
   useEffect(() => {
     if (!user) return
@@ -106,20 +169,26 @@ export function useListingBookingFlow({
     }
   }, [user])
 
-  const [bookingModalOpen, setBookingModalOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [guestName, setGuestName] = useState('')
-  const [guestEmail, setGuestEmail] = useState('')
-  const [guestPhone, setGuestPhone] = useState('')
-  const [dateRange, setDateRange] = useState({ from: null, to: null })
-  const [vehicleStartTime, setVehicleStartTime] = useState('07:00')
-  const [vehicleEndTime, setVehicleEndTime] = useState('07:00')
-  const [guests, setGuests] = useState(2)
-  const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
-  const [message, setMessage] = useState('')
-  const [calendarKey, _setCalendarKey] = useState(0)
-  const [bookingModalIntent, setBookingModalIntent] = useState('book')
-  const [postInquiryBooking, setPostInquiryBooking] = useState(null)
+  /** Stage 190.5 — never clobber mid-flow typed fields with profile on login/refresh. */
+  useEffect(() => {
+    if (!user) return
+    const draft = readAndClearBookingFormDraft()
+
+    setGuestName((prev) =>
+      pickGuestFieldAfterAuth(draft?.guestName, prev, user.firstName || user.name || ''),
+    )
+    setGuestEmail((prev) => pickGuestFieldAfterAuth(draft?.guestEmail, prev, user.email || ''))
+    setGuestPhone((prev) => pickGuestFieldAfterAuth(draft?.guestPhone, prev, user.phone || ''))
+
+    if (draft && Object.prototype.hasOwnProperty.call(draft, 'message')) {
+      setMessage(typeof draft.message === 'string' ? draft.message : '')
+    }
+
+    if (draft?.guests != null) {
+      const g = Math.round(Number(draft.guests))
+      if (Number.isFinite(g) && g >= 1) setGuests(g)
+    }
+  }, [user])
 
   const listingUiCtx = useMemo(() => {
     const slug = listing?.categorySlug || listing?.category?.slug
@@ -305,14 +374,6 @@ export function useListingBookingFlow({
     vehicleEndTime,
   ])
 
-  useEffect(() => {
-    if (user) {
-      setGuestName(user.firstName || user.name || '')
-      setGuestEmail(user.email || '')
-      setGuestPhone(user.phone || '')
-    }
-  }, [user])
-
   const maxGuests = listing ? resolveListingGuestCapacity(listing) : 10
 
   const listingRentalPeriodMode = useMemo(
@@ -423,7 +484,7 @@ export function useListingBookingFlow({
       return
     }
     if (!user) {
-      openLoginModal()
+      openLoginForBooking('contact')
       return
     }
     openBookModal('contact')

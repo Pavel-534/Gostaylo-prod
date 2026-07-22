@@ -9,7 +9,7 @@ export function AuthOauthDivider() {
   return (
     <div className="relative py-1">
       <span className="absolute inset-x-0 top-1/2 h-px bg-slate-200" aria-hidden />
-      <p className="relative mx-auto w-fit bg-slate-50 px-3 text-center text-xs font-medium tracking-wide text-slate-400">
+      <p className="relative mx-auto w-fit bg-white px-3 text-center text-xs font-medium tracking-wide text-slate-400">
         {getUIText('auth_oauthDivider', language)}
       </p>
     </div>

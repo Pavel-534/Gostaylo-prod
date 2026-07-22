@@ -37,6 +37,7 @@ import {
   parseBBoxFromParams,
   parseExtraFiltersFromParams,
   parseCatalogSortFromParams,
+  buildPublicSearchParams,
 } from '@/lib/search/listings-page-url'
 import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
@@ -112,6 +113,8 @@ function ListingsContent() {
     smartSearchOn,
     setSmartSearchOn,
     semanticSiteEnabled,
+    filterSnapshot,
+    transportSearchMode,
     debouncedWhere,
     debouncedGuests,
     debouncedDateRange,
@@ -533,7 +536,19 @@ function ListingsContent() {
       onExtraFiltersChange: setExtraFilters,
       listingsForFiltersHistogram: allListings,
       priceHistogram: meta?.priceHistogram ?? null,
-      filterResultCount: allListings.length,
+      filterResultCount: Math.max(
+        0,
+        Math.round(Number(meta?.available ?? allListings.length) || 0),
+      ),
+      buildDraftSearchParams: (draftExtra) =>
+        buildPublicSearchParams(filterSnapshot, {
+          includeSemantic: true,
+          semanticSiteEnabled,
+          transportIntervalMode: transportSearchMode,
+          extraFilters: draftExtra,
+          appliedBbox,
+          catalogSort,
+        }),
       textQuery: searchQuery,
       setTextQuery: setSearchQuery,
       smartSearchOn,
@@ -558,9 +573,14 @@ function ListingsContent() {
       extraFilters,
       allListings,
       meta?.priceHistogram,
+      meta?.available,
+      filterSnapshot,
+      semanticSiteEnabled,
+      transportSearchMode,
+      appliedBbox,
+      catalogSort,
       searchQuery,
       smartSearchOn,
-      semanticSiteEnabled,
       handleCatalogSearchSubmit,
       setSelectedCategory,
       setWhere,

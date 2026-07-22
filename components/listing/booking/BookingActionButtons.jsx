@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
-import { ArrowRight, MessageCircle } from 'lucide-react'
+import { ArrowRight, Clock, MessageCircle, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 function ChatPreviewBadge({ preview, hasUnread, language }) {
   if (!preview) return null
@@ -24,6 +25,35 @@ function ChatPreviewBadge({ preview, hasUnread, language }) {
   )
 }
 
+/**
+ * Stage 190.3 — Instant Book vs request-to-book pay timing (display-only).
+ * Do not confuse with availability `canInstantBook` (dates free).
+ */
+export function BookingPayTimingHint({ isInstantBookListing, tx, className }) {
+  const instant = isInstantBookListing === true
+  const Icon = instant ? Zap : Clock
+  return (
+    <p
+      className={cn(
+        'flex items-start justify-center gap-1.5 text-xs leading-relaxed px-1 text-center',
+        instant ? 'text-brand' : 'text-slate-500',
+        className,
+      )}
+      data-testid="listing-booking-pay-hint"
+      data-instant-book={instant ? '1' : '0'}
+    >
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+      <span>
+        {instant ? tx('listingBookingPayHintInstant') : tx('listingBookingPayHintInquiry')}
+      </span>
+    </p>
+  )
+}
+
+export function resolveListingInstantBooking(listing) {
+  return listing?.instantBooking === true || listing?.instant_booking === true
+}
+
 export function BookingActionButtons({
   language,
   tx,
@@ -39,6 +69,7 @@ export function BookingActionButtons({
   bookingUiMode = 'exclusive',
   availabilityLoading = false,
   canInstantBook = true,
+  isInstantBookListing = false,
   exclusiveDatesUnavailable = false,
   onPrivateTripClick,
   onSpecialPriceClick,
@@ -88,9 +119,7 @@ export function BookingActionButtons({
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
 
-      <p className="text-xs leading-relaxed text-slate-500 text-center px-1">
-        {tx('listingBookingPayHint')}
-      </p>
+      <BookingPayTimingHint isInstantBookListing={isInstantBookListing} tx={tx} />
 
       {sharedMode && (onPrivateTripClick || onSpecialPriceClick) && (
         <div className="grid gap-2">

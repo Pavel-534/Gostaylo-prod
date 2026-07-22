@@ -275,7 +275,35 @@
 
 **Stage 171.32 (2026-07-15, IOS-P1-02):** **PWA focus refetch guard** — TanStack `refetchOnWindowFocus: false` в installed standalone (`navigator.standalone` / `display-mode: standalone`); browser tabs без изменений. SSOT: **`lib/query/query-default-options.js`**.
 
-**Stage 189.0 Auth (2026-07-16):** **Immersive Dynamic Auth** — fullscreen `app/auth/login|register|forgot-password|verify-email` (no storefront chrome); SSOT `lib/auth/auth-provider-policy.js` (Yandex/VK/phone/email/Telegram global; Google/Apple only when `!isRussia`); phone OTP `POST /api/v2/auth/phone/*` + `auth_phone_otp_challenges`; Telegram Login `POST /api/v2/auth/telegram`; `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`. **Login UX:** default tab **email** (password fields visible on first paint); phone via second tab.
+**Stage 193.2 (2026-07-22):** **iCal clean SSOT** — partner `CalendarSyncManager` drops legacy `sync_interval_hours` / interval constants; persist payload = `{ sources, auto_sync, last_sync }` only. Dead `partnerCal_syncInterval*` i18n removed. Throttle remains admin `ical_sync_settings` + cron-job.org (~30m).
+
+**Stage 193.1 (2026-07-22):** **iCal frequency ownership fix** — partner UI no longer exposes interval Select (host: paste URL → `auto_sync: true`). Cron throttle SSOT = admin `system_settings.ical_sync_settings.frequency` via `lib/ical/ical-platform-sync-interval.js` in `/api/cron/ical-sync`. Physical wake-up remains **cron-job.org ~30 min** (not `vercel.json`). Admin System → iCal panel documents heartbeat vs throttle.
+
+**Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
+
+**Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 191.1 (2026-07-18):** **CRO funnel closure** — presentation smoke `tests/e2e/cro-funnel-smoke.spec.ts` (`cro-funnel-smoke`); checklist + P2 backlog **`docs/CRO_FUNNEL_CLOSURE_191.md`**; sheet close touch ≥44px (P1-10).
+
+**Stage 191.0 (2026-07-18):** **CRO P1 polish (presentation)** — home `<md` collapsed search pill → `CatalogMobileSearchSheet`; PDP `ListingReviews` moved above description + category score bars + review dates; checkout listing thumb + Back → listing/`my-bookings`; pay CTA `variant="brand"`; mobile sticky fee-link touch ≥44px (breakdown `$X × N` from 190.1).
+
+**Stage 190.6 (2026-07-18):** **Mobile search CRO (P0-6/P0-7)** — `CatalogMobileSearchSheet` → `UnifiedSearchBar` accordion + `presentation="wizardStep"` (no nested Where/Dates/Guests drawers); `SearchFiltersDialog` «Show N» via `useDraftFilterResultCount` + `fetchSearchAvailableCount` on draft extras (`buildDraftSearchParams`); URL debounce SSOT unchanged until Apply.
+
+**Stage 190.5 (2026-07-18):** **PDP booking mid-flow auth draft (CRO)** — before login, `sessionStorage` `gostaylo_booking_modal_draft` (name/email/phone/message/guests); after auth, restore draft and fill profile only into empty fields (`useListingBookingFlow`). Dates remain URL SSOT.
+
+**Stage 190.4 (2026-07-18):** **Checkout access-denied Login CTA (CRO)** — `CheckoutAccessDeniedView` → brand «Войти» → `/auth/login?redirect=/checkout/{id}` (SSOT `gostaylo_redirect_after_login` / `finishAuthNavigation`). Presentation-only.
+
+**Stage 190.3 (2026-07-18):** **Instant vs Inquiry pay copy (CRO)** — public listing DTO `instantBooking`; PDP `BookingPayTimingHint` / `listingBookingPayHintInstant|Inquiry`; `GuestBookingFlowHint` `bookingMode` (book vs request, chat pill not forced on Instant PDP). Display-only.
+
+**Stage 190.2 (2026-07-18):** **PDP pay resume (CRO)** — `ListingPdpPostInquiryBanner` прокидывает `payHref=/checkout/{bookingId}` в `GuestBookingNextStepsCard` при `AWAITING_PAYMENT` (тот же контракт, что chat `BookingInfoSidebar`). CTA `variant="brand"` на surface `pdp`.
+
+**Stage 190.1 (2026-07-18):** **PDP transparent guest price (CRO)** — `getGuestPayableTotalThb` / `getPdpHeroGuestPriceThb` в `lib/pricing/guest-display-price.js`: stay hero = **итого к оплате** (`finalTotal` = subtotal + service fee + tax). `BookingWidget` hero composition line; `BookingPriceBreakdown` — `$X × N` + fee + tax (0 → «включены»). Display-only; checkout/backend pricing untouched.
+
+**Stage 189.3.1b (2026-07-17):** **Referral economics doc/UI SSOT** — guides (`REFERRAL_OWNER_GUIDE`, `REFERRAL_USER_GUIDE`, `BUSINESS_LOGIC_REFERRAL`) synced to ADR-131: reinvestment **45%** of Net Platform Margin → pool; guest L1/L2/cashback **Live** (45/12/43). Host activation MLM **70/30** unchanged. Admin/API legacy fallbacks for `referral_reinvestment_percent` (`?? 70` / default `70`) → **45** in marketing settings page, `SystemSettingsMarketing`, `marketing-settings` handler, `app/api/admin/settings`. Runtime formulas untouched; SSOT remains `system_fintech_settings` + `FINTECH_CONFIG_DEFAULTS`. **`REFERRAL_USER_GUIDE.md`** rewritten as user-facing slide deck (plain language, no FinTech jargon).
+
+**Stage 189.3.1 (2026-07-17):** **Smart Auth Gateway + Immersive Auth polish** — Telegram Login Widget в `AUTH_FOREIGN_SSO_PROVIDERS` (скрыт при `isRussia` на `/auth/*` + `POST /api/v2/auth/telegram` → `AUTH_OAUTH_REGION_RESTRICTED`); AccountConnections deep-link привязки бота **без** geo-gate. `AuthPageShell`: акцентный `{brand}`, мягкий `to-brand/10` градиент, карточка формы `rounded-3xl` + `shadow-xl shadow-brand/5`.
+
+**Stage 189.0 Auth (2026-07-16):** **Immersive Dynamic Auth** — fullscreen `app/auth/login|register|forgot-password|verify-email` (no storefront chrome); SSOT `lib/auth/auth-provider-policy.js` (Yandex/VK/phone/email global; Google/Apple/**Telegram Login Widget** only when `!isRussia` — refined **189.3.1**); phone OTP `POST /api/v2/auth/phone/*` + `auth_phone_otp_challenges`; Telegram Login `POST /api/v2/auth/telegram`; `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`. **Login UX:** default tab **email** (password fields visible on first paint); phone via second tab.
 
 **Stage 189.1 Auth (2026-07-16):** **Account linking** — `migrations/stage189_1_account_linking.sql` (`handle_new_user` verified-email gate, `profile_auth_identities`, `auth_link_conflicts`); SSOT `lib/auth/account-linking.service.js`; OAuth sync conflict → `/auth/link-conflict` (`GET/POST /api/v2/auth/link-conflict/*`); `components/profile/AccountConnections.jsx` + `GET/DELETE /api/v2/auth/connections`; legal consent SSOT `AuthLegalConsentBlock` under register forms.
 

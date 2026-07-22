@@ -56,6 +56,7 @@ const productionSmokeProjects =
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
  * Guest golden path: `tests/e2e/guest-inquiry-golden-path.spec.ts` — проект `guest-inquiry-golden-path`.
+ * CRO funnel smoke (191.1): `tests/e2e/cro-funnel-smoke.spec.ts` — проект `cro-funnel-smoke` (presentation-only).
  * Chat invoice golden path: `tests/e2e/chat-invoice-payment-golden-path.spec.ts` — проект `chat-invoice-payment-golden-path`.
  * Stage 133 referral dashboard visual: `tests/e2e/referral-dashboard-visual.spec.js` — проект `referral-dashboard-visual` (fixture + snapshots).
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
@@ -215,6 +216,15 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH.user,
+      },
+    },
+    {
+      name: 'cro-funnel-smoke',
+      testDir: './tests/e2e',
+      testMatch: '**/cro-funnel-smoke.spec.ts',
+      timeout: 120_000,
+      use: {
+        ...devices['Desktop Chrome'],
       },
     },
     {
