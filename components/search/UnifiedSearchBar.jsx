@@ -374,6 +374,7 @@ export function UnifiedSearchBar({
                   language={language}
                   className="min-w-0"
                   presentation="wizardStep"
+                  onWizardComplete={() => setSheetStep('dates')}
                 />
               </div>
             ) : (
@@ -411,11 +412,26 @@ export function UnifiedSearchBar({
                   placeholder={getUIText('dates', language)}
                   className="w-full"
                   presentation="wizardStep"
+                  onConfirm={() => {
+                    // Transport stays on dates so interval times remain editable; lodging → guests.
+                    if (!transportIntervalMode) setSheetStep('guests')
+                  }}
                 />
                 {transportIntervalMode && dateRange?.from && dateRange?.to ? (
-                  <div className="mt-2 grid grid-cols-2 gap-1">
-                    <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-9 text-xs" />
-                    <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-9 text-xs" />
+                  <div className="mt-2 space-y-2">
+                    <div className="grid grid-cols-2 gap-1">
+                      <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-9 text-xs" />
+                      <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-9 text-xs" />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="brand"
+                      className="min-h-11 w-full"
+                      onClick={() => setSheetStep('guests')}
+                      data-testid="sheet-wizard-dates-done"
+                    >
+                      {getUIText('mobileSearchDone', language)}
+                    </Button>
                   </div>
                 ) : null}
               </div>
@@ -455,6 +471,15 @@ export function UnifiedSearchBar({
                   setGuestsBreakdown={setGuestsBreakdown}
                   presentation="wizardStep"
                 />
+                <Button
+                  type="button"
+                  variant="brand"
+                  className="mt-3 min-h-11 w-full"
+                  onClick={() => setSheetStep(null)}
+                  data-testid="sheet-wizard-guests-done"
+                >
+                  {getUIText('mobileSearchDone', language)}
+                </Button>
               </div>
             ) : (
               <button

@@ -498,19 +498,24 @@ export function SearchCalendar({
     if (typeof date === 'object' && 'from' in date) {
       // Full range passed (from mobile drawer)
       onChange(date)
+      if (isWizardStep && date?.from && date?.to) {
+        onConfirm?.()
+      }
       return
     }
-    
+
     // Single date clicked
     if (!dateRange.from || (dateRange.from && dateRange.to)) {
       onChange({ from: date, to: null })
     } else {
-      if (date < dateRange.from) {
-        onChange({ from: date, to: dateRange.from })
-      } else {
-        onChange({ from: dateRange.from, to: date })
-      }
+      const next =
+        date < dateRange.from
+          ? { from: date, to: dateRange.from }
+          : { from: dateRange.from, to: date }
+      onChange(next)
       setPopoverOpen(false)
+      // Sheet wizard: complete range → parent advances (guests) or collapses.
+      if (isWizardStep) onConfirm?.()
     }
   }
   

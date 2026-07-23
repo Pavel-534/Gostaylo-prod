@@ -213,19 +213,21 @@ export function FilterBar({
               mobileSheetOpen={mobileSheetOpen}
             />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className={cn(
-              'h-auto min-h-[36px] shrink-0 border-slate-300 px-4 md:self-stretch md:py-0',
-              mobileSheetEditor && 'min-h-11 w-full',
-            )}
-            onClick={() => setFiltersOpen(true)}
-            data-testid="search-filters-button"
-          >
-            <SlidersHorizontal className="mr-2 h-4 w-4 text-brand" />
-            {getUIText('filtersBtn', language)}
-          </Button>
+          {extraFilters != null && onExtraFiltersChange != null ? (
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                'h-auto min-h-[36px] shrink-0 border-slate-300 px-4 md:self-stretch md:py-0',
+                mobileSheetEditor && 'min-h-11 w-full',
+              )}
+              onClick={() => setFiltersOpen(true)}
+              data-testid="search-filters-button"
+            >
+              <SlidersHorizontal className="mr-2 h-4 w-4 text-brand" />
+              {getUIText('filtersBtn', language)}
+            </Button>
+          ) : null}
         </div>
         {showRefineRow ? (
           <div className="border-t border-slate-100 bg-slate-50/95 py-3">

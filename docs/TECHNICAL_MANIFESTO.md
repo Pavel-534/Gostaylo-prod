@@ -283,6 +283,8 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 190.7 (2026-07-23):** **Mobile search sheet wizard UX** — `WhereCombobox` syncs `drawerQuery` on select + `onWizardComplete` → dates; `SearchCalendar` wizard calls `onConfirm` when range completes → guests; guests sticky **Готово** (`mobileSearchDone`); `FilterBar` shows «Фильтры» only when `extraFilters` + `onExtraFiltersChange` wired (home no longer shows a dead button).
+
 **Stage 191.1 (2026-07-18):** **CRO funnel closure** — presentation smoke `tests/e2e/cro-funnel-smoke.spec.ts` (`cro-funnel-smoke`); checklist + P2 backlog **`docs/CRO_FUNNEL_CLOSURE_191.md`**; sheet close touch ≥44px (P1-10).
 
 **Stage 191.0 (2026-07-18):** **CRO P1 polish (presentation)** — home `<md` collapsed search pill → `CatalogMobileSearchSheet`; PDP `ListingReviews` moved above description + category score bars + review dates; checkout listing thumb + Back → listing/`my-bookings`; pay CTA `variant="brand"`; mobile sticky fee-link touch ≥44px (breakdown `$X × N` from 190.1).

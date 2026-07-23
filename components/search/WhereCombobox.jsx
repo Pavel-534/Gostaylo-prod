@@ -154,6 +154,8 @@ export function WhereCombobox({
   suggestDebounceMs = 150,
   /** `wizardStep` — inline panel inside MobileSearchWizard (no nested Drawer/Popover). */
   presentation,
+  /** Stage 190.7 — after pick in sheet wizard: advance to next step (dates). */
+  onWizardComplete,
 }) {
   const [inputValue, setInputValue] = useState('')
   const [drawerQuery, setDrawerQuery] = useState('')
@@ -279,6 +281,10 @@ export function WhereCombobox({
         overrideLabelRef.current = { ...overrideLabelRef.current, [opt.value]: label }
       }
       onChange?.(opt.value)
+      // Sheet/drawer bind the visible input to `drawerQuery` — must sync or tap looks like a no-op.
+      if (isWizardStep || useDrawerShell) {
+        setDrawerQuery(opt.type === 'all' ? '' : label)
+      }
       if (opt.type === 'all') {
         setInputValue('')
       } else {
@@ -286,8 +292,11 @@ export function WhereCombobox({
       }
       if (!isWizardStep) setOpen(false)
       setHighlightedIndex(-1)
+      if (isWizardStep && typeof onWizardComplete === 'function') {
+        onWizardComplete(opt.value, opt)
+      }
     },
-    [onChange, language, isWizardStep],
+    [onChange, language, isWizardStep, useDrawerShell, onWizardComplete],
   )
 
   const clear = useCallback(
@@ -414,12 +423,17 @@ export function WhereCombobox({
         handleSelect(found, localized)
       } else {
         // Фолбэк: ставим slug + локализованную надпись (динамика готова к расширению options)
+        overrideLabelRef.current = { ...overrideLabelRef.current, [chip.value]: localized }
         onChange?.(chip.value)
         setInputValue(localized)
+        if (isWizardStep || useDrawerShell) setDrawerQuery(localized)
         if (!isWizardStep) setOpen(false)
+        if (isWizardStep && typeof onWizardComplete === 'function') {
+          onWizardComplete(chip.value)
+        }
       }
     },
-    [options, handleSelect, onChange, language, isWizardStep],
+    [options, handleSelect, onChange, language, isWizardStep, useDrawerShell, onWizardComplete],
   )
 
   const handlePopularDestinationSelect = useCallback(
@@ -437,11 +451,15 @@ export function WhereCombobox({
         overrideLabelRef.current = { ...overrideLabelRef.current, [val]: localized }
         onChange?.(val)
         setInputValue(localized)
+        if (isWizardStep || useDrawerShell) setDrawerQuery(localized)
         if (!isWizardStep) setOpen(false)
+        if (isWizardStep && typeof onWizardComplete === 'function') {
+          onWizardComplete(val)
+        }
       }
       if (useDrawerShell) setOpen(false)
     },
-    [handleSelect, handleChipSelect, onChange, language, isWizardStep, useDrawerShell],
+    [handleSelect, handleChipSelect, onChange, language, isWizardStep, useDrawerShell, onWizardComplete],
   )
 
   useEffect(() => {
