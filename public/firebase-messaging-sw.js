@@ -58,7 +58,7 @@ self.addEventListener('push', (event) => {
 
       const data = payload?.data || {}
       const type = String(data.type || '').toUpperCase()
-      const link = String(data.link || '/')
+      const link = String(data.link || data.url || data.deepLink || '/')
       const cid = parseConversationId(link, data)
       const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
 
@@ -99,27 +99,61 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const link = event.notification?.data?.link || '/'
+  const raw =
+    event.notification?.data?.link ||
+    event.notification?.data?.url ||
+    event.notification?.data?.deepLink ||
+    '/'
   event.waitUntil(
     (async () => {
+      let targetUrl = String(raw)
+      try {
+        targetUrl = new URL(targetUrl, self.location.origin).href
+      } catch {
+        targetUrl = self.location.origin + (targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`)
+      }
+
       const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
-      const normalize = (u) => {
+      const normalizePath = (u) => {
         try {
-          return new URL(u).pathname.replace(/\/+$/, '')
+          return new URL(u).pathname.replace(/\/+$/, '') || '/'
         } catch {
           return ''
         }
       }
-      const targetPath = normalize(link)
-      const exact = windows.find((w) => {
+      const targetPath = normalizePath(targetUrl)
+
+      const samePath = windows.find((w) => {
         if (!targetPath) return false
-        return normalize(w.url) === targetPath || String(w.url || '').includes(targetPath)
+        return normalizePath(w.url) === targetPath
       })
-      if (exact) {
-        await exact.focus()
+      const sameOrigin = windows.find((w) => {
+        try {
+          return new URL(w.url).origin === self.location.origin
+        } catch {
+          return false
+        }
+      })
+
+      const focusClient = samePath || sameOrigin
+      if (focusClient) {
+        await focusClient.focus()
+        try {
+          if (typeof focusClient.navigate === 'function') {
+            await focusClient.navigate(targetUrl)
+            return
+          }
+        } catch {
+          /* fall through to openWindow */
+        }
+        try {
+          focusClient.postMessage({ type: 'gostaylo_push_navigate', url: targetUrl })
+        } catch {
+          /* ignore */
+        }
         return
       }
-      await clients.openWindow(link)
+      await clients.openWindow(targetUrl)
     })(),
   )
 })

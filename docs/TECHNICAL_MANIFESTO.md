@@ -283,9 +283,25 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 197.0.2 / Wave H1 (2026-07-27):** **Unpaid booking retention** — soft FCM `CHECKOUT_ABANDONED` after hold delay (`processUnpaidCheckoutNudges`, cron `unpaid-checkout-nudge`); in-app `UnpaidCheckoutNudgeBanner` + `GET /api/v2/me/unpaid-checkout-hold` → `/checkout/{id}` with sticky pay.
+
+**Stage 197.0.1 / Wave H5 (2026-07-27):** **Partner SLA FCM parity** — booking lifecycle pushes (`BOOKING_REQUEST`, `PAYMENT_COMPLETED`, `CANCEL_REQUESTED`, `SLA_EXPIRING_SOON`) with deep link `/partner/bookings?booking={id}&highlight=true`; SLA cron sends FCM alongside Telegram; SW click navigates/focuses partner bookings.
+
+**Stage 197.0 / Wave H0 (2026-07-27):** **Checkout sticky pay + hold timer** — `CheckoutStickyPayBar` (`<lg`, BottomNav inset, hides near in-flow Pay); `CheckoutHoldTimer` via `checkout-hold-policy`; Sheet `dvh` defaults; roadmap `docs/WAVE_H_MOBILE_RETENTION.md` (H1 unpaid push next; H5 shipped in **197.0.1**).
+
+**Stage 196.0-D (2026-07-27):** **Guest journey polish** — day-of `GuestBookingNextSteps` branch; emergency CTA on Access Pack; explicit Host↔Guest menu/sidebar copy; device-local Access Pack offline cache (`airento_access_pack_v1`).
+
+**Stage 196.0-C (2026-07-27):** **ThreadTripStrip in chat and direct order deep-links** — sticky trip strip under chat header opens `ThreadDealDetailsSheet`; `DealDetailsCard` primary CTA via `resolveChatOrderDeepLink` (guest my-bookings/`highlight`, payable→checkout, host→partner bookings); listing link secondary.
+
+**Stage 196.0-B (2026-07-27):** **Dual-channel auth redirect and draft dates resilience** — `openLoginModal` → `/auth/login?redirect=`; `finishAuthNavigation` prefers query over `gostaylo_redirect_after_login`; PDP draft v2 stores/restores `checkIn`/`checkOut`/`guests` (+ transport times) via `lib/listing/booking-modal-draft.js`.
+
+**Stage 196.0-A (2026-07-27):** **Location SSOT cleanup and CheckIn Access Pack at order top** — `formatGuestOrderLocation` (no hard-coded Thailand); renter `OrderCardCheckInAccessPack` above timeline/financials for paid/day-of statuses; booking listing select adds `address` + geo codes with paid-reveal strip in `mapBookingListingsJoin`.
+
+**Stage 195.0 (2026-07-27):** **Renter cabinet visual & touch polish** — `/renter/*` teal→brand; guest order CTAs ≥44px; Dialog/Sheet close targets; renter sidebar + partner-apply modal clear `--app-bottom-nav-height`. Storefront `MobileBottomNav` remains SSOT (no renter dock clone).
+
 **Stage 194.0-D (2026-07-27):** **Partner mobile smoke & residual cleanup (Stage 194.0 close)** — Playwright `partner-mobile-smoke` @ 375×812; calendar REST drop nonexistent `bookings.source` (metadata origin); Reviews in partner sidebar; listing More sheet clears BottomNav inset; leftover teal/indigo → brand.
 
-**Stage 194.0-C (2026-07-27):** **Listing wizard & onboarding polish** — wizard mobile chrome ≥44px + safe-area action bar; onboarding checklist iCal deep-link; booking card location without hard-coded Thailand; payout statuses via `getUIText`; partner shell aria-labels i18n.
+**Stage 194.0-C (2026-07-27):** **Listing wizard & onboarding polish** — wizard mobile chrome ≥44px + safe-area action bar; onboarding checklist iCal deep-link; booking card location i18n/payout labels (literal Thailand residual closed in **196.0-A**); payout statuses via `getUIText`; partner shell aria-labels i18n.
 
 **Stage 194.0-B (2026-07-27):** **Partner mobile calendar simplicity** — `CalendarMobileQuickActions` (block + iCal + 10d/month + Options); mobile `daysToShow` default 10; `CalendarActionOverlay` clears `--app-bottom-nav-height`; demote bulk price / force-sync from mobile header.
 

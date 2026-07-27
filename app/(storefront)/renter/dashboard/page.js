@@ -43,7 +43,7 @@ export default function RenterDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl bg-teal-600 flex items-center justify-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand">
           <Home className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -58,12 +58,12 @@ export default function RenterDashboard() {
             <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Icon className="h-4 w-4 text-teal-600" />
+                  <Icon className="h-4 w-4 text-brand" />
                   {getUIText(key, language)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="min-h-11 w-full">
                   {language === 'ru' ? 'Открыть' : 'Open'}
                 </Button>
               </CardContent>

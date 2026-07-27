@@ -12,7 +12,7 @@
  *   – имя собеседника + индикатор присутствия (зелёная/серая точка)
  *   – текст Online / Offline / «Был X назад»
  *   – индикатор «печатает…»
- *   – строка дат брони + статус
+ *   – строка дат брони + статус (fallback) или ThreadTripStrip → Deal Sheet
  *   – шкала прогресса брони (BookingChatTimeline)
  *
  * Кнопки действий (поддержка, оплатить, медиагалерея, поиск, Confirm/Decline)
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { BookingChatTimeline } from '@/components/booking-chat-timeline'
 import { ChatHeaderActions } from '@/components/chat/ChatHeaderActions'
+import { ThreadTripStrip } from '@/components/chat/ThreadTripStrip'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
@@ -67,6 +68,8 @@ export function StickyChatHeader({
   onSearchToggle = null,
   /** Мобиле: открыть детали сделки (Sheet); на lg+ кнопка скрыта — панель в ChatThreadChrome */
   onDealInfoClick = null,
+  /** Host view — earnings in ThreadTripStrip / deal deep-links */
+  isHosting = false,
   searchActive = false,
   embedded = false,
   compact = false,
@@ -140,8 +143,12 @@ export function StickyChatHeader({
   const to = booking?.check_out
   const status = booking?.status
 
+  const showTripStrip =
+    Boolean(booking?.id) && typeof onDealInfoClick === 'function'
+
+  /** Fallback when strip is unavailable (no deal sheet handler). */
   let dateLine = null
-  if (from || to || status) {
+  if (!showTripStrip && (from || to || status)) {
     const a = from ? safeFormat(from) : null
     const b = to ? safeFormat(to) : null
     dateLine = (
@@ -420,6 +427,16 @@ export function StickyChatHeader({
           {children}
         </ChatHeaderActions>
       </div>
+
+      {showTripStrip ? (
+        <ThreadTripStrip
+          booking={booking}
+          language={language}
+          isHosting={isHosting}
+          onOpenDealDetails={onDealInfoClick}
+          compact={compact}
+        />
+      ) : null}
 
       {/* Шкала прогресса брони */}
       {showBookingTimeline && booking ? (

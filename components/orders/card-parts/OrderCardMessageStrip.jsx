@@ -42,7 +42,7 @@ export function OrderCardMessageStrip({
           <p className="text-sm text-slate-600 mt-0.5">{getUIText('orderCard_chatNoPreviewYet', language)}</p>
         )}
       </div>
-      <Button asChild variant="outline" size="sm" className="shrink-0 border-brand/25 text-brand hover:bg-brand/10">
+      <Button asChild variant="outline" size="sm" className="min-h-11 shrink-0 border-brand/25 text-brand hover:bg-brand/10">
         <Link href={href}>
           <MessageSquare className="h-4 w-4 mr-2" aria-hidden />
           {getUIText('bookingCard_openChat', language)}

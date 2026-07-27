@@ -21,6 +21,7 @@ export function OrderCardMainSections({
   booking,
   normalizedOrder,
   status,
+  checkIn = null,
   checkOut,
   reviewed,
   partnerTrustPublic,
@@ -31,6 +32,8 @@ export function OrderCardMainSections({
   pickupServiceKind,
   checkInInstructionsText,
   checkInPhotoUrls,
+  hideCheckInInstructions = false,
+  accessPackVisible = false,
   onPhotoClick,
   guestName,
   supportChatHref = null,
@@ -54,9 +57,13 @@ export function OrderCardMainSections({
   return (
     <>
       {normalizedRole === 'renter' &&
-      ['PENDING', 'INQUIRY', 'AWAITING_PAYMENT', 'PAID_ESCROW'].includes(String(status || '').toUpperCase()) ? (
+      ['PENDING', 'INQUIRY', 'AWAITING_PAYMENT', 'PAID_ESCROW', 'CHECKED_IN', 'PAID'].includes(
+        String(status || '').toUpperCase(),
+      ) ? (
         <GuestBookingNextStepsCard
           status={status}
+          checkIn={checkIn}
+          accessPackVisible={accessPackVisible}
           bookingId={bookingId}
           language={language}
           categorySlug={listingCategorySlug}
@@ -110,7 +117,9 @@ export function OrderCardMainSections({
         />
       ) : null}
 
-      {normalizedRole === 'renter' && (checkInInstructionsText || checkInPhotoUrls.length > 0) ? (
+      {normalizedRole === 'renter' &&
+      !hideCheckInInstructions &&
+      (checkInInstructionsText || checkInPhotoUrls.length > 0) ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 flex items-center gap-2">
             {pickupServiceKind === 'transport' ? (

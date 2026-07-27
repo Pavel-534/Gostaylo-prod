@@ -124,12 +124,12 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-0 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+          <Button variant="outline" className="min-h-11" onClick={() => onOpenChange(false)}>
             {t('renterCancel_back')}
           </Button>
           {step === 'confirm' && (
-            <Button variant="destructive" onClick={confirmCancel} disabled={submitting}>
+            <Button variant="destructive" className="min-h-11" onClick={confirmCancel} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('renterCancel_confirm')}
             </Button>
           )}

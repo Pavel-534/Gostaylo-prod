@@ -172,7 +172,7 @@ export default function RenterSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        <Loader2 className="h-10 w-10 animate-spin text-brand" />
       </div>
     )
   }
@@ -198,7 +198,7 @@ export default function RenterSettingsPage() {
               {avatarRaw ? (
                 <AvatarImage src={resolveAvatarDisplaySrc(avatarRaw) || ''} alt="" className="object-cover" />
               ) : null}
-              <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl font-semibold">{initial}</AvatarFallback>
+              <AvatarFallback className="bg-brand/15 text-brand-hover text-2xl font-semibold">{initial}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-2 w-full sm:w-auto">
               <input
@@ -211,6 +211,7 @@ export default function RenterSettingsPage() {
               <Button
                 type="button"
                 variant="outline"
+                className="min-h-11"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
               >
@@ -218,7 +219,12 @@ export default function RenterSettingsPage() {
                 {getUIText('renterSettingsChoosePhoto', language)}
               </Button>
               {avatarRaw ? (
-                <Button type="button" variant="ghost" className="text-slate-600" onClick={() => setAvatarRaw(null)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 text-slate-600"
+                  onClick={() => setAvatarRaw(null)}
+                >
                   {getUIText('renterSettingsRemoveAvatar', language)}
                 </Button>
               ) : null}
@@ -313,7 +319,7 @@ export default function RenterSettingsPage() {
       <PrivacyDataRightsCard />
 
       <div className="flex justify-end">
-        <Button className="bg-teal-600 hover:bg-teal-700" onClick={handleSave} disabled={saving}>
+        <Button variant="brand" className="min-h-11" onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           {saving ? getUIText('renterSettingsSaving', language) : getUIText('renterSettingsSave', language)}
         </Button>

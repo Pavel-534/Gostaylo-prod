@@ -18,7 +18,7 @@ export default function RenterPortal() {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+      <Loader2 className="h-12 w-12 animate-spin text-brand" />
     </div>
   )
 }

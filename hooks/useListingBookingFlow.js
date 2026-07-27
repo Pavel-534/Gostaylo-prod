@@ -26,12 +26,17 @@ import { useListingAvailabilityQuery } from '@/hooks/use-listing-availability-qu
 import { resolveListingTimeZoneFromMetadata } from '@/lib/geo/listing-timezone-ssot'
 import { listingYmdLocalWallTimeToUtcIso } from '@/lib/listing-date'
 import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
+import {
+  BOOKING_MODAL_DRAFT_KEY,
+  buildBookingModalDraftPayload,
+  buildListingBookingReturnHref,
+  parseBookingModalDraft,
+  resolveDraftBookingDatesWhenUrlMissing,
+} from '@/lib/listing/booking-modal-draft'
+import { persistRedirectBeforeAuth } from '@/lib/auth/auth-redirect'
 
-const REDIRECT_AFTER_LOGIN_KEY = 'gostaylo_redirect_after_login'
 const BOOKING_MODAL_RESUME_KEY = 'gostaylo_booking_modal_resume'
 const BOOKING_MODAL_INTENT_KEY = 'gostaylo_booking_modal_intent'
-/** Stage 190.5 — mid-flow login: guest form draft (name/email/phone/message). */
-const BOOKING_MODAL_DRAFT_KEY = 'gostaylo_booking_modal_draft'
 const INQUIRY_MODAL_INTENTS = new Set(['private', 'special', 'contact'])
 
 function normalizeBookingModalIntent(savedIntent) {
@@ -59,8 +64,7 @@ function readAndClearBookingFormDraft() {
     const raw = sessionStorage.getItem(BOOKING_MODAL_DRAFT_KEY)
     if (!raw) return null
     sessionStorage.removeItem(BOOKING_MODAL_DRAFT_KEY)
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : null
+    return parseBookingModalDraft(raw)
   } catch {
     return null
   }
@@ -81,21 +85,6 @@ export function useListingBookingFlow({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const urlBookingSyncEnabledRef = useRef(false)
-
-  const persistBookingAuthContext = useCallback(
-    (intent = 'book') => {
-      try {
-        const qs = searchParams?.toString?.() || ''
-        const href = qs ? `${pathname}?${qs}` : pathname || '/'
-        sessionStorage.setItem(REDIRECT_AFTER_LOGIN_KEY, href)
-        sessionStorage.setItem(BOOKING_MODAL_INTENT_KEY, intent || 'book')
-        sessionStorage.setItem(BOOKING_MODAL_RESUME_KEY, '1')
-      } catch {
-        /* non-critical */
-      }
-    },
-    [pathname, searchParams],
-  )
 
   useAuthModalState({
     onClose: (outcome) => {
@@ -127,29 +116,94 @@ export function useListingBookingFlow({
   const [bookingModalIntent, setBookingModalIntent] = useState('book')
   const [postInquiryBooking, setPostInquiryBooking] = useState(null)
 
+  const listingUiCtx = useMemo(() => {
+    const slug = listing?.categorySlug || listing?.category?.slug
+    return slug ? { listingCategorySlug: slug } : undefined
+  }, [listing?.categorySlug, listing?.category?.slug])
+  const isVehicleListing = isTransportListingCategory(
+    listing?.categorySlug || listing?.category?.slug,
+  )
+
+  const parseCalendarDay = useCallback((raw) => {
+    const s = String(raw || '').trim()
+    if (!s) return null
+    const ymd = s.slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+    const d = new Date(`${ymd}T00:00:00`)
+    return Number.isFinite(d.getTime()) ? d : null
+  }, [])
+
   const persistBookingFormDraft = useCallback(() => {
     try {
-      sessionStorage.setItem(
-        BOOKING_MODAL_DRAFT_KEY,
-        JSON.stringify({
-          v: 1,
-          guestName,
-          guestEmail,
-          guestPhone,
-          message,
-          guests,
-        }),
-      )
+      const payload = buildBookingModalDraftPayload({
+        guestName,
+        guestEmail,
+        guestPhone,
+        message,
+        guests,
+        checkIn: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+        checkOut: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        checkInTime: vehicleStartTime,
+        checkOutTime: vehicleEndTime,
+        includeTimes: isVehicleListing,
+      })
+      sessionStorage.setItem(BOOKING_MODAL_DRAFT_KEY, JSON.stringify(payload))
     } catch {
       /* non-critical */
     }
-  }, [guestName, guestEmail, guestPhone, message, guests])
+  }, [
+    guestName,
+    guestEmail,
+    guestPhone,
+    message,
+    guests,
+    dateRange?.from,
+    dateRange?.to,
+    vehicleStartTime,
+    vehicleEndTime,
+    isVehicleListing,
+  ])
+
+  const persistBookingAuthContext = useCallback(
+    (intent = 'book', returnHref = null) => {
+      try {
+        const href =
+          returnHref ||
+          buildListingBookingReturnHref({
+            pathname,
+            searchParams,
+            checkIn: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+            checkOut: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+            guests,
+            checkInTime: vehicleStartTime,
+            checkOutTime: vehicleEndTime,
+            includeTimes: isVehicleListing,
+          })
+        persistRedirectBeforeAuth(href)
+        sessionStorage.setItem(BOOKING_MODAL_INTENT_KEY, intent || 'book')
+        sessionStorage.setItem(BOOKING_MODAL_RESUME_KEY, '1')
+        return href
+      } catch {
+        return null
+      }
+    },
+    [
+      pathname,
+      searchParams,
+      dateRange?.from,
+      dateRange?.to,
+      guests,
+      vehicleStartTime,
+      vehicleEndTime,
+      isVehicleListing,
+    ],
+  )
 
   const openLoginForBooking = useCallback(
     (intent = 'book') => {
       persistBookingFormDraft()
-      persistBookingAuthContext(intent)
-      openLoginModal()
+      const href = persistBookingAuthContext(intent)
+      openLoginModal(href ? { redirect: href } : undefined)
     },
     [openLoginModal, persistBookingAuthContext, persistBookingFormDraft],
   )
@@ -169,7 +223,7 @@ export function useListingBookingFlow({
     }
   }, [user])
 
-  /** Stage 190.5 — never clobber mid-flow typed fields with profile on login/refresh. */
+  /** Stage 190.5 / 196.0-B — restore draft fields; dates from draft if URL lost them. */
   useEffect(() => {
     if (!user) return
     const draft = readAndClearBookingFormDraft()
@@ -188,15 +242,24 @@ export function useListingBookingFlow({
       const g = Math.round(Number(draft.guests))
       if (Number.isFinite(g) && g >= 1) setGuests(g)
     }
-  }, [user])
 
-  const listingUiCtx = useMemo(() => {
-    const slug = listing?.categorySlug || listing?.category?.slug
-    return slug ? { listingCategorySlug: slug } : undefined
-  }, [listing?.categorySlug, listing?.category?.slug])
-  const isVehicleListing = isTransportListingCategory(
-    listing?.categorySlug || listing?.category?.slug,
-  )
+    const fromDraftDates = resolveDraftBookingDatesWhenUrlMissing({
+      draft,
+      urlCheckIn: searchParams.get('checkIn'),
+      urlCheckOut: searchParams.get('checkOut'),
+    })
+    if (fromDraftDates?.checkIn && fromDraftDates?.checkOut) {
+      const from = parseCalendarDay(fromDraftDates.checkIn)
+      const to = parseCalendarDay(fromDraftDates.checkOut)
+      if (from && to && to > from) {
+        setDateRange({ from, to })
+        urlBookingSyncEnabledRef.current = true
+      }
+      if (fromDraftDates.guests != null) setGuests(fromDraftDates.guests)
+      if (fromDraftDates.checkInTime) setVehicleStartTime(fromDraftDates.checkInTime)
+      if (fromDraftDates.checkOutTime) setVehicleEndTime(fromDraftDates.checkOutTime)
+    }
+  }, [user, searchParams, parseCalendarDay])
 
   const listingTimeZone = useMemo(
     () => resolveListingTimeZoneFromMetadata(listing?.metadata || {}),
@@ -275,15 +338,6 @@ export function useListingBookingFlow({
     taxRatePercent: commissionHook.loading ? 0 : Number(commissionHook.taxRatePercent) || 0,
     syncPricing: availabilitySyncPricing,
   })
-
-  const parseCalendarDay = useCallback((raw) => {
-    const s = String(raw || '').trim()
-    if (!s) return null
-    const ymd = s.slice(0, 10)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
-    const d = new Date(`${ymd}T00:00:00`)
-    return Number.isFinite(d.getTime()) ? d : null
-  }, [])
 
   useEffect(() => {
     const checkInParam = searchParams.get('checkIn')

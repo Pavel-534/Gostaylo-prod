@@ -2,23 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Clock, CreditCard, MessageCircle, Sparkles } from 'lucide-react'
+import { Clock, CreditCard, KeyRound, MessageCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
-
-const STEPS = {
-  PENDING: { messageKey: 'guestNextSteps_pending', icon: Clock, tone: 'amber' },
-  INQUIRY: { messageKey: 'guestNextSteps_pending', icon: Clock, tone: 'amber' },
-  AWAITING_PAYMENT: { messageKey: 'guestNextSteps_awaitingPayment', icon: CreditCard, tone: 'brand' },
-  PAID_ESCROW: { messageKey: 'guestNextSteps_paidEscrow', icon: MessageCircle, tone: 'emerald' },
-}
+import { resolveGuestNextStepsStep } from '@/lib/guest/resolve-guest-next-steps'
 
 const TONE_CLASS = {
   amber: 'border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-white',
   brand: 'border-brand/20 bg-gradient-to-br from-brand/5 via-white to-white',
   emerald: 'border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-white',
+}
+
+const ICONS = {
+  clock: Clock,
+  card: CreditCard,
+  chat: MessageCircle,
+  key: KeyRound,
 }
 
 function dismissStorageKey(bookingId) {
@@ -27,23 +28,13 @@ function dismissStorageKey(bookingId) {
 }
 
 /**
- * Stage 155.3 / 155.4 — guest «Что дальше?» helper (INQUIRY → pay → escrow chat).
- * @param {{
- *   bookingId?: string | null,
- *   status?: string | null,
- *   language?: string,
- *   categorySlug?: string | null,
- *   wizardProfile?: string | null,
- *   chatHref?: string | null,
- *   payHref?: string | null,
- *   className?: string,
- *   compact?: boolean,
- *   surface?: 'pdp' | 'my_bookings' | 'chat' | string,
- * }} props
+ * Stage 155.3 / 155.4 / 196.0-D — guest «Что дальше?» (INQUIRY → pay → day-of access + chat).
  */
 export function GuestBookingNextStepsCard({
   bookingId = null,
   status,
+  checkIn = null,
+  accessPackVisible = false,
   language = 'ru',
   categorySlug = null,
   wizardProfile = null,
@@ -54,10 +45,15 @@ export function GuestBookingNextStepsCard({
   surface = 'my_bookings',
 }) {
   const normalized = String(status || '').toUpperCase()
-  const step = STEPS[normalized]
+  const step = resolveGuestNextStepsStep({
+    status: normalized,
+    checkInIso: checkIn,
+    accessPackVisible,
+  })
   const storageKey = dismissStorageKey(bookingId)
   const [dismissedForStatus, setDismissedForStatus] = useState(null)
   const shownTrackedRef = useRef(false)
+  const dismissToken = step ? `${step.key}:${normalized}` : null
 
   useEffect(() => {
     if (!storageKey) {
@@ -69,40 +65,41 @@ export function GuestBookingNextStepsCard({
     } catch {
       setDismissedForStatus(null)
     }
-  }, [storageKey, normalized])
+  }, [storageKey, dismissToken])
 
   useEffect(() => {
-    if (!step || dismissedForStatus === normalized || shownTrackedRef.current) return
+    if (!step || dismissedForStatus === dismissToken || shownTrackedRef.current) return
     shownTrackedRef.current = true
     void trackProductEvent(ProductAnalyticsEvents.GUEST_NEXT_STEPS_SHOWN, {
       booking_id: bookingId,
       status: normalized,
+      step: step.key,
       surface,
     })
-  }, [bookingId, dismissedForStatus, normalized, step, surface])
+  }, [bookingId, dismissedForStatus, dismissToken, normalized, step, surface])
 
   if (!step) return null
-  if (dismissedForStatus === normalized) return null
+  if (dismissedForStatus === dismissToken) return null
 
   const uiCtx = categorySlug ? { listingCategorySlug: categorySlug, wizardProfile } : undefined
-  const Icon = step.icon
+  const Icon = ICONS[step.icon] || MessageCircle
   const message = getUIText(step.messageKey, language, uiCtx)
   const title = getUIText('guestNextSteps_title', language)
 
-  const showPay = normalized === 'AWAITING_PAYMENT' && payHref
-  const showChat =
-    (normalized === 'PAID_ESCROW' || normalized === 'PENDING' || normalized === 'INQUIRY') && chatHref
+  const showPay = step.showPay && payHref
+  const showChat = step.showChat && chatHref
 
   function dismiss() {
-    setDismissedForStatus(normalized)
+    setDismissedForStatus(dismissToken)
     void trackProductEvent(ProductAnalyticsEvents.GUEST_NEXT_STEPS_DISMISS, {
       booking_id: bookingId,
       status: normalized,
+      step: step.key,
       surface,
     })
-    if (!storageKey) return
+    if (!storageKey || !dismissToken) return
     try {
-      localStorage.setItem(storageKey, normalized)
+      localStorage.setItem(storageKey, dismissToken)
     } catch {
       /* ignore */
     }
@@ -117,10 +114,11 @@ export function GuestBookingNextStepsCard({
         className,
       )}
       data-testid="guest-booking-next-steps"
+      data-step={step.key}
     >
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          {normalized === 'PAID_ESCROW' ? (
+          {step.key === 'DAY_OF' || normalized === 'PAID_ESCROW' ? (
             <Sparkles className="h-4 w-4" aria-hidden />
           ) : (
             <Icon className="h-4 w-4" aria-hidden />
@@ -144,8 +142,8 @@ export function GuestBookingNextStepsCard({
                   variant="brand"
                   size={surface === 'pdp' ? 'default' : 'sm'}
                   className={cn(
-                    surface === 'pdp' &&
-                      'min-h-11 w-full sm:w-auto sm:min-w-[10rem] font-semibold',
+                    'min-h-11',
+                    surface === 'pdp' && 'w-full sm:w-auto sm:min-w-[10rem] font-semibold',
                   )}
                   data-testid="guest-next-steps-pay"
                 >
@@ -153,7 +151,13 @@ export function GuestBookingNextStepsCard({
                 </Button>
               ) : null}
               {showChat ? (
-                <Button asChild variant={showPay ? 'outline' : 'brand'} size="sm">
+                <Button
+                  asChild
+                  variant={showPay ? 'outline' : 'brand'}
+                  size="sm"
+                  className="min-h-11"
+                  data-testid="guest-next-steps-chat"
+                >
                   <Link href={chatHref}>{getUIText('guestNextSteps_openChat', language)}</Link>
                 </Button>
               ) : null}
@@ -163,7 +167,7 @@ export function GuestBookingNextStepsCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 px-2 text-slate-500 hover:text-slate-700"
+            className="min-h-11 px-2 text-slate-500 hover:text-slate-700"
             onClick={dismiss}
           >
             {getUIText('guestNextSteps_dismiss', language)}

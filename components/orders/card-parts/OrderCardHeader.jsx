@@ -5,6 +5,7 @@ import { ProxiedImage } from '@/components/proxied-image'
 import { Calendar, Home, MapPin } from 'lucide-react'
 import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
 import { OrderCardStatusBadge } from '@/components/orders/card-parts/OrderCardStatusBadge'
+import { formatGuestOrderLocation } from '@/lib/orders/format-guest-order-location'
 import { normalizeOrderType } from '@/lib/orders/order-timeline'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,10 @@ export function OrderCardHeader({
   listingImage,
   title,
   district,
+  city = null,
+  country = null,
+  /** Precomputed soft location; when set, preferred over district/city/country. */
+  locationLabel = null,
   checkIn,
   checkOut,
   orderType,
@@ -45,6 +50,9 @@ export function OrderCardHeader({
 }) {
   const normalizedType = normalizeOrderType(orderType)
   const isDrawer = variant === 'drawer'
+  const locationLine =
+    (typeof locationLabel === 'string' && locationLabel.trim()) ||
+    formatGuestOrderLocation({ district, city, country, language })
 
   return (
     <CardHeader className={isDrawer ? 'p-0 pb-3' : undefined}>
@@ -97,10 +105,12 @@ export function OrderCardHeader({
               <Calendar className="h-4 w-4 shrink-0" aria-hidden />
               <span className="break-words">{formatOrderDateRange(checkIn, checkOut, language)}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="break-words">{district ? `${district}, Thailand` : 'Thailand'}</span>
-            </div>
+            {locationLine ? (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="break-words">{locationLine}</span>
+              </div>
+            ) : null}
             {bookingId && orderRefTemplate ? (
               <p className="pt-0.5 text-xs text-slate-500 break-all">
                 {orderRefTemplate.replace(/\{\{id\}\}/g, String(bookingId))}

@@ -7,6 +7,7 @@ import { useUnifiedOrderCard } from '@/hooks/useUnifiedOrderCard'
 import { OrderCardHeader } from '@/components/orders/card-parts/OrderCardHeader'
 import { OrderCardFinancialTotals } from '@/components/orders/card-parts/OrderCardFinancials'
 import { OrderCardMainSections } from '@/components/orders/card-parts/OrderCardMainSections'
+import { OrderCardCheckInAccessPack } from '@/components/orders/card-parts/OrderCardCheckInAccessPack'
 import { OrderCardMessageStrip } from '@/components/orders/card-parts/OrderCardMessageStrip'
 import { OrderCardGuestActions } from '@/components/orders/card-parts/OrderCardGuestActions'
 import { OrderCardPartnerActions } from '@/components/orders/card-parts/OrderCardPartnerActions'
@@ -88,6 +89,7 @@ export default function UnifiedOrderCard({
           listingImage={u.listingImage}
           title={u.title}
           district={u.district}
+          locationLabel={u.locationLabel}
           checkIn={u.checkIn}
           checkOut={u.checkOut}
           orderType={u.normalizedOrder.type}
@@ -100,6 +102,35 @@ export default function UnifiedOrderCard({
         />
 
         <CardContent className="space-y-4">
+          {u.checkInAccessPack?.visible ? (
+            <OrderCardCheckInAccessPack
+              language={language}
+              exactAddress={u.checkInAccessPack.exactAddress}
+              locationLabel={u.checkInAccessPack.locationLabel}
+              accessCode={u.checkInAccessPack.accessCode}
+              instructionsText={u.checkInAccessPack.instructionsText}
+              photoUrls={u.checkInAccessPack.photoUrls}
+              chatHref={u.checkInAccessPack.chatHref}
+              fromOfflineCache={Boolean(u.checkInAccessPack.fromOfflineCache)}
+              showEmergency={Boolean(u.showAccessPackEmergency)}
+              emergencySending={u.emergencySending}
+              onEmergencyClick={u.openEmergencyChecklistModal}
+              listingCategorySlug={
+                u.listing?.category_slug ||
+                u.listing?.categorySlug ||
+                booking?.listings?.category_slug ||
+                null
+              }
+              wizardProfile={
+                u.listing?.wizard_profile ||
+                u.listing?.wizardProfile ||
+                booking?.listings?.categories?.wizard_profile ||
+                null
+              }
+              onPhotoClick={(idx) => u.setPhotoLightboxIndex(idx)}
+            />
+          ) : null}
+
           <OrderCardMainSections
             language={language}
             density={density}
@@ -107,6 +138,7 @@ export default function UnifiedOrderCard({
             booking={booking}
             normalizedOrder={u.normalizedOrder}
             status={u.status}
+            checkIn={u.checkIn}
             checkOut={u.checkOut}
             reviewed={u.reviewed}
             partnerTrustPublic={u.partnerTrustPublic}
@@ -117,6 +149,8 @@ export default function UnifiedOrderCard({
             pickupServiceKind={u.pickupServiceKind}
             checkInInstructionsText={u.checkInInstructionsText}
             checkInPhotoUrls={u.checkInPhotoUrls}
+            hideCheckInInstructions={Boolean(u.checkInAccessPack?.visible)}
+            accessPackVisible={Boolean(u.checkInAccessPack?.visible)}
             onPhotoClick={(idx) => u.setPhotoLightboxIndex(idx)}
             listingImage={u.listingImage}
             guestName={u.guestName}
@@ -196,7 +230,7 @@ export default function UnifiedOrderCard({
           {u.normalizedRole === 'partner' && !isPartnerDrawer ? partnerActions : null}
 
           {isPartnerDrawer ? (
-            <div className="sticky bottom-0 z-10 -mx-1 mt-2 border-t border-slate-200 bg-background/95 px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/90">
+            <div className="sticky bottom-0 z-10 -mx-1 mt-2 border-t border-slate-200 bg-background/95 px-1 py-3 pb-[max(0.75rem,calc(env(safe-area-inset-bottom)+var(--app-bottom-nav-height,0px)))] backdrop-blur supports-[backdrop-filter]:bg-background/90">
               {partnerActions}
             </div>
           ) : null}

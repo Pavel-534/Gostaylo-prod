@@ -215,7 +215,7 @@ function MyBookingsContent() {
   }, [visibleBookings])
 
   useEffect(() => {
-    const tid = searchParams.get('booking')
+    const tid = searchParams.get('booking') || searchParams.get('highlight')
     if (!tid || deepTabDone.current || !normalizedBookings.length) return
     const b = normalizedBookings.find((x) => String(x.id) === String(tid))
     if (!b) {
@@ -228,7 +228,7 @@ function MyBookingsContent() {
   }, [normalizedBookings, searchParams])
 
   useEffect(() => {
-    const tid = searchParams.get('booking')
+    const tid = searchParams.get('booking') || searchParams.get('highlight')
     if (!tid || deepScrollDone.current) return
     const shown = visibleBookings.some((x) => String(x.id) === String(tid))
     if (!shown) return

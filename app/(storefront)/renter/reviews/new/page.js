@@ -116,7 +116,7 @@ function NewReviewContent() {
   if (loading) {
     return (
       <div className="flex justify-center py-24">
-        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        <Loader2 className="h-10 w-10 animate-spin text-brand" />
       </div>
     )
   }
@@ -128,7 +128,7 @@ function NewReviewContent() {
           <CardTitle>{getUIText('renterReviewFlow_needLogin', language)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button asChild className="bg-teal-600 hover:bg-teal-700">
+          <Button asChild variant="brand" className="min-h-11">
             <Link href={`/profile?login=true&redirect=${encodeURIComponent(`/renter/reviews/new?bookingId=${bookingId}`)}`}>
               {getUIText('renterReviewFlow_signIn', language)}
             </Link>
@@ -191,14 +191,14 @@ function NewReviewContent() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-600">
+      <Button asChild variant="ghost" className="mb-4 -ml-2 min-h-11 text-slate-600">
         <Link href="/my-bookings">
           <ArrowLeft className="mr-1 h-4 w-4" />
           {getUIText('renterReviewFlow_back', language)}
         </Link>
       </Button>
 
-      <Card className="mb-4 border-teal-100 bg-teal-50/40">
+      <Card className="mb-4 border-brand/20 bg-brand/5">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>
           <CardDescription>
@@ -234,7 +234,7 @@ export default function RenterNewReviewPage() {
     <Suspense
       fallback={
         <div className="flex justify-center py-24">
-          <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-brand" />
         </div>
       }
     >

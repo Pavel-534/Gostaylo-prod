@@ -40,6 +40,7 @@ export function BookingInfoSidebar({ listing, booking, language, isHosting = fal
         <GuestBookingNextStepsCard
           bookingId={booking?.id}
           status={booking.status}
+          checkIn={booking?.check_in || booking?.checkIn}
           language={language}
           categorySlug={categorySlug}
           wizardProfile={wizardProfile}

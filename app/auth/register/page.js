@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
@@ -12,23 +13,37 @@ import { AuthEmailRegisterForm } from '@/components/auth/AuthEmailRegisterForm'
 import { AuthProviderButtons } from '@/components/auth/AuthProviderButtons'
 import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton'
 import { AuthLegalConsentBlock } from '@/components/auth/AuthLegalConsentBlock'
+import {
+  buildAuthEntryHref,
+  persistRedirectBeforeAuth,
+  readRedirectFromAuthQuery,
+} from '@/lib/auth/auth-redirect'
 
 const TABS = ['phone', 'email']
 
-export default function AuthRegisterPage() {
+function AuthRegisterInner() {
+  const searchParams = useSearchParams()
   const { language } = useI18n()
   const brand = getSiteDisplayName()
   const [tab, setTab] = useState('phone')
   const [legalConsent, setLegalConsent] = useState(false)
   const [legalError, setLegalError] = useState(false)
 
+  useEffect(() => {
+    const redirect = readRedirectFromAuthQuery(searchParams)
+    if (!redirect) return
+    persistRedirectBeforeAuth(redirect)
+  }, [searchParams])
+
   const onLegalRequired = () => setLegalError(true)
+  const loginHref = buildAuthEntryHref('login', readRedirectFromAuthQuery(searchParams))
+  const backHref = loginHref
 
   return (
     <AuthPageShell
       title={getUIText('register', language)}
       subtitle={getUIText('auth_modal_subtitleRegister', language, { brand })}
-      backHref="/auth/login"
+      backHref={backHref}
     >
       <div className="flex flex-1 flex-col gap-5 py-2">
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
@@ -81,11 +96,19 @@ export default function AuthRegisterPage() {
 
         <p className="mt-auto text-center text-sm text-slate-500">
           {getUIText('auth_haveAccount', language)}{' '}
-          <Link href="/auth/login" className="font-medium text-brand hover:underline">
+          <Link href={loginHref} className="font-medium text-brand hover:underline">
             {getUIText('login', language)}
           </Link>
         </p>
       </div>
     </AuthPageShell>
+  )
+}
+
+export default function AuthRegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-gradient-to-tr from-slate-50 via-slate-50 to-brand/10" />}>
+      <AuthRegisterInner />
+    </Suspense>
   )
 }

@@ -64,17 +64,22 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center sm:items-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-3 sm:items-center sm:p-4 pb-[max(0.75rem,var(--app-bottom-nav-height,0px))]"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl max-w-lg w-full min-w-0 max-h-[min(90vh,calc(100dvh-2rem))] overflow-y-auto my-2 sm:my-0"
+        className="my-2 max-h-[min(90vh,calc(100dvh-2rem-var(--app-bottom-nav-height,0px)))] w-full min-w-0 max-w-lg overflow-y-auto rounded-xl bg-white sm:my-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-slate-900">{getUIText('partnerApplication', language)}</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
+            >
               <XCircle className="h-6 w-6" />
             </button>
           </div>
@@ -154,13 +159,19 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
             />
 
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="min-h-11 flex-1"
+                disabled={isSubmitting}
+              >
                 {getUIText('renterProfileCancel', language)}
               </Button>
               <Button
                 type="submit"
                 variant="brand"
-                className="flex-1"
+                className="min-h-11 flex-1"
                 disabled={
                   isSubmitting || !String(formData.verificationDocUrl || '').trim() || !partnerLegalConsent
                 }

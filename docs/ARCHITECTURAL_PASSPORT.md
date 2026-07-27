@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.194.0.3 | **Last Updated**: 2026-07-27 | **Stage 194.0-D:** Partner mobile smoke E2E, calendar `bookings.source` fix, reviews sidebar, listing sheet inset, residual brand tokens.
+> **Version**: 12.197.0.2 | **Last Updated**: 2026-07-27 | **Stage 197.0.2 / Wave H1:** Unpaid booking retention and abandoned checkout recovery.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -85,7 +85,7 @@
 | **Phone OTP** | `POST /api/v2/auth/phone/send`, `verify` + `lib/auth/phone-otp.service.js` + `auth_phone_otp_challenges` | `InputOTP` 6 ячеек; SMS SSOT **`lib/auth/sms-dispatch.service.js`** (Stage 189.2) |
 | **Telegram Login** | `POST /api/v2/auth/telegram` + `lib/auth/telegram-login-verify.js` | Widget: `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` + `TELEGRAM_BOT_TOKEN`; **RU → 403** `AUTH_OAUTH_REGION_RESTRICTED` |
 | **OAuth** | Supabase PKCE `app/auth/callback/` | Yandex/VK/Google/Apple — `AuthProviderButtons.jsx`; RU IP: callback `region_restricted` для foreign SSO |
-| **Entry redirect** | `openLoginModal()` → `/auth/login`; legacy `/login` → `/auth/login`; middleware guard → `/auth/login?redirect=` | Booking resume: `gostaylo-auth-close` event + `gostaylo_redirect_after_login` |
+| **Entry redirect** | `openLoginModal()` → `/auth/login?redirect=` (Stage **196.0-B**); legacy `/login` → `/auth/login`; middleware guard → `/auth/login?redirect=` | Booking resume: `gostaylo-auth-close` + dual channel `redirect` query / `gostaylo_redirect_after_login` |
 
 ### Stage 189.3.1 — Smart Auth Gateway + Immersive Auth polish (2026-07-17)
 
@@ -116,6 +116,59 @@
 | **Rate limit** | `sms_otp` (1/min per phone+IP) + `sms_otp_ip` (8/min per IP) + DB cooldown 60s | `POST /api/v2/auth/phone/send` |
 | **Errors** | `AUTH_SMS_DELIVERY_FAILED`, `AUTH_PHONE_SMS_NOT_CONFIGURED` | Логи с `maskPhoneE164`, без полного номера/кода |
 
+### Stage 197.0 — Wave H0 Checkout Sticky Pay & Hold Timer (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Roadmap** | `docs/WAVE_H_MOBILE_RETENTION.md` | Wave H plan; backlog SSOT = `CRO_FUNNEL_CLOSURE_191` + `AUDIT_PARTNER_CABINET_MOBILE` |
+| **Sticky Pay** | `CheckoutStickyPayBar` | `< lg` fixed bar: total + brand CTA; `bottom-[var(--app-bottom-nav-height)]` + safe-area; hides when in-flow `checkout-pay-submit` visible |
+| **Hold timer** | `CheckoutHoldTimer` + `resolveCheckoutHoldExpiresAtIso` | Countdown on checkout (same policy as chat invoice / cron) |
+| **Sheets** | `components/ui/sheet.jsx` | Bottom/top/side max-height via **`dvh`** + safe-area on bottom |
+| **iOS PWA** | `app/layout.js` viewport + apple meta | Already: `viewportFit: 'cover'`, `apple-mobile-web-app-capable`; standalone RQ focus refetch off |
+
+### Stage 196.0-D — Guest Journey Polish (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Day-of next steps** | `resolveGuestNextStepsStep` + `GuestBookingNextStepsCard` | При Access Pack eligible → ветка `DAY_OF` (доступ + чат); copy `guestNextSteps_dayOf*` |
+| **Emergency shortcut** | `OrderCardCheckInAccessPack` | Siren CTA на day-of surface (quiet hours / debug) → тот же `openEmergencyChecklistModal`, не только Help |
+| **Host↔Guest copy** | `UserMenuDropdown` + partner sidebar | Явные «Мои поездки (гость)» / «Перейти в кабинет партнёра» / `partnerNav_switchToGuestMode` → `/my-bookings` (без второго dock) |
+| **Offline access** | `access-pack-offline-cache.js` | Device `localStorage` TTL 14d; merge пустых live-полей; badge «Сохранено офлайн» |
+
+### Stage 196.0-C — ThreadTripStrip & Order Deep-links (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Trip strip** | `ThreadTripStrip` + `buildThreadTripStripModel` | Под `StickyChatHeader`: даты • статус • сумма; tap ≥44px → `ThreadDealDetailsSheet` (`onDealInfoClick`) |
+| **Order CTA** | `resolveChatOrderDeepLink` в `DealDetailsCard` | Guest: `/my-bookings?booking=&highlight=`; payable → `/checkout/{id}`; host → `/partner/bookings?booking=`; listing — secondary ghost |
+| **Deep-link alias** | `/my-bookings` | `highlight` accepted as alias for `booking` query |
+
+### Stage 196.0-B — Dual-channel Auth Redirect & Draft Dates (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Auth entry** | `buildAuthEntryHref` + `openLoginModal` | `/auth/login?redirect=` / `/auth/register?redirect=` + `gostaylo_redirect_after_login` |
+| **Post-auth** | `resolvePostAuthRedirect` / `finishAuthNavigation` | Query `redirect` **primary**, sessionStorage **fallback**; `safeInternalPath` / no `/auth` loops |
+| **PDP draft** | `gostaylo_booking_modal_draft` v2 (`booking-modal-draft.js`) | Saves `checkIn`/`checkOut`/`guests` (+ times); restores into state + URL if query lost |
+
+### Stage 196.0-A — Day-of Fulfillment & Location SSOT (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Location line** | `formatGuestOrderLocation` / `formatGuestOrderLocationFromListing` | `OrderCardHeader`: district/city/country из listing geo — **без** литерала Thailand; пустые части опускаются |
+| **Access Pack** | `OrderCardCheckInAccessPack` + `buildCheckInAccessPackModel` | Renter, сверху `UnifiedOrderCard` при `PAID_ESCROW` / `CHECKED_IN` / `PAID` (или день заезда): точный адрес (после reveal), instructions / PIN, CTA чат ≥44px |
+| **Privacy** | `CONTACT_REVEALED_BOOKING_STATUSES` + `mapBookingListingsJoin` | `listings.address` в booking API только после paid-reveal; soft location (район) всегда |
+| **Dedup** | `hideCheckInInstructions` | Mid-card instructions скрыты, пока Access Pack виден |
+
+### Stage 195.0 — Renter Cabinet Visual & Touch Polish (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Nav (unchanged)** | Storefront `MobileBottomNav` | Home / Search / Messages / Profile — **no** renter-specific BottomNav |
+| **Tokens** | `app/(storefront)/renter/**` | Legacy `teal-*` → `brand` / `Button variant="brand"` (layout, dashboard, settings, reviews, favorites) |
+| **Touch ≥44px** | Guest order actions, dialog/sheet close, renter chrome | `OrderCardGuestActions` `min-h-11`; Dialog/Sheet close `min-h/w-11`; sidebar close + cancel/partner-apply CTAs |
+| **Insets** | ADR-100 `--app-bottom-nav-height` | Renter mobile sidebar clears BottomNav; partner-apply modal + `UnifiedOrderCard` sticky footer pad nav height; main keeps `.pb-bottom-nav` |
+
 ### Stage 194.0-D — Mobile Smoke & Residual Cleanup (2026-07-27)
 
 | Слой | SSOT | Поведение |
@@ -132,7 +185,7 @@
 |------|------|-----------|
 | **Wizard chrome** | `ListingWizardMobileSlimHeader` / `ListingWizardStepActions` / action bar | All CTAs **≥44px**; action bar `safe-area-pb` (Partner BottomNav hidden on wizard) |
 | **Onboarding** | `PartnerOnboardingChecklist` on `/partner/dashboard` | First-run: listing → payout profile → iCal; calendar CTA deep-links `?highlight=calendar`; referral SSOT **`/profile/referral`** |
-| **i18n** | booking card location, payout statuses, shell aria | No hard-coded `Thailand`; `resolvePayoutStatusLabel` + `partnerFinances_payoutStatus_*`; close/breadcrumb aria via dictionary |
+| **i18n** | booking card location, payout statuses, shell aria | Soft location via geo codes (literal Thailand closed in **196.0-A**); `resolvePayoutStatusLabel` + `partnerFinances_payoutStatus_*`; close/breadcrumb aria via dictionary |
 
 ### Stage 194.0-B — Calendar Host Simplicity (2026-07-27)
 
@@ -1401,7 +1454,9 @@ Client APIs (unchanged P0): reviews, FX, calendar, availability, commission, fav
 ### 0.18 Stage 19.0 — Reputation modular split, TOP guest-review floor, proactive nudges
 - **Модуль репутации (лимит ~300 строк на файл):** публичный импорт без смены путей — **`lib/services/reputation.service.js`** → **`lib/services/reputation/index.js`** (**`ReputationService`**). Внутри пакета **`lib/services/reputation/`**: **`constants.js`**, **`formula.js`** (в т.ч. **`computeReliabilityFromCounts`**, **`buildPathToTop`**), **`data-provider.js`** (Supabase-агрегаты), **`snapshot.js`** (**`computePartnerReliabilitySnapshot`**), **`dto.js`** (**`trustPublicFromSnapshot`** / публичный DTO).
 - **Жёсткий пол для TOP по отзывам гостя:** при **`guestReviewCount ≥ 5`** средняя по **`reviews`** (гость→хост) должна быть **≥ 4.2★**; иначе расчётный tier **TOP** принудительно понижается до **STANDARD**, флаг **`topBlockedByGuestReviews`** в снимке; пороги в **`lib/config/reputation-peer-reviews.js`** (**`REPUTATION_PEER_TOP_MIN_AVG_STARS`**, **`REPUTATION_PEER_TOP_MIN_REVIEW_COUNT`**). Фактор **`guest_reviews_top_floor`** в health; **`SuccessGuide`** показывает баннер при блокировке.
-- **Telegram SLA nudge:** крон **`GET/POST /api/cron/partner-sla-telegram-nudge`** (секрет **`CRON_SECRET`**, как прочие кроны) → **`runPartnerSlaTelegramNudges`** (**`lib/services/partner-sla-telegram-nudge.js`**): если в активном диалоге последнее сообщение от гостя ждёт ответа партнёра **>30 мин**, партнёру уходит предупреждение в Telegram (дедуп — **`database/migrations/041_partner_sla_nudge_events.sql`**). Расписание в **`vercel.json`** — каждые **10** минут (на Hobby внешний планировщик может дублировать с тем же секретом).
+- **Telegram SLA nudge:** крон **`GET/POST /api/cron/partner-sla-telegram-nudge`** (секрет **`CRON_SECRET`**, как прочие кроны) → **`runPartnerSlaTelegramNudges`** (**`lib/services/partner-sla-telegram-nudge.js`**): если в активном диалоге последнее сообщение от гостя ждёт ответа партнёра **>30 мин**, партнёру уходит **FCM `SLA_EXPIRING_SOON`** (deep link **`/partner/bookings?booking={id}&highlight=true`** при наличии **`conversations.booking_id`**, иначе чат) и параллельно Telegram при включённых prefs (дедуп — **`database/migrations/041_partner_sla_nudge_events.sql`**). Расписание в **`vercel.json`** — каждые **10** минут (на Hobby внешний планировщик может дублировать с тем же секретом).
+- **Wave H5 partner lifecycle FCM:** шаблоны **`BOOKING_REQUEST`**, **`PAYMENT_COMPLETED`**, **`CANCEL_REQUESTED`**, **`SLA_EXPIRING_SOON`** в **`push-templates.js`**; payload SSOT **`buildPartnerLifecyclePushData`** (**`lib/services/push/partner-lifecycle-push.js`**) — body `{listing} · {dates} · {guest}`, `data.link`/`url`/`deepLink` → **`partnerBookingsListPath`**. SW **`notificationclick`** (**`public/firebase-messaging-sw.js`**) фокусирует PWA и **`navigate`**/`openWindow` на deep link.
+- **Wave H1 unpaid checkout retention:** soft FCM **`CHECKOUT_ABANDONED`** via cron **`/api/cron/unpaid-checkout-nudge`** (+ `cleanup-drafts`) — **`processUnpaidCheckoutNudges`** (`lib/booking/unpaid-checkout-retention.js`); delay default **10m** (`UNPAID_CHECKOUT_NUDGE_DELAY_MINUTES`); quiet hours skip without mark; deep link **`/checkout/{bookingId}`**; dedup **`metadata.unpaid_checkout_nudge_sent_at`**. In-app **`UnpaidCheckoutNudgeBanner`** on storefront + chat shells; API **`GET /api/v2/me/unpaid-checkout-hold`**.
 - **Pre-dispute (гость):** в **`components/orders/UnifiedOrderCard.jsx`** перед эскалацией — шаг «связаться с партнёром»; **`POST /api/v2/bookings/[id]/guest-help-partner-nudge`** шлёт партнёру push **`PARTNER_GUEST_HELP_NUDGE`** (**`lib/services/push.service.js`**).
 
 ### 0.19 Stage 20.0 — Fair SLA quiet hours + mediation gate (disputes)

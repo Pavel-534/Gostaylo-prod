@@ -18,6 +18,12 @@ import {
   resolveBookingConversationPreview,
   resolveBookingConversationStripUnread,
 } from '@/lib/orders/unified-order-card-model'
+import { formatGuestOrderLocationFromListing } from '@/lib/orders/format-guest-order-location'
+import { buildCheckInAccessPackModel } from '@/lib/orders/check-in-access-pack'
+import {
+  mergeAccessPackWithOfflineCache,
+  writeAccessPackOfflineCache,
+} from '@/lib/orders/access-pack-offline-cache'
 
 export function useUnifiedOrderCard({
   booking,
@@ -118,6 +124,7 @@ export function useUnifiedOrderCard({
 
   const title = listing?.title || getUIText('myBookings_listingFallback', language)
   const district = listing?.district
+  const locationLabel = formatGuestOrderLocationFromListing(listing, language)
   const checkIn = normalizedOrder.dates.check_in
   const checkOut = normalizedOrder.dates.check_out
   const conversationId = booking?.conversationId || booking?.conversation_id || null
@@ -314,6 +321,58 @@ export function useUnifiedOrderCard({
   const disputeEligibility = canOpenOfficialDispute({ status, checkInIso: checkIn, checkOutIso: checkOut })
   const supportChatHref = conversationId ? `/messages/${encodeURIComponent(conversationId)}` : null
 
+  const checkInAccessPackLive = useMemo(() => {
+    if (normalizedRole !== 'renter') {
+      return {
+        visible: false,
+        exactAddress: '',
+        locationLabel: '',
+        accessCode: '',
+        instructionsText: '',
+        photoUrls: [],
+        chatHref: null,
+      }
+    }
+    return buildCheckInAccessPackModel({
+      booking,
+      listing,
+      status,
+      checkInIso: checkIn,
+      language,
+      chatHref: supportChatHref,
+      instructionsText: checkInInstructionsText,
+      photoUrls: checkInPhotoUrls,
+    })
+  }, [
+    normalizedRole,
+    booking,
+    listing,
+    status,
+    checkIn,
+    language,
+    supportChatHref,
+    checkInInstructionsText,
+    checkInPhotoUrls,
+  ])
+
+  const checkInAccessPack = useMemo(
+    () => mergeAccessPackWithOfflineCache(bookingId, checkInAccessPackLive),
+    [bookingId, checkInAccessPackLive],
+  )
+
+  useEffect(() => {
+    if (!bookingId || !checkInAccessPackLive?.visible) return
+    writeAccessPackOfflineCache(bookingId, checkInAccessPackLive)
+  }, [bookingId, checkInAccessPackLive])
+
+  const showAccessPackEmergency = Boolean(
+    normalizedRole === 'renter' &&
+      checkInAccessPack?.visible &&
+      emergencyCtxReady &&
+      emergencyCtx?.bookingEligible &&
+      (emergencyCtx?.partnerInQuietHours === true || debugEmergencyAlways),
+  )
+
   const showRenterCancel = normalizedRole === 'renter' && canRenterCancel(status) && typeof onCancel === 'function'
   const showRenterReview =
     normalizedRole === 'renter' &&
@@ -509,6 +568,9 @@ export function useUnifiedOrderCard({
     debugEmergencyAlways,
     title,
     district,
+    locationLabel,
+    checkInAccessPack,
+    showAccessPackEmergency,
     checkIn,
     checkOut,
     conversationId,

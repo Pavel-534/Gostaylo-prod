@@ -26,6 +26,7 @@ import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/service
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
 import { processExpiredAwaitingPaymentCheckouts } from '@/lib/booking/checkout-hold-expiry.js';
+import { processUnpaidCheckoutNudges } from '@/lib/booking/unpaid-checkout-retention.js';
 import {
   LEGACY_INVOICE_EXPIRY_MINUTES,
   resolveInvoicePaymentExpiresAtIso,
@@ -515,6 +516,9 @@ export async function POST(request) {
     const checkoutHoldExpiry = await processExpiredAwaitingPaymentCheckouts({
       trigger: 'cron_cleanup_drafts_checkout_hold',
     });
+    const unpaidCheckoutNudge = await processUnpaidCheckoutNudges({
+      limit: 80,
+    });
     const invoiceExpiry = await processExpiredPendingInvoices();
     const disputeEvidenceRetention = await processDisputeEvidenceRetention();
     const disputeSla72h = await DisputeService.processSlaBreaches({ limit: 300 });
@@ -535,6 +539,7 @@ export async function POST(request) {
         expiryDays: DRAFT_EXPIRY_DAYS,
         bookingSla24h: bookingSla,
         checkoutHoldExpiry,
+        unpaidCheckoutNudge,
         invoiceExpiry,
         disputeEvidenceRetention,
         disputeSla72h,

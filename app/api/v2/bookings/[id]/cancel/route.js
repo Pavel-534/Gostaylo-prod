@@ -184,6 +184,7 @@ export async function POST(request, context) {
         booking: updated,
         guest: bookingBefore.renter,
         listing: bookingBefore.listings,
+        partner: bookingBefore.partner || { id: bookingBefore.partner_id },
         reason: reason || undefined,
       });
     } catch (e) {

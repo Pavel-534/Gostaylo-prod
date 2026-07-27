@@ -95,7 +95,11 @@ export function UserMenuDropdown() {
           </DropdownMenuItem>
           <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/my-bookings')}>
             <CalendarDays className="mr-3 h-4 w-4 text-slate-400" />
-            <span>{language === 'ru' ? 'Мои бронирования' : 'My Bookings'}</span>
+            <span>
+              {isPartner
+                ? getUIText('userMenu_switchToGuestTrips', language)
+                : getUIText('userMenu_myBookings', language)}
+            </span>
           </DropdownMenuItem>
           <DropdownMenuItem
             className="hidden md:flex cursor-pointer flex-row items-center justify-between gap-2 py-2.5 pr-2"
@@ -127,7 +131,7 @@ export function UserMenuDropdown() {
               <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/partner/dashboard')}>
                 <Briefcase className="mr-3 h-4 w-4 text-brand" />
                 <span className="font-medium text-brand-hover">
-                  {language === 'ru' ? 'Панель партнёра' : 'Partner Dashboard'}
+                  {getUIText('userMenu_switchToPartnerCabinet', language)}
                 </span>
               </DropdownMenuItem>
             </div>

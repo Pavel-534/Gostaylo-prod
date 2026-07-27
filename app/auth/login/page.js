@@ -15,16 +15,14 @@ import { AuthPhoneFlow } from '@/components/auth/AuthPhoneFlow'
 import { AuthEmailLoginForm } from '@/components/auth/AuthEmailLoginForm'
 import { AuthProviderButtons } from '@/components/auth/AuthProviderButtons'
 import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton'
+import {
+  buildAuthEntryHref,
+  persistRedirectBeforeAuth,
+  readRedirectFromAuthQuery,
+} from '@/lib/auth/auth-redirect'
 
 /** Login defaults to email/password — phone is one tap away. */
 const TABS = ['email', 'phone']
-
-function safeInternalRedirect(raw) {
-  if (!raw || typeof raw !== 'string') return null
-  const t = raw.trim()
-  if (!t.startsWith('/') || t.startsWith('//')) return null
-  return t.slice(0, 2048)
-}
 
 function AuthLoginInner() {
   const searchParams = useSearchParams()
@@ -33,14 +31,12 @@ function AuthLoginInner() {
   const [tab, setTab] = useState('email')
 
   useEffect(() => {
-    const redirect = safeInternalRedirect(searchParams.get('redirect'))
+    const redirect = readRedirectFromAuthQuery(searchParams)
     if (!redirect) return
-    try {
-      sessionStorage.setItem('gostaylo_redirect_after_login', redirect)
-    } catch {
-      /* ignore */
-    }
+    persistRedirectBeforeAuth(redirect)
   }, [searchParams])
+
+  const registerHref = buildAuthEntryHref('register', readRedirectFromAuthQuery(searchParams))
 
   return (
     <AuthPageShell
@@ -82,7 +78,7 @@ function AuthLoginInner() {
 
         <p className="mt-auto text-center text-sm text-slate-500">
           {getUIText('auth_noAccount', language)}{' '}
-          <Link href="/auth/register" className="font-medium text-brand hover:underline">
+          <Link href={registerHref} className="font-medium text-brand hover:underline">
             {getUIText('register', language)}
           </Link>
         </p>

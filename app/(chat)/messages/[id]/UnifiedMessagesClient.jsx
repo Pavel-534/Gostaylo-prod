@@ -414,6 +414,7 @@ export default function UnifiedMessagesClient({ params }) {
       }}
       searchActive={searchActive}
       onDealInfoClick={() => setDealSheetOpen(true)}
+      isHosting={isHosting}
       partnerBookingActions={{
         visible:
           isHosting &&

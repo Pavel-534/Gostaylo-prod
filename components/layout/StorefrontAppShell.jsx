@@ -16,6 +16,7 @@ import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
 import { ChatUnreadBadgeProvider } from '@/lib/context/ChatUnreadBadgeContext'
 import { I18nSliceBootstrap } from '@/components/i18n/I18nSliceBootstrap'
+import { UnpaidCheckoutNudgeBanner } from '@/components/guest/UnpaidCheckoutNudgeBanner'
 
 export function StorefrontAppShell({ children }) {
   return (
@@ -28,6 +29,7 @@ export function StorefrontAppShell({ children }) {
           </Suspense>
           <AppHeader />
           <MainContent>{children}</MainContent>
+          <UnpaidCheckoutNudgeBanner />
           <MobileBottomNav />
           <PwaInstallChrome />
           <GeoSuggestToast />

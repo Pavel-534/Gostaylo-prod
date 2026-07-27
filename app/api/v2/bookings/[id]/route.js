@@ -80,6 +80,7 @@ export async function PUT(request, { params }) {
           booking: result.booking,
           renter: bookingBefore.renter,
           listing: bookingBefore.listings,
+          partner: bookingBefore.partner || { id: bookingBefore.partner_id },
           reason
         });
       }

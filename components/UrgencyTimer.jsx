@@ -9,10 +9,17 @@ function pad2(n) {
 }
 
 /**
- * Live countdown until `endsAt` (ISO). Used for Flash Sale promos (`valid_until` SSOT).
- * @param {{ endsAt: string }} props
+ * Live countdown until `endsAt` (ISO). Flash Sale / checkout hold / etc.
+ * @param {{ endsAt: string, language?: string, variant?: 'default'|'compact', prefixKey?: string, endedKey?: string, className?: string }} props
  */
-export function UrgencyTimer({ endsAt, language = 'ru', variant = 'default', className }) {
+export function UrgencyTimer({
+  endsAt,
+  language = 'ru',
+  variant = 'default',
+  prefixKey = 'promo_urgency_countdown_prefix',
+  endedKey = 'promo_urgency_ended',
+  className,
+}) {
   const endMs = useMemo(() => {
     const t = endsAt ? new Date(endsAt).getTime() : NaN
     return Number.isFinite(t) ? t : NaN
@@ -37,7 +44,7 @@ export function UrgencyTimer({ endsAt, language = 'ru', variant = 'default', cla
   if (sec <= 0) {
     return (
       <div className={cn('text-xs font-medium text-slate-500', className)} role="status">
-        {getUIText('promo_urgency_ended', language)}
+        {getUIText(endedKey, language)}
       </div>
     )
   }
@@ -52,9 +59,7 @@ export function UrgencyTimer({ endsAt, language = 'ru', variant = 'default', cla
       role="status"
       aria-live="polite"
     >
-      <span className="font-semibold text-orange-950">
-        {getUIText('promo_urgency_countdown_prefix', language)}
-      </span>{' '}
+      <span className="font-semibold text-orange-950">{getUIText(prefixKey, language)}</span>{' '}
       <span className="tabular-nums font-bold tracking-tight text-orange-600">{time}</span>
     </div>
   )

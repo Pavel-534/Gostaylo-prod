@@ -56,6 +56,10 @@
       "schedule": "0 1 * * *"
     },
     {
+      "path": "/api/cron/unpaid-checkout-nudge",
+      "schedule": "30 1 * * *"
+    },
+    {
       "path": "/api/cron/dispute-mediation-monitor",
       "schedule": "0 2 * * *"
     },

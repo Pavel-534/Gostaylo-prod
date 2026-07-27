@@ -8,6 +8,8 @@ import { useCurrency } from '@/contexts/currency-context'
 import { CheckCircle2, CreditCard, Wallet, ArrowLeft, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { CheckoutStickyPayBar } from '@/components/checkout/CheckoutStickyPayBar'
+import { CheckoutHoldTimer } from '@/components/checkout/CheckoutHoldTimer'
 import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
 import { useCheckoutPayment } from './hooks/useCheckoutPayment'
 import { useCheckoutPricing } from './hooks/useCheckoutPricing'
@@ -198,7 +200,7 @@ function CheckoutPageInner({ params: paramsProp }) {
     : tCheckout('checkout_backToTrips')
 
   return (
-    <div className="gsl-page">
+    <div className="gsl-page pb-[calc(5.75rem+var(--app-bottom-nav-height,0px))] lg:pb-0">
       <div className="mx-auto max-w-4xl px-3 sm:px-4 py-6 sm:py-8 space-y-5">
         <GuestBookingFlowHint t={flowT} />
         <Link
@@ -211,6 +213,13 @@ function CheckoutPageInner({ params: paramsProp }) {
         </Link>
 
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{tCheckout('checkout_title')}</h1>
+
+        <CheckoutHoldTimer
+          booking={p.booking}
+          invoice={p.invoice}
+          paymentIntent={p.paymentIntent}
+          language={c.language}
+        />
 
         <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 flex gap-3 items-start">
           <Shield className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" aria-hidden />
@@ -260,6 +269,16 @@ function CheckoutPageInner({ params: paramsProp }) {
           }}
         />
       </div>
+
+      <CheckoutStickyPayBar
+        language={c.language}
+        amountText={c.payableText}
+        onPay={() => void p.handleInitiatePayment()}
+        processing={p.processing}
+        disabled={
+          !p.paymentMethod || (p.checkoutNeedsLegalConsent && !p.checkoutLegalConsent)
+        }
+      />
     </div>
   )
 }

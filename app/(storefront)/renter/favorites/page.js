@@ -118,12 +118,12 @@ export default function FavoritesPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-pink-500 to-red-500 text-white py-8">
         <div className="container mx-auto px-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => router.back()}
-            className="text-white hover:bg-white/20 mb-4"
+            className="mb-4 min-h-11 text-white hover:bg-white/20"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             {language === 'ru' ? 'Назад' : 'Back'}
           </Button>
           
@@ -145,8 +145,8 @@ export default function FavoritesPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={fetchFavorites} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={fetchFavorites} variant="outline" className="min-h-11">
+              <RefreshCw className="mr-2 h-4 w-4" />
               {getUIText('retry', language)}
             </Button>
           </div>
@@ -169,7 +169,7 @@ export default function FavoritesPage() {
                 ? 'Добавляйте понравившиеся объекты в избранное, нажимая на ❤️'
                 : 'Add listings to favorites by tapping ❤️'}
             </p>
-            <Button onClick={() => router.push('/listings')}>
+            <Button variant="brand" className="min-h-11" onClick={() => router.push('/listings')}>
               {getUIText('browse', language)}
             </Button>
           </div>

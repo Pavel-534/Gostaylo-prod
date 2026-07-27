@@ -249,7 +249,9 @@ export async function PUT(request, { params }) {
             booking: full,
             guest: full.renter,
             listing: full.listings,
+            partner: full.partner || { id: full.partner_id },
             reason: cancelReason,
+            notifyPartner: false,
           })
         }
       } catch (e) {

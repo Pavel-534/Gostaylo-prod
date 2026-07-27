@@ -8,7 +8,7 @@
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
-import { Building2, CalendarRange, Banknote, ExternalLink, Shield } from 'lucide-react'
+import { Building2, CalendarRange, Banknote, ExternalLink, Shield, ArrowRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +17,8 @@ import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
 import { readGuestPaymentDisplay } from '@/lib/booking/guest-payment-display.js'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
+import { resolveChatOrderDeepLink } from '@/lib/chat/thread-trip-strip-model'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget.jsx'
 import { getGuestDateLabel } from '@/lib/i18n/guest-booking-labels'
 import { HostMoneyTimelineChip } from '@/components/partner/HostMoneyTimelineChip'
@@ -136,6 +138,11 @@ export function DealDetailsCard({
       : null
   const disputeSnapshot = resolveDisputeSnapshot(booking)
   const showDisputeWidget = Boolean(disputeSnapshot?.id && disputeSnapshot?.isActive)
+  const orderDeepLink = resolveChatOrderDeepLink({ booking, isHosting })
+  const orderCtaPayable = !isHosting && isBookingPayable(status)
+  const orderCtaLabel = orderCtaPayable
+    ? getUIText('chatAction_payBooking', language)
+    : getUIText('dealCard_viewOrder', language)
 
   return (
     <div className={cn('flex flex-col gap-4 p-4 lg:p-5', className)}>
@@ -262,7 +269,7 @@ export function DealDetailsCard({
         <Button
           type="button"
           variant="outline"
-          className="w-full justify-center gap-2 border-brand/25 bg-brand/10 text-brand hover:bg-brand/15 font-medium shadow-sm"
+          className="min-h-11 w-full justify-center gap-2 border-brand/25 bg-brand/10 text-brand hover:bg-brand/15 font-medium shadow-sm"
           onClick={onOpenCalendar}
         >
           <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
@@ -271,11 +278,25 @@ export function DealDetailsCard({
         </Button>
       ) : null}
 
+      {orderDeepLink ? (
+        <Button
+          asChild
+          variant="brand"
+          className="min-h-11 w-full justify-center gap-2 font-semibold shadow-md"
+          data-testid="deal-card-order-cta"
+        >
+          <Link href={orderDeepLink}>
+            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+            {orderCtaLabel}
+          </Link>
+        </Button>
+      ) : null}
+
       {listing?.id ? (
         <Button
           asChild
-          variant="outline"
-          className="w-full justify-center gap-2 border-slate-200 text-slate-800 hover:bg-slate-50"
+          variant="ghost"
+          className="min-h-11 w-full justify-center gap-2 text-slate-700 hover:bg-slate-50"
         >
           <Link href={`/listings/${listing.id}`}>
             <ExternalLink className="h-4 w-4 shrink-0" />

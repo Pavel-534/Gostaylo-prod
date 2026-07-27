@@ -40,6 +40,7 @@ import {
   Shield,
   LogIn,
   ArrowLeft,
+  CalendarDays,
   ExternalLink,
   Tag,
   Gift,
@@ -382,6 +383,19 @@ export default function PartnerLayout({ children }) {
 
           {/* Bottom Section */}
           <div className="p-3 border-t border-slate-100 space-y-2">
+            <Link
+              href="/my-bookings"
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  setSidebarOpen(false)
+                }
+              }}
+              className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-brand-hover transition-all hover:bg-brand/10"
+              data-testid="partner-switch-to-guest"
+            >
+              <CalendarDays className="h-4 w-4 shrink-0" />
+              <span>{getUIText('partnerNav_switchToGuestMode', language)}</span>
+            </Link>
             <Link
               href="/legal/partner-terms/"
               target="_blank"

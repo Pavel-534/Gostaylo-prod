@@ -122,7 +122,7 @@ export default function RenterLayout({ children }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-teal-600 mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-brand mx-auto mb-4" />
           <p className="text-slate-600">{getUIText('loading', language)}</p>
         </div>
       </div>
@@ -143,10 +143,7 @@ export default function RenterLayout({ children }) {
           <p className="text-slate-600 mb-6">
             {getUIText('renterPortal_signInBody', language)}
           </p>
-          <Button 
-            asChild 
-            className="bg-teal-600 hover:bg-teal-700 w-full"
-          >
+          <Button asChild variant="brand" className="min-h-11 w-full">
             <Link href="/profile?login=true">
               {getUIText('renterPortal_signInCta', language)}
             </Link>
@@ -204,11 +201,22 @@ export default function RenterLayout({ children }) {
         {/* Mobile Sidebar */}
         <div
           className={cn(
-            'fixed left-0 bottom-0 w-72 bg-white border-r z-40 transform transition-transform md:hidden top-[var(--app-header-height,64px)]',
+            'fixed left-0 z-40 w-72 transform border-r bg-white transition-transform md:hidden',
+            'top-[var(--app-header-height,64px)] bottom-[var(--app-bottom-nav-height,0px)]',
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <nav className="p-4 space-y-2">
+          <div className="flex items-center justify-end border-b border-slate-100 p-2">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-slate-100"
+              aria-label={language === 'ru' ? 'Закрыть меню' : 'Close menu'}
+            >
+              <X className="h-5 w-5 text-slate-400" />
+            </button>
+          </div>
+          <nav className="space-y-2 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
             {navItems.map((item) => {
               const Icon = item.icon
               const isMessagesItem = item.href === '/messages'
@@ -225,10 +233,10 @@ export default function RenterLayout({ children }) {
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                    isActive 
-                      ? "bg-teal-50 text-teal-700 font-medium" 
-                      : "text-slate-600 hover:bg-slate-50"
+                    'flex min-h-11 items-center gap-3 rounded-lg px-4 py-3 transition-colors',
+                    isActive
+                      ? 'bg-brand/10 text-brand-hover font-medium'
+                      : 'text-slate-600 hover:bg-slate-50',
                   )}
                 >
                   <span className="relative shrink-0">

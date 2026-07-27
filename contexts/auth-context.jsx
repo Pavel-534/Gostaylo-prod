@@ -10,7 +10,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from '@/lib/auth';
 import { useI18n } from '@/contexts/i18n-context';
-import { persistRedirectBeforeAuth } from '@/lib/auth/auth-redirect';
+import { persistRedirectBeforeAuth, buildAuthEntryHref } from '@/lib/auth/auth-redirect';
 import { useAuthSessionSync } from '@/contexts/auth/auth-session-sync';
 import {
   useReferralCapture,
@@ -80,12 +80,22 @@ export function AuthProvider({ children }) {
   });
 
   const openLoginModal = useCallback(
-    (mode) => {
-      const actualMode = typeof mode === 'string' ? mode : 'login';
-      const path = actualMode === 'register' ? '/auth/register' : '/auth/login';
-      const current = `${pathname || '/'}${typeof window !== 'undefined' ? window.location.search || '' : ''}`;
+    (modeOrOpts) => {
+      let actualMode = 'login';
+      let redirectOverride = null;
+      if (typeof modeOrOpts === 'string') {
+        actualMode = modeOrOpts;
+      } else if (modeOrOpts && typeof modeOrOpts === 'object') {
+        actualMode = typeof modeOrOpts.mode === 'string' ? modeOrOpts.mode : 'login';
+        redirectOverride =
+          typeof modeOrOpts.redirect === 'string' ? modeOrOpts.redirect : null;
+      }
+      const authMode = actualMode === 'register' ? 'register' : 'login';
+      const current =
+        redirectOverride ||
+        `${pathname || '/'}${typeof window !== 'undefined' ? window.location.search || '' : ''}`;
       persistRedirectBeforeAuth(current);
-      router.push(path);
+      router.push(buildAuthEntryHref(authMode, current));
     },
     [pathname, router],
   );
