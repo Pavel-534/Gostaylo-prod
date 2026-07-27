@@ -21,6 +21,7 @@ import { usePartnerCalendar, useCreateBlock, useCreateManualBooking, useDeleteBl
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
+import { CalendarMobileQuickActions } from '@/components/calendar/CalendarMobileQuickActions'
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -105,10 +106,19 @@ function MasterCalendarContent() {
   const { data: reputationHealthData } = usePartnerReputationHealthQuery(!!partnerId)
   const dominantCategorySlug = reputationHealthData?.dominantCategorySlug ?? null
 
-  // View state
+  // View state — Stage 194.0-B: mobile defaults to 10-day window (31 = «month» toggle)
   const [viewMode, setViewMode] = useState('normal')
-  const [daysToShow] = useState(30)
+  const [daysToShow, setDaysToShow] = useState(30)
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const agendaCompact = !isNarrowCalendar ? false : daysToShow <= 10
+
+  useEffect(() => {
+    if (isNarrowCalendar) {
+      setDaysToShow((prev) => (prev === 31 ? 31 : 10))
+    } else {
+      setDaysToShow(30)
+    }
+  }, [isNarrowCalendar])
 
   // Переход из чата: ?focusDate=YYYY-MM-DD — показать окно с этой датой в видимой полосе
   useEffect(() => {
@@ -284,6 +294,31 @@ function MasterCalendarContent() {
     },
     [],
   )
+
+  const handleQuickBlock = useCallback(() => {
+    const rows = calendarData?.listings || []
+    const preferred =
+      (filterListingId && rows.find((x) => x.listing.id === filterListingId)) || rows[0]
+    if (!preferred?.listing) {
+      toast.message(getUIText('partnerCal_quickBlockNoListing', language))
+      return
+    }
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const end = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+    setActionModal({
+      open: true,
+      type: 'block',
+      listing: preferred.listing,
+      date: today,
+      cellData: null,
+      checkOutDate: end,
+    })
+    setBlockForm({ endDate: end, reason: '', type: 'OWNER_USE' })
+  }, [calendarData?.listings, filterListingId, language])
+
+  const icalHref = filterListingId
+    ? `/partner/listings/${filterListingId}?highlight=calendar`
+    : '/partner/listings'
 
   // Cell click handler
   const handleCellClick = useCallback(
@@ -604,8 +639,18 @@ function MasterCalendarContent() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1600px] lg:hidden">
-        <p className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <div className="mx-auto max-w-[1600px] lg:hidden space-y-3">
+        <CalendarMobileQuickActions
+          language={language}
+          icalHref={icalHref}
+          agendaCompact={agendaCompact}
+          onAgendaCompactChange={(compact) => setDaysToShow(compact ? 10 : 31)}
+          onQuickBlock={handleQuickBlock}
+          onOpenPrices={() => setPriceModal({ open: true })}
+          onIcalSyncAll={handleIcalSyncAll}
+          icalSyncing={icalSyncing}
+        />
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
           {getUIText('partnerCal_agendaHint', language)}
         </p>
         <CalendarMobileAgenda
@@ -616,6 +661,7 @@ function MasterCalendarContent() {
           todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
           initialExpandedListingId={filterListingId || undefined}
           language={language}
+          forceFullWindow={!agendaCompact}
         />
       </div>
       

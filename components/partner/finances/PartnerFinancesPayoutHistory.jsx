@@ -5,7 +5,7 @@ import { ArrowDownToLine } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PAYOUT_STATUS_LABEL, PAYOUT_STATUS_COLORS } from '@/components/partner/finances/partner-finances-shared'
+import { PAYOUT_STATUS_COLORS, resolvePayoutStatusLabel } from '@/components/partner/finances/partner-finances-shared'
 import {
   PartnerHostLedgerAmount,
   PartnerHostMidFxFootnote,
@@ -66,7 +66,7 @@ export function PartnerFinancesPayoutHistory({
                         {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
                       </span>
                       <Badge className={`text-xs shrink-0 ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
-                        {PAYOUT_STATUS_LABEL[st] || st}
+                        {resolvePayoutStatusLabel(st, t)}
                       </Badge>
                     </div>
                     <p className="font-medium text-slate-800 break-words">{methodName}</p>
@@ -148,7 +148,7 @@ export function PartnerFinancesPayoutHistory({
                         </td>
                         <td className="px-3 py-2">
                           <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
-                            {PAYOUT_STATUS_LABEL[st] || st}
+                            {resolvePayoutStatusLabel(st, t)}
                           </Badge>
                         </td>
                       </tr>

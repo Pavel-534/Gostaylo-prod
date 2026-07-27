@@ -256,7 +256,7 @@ export function CalendarGrid({
                                     'inline-flex max-w-full cursor-help items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none',
                                     marketingPromo.isFlashSale
                                       ? 'bg-orange-100 text-orange-700'
-                                      : 'bg-indigo-100 text-indigo-700',
+                                      : 'bg-brand/15 text-brand-hover',
                                   )}
                                 >
                                   {marketingPromo.isFlashSale ? t('partnerCal_chipFlash') : t('partnerCal_chipPromo')}

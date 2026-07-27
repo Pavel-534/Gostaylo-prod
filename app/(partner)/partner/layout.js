@@ -42,7 +42,8 @@ import {
   ArrowLeft,
   ExternalLink,
   Tag,
-  Gift
+  Gift,
+  Star,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -79,6 +80,7 @@ const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_referral', href: '/profile/referral', icon: Gift, descKey: 'partnerNav_referralDesc' },
   { nameKey: 'partnerNav_calendar', href: '/partner/calendar', icon: Calendar, descKey: 'partnerNav_calendarDesc' },
   { nameKey: 'partnerNav_bookings', href: '/partner/bookings', icon: Inbox, descKey: 'partnerNav_bookingsDesc' },
+  { nameKey: 'partnerNav_reviews', href: '/partner/reviews', icon: Star, descKey: 'partnerNav_reviewsDesc' },
   { nameKey: 'partnerNav_messages', href: '/messages', icon: MessageSquare, descKey: 'partnerNav_messagesDesc', badge: null },
   { nameKey: 'partnerNav_finances', href: '/partner/finances', icon: Banknote, descKey: 'partnerNav_financesDesc' },
   { nameKey: 'partnerNav_payoutProfiles', href: '/partner/payout-profiles', icon: Wallet, descKey: 'partnerNav_payoutProfilesDesc' },
@@ -267,6 +269,8 @@ export default function PartnerLayout({ children }) {
 
         {/* Sidebar */}
         <aside
+          data-testid="partner-workspace-sidebar"
+          data-open={sidebarOpen ? 'true' : 'false'}
           className={`${WORKSPACE_SIDEBAR_CLASS} ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } border-r border-slate-200 bg-white shadow-lg max-lg:backdrop-blur-none lg:bg-white/95 lg:backdrop-blur-sm lg:shadow-sm lg:shadow-brand/5`}
@@ -433,7 +437,7 @@ export default function PartnerLayout({ children }) {
             {/* Breadcrumbs Bar */}
             <div className={WORKSPACE_TOOLBAR_ROW_CLASS}>
               {/* Breadcrumbs */}
-              <nav className="flex items-center text-sm" aria-label="Breadcrumb">
+              <nav className="flex items-center text-sm" aria-label={getUIText('partnerLayout_breadcrumbAria', language)}>
                 <Link href="/" className="text-slate-400 hover:text-brand transition-colors">
                   <Home className="w-4 h-4" />
                 </Link>
@@ -469,7 +473,7 @@ export default function PartnerLayout({ children }) {
           
           {!isListingWizardRoute ? (
             <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>
-              <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label="Breadcrumb">
+              <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label={getUIText('partnerLayout_breadcrumbAria', language)}>
                 {breadcrumbs.slice(-2).map((crumb, index) => (
                   <div key={crumb.href} className="flex items-center whitespace-nowrap">
                     {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}

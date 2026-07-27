@@ -41,7 +41,10 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
       variant="outline"
       onClick={goBack}
       disabled={currentStep === 1}
-      className={cn('gap-2 rounded-xl', isMobileLayout && 'min-w-0 flex-1')}
+      className={cn(
+        'gap-2 rounded-xl',
+        isMobileLayout && 'min-h-11 min-h-[44px] flex-1 min-w-0',
+      )}
       type="button"
     >
       <ArrowLeft className="h-4 w-4 shrink-0" />
@@ -55,7 +58,10 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         onClick={goNext}
         disabled={!canProceed}
         variant="brand"
-        className={cn('gap-2 rounded-xl', isMobileLayout && 'min-w-0 flex-1')}
+        className={cn(
+          'gap-2 rounded-xl',
+          isMobileLayout && 'min-h-11 min-h-[44px] flex-1 min-w-0',
+        )}
         type="button"
       >
         <span className={isMobileLayout ? 'truncate' : undefined}>{t('next')}</span>
@@ -66,7 +72,10 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         onClick={publishListing}
         disabled={!canProceed || lastStepBusy}
         variant="brand"
-        className={cn('gap-2 rounded-xl', isMobileLayout && 'min-w-0 flex-1')}
+        className={cn(
+          'gap-2 rounded-xl',
+          isMobileLayout && 'min-h-11 min-h-[44px] flex-1 min-w-0',
+        )}
         type="button"
       >
         {lastStepBusy ? (
@@ -94,7 +103,7 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         variant="outline"
         size="sm"
         onClick={onOpenPreview}
-        className="h-10 shrink-0 gap-1.5 rounded-xl px-2.5"
+        className="min-h-11 shrink-0 gap-1.5 rounded-xl px-2.5"
         type="button"
         aria-label={t('wizardViewPreview')}
       >

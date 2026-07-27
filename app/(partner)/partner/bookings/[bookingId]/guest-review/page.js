@@ -96,7 +96,7 @@ export default function PartnerGuestReviewPage() {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        <Loader2 className="h-10 w-10 animate-spin text-brand" />
       </div>
     )
   }
@@ -208,7 +208,8 @@ export default function PartnerGuestReviewPage() {
             </div>
             <Button
               type="submit"
-              className="min-h-[48px] w-full bg-teal-600 hover:bg-teal-700"
+              variant="brand"
+              className="min-h-[48px] w-full"
               disabled={submitting || rating < 1}
             >
               {submitting ? (

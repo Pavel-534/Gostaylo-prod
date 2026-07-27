@@ -237,7 +237,8 @@ export async function POST(request) {
         notes,
         guests_count: guestsCount,
         status: 'CONFIRMED',
-        source: 'MANUAL',
+        // Live schema has no bookings.source — persist origin in metadata (Stage 194.0-D).
+        metadata: { booking_source: 'MANUAL' },
         confirmed_at: new Date().toISOString(),
         created_at: new Date().toISOString()
       })
@@ -277,7 +278,7 @@ export async function POST(request) {
         guestName: booking.guest_name,
         priceThb: booking.price_thb,
         status: booking.status,
-        source: booking.source
+        source: booking.metadata?.booking_source || 'MANUAL',
       },
       message: 'Бронирование создано'
     })

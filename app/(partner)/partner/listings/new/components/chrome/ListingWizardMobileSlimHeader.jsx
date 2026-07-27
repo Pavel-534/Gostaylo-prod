@@ -23,11 +23,11 @@ export function ListingWizardMobileSlimHeader({ currentStepLabel }) {
     <div className="flex min-h-11 items-center justify-between gap-1.5 px-2 sm:px-3">
       <Button
         variant="ghost"
-        size="sm"
         onClick={() => router.push('/partner/listings')}
-        className="min-h-11 min-w-11 shrink-0 px-0 text-slate-600 hover:text-slate-900"
+        className="h-11 w-11 shrink-0 px-0 text-slate-600 hover:text-slate-900"
         type="button"
         aria-label={t('exit')}
+        data-testid="listing-wizard-exit"
       >
         <ArrowLeft className="h-5 w-5" />
       </Button>
@@ -35,15 +35,15 @@ export function ListingWizardMobileSlimHeader({ currentStepLabel }) {
         {currentStepLabel}
       </h1>
       <div className="flex shrink-0 items-center gap-0.5">
-        <PartnerNotificationFeed language={language} className="min-h-11 min-w-11 shrink-0 px-0" />
+        <PartnerNotificationFeed language={language} className="h-11 w-11 shrink-0 px-0" />
         <Button
           variant="outline"
-          size="sm"
           onClick={saveDraft}
           disabled={saveBusy}
-          className="min-h-11 min-w-11 shrink-0 px-0"
+          className="h-11 w-11 shrink-0 px-0"
           type="button"
           aria-label={saveLabel}
+          data-testid="listing-wizard-save"
         >
           {saveBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         </Button>

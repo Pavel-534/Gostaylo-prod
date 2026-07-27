@@ -59,7 +59,7 @@ export function PartnerListingPublishQualityModal({
         <ListingPublishQualityChecklist checklist={checklist} t={t} />
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button type="button" className="w-full bg-teal-600 hover:bg-teal-700" asChild>
+          <Button type="button" variant="brand" className="w-full" asChild>
             <Link href={`/partner/listings/${listing.id}`} onClick={() => onOpenChange(false)}>
               {t('listingQuality_editListing', 'Edit listing')}
             </Link>

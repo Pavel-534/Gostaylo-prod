@@ -9,7 +9,7 @@ import { OrderCardStatusBadge } from '@/components/orders/card-parts/OrderCardSt
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import {
   formatPartnerBookingDateRange,
-  resolvePartnerBookingDistrict,
+  resolvePartnerBookingLocationLine,
   resolvePartnerBookingGuestName,
   resolvePartnerBookingListingImage,
   resolvePartnerBookingListingTitle,
@@ -32,7 +32,7 @@ export function PartnerBookingCard({
   const title = resolvePartnerBookingListingTitle(booking, language)
   const guestName = resolvePartnerBookingGuestName(booking, language)
   const dates = formatPartnerBookingDateRange(booking, language)
-  const district = resolvePartnerBookingDistrict(booking)
+  const locationLine = resolvePartnerBookingLocationLine(booking, language)
   const status = String(booking?.status || '').toUpperCase()
   const imageRaw = resolvePartnerBookingListingImage(booking)
   const image = imageRaw ? resolveImageThumbDisplayUrl(imageRaw) || imageRaw : null
@@ -79,10 +79,10 @@ export function PartnerBookingCard({
             <span className="truncate">{dates}</span>
           </p>
 
-          {district ? (
+          {locationLine ? (
             <p className="flex items-center gap-1.5 text-xs text-slate-500">
               <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{district}, Thailand</span>
+              <span className="truncate">{locationLine}</span>
             </p>
           ) : null}
 

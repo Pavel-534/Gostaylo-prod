@@ -106,6 +106,8 @@ export function CalendarMobileAgenda({
   todayAnchorRef = null,
   initialExpandedListingId = null,
   language = 'ru',
+  /** Stage 194.0-B — parent «Месяц» window: show all fetched days without per-listing expand. */
+  forceFullWindow = false,
 }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
@@ -209,7 +211,7 @@ export function CalendarMobileAgenda({
         const id = item.listing.id
         const expanded = bare || expandedIds.has(id)
         const summary = buildCollapsedSummary(item, dates, t, dfLocale)
-        const showFull = !!fullMonthById[id]
+        const showFull = forceFullWindow || !!fullMonthById[id]
         const visibleDates =
           expanded && !showFull ? dates.slice(0, Math.min(SHORT_WINDOW, dates.length)) : dates
         const showTodayInSlice = !!(firstTodayInRange && visibleDates.includes(firstTodayInRange))
@@ -277,7 +279,7 @@ export function CalendarMobileAgenda({
 
             {expanded ? (
               <div className="pb-1">
-                {dates.length > SHORT_WINDOW ? (
+                {!forceFullWindow && dates.length > SHORT_WINDOW ? (
                   <div className="flex justify-center border-b border-slate-100 px-2 py-1.5">
                     <button
                       type="button"

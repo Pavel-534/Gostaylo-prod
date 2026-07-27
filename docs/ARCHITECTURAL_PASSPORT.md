@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.194.0.0 | **Last Updated**: 2026-07-27 | **Stage 194.0-A:** Partner Mobile BottomNav, listing action sheet, touch ≥44px, brand token wave (settings/promo/reviews/finances).
+> **Version**: 12.194.0.3 | **Last Updated**: 2026-07-27 | **Stage 194.0-D:** Partner mobile smoke E2E, calendar `bookings.source` fix, reviews sidebar, listing sheet inset, residual brand tokens.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -115,6 +115,34 @@
 | **Mock** | `AUTH_PHONE_OTP_MOCK=1` | Только `NODE_ENV !== production` или E2E/smoke (`E2E_TEST_RUN`, `SMOKE_FINANCIAL_RUN`) |
 | **Rate limit** | `sms_otp` (1/min per phone+IP) + `sms_otp_ip` (8/min per IP) + DB cooldown 60s | `POST /api/v2/auth/phone/send` |
 | **Errors** | `AUTH_SMS_DELIVERY_FAILED`, `AUTH_PHONE_SMS_NOT_CONFIGURED` | Логи с `maskPhoneE164`, без полного номера/кода |
+
+### Stage 194.0-D — Mobile Smoke & Residual Cleanup (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **E2E** | `tests/e2e/partner-mobile-smoke.spec.ts` + project `partner-mobile-smoke` | Viewport **375×812**; BottomNav 5 tabs, listings More sheet, wizard hides dock + ≥44px exit, calendar Quick Actions + 10d, More→sidebar |
+| **Calendar bookings select** | `getOccupyingBookings` (`calendar-query-blocks.js`) | No `bookings.source` column — select `metadata`; origin via `metadata.booking_source` / default `PLATFORM`; manual booking writes `metadata.booking_source=MANUAL` |
+| **Sidebar IA** | `SIDEBAR_CONFIG` | `/partner/reviews` restored (Star) |
+| **Listing More sheet** | `PartnerListingCardActions` | `bottom` / `max-h` clear `--app-bottom-nav-height` |
+| **Tokens** | Host next-steps / publish quality / guest-review | Residual `indigo-*` / `teal-*` → `brand` |
+
+### Stage 194.0-C — Listing Wizard & Onboarding Polish (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Wizard chrome** | `ListingWizardMobileSlimHeader` / `ListingWizardStepActions` / action bar | All CTAs **≥44px**; action bar `safe-area-pb` (Partner BottomNav hidden on wizard) |
+| **Onboarding** | `PartnerOnboardingChecklist` on `/partner/dashboard` | First-run: listing → payout profile → iCal; calendar CTA deep-links `?highlight=calendar`; referral SSOT **`/profile/referral`** |
+| **i18n** | booking card location, payout statuses, shell aria | No hard-coded `Thailand`; `resolvePayoutStatusLabel` + `partnerFinances_payoutStatus_*`; close/breadcrumb aria via dictionary |
+
+### Stage 194.0-B — Calendar Host Simplicity (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Quick Actions** | `CalendarMobileQuickActions` | Primary: **Заблокировать** + **iCal** (`?highlight=calendar`); window toggle **10 дней / Месяц**; **⋯** → bulk prices + force iCal sync |
+| **Agenda window** | `daysToShow` on calendar page | Mobile default **10** days fetch; «Месяц» → 31 + `forceFullWindow` on agenda |
+| **Action sheet inset** | `CalendarActionOverlay` | `bottom-[var(--app-bottom-nav-height)]` so sheet sits above Partner BottomNav |
+| **Header** | `CalendarHeader` | Sync-all + Set prices **lg+ only** (mobile via Options) |
+| **Tokens** | Grid promo chip, edu card | `indigo-*` → `brand` |
 
 ### Stage 194.0-A — Partner Cabinet Mobile UX & Token Alignment (2026-07-27)
 

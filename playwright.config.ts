@@ -112,6 +112,18 @@ export default defineConfig({
       },
     },
     {
+      name: 'partner-mobile-smoke',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/partner-mobile-smoke.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['iPhone 13'],
+        viewport: { width: 375, height: 812 },
+        storageState: AUTH.partner,
+      },
+    },
+    {
       name: 'ambassador-currency-isolation',
       dependencies: ['setup'],
       testDir: './tests/e2e',

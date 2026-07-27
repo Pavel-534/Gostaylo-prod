@@ -11,13 +11,13 @@ export const WIZARD_COMPACT_STEP_BAR_POSITION_CLASS =
 /** Mobile slim header row + dot indicator — fixed under AppHeader (breadcrumbs hidden on wizard). */
 export const WIZARD_MOBILE_CHROME_HEIGHT = '5rem'
 
-/** Fixed bottom action bar content height (safe-area added via safe-area-pb). */
-export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '4.25rem'
+/** Fixed bottom action bar content height (safe-area added via safe-area-pb). Stage 194.0-C: min-h-11 CTAs. */
+export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '4.5rem'
 
 /** Tailwind utilities derived from heights above (SSOT). */
 export const WIZARD_MOBILE_CHROME_PT_CLASS = 'max-sm:pt-[5rem]'
 export const WIZARD_MOBILE_CONTENT_PB_CLASS =
-  'max-sm:pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'
+  'max-sm:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]'
 
 /** Fixed mobile wizard chrome — directly below AppHeader. */
 export const WIZARD_MOBILE_CHROME_POSITION_CLASS =

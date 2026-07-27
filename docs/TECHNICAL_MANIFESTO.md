@@ -283,6 +283,12 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 194.0-D (2026-07-27):** **Partner mobile smoke & residual cleanup (Stage 194.0 close)** — Playwright `partner-mobile-smoke` @ 375×812; calendar REST drop nonexistent `bookings.source` (metadata origin); Reviews in partner sidebar; listing More sheet clears BottomNav inset; leftover teal/indigo → brand.
+
+**Stage 194.0-C (2026-07-27):** **Listing wizard & onboarding polish** — wizard mobile chrome ≥44px + safe-area action bar; onboarding checklist iCal deep-link; booking card location without hard-coded Thailand; payout statuses via `getUIText`; partner shell aria-labels i18n.
+
+**Stage 194.0-B (2026-07-27):** **Partner mobile calendar simplicity** — `CalendarMobileQuickActions` (block + iCal + 10d/month + Options); mobile `daysToShow` default 10; `CalendarActionOverlay` clears `--app-bottom-nav-height`; demote bulk price / force-sync from mobile header.
+
 **Stage 194.0-A (2026-07-27):** **Partner cabinet mobile foundations** — `PartnerMobileBottomNav` (Dashboard/Listings/Calendar/Bookings/More→sidebar); `PartnerListingCardActions` overflow sheet; touch ≥44px (sidebar close, listing chips, wizard slim header); brand token sweep settings/promo/reviews/finances preview; workspace frame clears `--app-bottom-nav-height`.
 
 **Stage 190.7 (2026-07-23):** **Mobile search sheet wizard UX** — `WhereCombobox` syncs `drawerQuery` on select + `onWizardComplete` → dates; `SearchCalendar` wizard calls `onConfirm` when range completes → guests; guests sticky **Готово** (`mobileSearchDone`); `FilterBar` shows «Фильтры» only when `extraFilters` + `onExtraFiltersChange` wired (home no longer shows a dead button).

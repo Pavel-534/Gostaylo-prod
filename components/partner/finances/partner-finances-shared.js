@@ -30,16 +30,6 @@ export function snapshotMoney(booking) {
   return { gross: 0, fee: 0, net: 0 }
 }
 
-export const PAYOUT_STATUS_LABEL = {
-  PENDING: 'В очереди',
-  PROCESSING: 'В обработке',
-  COMPLETED: 'Выплачено',
-  PAID: 'Выплачено',
-  FAILED: 'Ошибка',
-  REJECTED: 'Отклонено',
-  REFUNDED: 'Возврат',
-}
-
 export const PAYOUT_STATUS_COLORS = {
   PENDING: 'bg-amber-100 text-amber-900 border-amber-200',
   PROCESSING: 'bg-sky-100 text-sky-900 border-sky-200',
@@ -50,6 +40,19 @@ export const PAYOUT_STATUS_COLORS = {
   REFUNDED: 'bg-slate-100 text-slate-800 border-slate-200',
 }
 
+/**
+ * Stage 194.0-C — payout status label via getUIText SSOT (`partnerFinances_payoutStatus_*`).
+ * @param {string} status
+ * @param {(key: string) => string} t
+ */
+export function resolvePayoutStatusLabel(status, t) {
+  const st = String(status || '').toUpperCase()
+  if (!st) return '—'
+  const key = `partnerFinances_payoutStatus_${st}`
+  const label = typeof t === 'function' ? t(key) : key
+  return label && label !== key ? label : st
+}
+
 /** Partner finances: four UX income streams. */
 export function partnerFinancesIncomeDisplayKind(categorySlug) {
   const st = inferListingServiceTypeFromCategorySlug(categorySlug || '')
@@ -58,4 +61,4 @@ export function partnerFinancesIncomeDisplayKind(categorySlug) {
   if (st === 'tour') return 'tour'
   return 'service'
 }
-
+

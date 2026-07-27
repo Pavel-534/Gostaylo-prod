@@ -12,7 +12,7 @@ import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 const TONES = {
   protected: 'border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-white',
   releasing: 'border-sky-200/80 bg-gradient-to-br from-sky-50/85 via-white to-white',
-  ready: 'border-indigo-200/80 bg-gradient-to-br from-indigo-50/80 via-white to-white',
+  ready: 'border-brand/25 bg-gradient-to-br from-brand/10 via-white to-white',
 }
 
 function storageKey(bookingId) {

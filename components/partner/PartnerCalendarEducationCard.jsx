@@ -75,7 +75,7 @@ export function PartnerCalendarEducationCard({
           </li>
           <li className="flex gap-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand-hover font-semibold text-xs">2</span>
-            <span className="pt-0.5 flex gap-2"><Link2 className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />{tr('partnerCal_eduStep2')}</span>
+            <span className="pt-0.5 flex gap-2"><Link2 className="h-4 w-4 text-brand shrink-0 mt-0.5" />{tr('partnerCal_eduStep2')}</span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand-hover font-semibold text-xs">3</span>

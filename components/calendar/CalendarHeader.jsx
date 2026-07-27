@@ -141,13 +141,14 @@ export function CalendarHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Stage 194.0-B: sync + bulk prices live in mobile Quick Actions «Опции» */}
           {onIcalSyncAll ? (
             <Button
               variant="outline"
               size="sm"
               onClick={onIcalSyncAll}
               disabled={icalSyncing}
-              className="min-h-11 h-11 border-brand/30 text-brand hover:bg-brand/10 lg:min-h-9 lg:h-9"
+              className="hidden min-h-11 h-11 border-brand/30 text-brand hover:bg-brand/10 lg:inline-flex lg:min-h-9 lg:h-9"
               title={t('partnerCal_syncAllIcalTitle')}
             >
               {icalSyncing ? (
@@ -160,10 +161,10 @@ export function CalendarHeader({
           ) : null}
 
           <Button
-            variant="outline"
+            variant="brand"
             size="sm"
             onClick={onPriceModalOpen}
-            className="min-h-11 h-11 border-0 bg-brand text-white hover:bg-brand-hover lg:min-h-9 lg:h-9"
+            className="hidden min-h-11 h-11 lg:inline-flex lg:min-h-9 lg:h-9"
           >
             <DollarSign className="mr-1 h-4 w-4" />
             {t('partnerCal_setPrices')}

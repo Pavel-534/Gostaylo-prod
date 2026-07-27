@@ -22,16 +22,20 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
     calendarConfigured: false,
     hasListing: false,
     listingCount: 0,
+    latestListingId: null,
   }
 
   const steps = useMemo(() => {
     const payout = {
       id: 'payout',
       done: status.payoutReady,
-      title: t('partnerOnboarding_payoutTitle', 'Заполните payout profile'),
+      title: t('partnerOnboarding_payoutTitle', 'Заполните профиль выплат'),
       hint: t('partnerOnboarding_payoutHint', 'Банковский счёт или USDT-кошелёк для выплат'),
       href: '/partner/payout-profiles',
     }
+    const calendarHref = status.latestListingId
+      ? `/partner/listings/${status.latestListingId}?highlight=calendar`
+      : '/partner/calendar'
     const calendar = {
       id: 'calendar',
       done: status.calendarConfigured,
@@ -40,7 +44,7 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
         'partnerOnboarding_calendarHint',
         'iCal-синхронизация или отметьте занятые даты вручную',
       ),
-      href: '/partner/calendar',
+      href: calendarHref,
     }
     const listing = {
       id: 'listing',
@@ -49,11 +53,12 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
       hint: t('partnerOnboarding_listingHint', 'Хотя бы одно объявление в кабинете'),
       href: '/partner/listings/new',
     }
+    // First-run: listing → payout profile → iCal (Stage 194.0-C)
     if (status.listingCount === 0) {
       return [listing, payout, calendar]
     }
     return [payout, calendar, listing]
-  }, [status, t])
+  }, [status, language])
 
   const subtitleKey =
     status.listingCount === 0 ? 'partnerOnboarding_subtitleListingFirst' : 'partnerOnboarding_subtitle'
@@ -128,7 +133,7 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
                 <p className="text-xs text-slate-500">{step.hint}</p>
               </div>
               {!step.done ? (
-                <Button asChild variant="brand" size="sm" className="shrink-0">
+                <Button asChild variant="brand" size="sm" className="min-h-11 shrink-0">
                   <Link href={step.href}>
                     {t('partnerOnboarding_go', 'Перейти')}
                     <ChevronRight className="h-4 w-4 ml-0.5" />

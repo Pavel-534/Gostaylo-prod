@@ -1,10 +1,10 @@
 # Discovery Audit: Partner Cabinet (Path A) — Mobile / PWA readiness
 
-> **Version:** 1.1 · **Date:** 2026-07-22 · **Stage prep:** 194.0  
-> **Status:** Stage **194.0-A** implemented (2026-07-27) — BottomNav, listing action sheet, touch ≥44px, token wave 1.  
-> **Scope:** read-only discovery (below) · **Product:** Airento partner (host) workspace  
+> **Version:** 1.2 · **Date:** 2026-07-27 · **Stage:** 194.0  
+> **Status:** Stage **194.0 complete (A+B+C+D, 2026-07-27)** — BottomNav / listings / calendar Quick Actions / wizard 44px / onboarding + i18n / mobile smoke + residual cleanup.  
+> **Scope:** discovery (below) + implementation closed · **Product:** Airento partner (host) workspace  
 > **Prior closed:** Stage 189.3.1 Auth Immersive · Stage 193.x iCal SSOT  
-> **Rev 1.1:** merged deep-dive evidence (BottomNav exclusion, listings action density, &lt;44px chrome, token counts, i18n hardcodes).  
+> **Rev 1.2:** Phase D closed — `partner-mobile-smoke`, reviews sidebar, calendar `bookings.source` fix, listing sheet inset, token hotspots.  
 
 ---
 
@@ -37,7 +37,7 @@
 | Payout profiles | `/partner/payout-profiles` | payout-profiles page | |
 | Promo | `/partner/promo` | promo page | Heavy `teal-*` legacy |
 | Settings | `/partner/settings` | settings page | Heavy `teal-*` legacy |
-| Reviews | `/partner/reviews` | reviews page | **Not in SIDEBAR_CONFIG** (orphaned nav?) |
+| Reviews | `/partner/reviews` | reviews page | In `SIDEBAR_CONFIG` (Stage 194.0-D) |
 | Referrals (partner) | `/partner/referrals` | referrals page | Sidebar links to `/profile/referral` instead |
 
 ### Components inventory (high level)
@@ -139,9 +139,9 @@
 ### 194.0-C — Wizard / publish (P1)
 7. Wizard 44px chrome + plain-language quality checklist; post-approval deep-link to `/partner/dashboard` + checklist (apply stays on `/profile`).  
 
-### 194.0-D — PWA / i18n / smoke (P1/P2)
-8. i18n cleanup (finance statuses, “Thailand”, close-menu aria, import/category bilingual maps).  
-9. Safe-area + `dvh` on drawers; Playwright `partner-mobile-smoke` @ 375px.
+### 194.0-D — Mobile smoke & residual cleanup (DONE 2026-07-27)
+8. i18n cleanup (finance statuses, “Thailand”, close-menu aria) — done in 194.0-C.  
+9. Safe-area + BottomNav inset on listing More sheet; Playwright **`partner-mobile-smoke`** @ 375×812; calendar `bookings.source` select fix; Reviews restored in sidebar; residual teal/indigo → brand.
 
 ### Explicit non-goals for 194.0
 - Do not change escrow / payout math.  
@@ -152,8 +152,8 @@
 
 ## 8. Verdict
 
-Partner cabinet is **architecturally mature** (cards for bookings/listings, agenda calendar, 5-step wizard, middleware + layout gates, i18n slice). It is **not yet Immersive-Auth / guest-CRO visual parity**, and **mobile IA lacks a dedicated thumb navigation**. Stage 194.0 should prioritize **IA + tokens + calendar first-run**, then wizard clarity — not a greenfield rewrite.
+Partner cabinet mobile IA is **closed for Stage 194.0** (BottomNav, listings overflow, calendar Quick Actions, wizard 44px, onboarding/i18n, mobile smoke + residual cleanup). Remaining polish (wizard content density, finances visual parity, Reviews reply → bottom-sheet) is **post-194** backlog — not a greenfield rewrite.
 
 ---
 
-*End of Discovery Audit 1.1. Implementation only after explicit Stage 194.0 kickoff.*
+*End of Discovery Audit 1.2. Stage 194.0 A–D implemented 2026-07-27.*

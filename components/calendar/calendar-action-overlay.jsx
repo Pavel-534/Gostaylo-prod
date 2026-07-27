@@ -39,8 +39,8 @@ export function CalendarActionOverlay({
           overlayClassName="z-[340]"
           data-testid="partner-cal-action-overlay"
           className={cn(
-            'z-[350] flex h-[90dvh] max-h-[90dvh] w-full flex-col gap-0 overflow-hidden',
-            'rounded-t-2xl border-t border-slate-200 p-0 shadow-2xl',
+            'z-[350] flex max-h-[calc(90dvh-var(--app-bottom-nav-height,0px))] w-full flex-col gap-0 overflow-hidden',
+            '!bottom-[var(--app-bottom-nav-height,0px)] rounded-t-2xl border-t border-slate-200 p-0 shadow-2xl',
             'pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3',
           )}
         >
