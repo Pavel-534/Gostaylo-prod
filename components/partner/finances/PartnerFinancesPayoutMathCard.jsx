@@ -22,7 +22,7 @@ export function PartnerFinancesPayoutMathCard({
   const hasProfile = !!defaultPayoutProfile?.id
 
   return (
-    <Card className="border-indigo-200 bg-indigo-50/50 min-w-0 overflow-hidden">
+    <Card className="border-brand/20 bg-brand/5 min-w-0 overflow-hidden">
       <CardHeader>
         <CardTitle className="text-lg">{t('partnerFinances_payoutMathTitle')}</CardTitle>
         <CardDescription>

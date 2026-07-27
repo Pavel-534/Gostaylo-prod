@@ -22,7 +22,7 @@ export default function PartnerSettingsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       }
     >
@@ -297,7 +297,7 @@ function PartnerSettingsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
@@ -314,10 +314,10 @@ function PartnerSettingsContent() {
         <p className="text-slate-600 mt-1">Управление профилем и уведомлениями</p>
       </div>
 
-      <Card id="partner-verification-panel" className="border-teal-200/80 bg-teal-50/30">
+      <Card id="partner-verification-panel" className="border-brand/20 bg-brand/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5 text-teal-600" aria-hidden />
+            <Shield className="h-5 w-5 text-brand" aria-hidden />
             {getUIText('partnerSettingsVerification_title', language)}
           </CardTitle>
           <CardDescription>{getUIText('partnerSettingsVerification_body', language)}</CardDescription>
@@ -325,13 +325,13 @@ function PartnerSettingsContent() {
         <CardContent className="space-y-4">
           {loadingPartnerApp ? (
             <div className="flex items-center gap-2 text-slate-600 text-sm py-2">
-              <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+              <Loader2 className="h-4 w-4 animate-spin text-brand" />
               …
             </div>
           ) : !partnerApp?.hasApplication ? (
             <div className="space-y-3 text-sm text-slate-700">
               <p>{getUIText('partnerSettingsVerification_noApplication', language)}</p>
-              <Button asChild size="sm" className="bg-teal-600 text-white hover:bg-teal-700">
+              <Button asChild size="sm" variant="brand">
                 <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
               </Button>
             </div>
@@ -366,7 +366,7 @@ function PartnerSettingsContent() {
               />
               <Button
                 type="button"
-                className="bg-teal-600 text-white hover:bg-teal-700"
+                variant="brand"
                 disabled={savingKyc || !String(kycDraftUrl || '').trim()}
                 onClick={() => void handleAttachKycToApplication()}
               >
@@ -400,7 +400,7 @@ function PartnerSettingsContent() {
               {avatarRaw ? (
                 <AvatarImage src={resolveAvatarDisplaySrc(avatarRaw) || ''} alt="" className="object-cover" />
               ) : null}
-              <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl font-semibold">{initial}</AvatarFallback>
+              <AvatarFallback className="bg-brand/15 text-brand-hover text-2xl font-semibold">{initial}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-2 w-full sm:w-auto">
               <input
@@ -459,7 +459,7 @@ function PartnerSettingsContent() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-teal-600" />
+            <MessageSquare className="h-5 w-5 text-brand" />
             Telegram
           </CardTitle>
           <CardDescription>Статус подключения к Telegram боту</CardDescription>
@@ -481,7 +481,7 @@ function PartnerSettingsContent() {
               </p>
               <p className="text-xs text-slate-500 mt-2">
                 Для отключения перейдите в{' '}
-                <a href="/profile" className="text-teal-600 hover:underline">
+                <a href="/profile" className="text-brand hover:underline">
                   профиль
                 </a>
               </p>
@@ -497,7 +497,7 @@ function PartnerSettingsContent() {
                   <p className="text-sm text-slate-600">Подключите для получения уведомлений</p>
                 </div>
               </div>
-              <Button asChild className="mt-4 bg-teal-600 hover:bg-teal-700">
+              <Button asChild variant="brand" className="mt-4">
                 <a href="/profile">
                   Подключить в профиле
                   <ExternalLink className="h-4 w-4 ml-2" />
@@ -511,7 +511,7 @@ function PartnerSettingsContent() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-teal-600" />
+            <Bell className="h-5 w-5 text-brand" />
             Настройки уведомлений
           </CardTitle>
           <CardDescription>Выберите, какие уведомления вы хотите получать</CardDescription>
@@ -601,7 +601,7 @@ function PartnerSettingsContent() {
             href="/legal/partner-terms/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-teal-700 hover:underline font-medium"
+            className="inline-flex items-center gap-1 text-brand-hover hover:underline font-medium"
           >
             {getUIText('footerPartnerTerms', language)}
             <ExternalLink className="h-3.5 w-3.5" />
@@ -610,7 +610,7 @@ function PartnerSettingsContent() {
             href="/legal/public-offer/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-700 hover:underline"
+            className="inline-flex items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
           >
             {getUIText('footerPublicOffer', language)}
             <ExternalLink className="h-3.5 w-3.5" />
@@ -619,7 +619,7 @@ function PartnerSettingsContent() {
             href="/legal/refund/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-700 hover:underline"
+            className="inline-flex items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
           >
             {getUIText('footerRefundPolicy', language)}
             <ExternalLink className="h-3.5 w-3.5" />
@@ -628,7 +628,7 @@ function PartnerSettingsContent() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} disabled={saving} className="bg-teal-600 hover:bg-teal-700">
+        <Button onClick={handleSaveSettings} disabled={saving} variant="brand">
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

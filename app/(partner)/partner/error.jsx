@@ -29,7 +29,7 @@ export default function PartnerError({ error, reset }) {
             Не удалось загрузить панель партнёра. Попробуйте обновить страницу или вернуться в личный кабинет.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={reset} variant="default" className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={reset} variant="brand">
               Попробовать снова
             </Button>
             <Button asChild variant="outline">

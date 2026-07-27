@@ -6,7 +6,7 @@ import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx
 /**
  * Server preview payout amount in partner rail currency (no client FX).
  */
-export function PartnerPayoutPreviewSubline({ preview, className = 'text-xs text-indigo-700' }) {
+export function PartnerPayoutPreviewSubline({ preview, className = 'text-xs text-brand-hover' }) {
   const { getPayoutDisplay } = usePartnerHostDisplayFx()
 
   if (!preview?.amountInPayoutCurrency || !preview?.payoutCurrency) return null

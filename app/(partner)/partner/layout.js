@@ -51,6 +51,7 @@ import { Badge } from '@/components/ui/badge'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
+import { PartnerMobileBottomNav } from '@/components/partner/PartnerMobileBottomNav'
 import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
   WORKSPACE_FRAME_CLASS,
@@ -275,8 +276,8 @@ export default function PartnerLayout({ children }) {
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="rounded-lg p-1.5 transition-all hover:bg-slate-100"
-              aria-label={language === 'ru' ? 'Закрыть меню' : 'Close menu'}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-all hover:bg-slate-100"
+              aria-label={getUIText('partnerLayout_closeMenu', language)}
             >
               <X className="h-5 w-5 text-slate-400" />
             </button>
@@ -492,6 +493,13 @@ export default function PartnerLayout({ children }) {
           </div>
         </main>
       </div>
+
+      {!isListingWizardRoute ? (
+        <PartnerMobileBottomNav
+          language={language}
+          onMoreClick={() => setSidebarOpen(true)}
+        />
+      ) : null}
     </div>
     </PartnerNotificationProvider>
   )

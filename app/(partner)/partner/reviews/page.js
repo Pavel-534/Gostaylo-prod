@@ -142,7 +142,7 @@ export default function PartnerReviewsPage() {
         <Card>
           <CardContent className='pt-6'>
             <div className='text-center'>
-              <p className='text-3xl font-bold text-teal-600'>
+              <p className='text-3xl font-bold text-brand'>
                 {reviews.filter(r => !r.partnerReply).length}
               </p>
               <p className='text-sm text-slate-600'>{getUIText('partnerReviewsStatUnanswered', language)}</p>
@@ -172,8 +172,8 @@ export default function PartnerReviewsPage() {
               <CardContent className='pt-6'>
                 <div className='flex items-start gap-4'>
                   {/* Avatar */}
-                  <div className='w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0'>
-                    <span className='text-teal-700 font-semibold text-lg'>
+                  <div className='w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0'>
+                    <span className='text-brand-hover font-semibold text-lg'>
                       {review.reviewerInitial}
                     </span>
                   </div>
@@ -246,7 +246,7 @@ export default function PartnerReviewsPage() {
                               <Button
                                 onClick={handleSubmitReply}
                                 disabled={submittingReply || !replyText.trim()}
-                                className='bg-teal-600 hover:bg-teal-700'
+                                variant="brand"
                               >
                                 {submittingReply ? (
                                   <><Loader2 className='h-4 w-4 mr-2 animate-spin' />{getUIText('partnerReviewSendingShort', language)}</>
@@ -268,10 +268,10 @@ export default function PartnerReviewsPage() {
                     
                     {/* Partner Reply */}
                     {review.partnerReply && (
-                      <div className='mt-4 pl-4 border-l-2 border-teal-200 bg-teal-50/50 rounded-r-lg py-3 pr-3'>
+                      <div className='mt-4 pl-4 border-l-2 border-brand/20 bg-brand/5 rounded-r-lg py-3 pr-3'>
                         <div className='flex items-center gap-2 mb-1'>
-                          <MessageSquare className='h-4 w-4 text-teal-600' />
-                          <span className='text-sm font-medium text-teal-700'>{getUIText('partnerReviewYourReply', language)}</span>
+                          <MessageSquare className='h-4 w-4 text-brand' />
+                          <span className='text-sm font-medium text-brand-hover'>{getUIText('partnerReviewYourReply', language)}</span>
                           <span className='text-xs text-slate-500'>
                             {review.partnerReplyAt && formatDate(review.partnerReplyAt)}
                           </span>

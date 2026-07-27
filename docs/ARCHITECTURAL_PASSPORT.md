@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.193.3.0 | **Last Updated**: 2026-07-23 | **Stage 190.7:** mobile search sheet wizard UX (Where/Dates advance, guests Done, Filters only when wired).
+> **Version**: 12.194.0.0 | **Last Updated**: 2026-07-27 | **Stage 194.0-A:** Partner Mobile BottomNav, listing action sheet, touch ≥44px, brand token wave (settings/promo/reviews/finances).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -116,11 +116,21 @@
 | **Rate limit** | `sms_otp` (1/min per phone+IP) + `sms_otp_ip` (8/min per IP) + DB cooldown 60s | `POST /api/v2/auth/phone/send` |
 | **Errors** | `AUTH_SMS_DELIVERY_FAILED`, `AUTH_PHONE_SMS_NOT_CONFIGURED` | Логи с `maskPhoneE164`, без полного номера/кода |
 
+### Stage 194.0-A — Partner Cabinet Mobile UX & Token Alignment (2026-07-27)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Partner BottomNav** | `components/partner/PartnerMobileBottomNav.jsx` | `lg:hidden`: Dashboard / Listings / Calendar / Bookings / **More** → opens existing sidebar drawer; hidden on listing wizard; reuses `--app-bottom-nav-height` (не дублирует storefront `MobileBottomNav`) |
+| **Workspace frame** | `WORKSPACE_FRAME_CLASS` | `bottom-[var(--app-bottom-nav-height,0px)]` |
+| **Listings actions** | `PartnerListingCardActions` | Primary: **Календарь · Цены** + Publish/Hide/Restore; overflow bottom sheet for Edit/Photos/View/Delete |
+| **Touch ≥44px** | layout close, listing filter chips, `ListingWizardMobileSlimHeader` | `min-h/w-11` |
+| **Tokens Wave 1** | settings / promo / reviews / finances preview / `error.jsx` | `teal-*` / `indigo-*` → `brand` / `Button variant="brand"` |
+
 ### Stage 189.3 — PWA & Mobile App Shell Polish (2026-07-16)
 
 | Слой | SSOT / маршрут | Поведение |
 |------|----------------|-----------|
-| **Bottom nav safe-area** | `MobileBottomNav` + `.safe-area-pb`; `--app-bottom-nav-height` | Inset **один раз** на nav; shell padding = только measured height (без повторного `env(safe-area-inset-bottom)`) |
+| **Bottom nav safe-area** | `MobileBottomNav` (storefront) + `PartnerMobileBottomNav` (`/partner/*`, Stage **194.0-A**) + `.safe-area-pb`; `--app-bottom-nav-height` | Inset **один раз** на nav; workspace frame `bottom-[var(--app-bottom-nav-height)]`; shell padding = только measured height |
 | **Keyboard** | `visualViewport` shrink &gt; 120px | Таб-бар скрыт, высота CSS-var → `0` |
 | **Account connections** | `AccountConnections` + `hooks/use-account-connections.js` на `/profile` (`ProfileSecurity`) | `GET/DELETE /api/v2/auth/connections`; секция `#account-connections` |
 | **Telegram dual-mode** | Login Widget на `/auth/*` (**non-RU only**, 189.3.1); deep-link `t.me/?start=link_<userId>` в кабинете | Один `TELEGRAM_BOT_TOKEN`; виджет ≠ notify-link; RU: виджет скрыт, deep-link доступен |

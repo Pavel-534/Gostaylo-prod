@@ -22,7 +22,7 @@ export function PartnerBookingPayoutPreviewLine({ t, preview, loading }) {
     feeThb > 0 ? formatLedgerThb(feeThb) : null
 
   return (
-    <div className="space-y-0.5 text-xs text-indigo-700">
+    <div className="space-y-0.5 text-xs text-brand-hover">
       <p className="font-medium tabular-nums whitespace-nowrap">
         {interpolateTemplate(t('partnerFinances_payoutLineDisplay'), { amount: primary })}
       </p>

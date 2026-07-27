@@ -58,14 +58,14 @@ export function PartnerPayoutPreviewFields({
         </span>
       </div>
 
-      <div className={`flex flex-col gap-1 min-w-0 ${isDialog ? '' : 'pt-2 border-t border-indigo-200'}`}>
+      <div className={`flex flex-col gap-1 min-w-0 ${isDialog ? '' : 'pt-2 border-t border-brand/20'}`}>
         <div className="flex justify-between gap-3 items-start">
           <span className={isDialog ? 'text-slate-600 shrink-0' : 'font-semibold shrink-0'}>
             {t('partnerFinances_payoutMathFinal')}
           </span>
           <span
             className={`tabular-nums text-right break-all min-w-0 font-semibold ${
-              isDialog ? 'text-brand-hover' : 'text-indigo-700'
+              isDialog ? 'text-brand-hover' : 'text-brand-hover'
             }`}
           >
             {loading ? (
@@ -78,7 +78,7 @@ export function PartnerPayoutPreviewFields({
           </span>
         </div>
         {rateLine && !hasServerPayout ? (
-          <p className={`text-sm font-medium ${isDialog ? 'text-brand' : 'text-indigo-800'}`}>
+          <p className={`text-sm font-medium ${isDialog ? 'text-brand' : 'text-brand-hover'}`}>
             {rateLine}
           </p>
         ) : null}

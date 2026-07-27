@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn, Calendar, ImageIcon, DollarSign } from 'lucide-react'
+import { Plus, Eye, Edit, Loader2, AlertCircle, ChevronRight, LogIn } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
@@ -32,6 +32,7 @@ import {
   partnerListingStatusToTone,
 } from '@/components/partner/PartnerListingStatusBadge'
 import { PartnerListingBasePriceDisplay } from '@/components/partner/listings/partner-listing-base-price-display'
+import { PartnerListingCardActions } from '@/components/partner/listings/PartnerListingCardActions'
 import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
 import {
   usePartnerListings,
@@ -354,7 +355,7 @@ export default function PartnerListings() {
               type='button'
               onClick={() => setListFilter(tab.id)}
               className={cn(
-                'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors',
+                'inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-xs font-medium border transition-colors',
                 listFilter === tab.id
                   ? 'bg-brand text-white border-brand'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
@@ -545,154 +546,22 @@ export default function PartnerListings() {
                   </div>
                 )}
 
-                {/* Action buttons — редактирование, календарь/iCal, видимость на сайте */}
-                <div className='px-3 pb-3 flex flex-wrap gap-2'>
-                  {/* Публикация / повторная отправка после отклонения */}
-                  {showPublishCta && (
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (!ready) {
-                          setQualityModalListing(listing)
-                          return
-                        }
-                        publishListing(listing)
-                      }}
-                      disabled={publishingId === listing.id}
-                      variant={ready ? 'brand' : 'outline'}
-                      className={`flex-1 min-h-[44px] h-11 text-sm ${
-                        ready
-                          ? ''
-                          : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
-                      }`}
-                      data-testid={`publish-btn-${listing.id}`}
-                    >
-                      {publishingId === listing.id ? (
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                      ) : !ready ? (
-                        <>
-                          <AlertCircle className='h-4 w-4 mr-1' />
-                          <span className='truncate'>{t('partnerListings_finishChecklist')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className='h-4 w-4 mr-1' />
-                          {t('partnerListings_publish')}
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  
-                  {/* View on site button */}
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='min-h-[44px] h-11'
-                    asChild
-                  >
-                    <Link href={`/listings/${listing.id}`} target='_blank'>
-                      <ExternalLink className='h-4 w-4' />
-                    </Link>
-                  </Button>
-                  
-                  {/* Edit */}
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='min-h-[44px] h-11'
-                    asChild
-                  >
-                    <Link href={`/partner/listings/${listing.id}`} title={t('partnerListings_edit')}>
-                      <Edit className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>{t('partnerListings_edit')}</span>
-                    </Link>
-                  </Button>
-
-                  {/* Edit pricing */}
-                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
-                    <Link
-                      href={`/partner/listings/${listing.id}?step=pricing`}
-                      title={t('partnerListings_editPricing')}
-                    >
-                      <DollarSign className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>{t('partnerListings_editPricing')}</span>
-                    </Link>
-                  </Button>
-
-                  {/* Manage photos */}
-                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
-                    <Link
-                      href={`/partner/listings/${listing.id}?step=photos`}
-                      title={t('partnerListings_editPhotos')}
-                    >
-                      <ImageIcon className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>{t('partnerListings_editPhotos')}</span>
-                    </Link>
-                  </Button>
-
-                  {/* Мастер-календарь, отфильтрованный по этому листингу (не страница редактирования) */}
-                  <Button variant='outline' size='sm' className='min-h-[44px] h-11' asChild>
-                    <Link
-                      href={`/partner/calendar?listingId=${listing.id}`}
-                      title={t('partnerListings_calendar')}
-                    >
-                      <Calendar className='h-4 w-4 sm:mr-1' />
-                      <span className='hidden sm:inline text-xs'>{t('partnerListings_calendar')}</span>
-                    </Link>
-                  </Button>
-
-                  {canHideFromSite && (
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      className='min-h-[44px] h-11 text-slate-700'
-                      disabled={visibilityBusyId === listing.id}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setListingOnSite(listing, false)
-                      }}
-                    >
-                      {visibilityBusyId === listing.id ? (
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                      ) : (
-                        <span className='text-xs'>{t('partnerListings_hide')}</span>
-                      )}
-                    </Button>
-                  )}
-
-                  {canRestoreToSite && (
-                    <Button
-                      size='sm'
-                      variant='brand'
-                      className='min-h-[44px] h-11 text-xs'
-                      disabled={visibilityBusyId === listing.id}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setListingOnSite(listing, true)
-                      }}
-                    >
-                      {visibilityBusyId === listing.id ? (
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                      ) : (
-                        t('partnerListings_restore')
-                      )}
-                    </Button>
-                  )}
-                  
-                  {/* Delete button */}
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    className='min-h-[44px] h-11 text-red-600 hover:text-red-700 hover:bg-red-50'
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setDeleteId(listing.id)
-                    }}
-                    data-testid={`delete-btn-${listing.id}`}
-                  >
-                    <Trash2 className='h-4 w-4' />
-                  </Button>
-                </div>
+                {/* Action buttons — Calendar/Prices + Publish/Hide + More sheet (Stage 194.0-A) */}
+                <PartnerListingCardActions
+                  listing={listing}
+                  t={t}
+                  showPublishCta={showPublishCta}
+                  ready={ready}
+                  publishingId={publishingId}
+                  visibilityBusyId={visibilityBusyId}
+                  canHideFromSite={canHideFromSite}
+                  canRestoreToSite={canRestoreToSite}
+                  onPublish={publishListing}
+                  onOpenQualityModal={setQualityModalListing}
+                  onHide={(item) => setListingOnSite(item, false)}
+                  onRestore={(item) => setListingOnSite(item, true)}
+                  onDelete={setDeleteId}
+                />
               </Card>
             )
           })

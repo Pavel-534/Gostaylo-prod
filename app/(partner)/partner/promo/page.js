@@ -229,7 +229,7 @@ export default function PartnerPromoPage() {
   if (loadingSession) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        <Loader2 className="h-10 w-10 animate-spin text-brand" />
       </div>
     )
   }
@@ -256,7 +256,7 @@ export default function PartnerPromoPage() {
 
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
-          <Tag className="h-7 w-7 text-teal-600" />
+          <Tag className="h-7 w-7 text-brand" />
           {t('partnerPromo_pageTitle')}
         </h1>
         <p className="mt-1 text-slate-600">{t('partnerPromo_pageSubtitle')}</p>
@@ -407,7 +407,7 @@ export default function PartnerPromoPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={submitting}>
+            <Button type="submit" variant="brand" className="w-full" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('partnerPromo_submit')}
             </Button>
           </form>

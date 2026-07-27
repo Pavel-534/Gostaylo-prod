@@ -1,7 +1,8 @@
 # Discovery Audit: Partner Cabinet (Path A) — Mobile / PWA readiness
 
 > **Version:** 1.1 · **Date:** 2026-07-22 · **Stage prep:** 194.0  
-> **Scope:** read-only · **Product:** Airento partner (host) workspace  
+> **Status:** Stage **194.0-A** implemented (2026-07-27) — BottomNav, listing action sheet, touch ≥44px, token wave 1.  
+> **Scope:** read-only discovery (below) · **Product:** Airento partner (host) workspace  
 > **Prior closed:** Stage 189.3.1 Auth Immersive · Stage 193.x iCal SSOT  
 > **Rev 1.1:** merged deep-dive evidence (BottomNav exclusion, listings action density, &lt;44px chrome, token counts, i18n hardcodes).  
 
