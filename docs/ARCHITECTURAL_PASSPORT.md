@@ -1,7 +1,31 @@
 # Architectural Passport
 
-> **Version**: 12.200.9.0 | **Last Updated**: 2026-07-30 | **Stage 200.9:** Messages chrome unify + voice recorder harden.
+> **Version**: 12.200.12.0 | **Last Updated**: 2026-07-30 | **Stage 200.12:** Guest fee label + rail 2-up mobile.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.12 — Guest fee label + recommendation rail 2-up (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Service fee label** | `BookingPriceBreakdown` | Guest sees «Сервисный сбор» + amount only (no %) |
+| **Rail slides** | `RECOMMENDATION_RAIL_ITEM_CLASS` | Mobile `basis-1/2` — two full cards; `sm+` fixed 180px carousel |
+
+### Stage 200.11 — Partner sidebar densify (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Drawer header** | `partner/layout.js` | Profile + close in one row (no X-only strip) |
+| **Nav density** | same | `min-h-11` / `rounded-2xl` primary + footer links |
+| **Footer links** | terms / site / logout | Same typography as primary nav (not muted smaller) |
+
+### Stage 200.10 — Referral share links + QR (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Display/share URL** | `formatAmbassadorShareLink` | Clean `/u` or `/go` (no UTM) in pitches, QR, WA/TG |
+| **Channel UTM** | `buildAmbassadorUtmLink` | Only «Copy with tags» after channel chip |
+| **Layout** | MarketingKit / TabLink | `break-all` pitch cards; no single-line Input clip |
+| **QR** | MarketingKit | Enlarge dialog, share PNG image, short caption |
 
 ### Stage 200.9 — Messages chrome + voice (2026-07-30)
 

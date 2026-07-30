@@ -9,7 +9,6 @@ import {
   getGuestPayableTotalThb,
 } from '@/lib/pricing/guest-display-price'
 import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions.js'
-import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 
 function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
@@ -57,10 +56,6 @@ export function BookingPriceBreakdown({
   const serviceFee = Math.round(Number(priceCalc.serviceFee) || 0)
   const taxAmount = Math.round(Number(priceCalc.taxAmountThb) || 0)
   const taxRate = Number(priceCalc.taxRatePercent) || 0
-  const feePct =
-    Number(priceCalc.guestServiceFeePercent) >= 0
-      ? Number(priceCalc.guestServiceFeePercent)
-      : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
   const payableTotal = getGuestPayableTotalThb(priceCalc)
   const exclusionHints = buildGuestPriceExclusionHints(listingCategorySlug, listingMetadata)
 
@@ -104,10 +99,8 @@ export function BookingPriceBreakdown({
       ? getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(taxRate))
       : getUIText('breakdownTaxIncluded', language)
 
-  const serviceFeeLabel = getUIText('priceBreakdown_serviceFeePct', language).replace(
-    /\{\{pct\}\}/g,
-    String(feePct),
-  )
+  // Stage 200.12 — renters see fee amount only (no platform % in guest UI).
+  const serviceFeeLabel = getUIText('serviceFee', language)
 
   return (
     <div

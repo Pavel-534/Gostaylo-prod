@@ -32,7 +32,6 @@ import {
   Wallet,
   Settings,
   LogOut,
-  Menu,
   X,
   Home,
   ChevronRight,
@@ -50,6 +49,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
@@ -276,58 +276,53 @@ export default function PartnerLayout({ children }) {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } border-r border-slate-200 bg-white shadow-lg max-lg:backdrop-blur-none lg:bg-white/95 lg:backdrop-blur-sm lg:shadow-sm lg:shadow-brand/5`}
         >
-          {/* Mobile drawer — close only (logo/title live in AppHeader, Stage 170.13) */}
-          <div className="flex items-center justify-end border-b border-slate-100 p-2 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(false)}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-all hover:bg-slate-100"
-              aria-label={getUIText('partnerLayout_closeMenu', language)}
-            >
-              <X className="h-5 w-5 text-slate-400" />
-            </button>
-          </div>
-
-          {/* User Info */}
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 border border-slate-200">
+          {/* Stage 200.11 — dense chrome: profile + close in one row (no barren X-only strip) */}
+          <div className="shrink-0 border-b border-slate-100 bg-slate-50/60 px-3 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <Avatar className="h-10 w-10 shrink-0 border border-slate-200">
                 {user?.avatar ? (
                   <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
                 ) : null}
-                <AvatarFallback className="bg-brand/15 text-brand-hover text-sm font-semibold">
+                <AvatarFallback className="bg-brand/15 text-sm font-semibold text-brand-hover">
                   {user?.name?.[0]?.toUpperCase() || 'P'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-900">
                   {user?.name || 'Partner'}
                 </p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                <p className="truncate text-xs text-slate-500">{user?.email}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+                aria-label={getUIText('partnerLayout_closeMenu', language)}
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="mt-3 flex justify-start">
-              <HeaderWalletCompact density="expanded" className="w-full justify-between max-w-[220px]" />
+            <div className="mt-2.5">
+              <HeaderWalletCompact density="expanded" className="w-full max-w-none justify-between" />
             </div>
           </div>
 
-          {/* Create Listing Button */}
-          <div className="px-4 py-3">
-            <Button 
-              asChild 
-              className="w-full shadow-sm"
+          <div className="shrink-0 px-3 pt-2.5 pb-1">
+            <Button
+              asChild
+              className="h-11 w-full rounded-2xl shadow-sm"
               variant="brand"
               data-testid="create-listing-btn"
             >
               <Link href="/partner/listings/new">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 {getUIText('partnerNav_createListing', language)}
               </Link>
             </Button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+          <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 py-1.5">
             {sidebarItems.map((item) => {
               const Icon = item.icon
               const isMessagesItem = item.href === '/messages'
@@ -338,7 +333,7 @@ export default function PartnerLayout({ children }) {
                   (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
               const isMessages = isMessagesItem
               const showUnreadDot = isMessages && totalUnread > 0 && !isActive
-              
+
               return (
                 <Link
                   key={item.href}
@@ -348,41 +343,47 @@ export default function PartnerLayout({ children }) {
                       setSidebarOpen(false)
                     }
                   }}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                    isActive ? 'gsl-nav-item-active' : 'gsl-nav-item-idle'
-                  }`}
+                  className={cn(
+                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-colors',
+                    isActive ? 'gsl-nav-item-active' : 'gsl-nav-item-idle',
+                  )}
                 >
                   <span className="relative shrink-0">
-                    <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    {showUnreadDot && (
-                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
-                    )}
+                    <Icon
+                      className={cn(
+                        'h-[18px] w-[18px]',
+                        isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600',
+                      )}
+                    />
+                    {showUnreadDot ? (
+                      <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                    ) : null}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <span className={`text-sm block ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    <span className={cn('block text-sm', isActive ? 'font-semibold' : 'font-medium')}>
                       {item.name}
                     </span>
-                    <span className="hidden lg:block text-[10px] text-slate-400 leading-tight truncate">
+                    <span className="hidden truncate text-[10px] leading-tight text-slate-400 lg:block">
                       {item.description}
                     </span>
                   </div>
-                  {isMessages && totalUnread > 0 && !isActive && (
-                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px]">
+                  {isMessages && totalUnread > 0 && !isActive ? (
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
                       {totalUnread > 99 ? '99+' : totalUnread}
                     </Badge>
-                  )}
-                  {item.badge && !isMessages && (
+                  ) : null}
+                  {item.badge && !isMessages ? (
                     <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
                       {item.badge}
                     </Badge>
-                  )}
+                  ) : null}
                 </Link>
               )
             })}
           </nav>
 
-          {/* Bottom Section */}
-          <div className="p-3 border-t border-slate-100 space-y-2">
+          {/* Footer — same density/typography as primary nav */}
+          <div className="shrink-0 space-y-0.5 border-t border-slate-100 px-2 py-2">
             <Link
               href="/my-bookings"
               onClick={() => {
@@ -390,33 +391,34 @@ export default function PartnerLayout({ children }) {
                   setSidebarOpen(false)
                 }
               }}
-              className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-brand-hover transition-all hover:bg-brand/10"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10"
               data-testid="partner-switch-to-guest"
             >
-              <CalendarDays className="h-4 w-4 shrink-0" />
-              <span>{getUIText('partnerNav_switchToGuestMode', language)}</span>
+              <CalendarDays className="h-[18px] w-[18px] shrink-0" />
+              <span className="min-w-0 leading-snug">{getUIText('partnerNav_switchToGuestMode', language)}</span>
             </Link>
             <Link
               href="/legal/partner-terms/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all text-sm"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
-              <Shield className="w-4 h-4" />
-              <span>{getUIText('footerPartnerTerms', language)}</span>
+              <Shield className="h-[18px] w-[18px] shrink-0 text-slate-400" />
+              <span className="min-w-0 leading-snug">{getUIText('footerPartnerTerms', language)}</span>
             </Link>
-            <Link 
-              href="/" 
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all text-sm"
+            <Link
+              href="/"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
-              <ExternalLink className="w-4 h-4" />
-              <span>{getUIText('partnerNav_publicSite', language)}</span>
+              <ExternalLink className="h-[18px] w-[18px] shrink-0 text-slate-400" />
+              <span className="min-w-0 leading-snug">{getUIText('partnerNav_publicSite', language)}</span>
             </Link>
             <button
+              type="button"
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition-all w-full text-sm"
+              className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="h-[18px] w-[18px] shrink-0" />
               <span>{getUIText('logout', language)}</span>
             </button>
           </div>

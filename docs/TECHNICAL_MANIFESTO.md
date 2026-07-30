@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.9.0 | **Last Updated**: 2026-07-30 | **Stage 200.9:** Messages chrome unify + voice recorder harden.
+> **Version**: 12.200.12.0 | **Last Updated**: 2026-07-30 | **Stage 200.12:** Guest fee label + rail 2-up mobile.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,12 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.12 (2026-07-30):** **Guest fee label + rail 2-up** — PDP `BookingPriceBreakdown` shows service fee amount without platform %; recommendation rails (`RecentlyViewed` / `ForYou` / `Similar`) use `RECOMMENDATION_RAIL_ITEM_CLASS` `basis-1/2` on mobile so two cards fit the viewport (fluid `w-full`), `sm+` keeps Stage 170.8 fixed-width carousel.
+
+**Stage 200.11 (2026-07-30):** **Partner sidebar densify** — mobile drawer drops barren close-only strip; profile + X one row; primary/footer links share `min-h-11` / `rounded-2xl` / 18px icons; terms & public site no longer look like a foreign smaller footer.
+
+**Stage 200.10 (2026-07-30):** **Referral share polish** — pitches/QR/WA/TG use clean `/u` or vanity `/go` (no UTM clutter); channel UTMs only via «Copy with tags»; `break-all` on pitch cards; QR enlarge dialog + share PNG (`navigator.share` files) with download fallback. Helpers: `stripAmbassadorTrackingParams` / `formatAmbassadorShareLink` / `formatAmbassadorLinkCaption`.
 
 **Stage 200.9 (2026-07-30):** **Messages chrome unify + voice harden** — hall drops legacy **GS/G** letter marks; single `ChatTopBar` (Airento mark, Back, Catalog, Home) on all breakpoints for `/messages` & archive; thread mobile still `StickyChatHeader`; `useVoiceRecorder` mime fallback + MediaRecorder try/catch + user-facing toasts (mic denied / unsupported / too short).
 

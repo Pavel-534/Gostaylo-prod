@@ -12,6 +12,8 @@ import { ReferralAmbassadorWaveGuide } from '@/components/referral/ReferralAmbas
 import {
   AMBASSADOR_UTM_CHANNELS,
   buildAmbassadorUtmLink,
+  formatAmbassadorLinkCaption,
+  formatAmbassadorShareLink,
 } from '@/lib/referral/ambassador-utm-link'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -24,27 +26,42 @@ const CHANNEL_LABEL_KEYS = {
 }
 
 /**
- * Stage 192.0 — Link tab + Creator Pack UTM channel chips (presentation-only).
+ * Stage 192.0 — Link tab + Creator Pack UTM channel chips.
+ * Stage 200.10 — clean display/share links; UTM only on channel copy.
  */
 export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBonusThb }) {
   const router = useRouter()
   const [utmChannel, setUtmChannel] = useState('telegram')
   const displayName = String(data?.marketingCard?.displayName || '').trim() || 'Ambassador'
   const brand = String(data?.brandName || '').trim() || 'Platform'
-  const baseInviteLink = String(data?.referralLandingUrl || data?.referralLink || '').trim()
   const welcomeCode = String(data?.code || '').trim() || 'AIR-XXXXXX'
   const campaignId = String(data?.code || data?.userId || data?.id || 'ambassador')
     .trim()
     .replace(/\s+/g, '_')
     .slice(0, 64) || 'ambassador'
 
+  /** Prefer vanity `/go`, then `/u` landing, then legacy `?ref=`. */
+  const cleanInviteLink = useMemo(() => {
+    const preferred = String(
+      data?.vanityUrl || data?.referralLandingUrl || data?.referralLink || '',
+    ).trim()
+    return formatAmbassadorShareLink(preferred) || preferred
+  }, [data?.vanityUrl, data?.referralLandingUrl, data?.referralLink])
+
+  const displayLinkCaption = useMemo(() => {
+    if (data?.vanityUrl) return formatAmbassadorLinkCaption(data.vanityUrl)
+    const short = String(data?.referralLandingShortDisplay || '').trim()
+    if (short) return short
+    return formatAmbassadorLinkCaption(cleanInviteLink)
+  }, [data?.vanityUrl, data?.referralLandingShortDisplay, cleanInviteLink])
+
   const taggedInviteLink = useMemo(
     () =>
-      buildAmbassadorUtmLink(baseInviteLink, {
+      buildAmbassadorUtmLink(cleanInviteLink, {
         channel: utmChannel,
         campaign: campaignId,
-      }) || baseInviteLink,
-    [baseInviteLink, utmChannel, campaignId],
+      }) || cleanInviteLink,
+    [cleanInviteLink, utmChannel, campaignId],
   )
 
   const directPartnersInvited = Number(
@@ -76,10 +93,10 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">{t('stage91_whyShareTitle')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card className="rounded-xl border border-brand/20 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white shrink-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white">
                 <Plane className="h-5 w-5" />
               </div>
               <CardTitle className="text-lg">{t('stage91_whyTravelersTitle')}</CardTitle>
@@ -90,7 +107,7 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
           </Card>
           <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shrink-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
                 <Coins className="h-5 w-5" />
               </div>
               <CardTitle className="text-lg">{t('stage91_whyPartnersTitle')}</CardTitle>
@@ -102,27 +119,35 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         </div>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <CardHeader>
             <CardTitle>{t('stage1143_qrCardTitle')}</CardTitle>
             <CardDescription className="text-slate-600">{t('stage192_creatorPackTitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="mx-auto w-fit rounded-xl border-2 border-dashed border-slate-200 p-4 bg-slate-50">
-              {taggedInviteLink ? (
-                <QRCodeSVG value={taggedInviteLink} size={180} level="M" includeMargin />
+            <div className="mx-auto w-fit rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4">
+              {cleanInviteLink ? (
+                <QRCodeSVG value={cleanInviteLink} size={180} level="M" includeMargin />
               ) : (
                 <div className="h-[180px] w-[180px] rounded bg-slate-100" />
               )}
             </div>
+            {displayLinkCaption ? (
+              <p
+                className="break-all text-center text-xs font-medium text-slate-600"
+                data-testid="referral-qr-caption"
+              >
+                {displayLinkCaption}
+              </p>
+            ) : null}
             <div className="space-y-2">
               <p className="text-xs text-slate-500">{t('stage1143_yourCode')}</p>
               <Input value={welcomeCode} readOnly className="font-semibold tracking-wide" />
 
               <div className="space-y-2 pt-1" data-testid="referral-utm-builder">
                 <p className="text-sm font-medium text-slate-900">{t('stage192_utmBuilderTitle')}</p>
-                <p className="text-xs text-slate-500 leading-relaxed">{t('stage192_utmBuilderHint')}</p>
+                <p className="text-xs leading-relaxed text-slate-500">{t('stage192_utmBuilderHint')}</p>
                 <div className="flex flex-wrap gap-2">
                   {AMBASSADOR_UTM_CHANNELS.map((ch) => {
                     const selected = utmChannel === ch
@@ -148,21 +173,36 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
               </div>
 
               <p className="text-xs text-slate-500">{t('stage1143_yourLink')}</p>
+              <div
+                className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+                data-testid="referral-utm-link-input"
+              >
+                <p className="break-all text-sm font-medium leading-snug text-slate-900">
+                  {displayLinkCaption || cleanInviteLink}
+                </p>
+                <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+                  {t('stage200_linkDisplayHint')}
+                </p>
+              </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={taggedInviteLink}
-                  readOnly
-                  className="min-w-0 text-xs sm:text-sm"
-                  data-testid="referral-utm-link-input"
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full shrink-0 sm:w-auto"
+                  data-testid="referral-clean-copy"
+                  onClick={() => void copyText(cleanInviteLink, 'referralStage726_linkCopied')}
+                >
+                  <Copy className="mr-1 h-4 w-4" />
+                  {t('stage200_copyCleanLink')}
+                </Button>
                 <Button
                   type="button"
                   variant="brand"
-                  className="min-h-11 shrink-0 w-full sm:w-auto"
+                  className="min-h-11 w-full shrink-0 sm:w-auto"
                   data-testid="referral-utm-copy"
                   onClick={() => void copyText(taggedInviteLink, 'stage192_utmCopied')}
                 >
-                  <Copy className="h-4 w-4 mr-1" />
+                  <Copy className="mr-1 h-4 w-4" />
                   {t('stage192_utmCopyLink')}
                 </Button>
               </div>
@@ -182,16 +222,9 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       </section>
 
       <ReferralMarketingKit
-        referralLink={
-          buildAmbassadorUtmLink(String(data?.referralLink || '').trim(), {
-            channel: utmChannel,
-            campaign: campaignId,
-          }) ||
-          data?.referralLink ||
-          ''
-        }
-        landingShareUrl={taggedInviteLink || data?.referralLandingUrl || ''}
-        landingShortLabel={data?.referralLandingShortDisplay || ''}
+        referralLink={formatAmbassadorShareLink(String(data?.referralLink || '').trim()) || data?.referralLink || ''}
+        landingShareUrl={cleanInviteLink}
+        landingShortLabel={displayLinkCaption}
         loyaltyExplainerHref="/about/loyalty"
         loyaltyExplainerLabel={t('stage91_shareColdAudienceLoyaltyLink')}
         shareNativeLabel={t('stage91_shareNative')}
@@ -225,6 +258,10 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         shareFbLabel={t('stage73_shareFb')}
         shareTgLabel={t('referralStage726_shareTg')}
         shareWaLabel={t('referralStage726_shareWa')}
+        qrOpenLabel={t('stage200_qrOpen')}
+        qrShareLabel={t('stage200_qrShare')}
+        qrShareFailToast={t('stage200_qrShareFail')}
+        qrHint={t('stage200_qrHint')}
         storiesCardHeadline={storiesCardHeadline}
         storiesTierStatusLine={storiesTierStatusLine}
         storiesAmbassadorBadgeLine={stories.ambassadorBadgeLine || ''}
@@ -234,13 +271,13 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       />
 
       <Card className="rounded-xl border border-slate-200 bg-white">
-        <CardContent className="p-4 text-sm text-slate-600 flex items-center gap-2">
+        <CardContent className="flex items-center gap-2 p-4 text-sm text-slate-600">
           <ArrowRight className="h-4 w-4 text-brand" />
           <span>
             {t('stage1143_walletHint')}{' '}
             <button
               type="button"
-              className="font-medium text-brand underline min-h-11 inline-flex items-center"
+              className="inline-flex min-h-11 items-center font-medium text-brand underline"
               onClick={() => router.push('/profile/wallet')}
             >
               {t('stage1143_tabNavWallet')}

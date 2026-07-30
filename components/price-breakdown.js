@@ -84,7 +84,7 @@ export function PriceBreakdown({
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-600">
-            {interpolate(t('priceBreakdown_serviceFeePct', language), { pct: ratePct })}
+            {t('serviceFee', language)}
           </span>
           <span className="font-medium text-green-600 tabular-nums">{fp(serviceFee)}</span>
         </div>
@@ -192,7 +192,7 @@ export function PriceBreakdown({
 
         <div className="flex justify-between text-sm gap-2">
           <span className="text-slate-600 flex items-center gap-1 min-w-0">
-            {interpolate(t('priceBreakdown_serviceFeePct', language), { pct: ratePct })}
+            {t('serviceFee', language)}
             <Info className="h-3 w-3 text-slate-400 shrink-0" />
           </span>
           <span className="font-medium text-green-600 tabular-nums">{fp(commission)}</span>

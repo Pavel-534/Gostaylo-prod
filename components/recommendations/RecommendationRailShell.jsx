@@ -9,6 +9,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import { cn } from '@/lib/utils'
+import { RECOMMENDATION_RAIL_ITEM_CLASS } from '@/lib/recommendations/constants'
 
 export const RecommendationRailShell = forwardRef(function RecommendationRailShell(
   { title, children, className },
@@ -21,6 +22,7 @@ export const RecommendationRailShell = forwardRef(function RecommendationRailShe
       <Carousel
         opts={{
           align: 'start',
+          // Mobile 2-up snaps cleanly; free-drag kept for sm+ multi-card rails.
           dragFree: true,
           containScroll: 'trimSnaps',
         }}
@@ -44,9 +46,16 @@ export const RecommendationRailShell = forwardRef(function RecommendationRailShe
           ) : null}
         </div>
 
-        <CarouselContent className="-ml-4 mt-4">
+        <CarouselContent className="-ml-3 mt-4 sm:-ml-4">
           {slides.map((child) => (
-            <CarouselItem key={child.key} className="basis-auto pl-4">
+            <CarouselItem
+              key={child.key}
+              className={cn(
+                slides.length === 1
+                  ? 'basis-full pl-3 sm:basis-auto sm:pl-4'
+                  : RECOMMENDATION_RAIL_ITEM_CLASS,
+              )}
+            >
               {child}
             </CarouselItem>
           ))}

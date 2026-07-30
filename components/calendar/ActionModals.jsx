@@ -68,8 +68,20 @@ function overlayBtnClass(isMobile) {
   return cn('min-h-11', isMobile && 'w-full')
 }
 
-/** Native date fields: room for browser calendar chevron (Samsung/WebKit). */
-const DATE_INPUT_CLASS = 'mt-1 min-h-11 pe-10 [&::-webkit-calendar-picker-indicator]:me-0.5'
+/**
+ * Native date fields: align calendar chevron with SelectTrigger (px-3 / right-3).
+ * Plain pe-* alone is ignored for the indicator on Samsung/WebKit — absolute inset works.
+ */
+const DATE_INPUT_CLASS = cn(
+  'relative mt-1 min-h-11 pe-11',
+  '[&::-webkit-calendar-picker-indicator]:absolute',
+  '[&::-webkit-calendar-picker-indicator]:right-3',
+  '[&::-webkit-calendar-picker-indicator]:top-1/2',
+  '[&::-webkit-calendar-picker-indicator]:h-4',
+  '[&::-webkit-calendar-picker-indicator]:w-4',
+  '[&::-webkit-calendar-picker-indicator]:-translate-y-1/2',
+  '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
+)
 
 /** Above CalendarActionOverlay sheet (z-350). */
 const SELECT_IN_OVERLAY_CLASS = 'z-[400]'

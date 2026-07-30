@@ -7,7 +7,7 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Facebook, FileText, Home, Loader2, Lock, MessageCircle, Plane, Share2, Smartphone } from 'lucide-react'
+import { Download, Expand, Facebook, FileText, Home, Loader2, Lock, MessageCircle, Plane, Share2, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { downloadAmbassadorCardPdf } from '@/lib/referral/ambassador-card-pdf'
 import { isUuidLike } from '@/lib/referral/uuid-like'
@@ -18,9 +18,20 @@ import { useCurrency } from '@/contexts/currency-context'
 import { useAmbassadorDisplayFx } from '@/lib/hooks/use-ambassador-display-fx'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
 import {
+  formatAmbassadorLinkCaption,
+  formatAmbassadorShareLink,
+} from '@/lib/referral/ambassador-utm-link'
+import {
   applyReferralPitchTemplate,
   buildReferralPitchTokens,
 } from '@/lib/referral/referral-share-pitch-tokens'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 /** Stage 179.4 — mobile share row; desktop keeps horizontal wrap + hover scale. */
@@ -116,15 +127,23 @@ export function ReferralMarketingKit({
   loyaltyExplainerLabel = '',
   /** Web Share API (мобильный нативный шаринг), Stage 91.5 */
   shareNativeLabel = '',
+  /** Stage 200.10 — QR open / share image */
+  qrOpenLabel = '',
+  qrShareLabel = '',
+  qrShareFailToast = '',
+  qrHint = '',
 }) {
   const { language } = useI18n()
   const { currency } = useCurrency()
   const { exchangeRates } = useAmbassadorDisplayFx()
-  const link = String(referralLink || '').trim()
-  const landing = String(landingShareUrl || '').trim()
-  /** Основная ссылка для QR, PNG, TG/FB: короткая визитка, иначе длинный ref. */
+  const link = formatAmbassadorShareLink(String(referralLink || '').trim()) || String(referralLink || '').trim()
+  const landing =
+    formatAmbassadorShareLink(String(landingShareUrl || '').trim()) ||
+    String(landingShareUrl || '').trim()
+  /** Clean invite for QR / pitches / share (no UTM clutter). */
   const qrLink = landing || link
-  const linkCaption = String(landingShortLabel || '').trim() || qrLink
+  const linkCaption =
+    String(landingShortLabel || '').trim() || formatAmbassadorLinkCaption(qrLink) || qrLink
 
   const brandChip = useMemo(() => {
     const b = String(brandName || '').trim()
@@ -144,6 +163,8 @@ export function ReferralMarketingKit({
   const [pdfBusy, setPdfBusy] = useState(false)
   const [storiesBusy, setStoriesBusy] = useState(false)
   const [storiesTeamBusy, setStoriesTeamBusy] = useState(false)
+  const [qrShareBusy, setQrShareBusy] = useState(false)
+  const [qrPreviewOpen, setQrPreviewOpen] = useState(false)
   const [storyQrDataUrl, setStoryQrDataUrl] = useState('')
   const storiesCardRef = useRef(null)
   const storiesTeamCardRef = useRef(null)
@@ -151,6 +172,11 @@ export function ReferralMarketingKit({
   useEffect(() => {
     setNativeShareOk(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
+
+  const openLabel = String(qrOpenLabel || '').trim() || getUIText('stage200_qrOpen', language)
+  const shareQrLabel = String(qrShareLabel || '').trim() || getUIText('stage200_qrShare', language)
+  const shareQrFail = String(qrShareFailToast || '').trim() || getUIText('stage200_qrShareFail', language)
+  const qrHintText = String(qrHint || '').trim() || getUIText('stage200_qrHint', language)
 
   const safeDisplayName = useMemo(() => {
     const d = String(displayName || '').trim()
@@ -202,11 +228,13 @@ export function ReferralMarketingKit({
   const shareTgShort = getUIText('referralStage726_shareTg_short', language)
   const shareNativeShort = getUIText('stage91_shareNative_short', language)
 
-  function stripLinkFromPitch(text, link) {
-    const l = String(link || '').trim()
-    if (!l) return String(text || '').trim()
-    return String(text || '')
-      .replace(l, '')
+  function stripLinkFromPitch(text, linkUrl) {
+    const l = String(linkUrl || '').trim()
+    let out = String(text || '')
+    if (l) out = out.split(l).join('')
+    const caption = formatAmbassadorLinkCaption(l)
+    if (caption) out = out.split(caption).join('')
+    return out
       .replace(/\s*:\s*$/, '')
       .replace(/\s+$/, '')
       .trim()
@@ -230,15 +258,26 @@ export function ReferralMarketingKit({
     }
   }, [qrLink])
 
+  async function buildQrPngFile() {
+    const dataUrl = await QRCode.toDataURL(qrLink, {
+      width: 640,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    })
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
+    const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 32)
+    return {
+      dataUrl,
+      file: new File([blob], `${getSiteBrandSlug()}-invite-${safeCode}.png`, { type: 'image/png' }),
+    }
+  }
+
   async function handleDownloadPng() {
     if (!qrLink || typeof window === 'undefined') return
     setDownloading(true)
     try {
-      const dataUrl = await QRCode.toDataURL(qrLink, {
-        width: 640,
-        margin: 2,
-        errorCorrectionLevel: 'M',
-      })
+      const { dataUrl } = await buildQrPngFile()
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 32)
       const a = document.createElement('a')
       a.href = dataUrl
@@ -246,6 +285,36 @@ export function ReferralMarketingKit({
       a.click()
     } finally {
       setDownloading(false)
+    }
+  }
+
+  async function handleShareQrImage() {
+    if (!qrLink || typeof window === 'undefined') return
+    setQrShareBusy(true)
+    try {
+      const { file } = await buildQrPngFile()
+      const payload = {
+        files: [file],
+        title: String(brandChip || '').trim() || 'Invite',
+        text: linkCaption || qrLink,
+      }
+      if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare(payload)) {
+        await navigator.share(payload)
+        return
+      }
+      await handleDownloadPng()
+      toast.message(shareQrFail)
+    } catch (e) {
+      const errName = e && typeof e === 'object' && 'name' in e ? String(/** @type {{ name?: string }} */ (e).name) : ''
+      if (errName === 'AbortError') return
+      try {
+        await handleDownloadPng()
+      } catch {
+        /* ignore */
+      }
+      toast.error(shareQrFail)
+    } finally {
+      setQrShareBusy(false)
     }
   }
 
@@ -338,9 +407,9 @@ export function ReferralMarketingKit({
   async function handleNativeShare() {
     if (!qrLink || typeof navigator === 'undefined' || typeof navigator.share !== 'function') return
     const title = String(brandChip || '').trim() || 'Invite'
-    const text = String(defaultPitch || '').trim()
-    const url = qrLink
-    const data = { title, text, url }
+    const pitch = String(defaultPitch || '').trim()
+    const textOnly = stripLinkFromPitch(pitch, qrLink) || pitch
+    const data = { title, text: textOnly, url: qrLink }
     try {
       if (typeof navigator.canShare === 'function' && !navigator.canShare(data)) {
         openTg()
@@ -482,15 +551,57 @@ export function ReferralMarketingKit({
         </CardHeader>
         <CardContent className="space-y-5 px-4 pb-6">
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:justify-center sm:gap-8">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mx-auto sm:mx-0">
-              {qrLink ? (
-                <QRCodeSVG value={qrLink} size={180} level="M" includeMargin className="max-w-[min(180px,72vw)] h-auto" />
-              ) : (
-                <div className="w-[min(180px,72vw)] aspect-square max-w-[180px] bg-slate-100 rounded-md" />
-              )}
+            <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-2 sm:mx-0">
+              <button
+                type="button"
+                disabled={!qrLink}
+                onClick={() => setQrPreviewOpen(true)}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                aria-label={openLabel}
+                data-testid="referral-qr-preview-trigger"
+              >
+                {qrLink ? (
+                  <QRCodeSVG value={qrLink} size={180} level="M" includeMargin className="h-auto max-w-[min(180px,72vw)]" />
+                ) : (
+                  <div className="aspect-square w-[min(180px,72vw)] max-w-[180px] rounded-md bg-slate-100" />
+                )}
+              </button>
+              {linkCaption ? (
+                <p className="max-w-[220px] break-all text-center text-[11px] font-medium leading-snug text-slate-600">
+                  {linkCaption}
+                </p>
+              ) : null}
+              <p className="max-w-[240px] text-center text-[11px] leading-snug text-slate-500">{qrHintText}</p>
+              <div className="flex w-full flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full flex-1"
+                  disabled={!qrLink}
+                  onClick={() => setQrPreviewOpen(true)}
+                >
+                  <Expand className="mr-2 h-4 w-4 shrink-0" />
+                  {openLabel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full flex-1"
+                  disabled={!qrLink || qrShareBusy}
+                  onClick={() => void handleShareQrImage()}
+                  data-testid="referral-qr-share"
+                >
+                  {qrShareBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+                  ) : (
+                    <Share2 className="mr-2 h-4 w-4 shrink-0" />
+                  )}
+                  {shareQrLabel}
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col items-stretch gap-2 w-full max-w-sm mx-auto sm:mx-0 sm:w-auto min-w-0">
-              <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <div className="mx-auto flex w-full max-w-sm min-w-0 flex-col items-stretch gap-2 sm:mx-0 sm:w-auto">
+              <div className="flex w-full flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="brand"
@@ -498,17 +609,17 @@ export function ReferralMarketingKit({
                   disabled={!qrLink || downloading}
                   onClick={() => void handleDownloadPng()}
                 >
-                  {downloading ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <Download className="h-4 w-4 mr-2 shrink-0" />}
+                  {downloading ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Download className="mr-2 h-4 w-4 shrink-0" />}
                   {downloadLabel}
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
-                  className="w-full flex-1 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-900"
+                  className="w-full flex-1 border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100"
                   disabled={!qrLink || pdfBusy}
                   onClick={() => void handleDownloadPdf()}
                 >
-                  {pdfBusy ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <FileText className="h-4 w-4 mr-2 shrink-0" />}
+                  {pdfBusy ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <FileText className="mr-2 h-4 w-4 shrink-0" />}
                   {pdfButtonLabel}
                 </Button>
               </div>
@@ -580,7 +691,7 @@ export function ReferralMarketingKit({
                     {sharePitchTabHostLabel}
                   </button>
                 </div>
-                <p className="text-[11px] leading-relaxed text-slate-500 border border-slate-100 rounded-lg bg-white px-3 py-2">
+                <p className="min-w-0 break-all rounded-lg border border-slate-100 bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-500">
                   {defaultPitch}
                 </p>
               </div>
@@ -622,14 +733,17 @@ export function ReferralMarketingKit({
             {postTextsSubtitle ? <p className="text-xs text-slate-500">{postTextsSubtitle}</p> : null}
             <div className="space-y-2">
               {readyTexts.map((item) => (
-                <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                   <p className="text-xs font-medium text-slate-600">{item.label}</p>
-                  <p className="mt-1 text-sm leading-snug text-slate-900 whitespace-pre-wrap">{item.value}</p>
+                  <p className="mt-1 min-w-0 break-all whitespace-pre-wrap text-sm leading-snug text-slate-900">
+                    {item.value}
+                  </p>
                   <div className="mt-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="min-h-11"
                       onClick={() => void handleCopyPostText(item.value)}
                     >
                       {postCopyLabel}
@@ -641,6 +755,40 @@ export function ReferralMarketingKit({
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={qrPreviewOpen} onOpenChange={setQrPreviewOpen}>
+        <DialogContent className="max-w-sm rounded-2xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{openLabel}</DialogTitle>
+            <DialogDescription className="break-all text-slate-600">{linkCaption || qrLink}</DialogDescription>
+          </DialogHeader>
+          <div className="mx-auto rounded-2xl border border-slate-200 bg-white p-4">
+            {qrLink ? <QRCodeSVG value={qrLink} size={240} level="M" includeMargin /> : null}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="brand"
+              className="min-h-11 w-full flex-1"
+              disabled={!qrLink || qrShareBusy}
+              onClick={() => void handleShareQrImage()}
+            >
+              {qrShareBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+              {shareQrLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full flex-1"
+              disabled={!qrLink || downloading}
+              onClick={() => void handleDownloadPng()}
+            >
+              {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {downloadLabel}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
