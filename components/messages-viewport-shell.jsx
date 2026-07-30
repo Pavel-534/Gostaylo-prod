@@ -5,11 +5,8 @@
  *
  * Stage 170.8: VisualViewport — динамическая высота при мобильной клавиатуре (iOS/Android).
  * Stage 189.1: также `scroll` + CSS vars для offsetTop (iOS keyboard pan).
- *
- * 2026-02-05: интеграция единого ChatTopBar (Step 4 Unified Header sprint).
- * На desktop (lg+) сверху рендерится slim AppHeader (h-12) для поддержания
- * визуальной целостности super-app. На mobile — thread остаётся полноэкранным,
- * StickyChatHeader сам владеет верхней зоной.
+ * Stage 200.9: ChatTopBar на холле — все брейкпоинты (бренд Airento + назад/каталог/главная);
+ *   в треде на mobile по-прежнему StickyChatHeader.
  */
 
 import { useEffect, useState } from 'react'

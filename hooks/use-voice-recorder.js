@@ -1,22 +1,38 @@
 'use client'
 
 /**
- * useVoiceRecorder — хук для записи голосовых сообщений через Web MediaRecorder API.
+ * useVoiceRecorder — Web MediaRecorder for chat voice messages.
  *
- * Возвращает:
- *  - isRecording: bool — сейчас идёт запись
- *  - duration: number — прошедшее время (секунды)
- *  - audioBlob: Blob | null — готовый аудиофайл после остановки
- *  - audioUrl: string | null — ObjectURL для предпрослушивания
- *  - error: string | null — сообщение об ошибке (нет разрешения и т.д.)
- *  - startRecording() — начать запись
- *  - stopRecording() — остановить и получить blob
- *  - discardRecording() — удалить и сбросить состояние
+ * Samsung Internet / WebKit: prefer supported mime (mp4/aac when webm missing);
+ * MediaRecorder construction wrapped; empty blobs rejected.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-const MAX_DURATION_SEC = 120 // максимум 2 минуты
+const MAX_DURATION_SEC = 120
+const MIN_BLOB_BYTES = 256
+
+const MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4',
+  'audio/aac',
+  'audio/ogg;codecs=opus',
+  'audio/ogg',
+]
+
+function pickRecorderMime() {
+  if (typeof MediaRecorder === 'undefined') return null
+  if (typeof MediaRecorder.isTypeSupported !== 'function') return ''
+  for (const m of MIME_CANDIDATES) {
+    try {
+      if (MediaRecorder.isTypeSupported(m)) return m
+    } catch {
+      /* ignore */
+    }
+  }
+  return ''
+}
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false)
@@ -29,9 +45,7 @@ export function useVoiceRecorder() {
   const chunksRef = useRef([])
   const timerRef = useRef(null)
   const streamRef = useRef(null)
-  /** Ссылка на ObjectURL — чтобы не терять revoke при смене замыканий в startRecording */
   const audioUrlRef = useRef(null)
-  /** Не создавать blob в onstop при принудительной остановке перед новой записью */
   const skipNextBlobRef = useRef(false)
 
   function revokePreviewUrl() {
@@ -53,6 +67,7 @@ export function useVoiceRecorder() {
     return () => {
       revokePreviewUrl()
       stopStream()
+      clearInterval(timerRef.current)
     }
   }, [])
 
@@ -62,7 +77,11 @@ export function useVoiceRecorder() {
     skipNextBlobRef.current = false
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       skipNextBlobRef.current = true
-      mediaRecorderRef.current.stop()
+      try {
+        mediaRecorderRef.current.stop()
+      } catch {
+        /* ignore */
+      }
     }
     stopStream()
     revokePreviewUrl()
@@ -71,29 +90,56 @@ export function useVoiceRecorder() {
     chunksRef.current = []
     mediaRecorderRef.current = null
 
+    if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
+      setError('__VOICE_UNSUPPORTED__')
+      return
+    }
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setError('__VOICE_UNSUPPORTED__')
+      return
+    }
+
     let stream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch {
-      setError('Нет доступа к микрофону. Разрешите доступ в настройках браузера.')
+      setError('__VOICE_MIC_DENIED__')
       return
     }
     streamRef.current = stream
 
-    const mimeTypes = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-    ]
-    const mimeType = mimeTypes.find((m) => MediaRecorder.isTypeSupported(m)) || ''
+    const mimeType = pickRecorderMime()
+    if (mimeType === null) {
+      stopStream()
+      setError('__VOICE_UNSUPPORTED__')
+      return
+    }
 
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    let recorder
+    try {
+      recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    } catch {
+      try {
+        recorder = new MediaRecorder(stream)
+      } catch {
+        stopStream()
+        setError('__VOICE_UNSUPPORTED__')
+        return
+      }
+    }
+
     mediaRecorderRef.current = recorder
     chunksRef.current = []
 
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data)
+      if (e.data?.size > 0) chunksRef.current.push(e.data)
+    }
+
+    recorder.onerror = () => {
+      setError('__VOICE_UNSUPPORTED__')
+      clearInterval(timerRef.current)
+      setIsRecording(false)
+      stopStream()
     }
 
     recorder.onstop = () => {
@@ -103,16 +149,29 @@ export function useVoiceRecorder() {
         chunksRef.current = []
         return
       }
-      const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+      const type = recorder.mimeType || mimeType || 'audio/webm'
+      const blob = new Blob(chunksRef.current, { type })
+      stopStream()
+      if (!blob.size || blob.size < MIN_BLOB_BYTES) {
+        setError('__VOICE_TOO_SHORT__')
+        chunksRef.current = []
+        return
+      }
       revokePreviewUrl()
       const url = URL.createObjectURL(blob)
       audioUrlRef.current = url
       setAudioBlob(blob)
       setAudioUrl(url)
-      stopStream()
     }
 
-    recorder.start(100)
+    try {
+      recorder.start(250)
+    } catch {
+      stopStream()
+      setError('__VOICE_UNSUPPORTED__')
+      return
+    }
+
     setIsRecording(true)
     setDuration(0)
 
@@ -129,7 +188,11 @@ export function useVoiceRecorder() {
   function stopRecordingInternal(recorder) {
     clearInterval(timerRef.current)
     if (recorder && recorder.state !== 'inactive') {
-      recorder.stop()
+      try {
+        recorder.stop()
+      } catch {
+        /* ignore */
+      }
     }
     setIsRecording(false)
   }
@@ -144,7 +207,11 @@ export function useVoiceRecorder() {
     clearInterval(timerRef.current)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       skipNextBlobRef.current = true
-      mediaRecorderRef.current.stop()
+      try {
+        mediaRecorderRef.current.stop()
+      } catch {
+        /* ignore */
+      }
     }
     stopStream()
     revokePreviewUrl()

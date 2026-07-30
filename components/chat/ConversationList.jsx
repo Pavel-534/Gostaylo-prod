@@ -531,11 +531,8 @@ export function ConversationListPanel({
           <div className="flex items-center gap-2 border-b border-slate-100 bg-brand/10 px-4 py-1.5">
             <Link
               href={catalogHref}
-              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-sm font-semibold text-brand-hover hover:text-brand"
+              className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-2xl py-1 text-sm font-semibold text-brand-hover hover:text-brand"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
-                G
-              </span>
               <House className="h-4 w-4 shrink-0 text-brand-hover" aria-hidden />
               <span className="truncate">{getUIText('chatInbox_catalogLink', language)}</span>
             </Link>

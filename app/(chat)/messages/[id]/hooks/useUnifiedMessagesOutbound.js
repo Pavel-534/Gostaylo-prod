@@ -72,7 +72,10 @@ export function useUnifiedMessagesOutbound({
 
   const handleSendVoice = useCallback(
     async ({ url, duration }) => {
-      if (!selectedConv || !user) return
+      if (!selectedConv || !user) {
+        toast.error(getUIText('chatVoiceNeedAuth', language))
+        return
+      }
       setSending(true)
       try {
         const data = await sendVoiceFromUrl(url, duration)
@@ -84,7 +87,7 @@ export function useUnifiedMessagesOutbound({
         setSending(false)
       }
     },
-    [selectedConv, user, sendVoiceFromUrl, appendMessage, afterOutbound, setSending],
+    [selectedConv, user, sendVoiceFromUrl, appendMessage, afterOutbound, setSending, language],
   )
 
   const handleSendInvoice = useCallback(
@@ -138,7 +141,14 @@ export function useUnifiedMessagesOutbound({
   )
 
   const handleGuestVoiceBlobSend = useCallback(async () => {
-    if (!voiceBlob || !user?.id || !selectedConv) return
+    if (!voiceBlob) {
+      toast.error(getUIText('chatVoiceTooShort', language))
+      return
+    }
+    if (!user?.id || !selectedConv) {
+      toast.error(getUIText('chatVoiceNeedAuth', language))
+      return
+    }
     setVoiceSending(true)
     try {
       const data = await sendVoiceMessage(voiceBlob, voiceDuration)
@@ -148,7 +158,7 @@ export function useUnifiedMessagesOutbound({
         afterOutbound()
       }
     } catch {
-      toast.error(getUIText('listingDetail_networkError', language))
+      toast.error(getUIText('chatVoiceSendError', language))
     } finally {
       setVoiceSending(false)
     }

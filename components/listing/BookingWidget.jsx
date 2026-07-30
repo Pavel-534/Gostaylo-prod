@@ -18,7 +18,7 @@ import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
-import { getPdpHeroGuestPriceThb, scrollToBookingPriceBreakdown } from '@/lib/pricing/guest-display-price'
+import { getPdpHeroGuestPriceThb } from '@/lib/pricing/guest-display-price'
 import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 import { useBookingWidgetLogic } from '@/hooks/pricing/useBookingWidgetLogic'
 import { BookingPriceBreakdown } from '@/components/listing/booking/BookingPriceBreakdown'
@@ -93,24 +93,12 @@ function HeroPriceHeadline({
   compact = false,
 }) {
   const hero = useHeroGuestPrice(listing, priceCalc)
-  const spanMode = rentalPeriodMode === 'day' ? 'day' : 'night'
-  const periodWord =
-    rentalPeriodMode === 'day'
-      ? getUIText('listingPriceUnitDay', language)
-      : getUIText('night', language)
 
-  let secondaryLine =
+  // Stage 200.8 — guest sees total only; detailed math lives in BookingPriceBreakdown on request.
+  const periodHint =
     hero.mode === 'stay' && hero.nights > 0
-      ? formatRentalSpanLabel(hero.nights, spanMode, language)
+      ? formatRentalSpanLabel(hero.nights, rentalPeriodMode === 'day' ? 'day' : 'night', language)
       : tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')
-
-  if (hero.mode === 'stay' && hero.nights > 0 && hero.unitThb > 0) {
-    const unitFmt = formatDisplayPriceInCurrency(hero.unitThb, currency, exchangeRates, language)
-    secondaryLine = getUIText('listingHero_priceComposition', language)
-      .replace(/\{\{unit\}\}/g, unitFmt)
-      .replace(/\{\{nights\}\}/g, String(hero.nights))
-      .replace(/\{\{period\}\}/g, periodWord)
-  }
 
   return (
     <div>
@@ -128,26 +116,8 @@ function HeroPriceHeadline({
         className={cn('text-slate-500 leading-snug', compact ? 'text-[11px] sm:text-xs' : 'text-sm')}
         data-testid="booking-per-period-label"
       >
-        {secondaryLine}
+        {periodHint}
       </p>
-      {!compact ? (
-        <button
-          type="button"
-          className="mt-1 max-w-full text-left text-xs leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-700 hover:decoration-slate-400 sm:text-[13px] py-0.5 -ml-0.5 pl-0.5 pr-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80"
-          onClick={scrollToBookingPriceBreakdown}
-        >
-          {getUIText('listingHero_priceFeesNote', language)}
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="mt-0.5 inline-flex min-h-11 max-w-full items-center text-left text-[11px] leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2"
-          onClick={scrollToBookingPriceBreakdown}
-          data-testid="listing-mobile-fee-link"
-        >
-          {getUIText('listingHero_priceFeesNote', language)}
-        </button>
-      )}
     </div>
   )
 }

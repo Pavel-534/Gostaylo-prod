@@ -87,10 +87,22 @@ export default function UnifiedMessagesClient({ params }) {
     durationLabel: voiceDurationLabel,
     audioBlob: voiceBlob,
     audioUrl: voicePreviewUrl,
+    error: voiceRecorderError,
     startRecording: startVoice,
     stopRecording: stopVoice,
     discardRecording: discardVoice,
   } = useVoiceRecorder()
+
+  useEffect(() => {
+    if (!voiceRecorderError) return
+    const map = {
+      __VOICE_MIC_DENIED__: 'chatVoiceMicDenied',
+      __VOICE_UNSUPPORTED__: 'chatVoiceUnsupported',
+      __VOICE_TOO_SHORT__: 'chatVoiceTooShort',
+    }
+    const key = map[voiceRecorderError]
+    toast.error(key ? getUIText(key, language) : voiceRecorderError)
+  }, [voiceRecorderError, language])
 
   const isPartnerAccount = useMemo(() => {
     const r = String(user?.role || '').toUpperCase()

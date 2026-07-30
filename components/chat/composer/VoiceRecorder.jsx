@@ -15,6 +15,13 @@ import { getUIText } from '@/lib/translations'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import { uploadChatVoice } from '@/lib/chat-upload'
 
+function mapVoiceError(code, language) {
+  if (code === '__VOICE_MIC_DENIED__') return getUIText('chatVoiceMicDenied', language)
+  if (code === '__VOICE_UNSUPPORTED__') return getUIText('chatVoiceUnsupported', language)
+  if (code === '__VOICE_TOO_SHORT__') return getUIText('chatVoiceTooShort', language)
+  return code
+}
+
 export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend, onActiveChange, disabled }) {
   const tx = (key) => getUIText(key, language)
 
@@ -38,15 +45,28 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   }, [isActive, onActiveChange])
 
   useEffect(() => {
-    if (recorderError) toast.error(recorderError)
-  }, [recorderError])
+    if (recorderError) toast.error(mapVoiceError(recorderError, language))
+  }, [recorderError, language])
 
   const handleSend = useCallback(async () => {
-    if (!audioBlob || !userId) return
+    if (!audioBlob) {
+      toast.error(tx('chatVoiceTooShort'))
+      return
+    }
+    if (!userId) {
+      toast.error(tx('chatVoiceNeedAuth'))
+      return
+    }
     setVoiceSending(true)
     try {
       const mime = audioBlob.type || 'audio/webm'
-      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+      const ext = mime.includes('ogg')
+        ? 'ogg'
+        : mime.includes('mp4') || mime.includes('aac')
+          ? 'm4a'
+          : mime.includes('mpeg')
+            ? 'mp3'
+            : 'webm'
       const file = new File([audioBlob], `voice_${Date.now()}.${ext}`, { type: mime })
       const { url } = await uploadChatVoice(file, userId)
       await onSend?.({ url, duration })
@@ -87,7 +107,8 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
           variant="brand"
           disabled={voiceSending}
           className="h-11 min-h-[44px] shrink-0 rounded-2xl px-4"
-          onClick={handleSend}
+          onClick={() => void handleSend()}
+          title={tx('chatSendVoice')}
         >
           {voiceSending
             ? <Loader2 className="h-5 w-5 animate-spin" />
@@ -126,7 +147,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
       size="icon"
       className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
       disabled={disabled}
-      onClick={startRecording}
+      onClick={() => void startRecording()}
       title={tx('messengerThread_voiceMessage')}
     >
       <Mic className="h-5 w-5" />

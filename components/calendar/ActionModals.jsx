@@ -68,6 +68,12 @@ function overlayBtnClass(isMobile) {
   return cn('min-h-11', isMobile && 'w-full')
 }
 
+/** Native date fields: room for browser calendar chevron (Samsung/WebKit). */
+const DATE_INPUT_CLASS = 'mt-1 min-h-11 pe-10 [&::-webkit-calendar-picker-indicator]:me-0.5'
+
+/** Above CalendarActionOverlay sheet (z-350). */
+const SELECT_IN_OVERLAY_CLASS = 'z-[400]'
+
 export function ActionModals({
   actionModal,
   setActionModal,
@@ -167,7 +173,7 @@ export function ActionModals({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>{t('partnerCal_labelStart')}</Label>
-          <Input type="date" value={actionModal.date || ''} disabled className="mt-1 min-h-11" />
+          <Input type="date" value={actionModal.date || ''} disabled className={DATE_INPUT_CLASS} />
         </div>
         <div>
           <Label>{t('partnerCal_labelEnd')}</Label>
@@ -176,7 +182,7 @@ export function ActionModals({
             value={blockForm.endDate}
             min={actionModal.date}
             onChange={(e) => setBlockForm((prev) => ({ ...prev, endDate: e.target.value }))}
-            className="mt-1 min-h-11"
+            className={DATE_INPUT_CLASS}
           />
         </div>
       </div>
@@ -189,7 +195,7 @@ export function ActionModals({
           <SelectTrigger className="mt-1 min-h-11">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
             <SelectItem value="OWNER_USE">{t('partnerCal_typeOwner')}</SelectItem>
             <SelectItem value="MAINTENANCE">{t('partnerCal_typeMaintenance')}</SelectItem>
             <SelectItem value="OTHER">{t('partnerCal_typeOther')}</SelectItem>
@@ -237,7 +243,7 @@ export function ActionModals({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>{t('partnerCal_labelCheckIn')}</Label>
-          <Input type="date" value={actionModal.date || ''} disabled className="mt-1 min-h-11" />
+          <Input type="date" value={actionModal.date || ''} disabled className={DATE_INPUT_CLASS} />
         </div>
         <div>
           <Label>{t('partnerCal_labelCheckOut')}</Label>
@@ -246,7 +252,7 @@ export function ActionModals({
             value={bookingForm.checkOut}
             min={actionModal.date}
             onChange={(e) => setBookingForm((prev) => ({ ...prev, checkOut: e.target.value }))}
-            className="mt-1 min-h-11"
+            className={DATE_INPUT_CLASS}
           />
         </div>
       </div>
@@ -546,7 +552,7 @@ export function ActionModals({
           <SelectTrigger className="mt-1 min-h-11">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
             <SelectItem value="all">{t('partnerCal_allListings')}</SelectItem>
             {listings.map((item) => (
               <SelectItem key={item.listing.id} value={item.listing.id}>
@@ -563,7 +569,7 @@ export function ActionModals({
             type="date"
             value={priceForm.startDate}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, startDate: e.target.value }))}
-            className="mt-1 min-h-11"
+            className={DATE_INPUT_CLASS}
           />
         </div>
         <div>
@@ -573,7 +579,7 @@ export function ActionModals({
             value={priceForm.endDate}
             min={priceForm.startDate}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, endDate: e.target.value }))}
-            className="mt-1 min-h-11"
+            className={DATE_INPUT_CLASS}
           />
         </div>
       </div>
@@ -597,7 +603,7 @@ export function ActionModals({
             <SelectTrigger className="mt-1 min-h-11">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
               <SelectItem value="LOW">{t('partnerCal_seasonLow')}</SelectItem>
               <SelectItem value="HIGH">{t('partnerCal_seasonHigh')}</SelectItem>
               <SelectItem value="PEAK">{t('partnerCal_seasonPeak')}</SelectItem>

@@ -2,12 +2,12 @@
 
 /**
  * Архивные диалоги (/messages/archived) — только скрытые у пользователя (archived=only).
+ * Chrome: ChatTopBar (MessagesViewportShell) — без legacy GS-header.
  */
 
 import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Loader2, Home } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,6 @@ import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
-import { getSiteDisplayName } from '@/lib/site-url'
 import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
@@ -40,7 +39,7 @@ function useUnarchive({ language, inbox }) {
         toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
       }
     },
-    [language, inbox]
+    [language, inbox],
   )
 
   return { unarchiveConversation }
@@ -72,19 +71,19 @@ export default function MessagesArchivedPage() {
     (next) => {
       inbox.setInboxTab(next)
     },
-    [inbox]
+    [inbox],
   )
 
   const handleConversationSelect = useCallback(
     (id) => {
       router.push(`/messages/${encodeURIComponent(id)}/`)
     },
-    [router]
+    [router],
   )
 
   const showGuestName = useMemo(
     () => inbox.inboxTab === INBOX_TAB_TRAVELING,
-    [inbox.inboxTab]
+    [inbox.inboxTab],
   )
 
   const title = language === 'en' ? 'Archive' : 'Архив'
@@ -93,57 +92,28 @@ export default function MessagesArchivedPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-slate-50">
-        <header className="shrink-0 border-b bg-white">
-          <div className="mx-auto flex max-w-4xl items-center px-3 py-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
-                <span className="text-sm font-bold text-white">GS</span>
-              </div>
-              <span className="font-bold text-slate-900">{getSiteDisplayName()}</span>
-            </Link>
-          </div>
-        </header>
-        <div className="mx-auto flex max-w-md flex-1 flex-col justify-center px-4 py-8 text-center">
-          <p className="mb-4 text-slate-600">
-            {language === 'en' ? 'Sign in to see your messages' : 'Войдите, чтобы видеть диалоги'}
-          </p>
-          <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openLoginModal?.('login')}>
-            {language === 'en' ? 'Sign in' : 'Войти'}
-          </Button>
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-brand-surface px-4 py-8 text-center">
+        <p className="mb-4 text-slate-600">
+          {language === 'en' ? 'Sign in to see your messages' : 'Войдите, чтобы видеть диалоги'}
+        </p>
+        <Button variant="brand" onClick={() => openLoginModal?.('login')}>
+          {language === 'en' ? 'Sign in' : 'Войти'}
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
-      <header className="shrink-0 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-3 py-2">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
-              <span className="text-sm font-bold text-white">GS</span>
-            </div>
-            <span className="truncate font-bold text-slate-900">{getSiteDisplayName()}</span>
-          </Link>
-          <Button asChild variant="ghost" size="sm" className="shrink-0">
-            <Link href="/">
-              <Home className="mr-1 h-4 w-4" />
-              {language === 'en' ? 'Home' : 'На главную'}
-            </Link>
-          </Button>
-        </div>
-      </header>
-
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-surface">
       <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white md:rounded-xl md:border md:border-slate-200 md:shadow-sm">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden gsl-card md:shadow-sm">
           <ConversationList
             inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
             selectedId={null}
@@ -156,6 +126,7 @@ export default function MessagesArchivedPage() {
             language={language}
             roleTabsVisible={showHostingTabs}
             favoritesFilterEnabled={false}
+            catalogHref={null}
             title={title}
             className="min-h-0 flex-1"
           />

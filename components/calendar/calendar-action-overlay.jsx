@@ -45,10 +45,12 @@ export function CalendarActionOverlay({
           )}
         >
           {title || description ? (
-            <SheetHeader className="shrink-0 space-y-1 px-4 pr-12 text-left">
-              {title ? <SheetTitle className="text-lg leading-snug">{title}</SheetTitle> : null}
+            <SheetHeader className="shrink-0 space-y-1 px-4 pr-16 text-left">
+              {title ? (
+                <SheetTitle className="pr-1 text-lg leading-snug">{title}</SheetTitle>
+              ) : null}
               {description ? (
-                <SheetDescription className="break-words text-left leading-snug">
+                <SheetDescription className="break-words pr-1 text-left leading-snug">
                   {description}
                 </SheetDescription>
               ) : null}

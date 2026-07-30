@@ -7,13 +7,10 @@
 
 import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Home, Search } from 'lucide-react'
 import { MessagesAuthGate } from '@/components/product/MessagesAuthGate'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
@@ -22,7 +19,6 @@ import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
-import { getSiteDisplayName } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 
@@ -108,32 +104,7 @@ export default function UnifiedMessagesHallPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-surface">
-      <header className="shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-3 py-2">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand/80 to-brand">
-              <span className="text-sm font-bold text-white">GS</span>
-            </div>
-            <span className="truncate font-bold text-slate-900">{getSiteDisplayName()}</span>
-          </Link>
-          <div className="flex shrink-0 items-center gap-1">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/listings">
-                <Search className="mr-1 h-4 w-4" />
-                {language === 'en' ? 'Search' : 'Каталог'}
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/">
-                <Home className="mr-1 h-4 w-4" />
-                {language === 'en' ? 'Home' : 'Главная'}
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2 gap-2">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-2 overflow-hidden md:px-4 md:py-2">
         {!showHostingTabs ? (
           <GuestBookingFlowHint t={flowT} className="shrink-0" />
         ) : null}
@@ -149,6 +120,7 @@ export default function UnifiedMessagesHallPage() {
             headerActionLabel={language === 'en' ? 'Archive' : 'Архив'}
             language={language}
             roleTabsVisible={showHostingTabs}
+            catalogHref={null}
             className="min-h-0 flex-1"
           />
         </div>

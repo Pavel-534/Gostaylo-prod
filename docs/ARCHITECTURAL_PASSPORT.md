@@ -1,7 +1,25 @@
 # Architectural Passport
 
-> **Version**: 12.200.7.0 | **Last Updated**: 2026-07-30 | **Stage 200.7:** Catalog mobile densify (collapse empty referral/ForYou padding).
+> **Version**: 12.200.9.0 | **Last Updated**: 2026-07-30 | **Stage 200.9:** Messages chrome unify + voice recorder harden.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.9 — Messages chrome + voice (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Hall chrome** | `ChatTopBar` | Mobile+desktop on `/messages` & `/messages/archived`; `AirentoLogo`; Back / Catalog / Home |
+| **Legacy GS/G** | removed | No letter avatars on hall; catalog strip icon-only when shown |
+| **Thread mobile** | `StickyChatHeader` | Unchanged fullscreen; `ChatTopBar` still `lg+` only on thread |
+| **Voice** | `useVoiceRecorder` | Mime fallback (mp4/aac), MediaRecorder try/catch, toasts for mic/deny/short |
+
+### Stage 200.8 — Calendar overlay + PDP hero price (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Sheet header** | `CalendarActionOverlay` | `pr-16` — description clear of 44px close |
+| **Block type Select** | `ActionModals` | `SelectContent` `z-[400]` over sheet `z-350` |
+| **Date inputs** | `DATE_INPUT_CLASS` | `pe-10` for native calendar chevron |
+| **PDP hero price** | `HeroPriceHeadline` | Total + period label only |
 
 ### Stage 200.7 — Catalog mobile densify (2026-07-30)
 

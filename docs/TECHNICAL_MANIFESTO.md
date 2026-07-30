@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.7.0 | **Last Updated**: 2026-07-30 | **Stage 200.7:** Catalog mobile densify (collapse empty referral/ForYou padding).
+> **Version**: 12.200.9.0 | **Last Updated**: 2026-07-30 | **Stage 200.9:** Messages chrome unify + voice recorder harden.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,10 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.9 (2026-07-30):** **Messages chrome unify + voice harden** — hall drops legacy **GS/G** letter marks; single `ChatTopBar` (Airento mark, Back, Catalog, Home) on all breakpoints for `/messages` & archive; thread mobile still `StickyChatHeader`; `useVoiceRecorder` mime fallback + MediaRecorder try/catch + user-facing toasts (mic denied / unsupported / too short).
+
+**Stage 200.8 (2026-07-30):** **Calendar overlay + PDP hero price** — sheet header `pr-16` (no text under close); block/booking date inputs `pe-10`; Select menus `z-[400]` above sheet; PDP `HeroPriceHeadline` shows total + short period only (no unit×nights+fees teaser).
 
 **Stage 200.7 (2026-07-30):** **Catalog mobile densify** — `/listings` collapses referral / For You stacks via `hidden has-[>*]:block` (no padding tax when banners/rail are null); `FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX` = **767**; results `pt-2` on mobile; tighter map/sort margins in `ListingSidebar`.
 

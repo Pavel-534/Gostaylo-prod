@@ -205,7 +205,7 @@ export function MessageInput({
                 size="icon"
                 className="h-10 w-10 shrink-0 self-end rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:h-11 sm:w-11 sm:self-center"
                 disabled={sending}
-                onClick={onStartVoice}
+                onClick={() => void onStartVoice?.()}
                 title={getUIText('messengerThread_voiceMessage', language)}
               >
                 <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
