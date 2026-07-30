@@ -649,11 +649,13 @@ function ListingsContent() {
         }
       />
 
-      <div className="container mx-auto px-4 pt-4">
-        <ReferralCatalogFunnelStrip language={language} />
-      </div>
+      {/* Stage 200.7 — no dead padding when referral / For You render null */}
+      <ReferralCatalogFunnelStrip
+        language={language}
+        className="container mx-auto px-4 has-[>*]:pt-3 has-[>*]:pb-1"
+      />
 
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto hidden px-4 has-[>*]:block has-[>*]:py-3 md:has-[>*]:py-4">
         <ForYouRail
           where={where}
           language={language}
@@ -663,7 +665,7 @@ function ListingsContent() {
         />
       </div>
 
-      <div id="listings-results" className="container mx-auto px-4 py-6">
+      <div id="listings-results" className="container mx-auto px-4 pt-2 pb-6 md:py-6">
         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
           <div className="w-full min-w-0 lg:w-[60%] lg:max-w-[60%] lg:flex-shrink-0">
             <ListingSidebar

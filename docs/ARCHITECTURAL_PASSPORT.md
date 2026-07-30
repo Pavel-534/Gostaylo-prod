@@ -1,7 +1,15 @@
 # Architectural Passport
 
-> **Version**: 12.200.6.0 | **Last Updated**: 2026-07-30 | **Stage 200.6:** Home mobile hero content-height (no 82svh dead air).
+> **Version**: 12.200.7.0 | **Last Updated**: 2026-07-30 | **Stage 200.7:** Catalog mobile densify (collapse empty referral/ForYou padding).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.7 — Catalog mobile densify (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Empty stacks** | `hidden has-[>*]:block` | No padding when referral / For You have no children |
+| **For You on catalog** | `FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX` = 767 | Hidden below `md` (search-intent) |
+| **Results chrome** | `ListingSidebar` | Tighter map/sort margins on mobile |
 
 ### Stage 200.6 — Home mobile hero densify (2026-07-30)
 

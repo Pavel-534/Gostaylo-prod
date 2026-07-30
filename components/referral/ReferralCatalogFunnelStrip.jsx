@@ -3,9 +3,11 @@
 import { ReferralBonusSavedBanner } from '@/components/referral/ReferralBonusSavedBanner'
 import { ReferralVanityWelcomeBanner } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { useReferralModalFollowup } from '@/hooks/useReferralModalFollowup'
+import { cn } from '@/lib/utils'
 
 /**
- * Stage 143 — vanity welcome + bonus saved banner on catalog / PDP (referral funnel exit).
+ * Stage 143 — vanity welcome + bonus saved on catalog / PDP.
+ * Stage 200.7 — `hidden has-[>*]:block` so zero layout cost when both banners are null.
  *
  * @param {{ language: string, className?: string, resultsAnchorId?: string }} props
  */
@@ -17,7 +19,7 @@ export function ReferralCatalogFunnelStrip({
   const { showFollowupBanner } = useReferralModalFollowup()
 
   return (
-    <div className={`space-y-4 ${className}`.trim()}>
+    <div className={cn('hidden has-[>*]:block has-[>*]:space-y-3', className)}>
       <ReferralVanityWelcomeBanner language={language} persistSession />
       <ReferralBonusSavedBanner
         language={language}

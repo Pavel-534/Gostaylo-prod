@@ -169,7 +169,7 @@ function ListingSidebarComponent({
     <>
       {/* Mobile Map Toggle — hidden while full-screen sheet is open */}
       {!mobileMapSheet || !showMap ? (
-        <div className="mb-4 flex justify-end lg:hidden">
+        <div className="mb-2.5 flex justify-end lg:hidden md:mb-4">
           <Button
             onClick={onToggleMap}
             variant="outline"
@@ -214,7 +214,7 @@ function ListingSidebarComponent({
         )}
       >
         {onCatalogSortChange ? (
-          <div className="mb-4 flex items-center justify-end gap-2">
+          <div className="mb-3 flex items-center justify-end gap-2 md:mb-4">
             <span className="text-sm text-slate-600">{getUIText('catalogSortLabel', language)}</span>
             <CatalogSortSelect
               value={catalogSort}
