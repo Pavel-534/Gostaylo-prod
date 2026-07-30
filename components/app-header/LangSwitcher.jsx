@@ -3,13 +3,11 @@
 /**
  * LangSwitcher — SSOT language control for AppHeader, ChatTopBar, FooterSwitchers.
  *
- * Trigger: Globe (+ optional code) — never a tiny SVG flag in chrome.
- * Menu flags: emoji from SUPPORTED_UI_LANGUAGES (`lang.flag`) — same as locale-resolver SSOT.
- *
- * Stage 200.3 — unify header/footer; drop SVG Flag trigger.
+ * Trigger + menu: emoji from SUPPORTED_UI_LANGUAGES (`lang.flag`) — locale-resolver SSOT.
+ * Stage 200.3 — shared header/footer; header trigger shows flag (not Globe).
  */
 
-import { Globe, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,6 +28,8 @@ export function LangSwitcher({
   const { language, setLanguage } = useI18n()
   const isFooter = variant === 'footer'
   const Chevron = isFooter ? ChevronUp : ChevronDown
+  const current = supportedLanguages.find((l) => l.code === language)
+  const flagEmoji = current?.flag || '🌐'
 
   return (
     <DropdownMenu>
@@ -44,7 +44,9 @@ export function LangSwitcher({
               className,
             )}
           >
-            <Globe className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            <span className="text-base leading-none" aria-hidden>
+              {flagEmoji}
+            </span>
             <span>{language}</span>
             <Chevron className="h-3 w-3 shrink-0 text-slate-500" />
           </button>
@@ -60,9 +62,11 @@ export function LangSwitcher({
               className,
             )}
             data-testid={testid}
-            aria-label="Language"
+            aria-label={`Language ${current?.name || language}`}
           >
-            <Globe className="h-4 w-4 text-slate-600" />
+            <span className="text-[18px] leading-none sm:text-base" aria-hidden>
+              {flagEmoji}
+            </span>
           </Button>
         )}
       </DropdownMenuTrigger>

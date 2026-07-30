@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.3.0 | **Last Updated**: 2026-07-30 | **Stage 200.3:** Locale switcher SSOT (Globe + emoji; currency without flags).
+> **Version**: 12.200.4.0 | **Last Updated**: 2026-07-30 | **Stage 200.4:** PWA icons from Airento mark; splash name = brand only.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -285,7 +285,9 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
-**Stage 200.3 (2026-07-30):** **Locale chrome SSOT** — `LangSwitcher` + `CurrencySelector` shared by `AppHeader` and `FooterSwitchers` (`variant="footer"`). Language trigger = Lucide **Globe** (not SVG flag); menu flags = emoji from **`SUPPORTED_UI_LANGUAGES.flag`**. Currency = symbol + ISO only (no `CurrencyFlag`); list = **`UI_SWITCHER_CURRENCIES`** (`lib/currency.js`). Footer no longer duplicates hover menus / partial currency lists.
+**Stage 200.4 (2026-07-30):** **PWA brand chrome** — icons from `public/brand/airento-mark.png` via `scripts/generate-pwa-icons.mjs` (replace legacy teal **FR** placeholder); `app/manifest.js` `name` / `short_name` = **`getSiteDisplayName()`** only (no EN tagline on Android splash); `lang: ru` description + shortcuts; favicon → `/favicon.png` + `/icons/icon-32x32.png`. **`AirentoLogo` / `AirentoMark`** in header use the same PNG (no crude SVG approximation).
+
+**Stage 200.3 (2026-07-30):** **Locale chrome SSOT** — `LangSwitcher` + `CurrencySelector` shared by `AppHeader` and `FooterSwitchers` (`variant="footer"`). Language trigger = emoji from **`SUPPORTED_UI_LANGUAGES.flag`** (same in menu); Currency = symbol + ISO only; list = **`UI_SWITCHER_CURRENCIES`** (`lib/currency.js`).
 
 **Stage 200.2 (2026-07-30):** **Public/workspace header densify (mobile)** — `AppHeader` right cluster: tighter gaps; `CurrencySelector` symbol-first (&lt; sm no flag/code; avoids double-flag with `LangSwitcher`); `HeaderWalletCompact` trigger icon-only below `md` (full ≈ amount in dropdown + optional brand dot); 44×44 touch targets on lang/currency/wallet/avatar. Pattern: money detail in menu, not in the chrome.
 

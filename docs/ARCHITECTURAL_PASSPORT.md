@@ -1,13 +1,22 @@
 # Architectural Passport
 
-> **Version**: 12.200.3.0 | **Last Updated**: 2026-07-30 | **Stage 200.3:** Locale switcher SSOT (Globe + emoji; currency without flags).
+> **Version**: 12.200.4.0 | **Last Updated**: 2026-07-30 | **Stage 200.4:** PWA icons from Airento mark; splash name = brand only.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.4 — PWA brand icons & splash (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Icons** | `public/brand/airento-mark.png` → `scripts/generate-pwa-icons.mjs` | 192 / 512 / 180 / 72 / 32 + `favicon.png`; no **FR** SVG text |
+| **Header mark** | `AirentoMark` / `AirentoLogo` | Same PNG as PWA (not stroke-SVG approximation) |
+| **Manifest name** | `app/manifest.js` + `getSiteDisplayName()` | Splash / home label = brand only (not «Rentals Worldwide») |
+| **Shortcuts** | same manifest | RU labels (`Поиск` / `Мои брони` / `Сообщения`) |
 
 ### Stage 200.3 — Locale switcher SSOT (2026-07-30)
 
 | Слой | SSOT | Поведение |
 |------|------|-----------|
-| **Language control** | `LangSwitcher` | Header + footer; trigger = Globe; menu emoji from `SUPPORTED_UI_LANGUAGES` |
+| **Language control** | `LangSwitcher` | Header + footer; trigger + menu emoji from `SUPPORTED_UI_LANGUAGES.flag` |
 | **Currency control** | `CurrencySelector` | Header + footer; symbol + ISO only; list `UI_SWITCHER_CURRENCIES` |
 | **Footer chrome** | `FooterSwitchers` | Thin wrapper: `variant="footer"` (no duplicate lists/menus) |
 

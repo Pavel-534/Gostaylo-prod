@@ -1,8 +1,8 @@
 {
-  "name": "Airento — Rentals Worldwide",
+  "name": "Airento",
   "short_name": "Airento",
-  "description": "Rent villas, cars, yachts and tours worldwide. Book with Airento.",
-  "_note": "Static fallback. Runtime SSOT: app/manifest.js (getSiteDisplayName).",
+  "description": "Airento — аренда жилья, транспорта, яхт и туров по миру. Онлайн-бронирование и эскроу.",
+  "_note": "Static fallback. Runtime SSOT: app/manifest.js (getSiteDisplayName). Icons from scripts/generate-pwa-icons.mjs.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -13,13 +13,19 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["travel", "lifestyle", "business"],
@@ -29,21 +35,21 @@
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Search Listings",
-      "short_name": "Search",
-      "description": "Search for properties",
+      "name": "Поиск",
+      "short_name": "Поиск",
+      "description": "Каталог объявлений",
       "url": "/listings"
     },
     {
-      "name": "My Bookings",
-      "short_name": "Bookings",
-      "description": "View your bookings",
+      "name": "Мои брони",
+      "short_name": "Брони",
+      "description": "Ваши бронирования",
       "url": "/my-bookings"
     },
     {
-      "name": "Messages",
-      "short_name": "Chat",
-      "description": "View your messages",
+      "name": "Сообщения",
+      "short_name": "Чат",
+      "description": "Чаты с партнёрами",
       "url": "/messages/"
     }
   ]
