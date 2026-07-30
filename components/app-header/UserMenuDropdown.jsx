@@ -58,10 +58,10 @@ export function UserMenuDropdown() {
           variant="ghost"
           size="sm"
           data-testid="app-header-user-menu"
-          className="flex h-8 sm:h-9 items-center gap-1 sm:gap-2 rounded-full border border-slate-200 px-1.5 sm:px-2 hover:bg-slate-100"
+          className="flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-full border border-slate-200 px-1.5 hover:bg-slate-100 sm:h-9 sm:min-h-0 sm:min-w-0 sm:gap-2 sm:px-2"
         >
           <span className="relative inline-flex shrink-0">
-            <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
+            <Avatar className="h-7 w-7 sm:h-7 sm:w-7">
               {user.avatar ? (
                 <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
               ) : null}
@@ -80,7 +80,7 @@ export function UserMenuDropdown() {
               </span>
             )}
           </span>
-          <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500" />
+          <ChevronDown className="hidden h-3.5 w-3.5 text-slate-500 sm:inline" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[220] w-60">

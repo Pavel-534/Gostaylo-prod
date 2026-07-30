@@ -307,7 +307,7 @@ export default function PartnerLayout({ children }) {
               </div>
             </div>
             <div className="mt-3 flex justify-start">
-              <HeaderWalletCompact className="w-full justify-between max-w-[220px]" />
+              <HeaderWalletCompact density="expanded" className="w-full justify-between max-w-[220px]" />
             </div>
           </div>
 

@@ -1,7 +1,16 @@
 # Architectural Passport
 
-> **Version**: 12.200.0.0 | **Last Updated**: 2026-07-30 | **Stage 200:** Wave J.1 Operational reliability, cron sync and unified order types.
+> **Version**: 12.200.2.0 | **Last Updated**: 2026-07-30 | **Stage 200.2:** Mobile header densify (wallet icon-only &lt; md).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.2 — Mobile header densify (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Right cluster** | `AppHeader` | `gap-0.5` → `md:gap-2`; lang + currency + wallet + avatar |
+| **Currency** | `CurrencySelector` `compact` | &lt; sm: symbol only; sm+: flag; code hidden when compact |
+| **Wallet trigger** | `HeaderWalletCompact` | &lt; md: icon (+ brand dot if balance &gt; 0); md+: truncated amount; full breakdown in menu |
+| **Touch** | Lang / currency / wallet / avatar | ≥44×44 on mobile |
 
 ### Stage 200 — Wave J.1 Operational Reliability (2026-07-30)
 
@@ -930,7 +939,7 @@
 ### Stage 73.1 — Header wallet, activity feed, team unread (2026-04)
 
 - **TanStack Query:** `components/providers/app-query-provider.jsx` + **`AppQueryProvider`** в корневом **`app/layout.js`** (общий кэш; убраны вложенные **`QueryClientProvider`** из **`app/renter/layout.js`** и **`app/partner/layout.js`**).
-- **Wallet:** `GET /api/v2/wallet/me` кэшируется клиентом ключом **`['wallet-me']`** (**`lib/hooks/use-wallet-me.js`**); **`HeaderWalletCompact`** — иконка + сумма (маркетинговый кошелёк + сумма эскроу партнёра), выпадающее меню с расшифровкой и ссылкой **`/profile/referral`**.
+- **Wallet:** `GET /api/v2/wallet/me` кэшируется клиентом ключом **`['wallet-me']`** (**`lib/hooks/use-wallet-me.js`**); **`HeaderWalletCompact`** — на mobile (&lt; `md`) только иконка (+ точка при ненулевом балансе), сумма с `md+`; меню с расшифровкой и ссылкой **`/profile/referral`** (Stage 200.2).
 - **Лента команды:** **`GET /api/v2/referral/activity`** (**`lib/referral/build-referral-activity-feed.js`**) — читает **`referral_team_events`** (после Stage 73.3); UI **`ReferralActivityFeed`** на **`/profile/referral`**.
 - **Чат:** в **`GET /api/v2/referral/me` → `teamMembers[]`** добавлено **`chatUnreadCount`** (та же логика, что **`computeUnreadCountByConversationId`** для списка чатов).
 

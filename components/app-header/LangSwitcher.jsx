@@ -36,8 +36,11 @@ export function LangSwitcher({ size = 'default', testid = 'language-selector-tri
           variant="ghost"
           size="sm"
           className={cn(
-            'p-0 rounded-full hover:bg-slate-100',
-            size === 'compact' ? 'h-8 w-8' : 'h-8 w-8 sm:h-9 sm:w-9',
+            'rounded-full p-0 hover:bg-slate-100',
+            // 44×44 touch target on mobile; denser from sm (header right cluster).
+            size === 'compact'
+              ? 'h-11 w-11 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0'
+              : 'h-11 w-11 min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0',
           )}
           data-testid={testid}
           aria-label="Language"

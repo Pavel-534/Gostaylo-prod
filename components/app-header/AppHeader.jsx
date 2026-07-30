@@ -17,7 +17,7 @@
  * Scroll-progress: 2px teal gradient в bottom border.
  *
  * @created 2026-02-05 Unified Header Sprint
- * @updated 2026-02-05 Step 3 — UserMenuDropdown split + dynamic spacing + scroll progress
+ * @updated 2026-07-30 Stage 200.2 — dense mobile right cluster (icon wallet / symbol currency)
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -262,8 +262,8 @@ export function AppHeader({
             </div>
           )}
 
-          {/* RIGHT */}
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* RIGHT — mobile: icon cluster (lang · currency symbol · wallet · avatar); amounts in menus */}
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2">
             {isWorkspace && (
               <Link
                 href="/"
@@ -276,18 +276,22 @@ export function AppHeader({
             )}
 
             <div className="shrink-0">
-              <LangSwitcher size={isWorkspace ? 'compact' : 'default'} />
+              <LangSwitcher size="compact" />
             </div>
             <div className="shrink-0">
               <CurrencySelector
                 value={currency}
                 onChange={setCurrency}
-                compact={isWorkspace}
-                className={isWorkspace ? 'px-1.5 sm:px-2' : ''}
+                compact
+                className="border-slate-200"
               />
             </div>
 
-            {user ? <div className={cn(isWorkspace && 'hidden sm:block')}><HeaderWalletCompact /></div> : null}
+            {user ? (
+              <div className={cn('shrink-0', isWorkspace && 'hidden sm:block')}>
+                <HeaderWalletCompact />
+              </div>
+            ) : null}
 
             <UserMenuDropdown />
           </div>

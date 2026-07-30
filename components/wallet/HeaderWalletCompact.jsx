@@ -1,7 +1,9 @@
 'use client'
 
 /**
- * Компактный баланс для шапки: иконка + сумма; раскладка в выпадающем меню (GET /api/v2/wallet/me, кэш wallet-me).
+ * Компактный баланс для шапки: иконка (+ сумма с md); детали в dropdown (GET /api/v2/wallet/me).
+ * Stage 200.1 — close on referral navigate / pathname.
+ * Stage 200.2 — mobile icon-only trigger (no overflow on large balances).
  */
 
 import Link from 'next/link'
@@ -14,7 +16,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
@@ -36,11 +39,18 @@ function summarizePayload(data) {
   return { wd, internal, marketing, frozen, avail, escrowTotal, headerTotal }
 }
 
-export function HeaderWalletCompact({ className = '', variant = 'default' }) {
+export function HeaderWalletCompact({ className = '', variant = 'default', density = 'header' }) {
   const { user } = useAuth()
   const { language } = useI18n()
+  const pathname = usePathname()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const { data, isLoading, isError } = useWalletMeQuery({ enabled: !!user })
+  const [open, setOpen] = useState(false)
+  const expanded = density === 'expanded'
+
+  useEffect(() => {
+    setOpen(false)
+  }, [pathname])
 
   if (!user) return null
 
@@ -51,26 +61,51 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
       : 'border-slate-200 hover:bg-slate-50'
   const iconTone = variant === 'inverted' ? 'text-brand/70' : 'text-brand'
   const amountTone = variant === 'inverted' ? 'text-white' : 'text-slate-900'
+  const triggerSize = expanded
+    ? 'h-9 min-w-0 px-2.5 gap-1.5'
+    : 'relative h-11 min-w-[44px] rounded-full border px-0 sm:h-9 sm:min-w-0 sm:px-2.5 gap-1.5'
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className={`h-8 sm:h-9 px-2 rounded-full border gap-1.5 ${triggerTone} ${className}`}
+          className={`${triggerSize} rounded-full border ${triggerTone} ${className}`}
           aria-label={t('stage73_walletHeaderAria')}
         >
           <Wallet className={`h-4 w-4 shrink-0 ${iconTone}`} />
           {isLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+            <Loader2
+              className={
+                expanded
+                  ? 'h-3.5 w-3.5 animate-spin text-slate-400'
+                  : 'hidden h-3.5 w-3.5 animate-spin text-slate-400 md:inline'
+              }
+            />
           ) : isError ? (
-            <span className="text-xs text-amber-700">—</span>
-          ) : (
-            <span className={`text-xs sm:text-sm font-semibold tabular-nums ${amountTone}`}>
-              <PartnerHostLedgerAmount thb={summary?.headerTotal ?? 0} />
+            <span className={expanded ? 'text-xs text-amber-700' : 'hidden text-xs text-amber-700 md:inline'}>
+              —
             </span>
+          ) : (
+            <>
+              {!expanded && (summary?.headerTotal ?? 0) > 0 ? (
+                <span
+                  className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-brand md:hidden"
+                  aria-hidden
+                />
+              ) : null}
+              <span
+                className={
+                  expanded
+                    ? `text-sm font-semibold tabular-nums ${amountTone}`
+                    : `hidden max-w-[7.5rem] truncate text-sm font-semibold tabular-nums md:inline ${amountTone}`
+                }
+              >
+                <PartnerHostLedgerAmount thb={summary?.headerTotal ?? 0} />
+              </span>
+            </>
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -116,8 +151,10 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
         </div>
         <DropdownMenuSeparator />
         <div className="px-2 pb-2">
-          <Button asChild variant="outline" size="sm" className="w-full">
-            <Link href="/profile/referral">{t('stage73_walletHeaderDetails')}</Link>
+          <Button asChild variant="outline" size="sm" className="w-full min-h-[44px]">
+            <Link href="/profile/referral" onClick={() => setOpen(false)}>
+              {t('stage73_walletHeaderDetails')}
+            </Link>
           </Button>
         </div>
       </DropdownMenuContent>

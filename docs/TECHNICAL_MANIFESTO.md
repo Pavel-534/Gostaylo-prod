@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.0.0 | **Last Updated**: 2026-07-30 | **Stage 200:** Wave J.1 Operational reliability, cron sync and unified order types.
+> **Version**: 12.200.2.0 | **Last Updated**: 2026-07-30 | **Stage 200.2:** Mobile header densify (wallet icon-only &lt; md).
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,10 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.2 (2026-07-30):** **Public/workspace header densify (mobile)** — `AppHeader` right cluster: tighter gaps; `CurrencySelector` symbol-first (&lt; sm no flag/code; avoids double-flag with `LangSwitcher`); `HeaderWalletCompact` trigger icon-only below `md` (full ≈ amount in dropdown + optional brand dot); 44×44 touch targets on lang/currency/wallet/avatar. Pattern: money detail in menu, not in the chrome.
+
+**Stage 200.1 (2026-07-30):** `HeaderWalletCompact` — controlled open; close on pathname + referral CTA click (mobile soft-nav).
 
 **Stage 200 / Wave J.1 (2026-07-30):** **Operational reliability** — `lib/cron/cron-registry.js` (Hobby daily vs cron-job.org hourly; no hourly in `vercel.json`); `toUnifiedOrder` vertical types (`home`/`transport`/`activity`/`service` + canonical `serviceType`); payment webhook structured failures (`logPaymentWebhookFailure`) + idempotent short-circuit logging; Concierge payouts stay manual. Test: `__tests__/stage200-operational-reliability.test.js`.
 

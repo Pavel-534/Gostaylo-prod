@@ -53,11 +53,19 @@ export function CurrencySelector({
 
   const currentCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
 
+  // Dense header chrome: symbol-first on narrow screens; flag/code only where space allows.
+  // Avoids double-flag next to LangSwitcher and keeps the right cluster from overflowing.
+  const triggerClass = [
+    'h-11 min-w-[44px] rounded-full px-2 font-medium sm:h-8 sm:min-w-0',
+    compact ? 'sm:px-1.5' : 'sm:px-2',
+    className,
+  ].filter(Boolean).join(' ')
+
   if (!mounted) {
     return (
-      <Button variant="outline" size="sm" className={`h-8 px-2 ${className}`}>
-        <span className="text-sm">฿</span>
-        <ChevronDown className="ml-0.5 h-3 w-3" />
+      <Button variant="outline" size="sm" className={triggerClass}>
+        <span className="text-sm font-semibold">฿</span>
+        <ChevronDown className="ml-0.5 hidden h-3 w-3 sm:inline" />
       </Button>
     );
   }
@@ -68,15 +76,16 @@ export function CurrencySelector({
         <Button 
           variant="outline" 
           size="sm" 
-          className={`h-8 px-2 font-medium ${className}`}
+          className={triggerClass}
           data-testid="currency-selector"
+          aria-label={`Currency ${currentCurrency.code}`}
         >
-          <span className="mr-1"><CurrencyFlag code={currentCurrency.code} /></span>
+          <span className="mr-1 hidden sm:inline"><CurrencyFlag code={currentCurrency.code} /></span>
           <span className="font-semibold text-sm">{currentCurrency.symbol}</span>
           {!compact && (
-            <span className="ml-0.5 text-slate-600 text-xs">{currentCurrency.code}</span>
+            <span className="ml-0.5 hidden text-xs text-slate-600 md:inline">{currentCurrency.code}</span>
           )}
-          <ChevronDown className="ml-0.5 h-3 w-3 text-slate-400" />
+          <ChevronDown className="ml-0.5 hidden h-3 w-3 text-slate-400 sm:inline" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[220] w-48">
