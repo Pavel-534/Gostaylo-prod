@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * Legacy SVG flag drawings (optional).
+ * Storefront language/currency switchers use emoji from
+ * `SUPPORTED_UI_LANGUAGES` / `CURRENCIES` (Stage 200.3) — do not reintroduce SVG flags in chrome.
+ */
+
 import React from 'react'
 
 function Svg({ children, title, ...props }) {

@@ -1,14 +1,22 @@
 # Architectural Passport
 
-> **Version**: 12.200.2.0 | **Last Updated**: 2026-07-30 | **Stage 200.2:** Mobile header densify (wallet icon-only &lt; md).
+> **Version**: 12.200.3.0 | **Last Updated**: 2026-07-30 | **Stage 200.3:** Locale switcher SSOT (Globe + emoji; currency without flags).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.3 — Locale switcher SSOT (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Language control** | `LangSwitcher` | Header + footer; trigger = Globe; menu emoji from `SUPPORTED_UI_LANGUAGES` |
+| **Currency control** | `CurrencySelector` | Header + footer; symbol + ISO only; list `UI_SWITCHER_CURRENCIES` |
+| **Footer chrome** | `FooterSwitchers` | Thin wrapper: `variant="footer"` (no duplicate lists/menus) |
 
 ### Stage 200.2 — Mobile header densify (2026-07-30)
 
 | Слой | SSOT | Поведение |
 |------|------|-----------|
 | **Right cluster** | `AppHeader` | `gap-0.5` → `md:gap-2`; lang + currency + wallet + avatar |
-| **Currency** | `CurrencySelector` `compact` | &lt; sm: symbol only; sm+: flag; code hidden when compact |
+| **Currency** | `CurrencySelector` `compact` | symbol-first; ISO code when not compact / footer pill |
 | **Wallet trigger** | `HeaderWalletCompact` | &lt; md: icon (+ brand dot if balance &gt; 0); md+: truncated amount; full breakdown in menu |
 | **Touch** | Lang / currency / wallet / avatar | ≥44×44 on mobile |
 
