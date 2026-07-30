@@ -14,8 +14,10 @@ import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 
 /**
  * Курсы, комиссия, промокод и производные суммы для чекаута.
+ * Stage 197.1 — Apply persists reprice via POST …/apply-promo (UI totals = booking SSOT).
  * @param {object} opts
  * @param {object | null} opts.booking
+ * @param {(next: object) => void} [opts.onBookingUpdated]
  * @param {object | null} opts.invoice
  * @param {string} opts.paymentMethod
  * @param {(v: string) => void} opts.setPaymentMethod
@@ -24,6 +26,7 @@ import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
  */
 export function useCheckoutPricing({
   booking,
+  onBookingUpdated = null,
   invoice,
   paymentMethod,
   setPaymentMethod,
@@ -68,27 +71,45 @@ export function useCheckoutPricing({
       toast.error(getUIText('checkout_toast_promoEmpty', language))
       return
     }
-    if (booking?.priceThb == null) {
+    if (!booking?.id || booking?.priceThb == null) {
       toast.error(getUIText('checkout_toast_promoCheckFail', language))
       return
     }
     setPromoLoading(true)
     try {
-      const res = await fetch('/api/v2/promo-codes/validate', {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(booking.id)}/apply-promo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: promoCode,
-          bookingAmount: booking.priceThb,
-          listingId: booking.listing_id || booking.listings?.id || null,
-        }),
+        credentials: 'include',
+        body: JSON.stringify({ promoCode: promoCode.trim() }),
       })
-      const data = await res.json()
-      if (data.success) {
-        setPromoDiscount(data.data)
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.success && data?.data) {
+        const payload = data.data
+        setPromoDiscount({
+          code: payload.code,
+          discountAmount: payload.discountAmount,
+          flashSale: Boolean(payload.flashSale),
+          promoEndsAt: payload.promoEndsAt || null,
+          secondsRemaining: payload.secondsRemaining ?? null,
+          persisted: true,
+        })
+        if (payload.booking && typeof onBookingUpdated === 'function') {
+          onBookingUpdated({
+            ...booking,
+            priceThb: parseFloat(payload.booking.price_thb),
+            commissionThb: parseFloat(payload.booking.commission_thb) || 0,
+            partnerEarningsThb: parseFloat(payload.booking.partner_earnings_thb) || 0,
+            roundingDiffPot: parseFloat(payload.booking.rounding_diff_pot) || 0,
+            pricing_snapshot: payload.booking.pricing_snapshot ?? booking.pricing_snapshot,
+            promo_code_used: payload.booking.promo_code_used,
+            discount_amount: payload.booking.discount_amount,
+          })
+        }
         toast.success(
           interpolateTemplate(getUIText('checkout_toast_promoOk', language), {
-            amount: String(data.data.discountAmount),
+            amount: String(payload.discountAmount),
+            code: payload.code,
           }),
         )
       } else {
@@ -104,12 +125,12 @@ export function useCheckoutPricing({
     } finally {
       setPromoLoading(false)
     }
-  }, [promoCode, booking, language])
+  }, [promoCode, booking, language, onBookingUpdated])
 
   const guestServiceFeePercent =
     !commissionFromApi.loading && Number.isFinite(commissionFromApi.guestServiceFeePercent)
       ? Number(commissionFromApi.guestServiceFeePercent)
-      : 5
+      : 15
 
   const {
     discountAmount,
@@ -128,7 +149,11 @@ export function useCheckoutPricing({
     serviceFeeAfterWallet,
   } = useMemo(() => {
     const discountAmount = promoDiscount?.discountAmount || 0
-    const priceAfterDiscount = (booking?.priceThb ?? 0) - discountAmount
+    const promoPersisted = Boolean(promoDiscount?.persisted) || Boolean(booking?.promo_code_used)
+    // After apply-promo, priceThb is already post-promo — do not subtract again.
+    const priceAfterDiscount = promoPersisted
+      ? booking?.priceThb ?? 0
+      : (booking?.priceThb ?? 0) - discountAmount
 
     const snap =
       booking?.pricing_snapshot && typeof booking.pricing_snapshot === 'object'
@@ -138,12 +163,16 @@ export function useCheckoutPricing({
     const taxSnap = snap.tax && typeof snap.tax === 'object' ? snap.tax : {}
     const taxRatePercent = Number(fs.tax_rate_percent ?? taxSnap.rate_percent ?? 0) || 0
 
-    const serviceFee = promoDiscount
-      ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
-      : Math.round((booking?.commissionThb || 0) || 0)
-    const taxAmountCheckout = promoDiscount
-      ? Math.round(priceAfterDiscount * (taxRatePercent / 100))
-      : Math.round(Number(fs.tax_amount_thb ?? taxSnap.amount_thb ?? 0) || 0)
+    const serviceFee = promoPersisted
+      ? Math.round((booking?.commissionThb || 0) || 0)
+      : promoDiscount
+        ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
+        : Math.round((booking?.commissionThb || 0) || 0)
+    const taxAmountCheckout = promoPersisted
+      ? Math.round(Number(fs.tax_amount_thb ?? taxSnap.amount_thb ?? 0) || 0)
+      : promoDiscount
+        ? Math.round(priceAfterDiscount * (taxRatePercent / 100))
+        : Math.round(Number(fs.tax_amount_thb ?? taxSnap.amount_thb ?? 0) || 0)
 
     const serviceFeeBeforeWallet = Math.max(0, Math.round(serviceFee))
     const walletAppliedThb = Math.max(
@@ -152,17 +181,24 @@ export function useCheckoutPricing({
     )
     const serviceFeeAfterWallet = Math.max(0, serviceFeeBeforeWallet - walletAppliedThb)
     const guestTotalBeforeRounding = priceAfterDiscount + taxAmountCheckout + serviceFeeAfterWallet
-    const promoRounded = promoDiscount
-      ? computeRoundedGuestTotal(guestTotalBeforeRounding, roundingMode)
-      : null
-    const roundingDiffPot = promoDiscount
-      ? promoRounded?.roundingPotThb ?? promoRounded?.roundingDiffPotThb ?? 0
-      : Math.max(0, Math.round(Number(booking?.roundingDiffPot) || 0))
-    const totalWithFee = promoDiscount
-      ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
-      : booking
+    const promoRounded =
+      promoDiscount && !promoPersisted
+        ? computeRoundedGuestTotal(guestTotalBeforeRounding, roundingMode)
+        : null
+    const roundingDiffPot = promoPersisted
+      ? Math.max(0, Math.round(Number(booking?.roundingDiffPot) || 0))
+      : promoDiscount
+        ? promoRounded?.roundingPotThb ?? promoRounded?.roundingDiffPotThb ?? 0
+        : Math.max(0, Math.round(Number(booking?.roundingDiffPot) || 0))
+    const totalWithFee = promoPersisted
+      ? booking
         ? getGuestPayableRoundedThb(booking)
         : Math.round(guestTotalBeforeRounding + roundingDiffPot)
+      : promoDiscount
+        ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
+        : booking
+          ? getGuestPayableRoundedThb(booking)
+          : Math.round(guestTotalBeforeRounding + roundingDiffPot)
     const invoiceAmount = Number(invoice?.amount || 0)
     const invoiceCurrency = String(invoice?.currency || 'THB').toUpperCase()
     const hasInvoiceCheckout = Boolean(invoice?.id && Number.isFinite(invoiceAmount) && invoiceAmount > 0)

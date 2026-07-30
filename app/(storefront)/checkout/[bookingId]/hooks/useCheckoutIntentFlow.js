@@ -40,6 +40,7 @@ export function useCheckoutIntentFlow({
   acceptedLegalTermsForPayment,
   handleConfirmPayment,
   refreshWalletEverywhere,
+  promoCode = null,
 }) {
   const loadPaymentIntent = useCallback(
     async (resolvedInvoice) => {
@@ -86,6 +87,7 @@ export function useCheckoutIntentFlow({
           invoiceId: invoiceIdParam || undefined,
           walletUseThb: useWalletBonuses ? walletUseThb : 0,
           acceptedLegalTerms: acceptedLegalTermsForPayment,
+          ...(promoCode ? { promoCode: String(promoCode).trim() } : {}),
         }),
       })
       const data = await res.json()
@@ -138,6 +140,7 @@ export function useCheckoutIntentFlow({
     walletUseThb,
     refreshWalletEverywhere,
     acceptedLegalTermsForPayment,
+    promoCode,
   ])
 
   return {

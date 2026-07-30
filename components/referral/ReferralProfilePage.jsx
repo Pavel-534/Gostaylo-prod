@@ -79,6 +79,13 @@ export function ReferralProfilePage() {
 
       <PageSectionHeader title={t('stage91_inviteHeroTitle')} subtitle={t('stage91_inviteHeroSubtitle')} />
 
+      <p
+        className="mb-4 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700"
+        data-testid="referral-accrual-completed-hint"
+      >
+        {t('stage91_accrualOnCompletedHint')}
+      </p>
+
       <ReferralMentorStrip
         referredBy={data?.inviteNetwork?.referredBy}
         brandName={data?.brandName}

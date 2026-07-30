@@ -1,5 +1,7 @@
 # Technical Manifesto (code-truth)
 
+> **Version**: 12.197.1.0 | **Last Updated**: 2026-07-28 | **Stage 197.1:** Fix checkout promo reprice, align payment passport & referral terms.
+
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
 **Назначение:** сжатый снимок **текущей** реализации в репозитории. Продуктовые правила и золотые ограничения — в корневом **`ARCHITECTURAL_DECISIONS.md`** (SSOT). Секреты и полные перечни API здесь не дублируются.
@@ -282,6 +284,8 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 197.1 (2026-07-28):** **Checkout promo reprice** — `POST /api/v2/bookings/[id]/apply-promo` + initiate `promoCode` persist discount into booking before PaymentIntent; `valid_from` in `promo-engine`; passport §11 YooKassa/Mandarin/Crypto (no Stripe MOCKED); guest fee default **15%**; referral UI accrual-after-COMPLETED copy.
 
 **Stage 197.0.2 / Wave H1 (2026-07-27):** **Unpaid booking retention** — soft FCM `CHECKOUT_ABANDONED` after hold delay (`processUnpaidCheckoutNudges`, cron `unpaid-checkout-nudge`); in-app `UnpaidCheckoutNudgeBanner` + `GET /api/v2/me/unpaid-checkout-hold` → `/checkout/{id}` with sticky pay.
 

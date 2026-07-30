@@ -1,6 +1,6 @@
 # Architectural Passport
 
-> **Version**: 12.197.0.2 | **Last Updated**: 2026-07-27 | **Stage 197.0.2 / Wave H1:** Unpaid booking retention and abandoned checkout recovery.
+> **Version**: 12.197.1.0 | **Last Updated**: 2026-07-28 | **Stage 197.1:** Fix checkout promo reprice, align payment passport & referral terms.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
 
 ### Performance & Caching (Stage 113.0 → 128.x)
@@ -126,7 +126,17 @@
 | **Sheets** | `components/ui/sheet.jsx` | Bottom/top/side max-height via **`dvh`** + safe-area on bottom |
 | **iOS PWA** | `app/layout.js` viewport + apple meta | Already: `viewportFit: 'cover'`, `apple-mobile-web-app-capable`; standalone RQ focus refetch off |
 
-### Stage 196.0-D — Guest Journey Polish (2026-07-27)
+### Stage 197.1 — Checkout promo reprice & payment docs (2026-07-28)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Apply promo** | `applyCheckoutPromoToBooking` + `POST …/apply-promo` | Reprice payable booking (fees + snapshot) before pay; cancels stale `CREATED` intents |
+| **Initiate** | `payment/initiate` body `promoCode` | Same reprice when no chat invoice; intent amount = `price_thb + commission_thb + rounding_diff_pot` |
+| **Promo window** | `promoIsActiveAt` | Enforces `valid_from` + `valid_until` |
+| **Passport §11** | Payment rails table | YooKassa READY / Mandarin PARTIAL / Crypto PARTIAL; guest fee default 15% |
+| **Referral copy** | `stage91_accrualOnCompletedHint` | Accrual after COMPLETED trip, not at payment |
+
+### Stage 197.0.2 / Wave H1 — Unpaid checkout retention (2026-07-27)
 
 | Слой | SSOT | Поведение |
 |------|------|-----------|
@@ -1947,7 +1957,7 @@ SSOT reader: **`lib/services/finance/system-config.service.js`** (cache 60s). Bo
 #### `system_settings.general` (finance-relevant keys)
 | Key | Type | Purpose |
 |-----|------|---------|
-| `guestServiceFeePercent` | NUMERIC | Guest-facing service fee percent (default 5.0) |
+| `guestServiceFeePercent` | NUMERIC | Guest-facing service fee percent (default **15.0**, ADR-182 / Stage 183) |
 | `hostCommissionPercent` | NUMERIC | Host-side commission percent (default 0.0; partner override via `profiles.custom_commission_rate`) |
 | `insuranceFundPercent` | NUMERIC | Insurance reserve share from platform margin (default 0.5) |
 | `chatInvoiceRateMultiplier` | NUMERIC | Retail FX spread for cross-currency checkout/invoice |
@@ -2487,14 +2497,19 @@ TELEGRAM_ADMIN_GROUP_ID=-100xxx
 
 ---
 
-## 11. Mocked Services
+## 11. Payment & notification rails
 
-| Service | Status | Production Replacement |
-|---------|--------|------------------------|
-| Payment Gateway (Stripe) | MOCKED | Stripe API integration |
-| TRON webhook `POST /api/webhooks/crypto/confirm` | **Shared secret** + **`verifyTronTransaction`** (TronScan) | Production path; mock removed |
-| Acquiring `POST /api/webhooks/payments/confirm` | **HMAC** + **Payment Intent primary confirm** | Карты / PSP (Mandarin, YooKassa-shape) |
-| Email Notifications | MOCKED | Resend API |
+| Service | Status | Notes |
+|---------|--------|-------|
+| **YooKassa (MIR_RU)** | **READY** | Guest MIR/RUB card: `lib/payments/yookassa.js` + `mir-ru.adapter.js` + webhook `POST /api/webhooks/payments/confirm` |
+| **Mandarin (CARD_INTL)** | **PARTIAL** | Int’l card scaffold (`card-intl.adapter.js`); needs live env + contract |
+| **Crypto (USDT TRC-20)** | **PARTIAL** | TronScan verify + crypto webhook; wallet config / adapter registry polish |
+| Stripe guest PSP | **Absent** | Not in runtime (historical MOCKED claim removed) |
+| TRON webhook `POST /api/webhooks/crypto/confirm` | **Shared secret** + **`verifyTronTransaction`** | Production path |
+| Acquiring webhook | **HMAC** + Payment Intent confirm | Mandarin / YooKassa-shape |
+| Email Notifications | **READY** (Resend + transport guard) | Smoke/E2E mock via `resend-transport-guard` |
+
+**Guest fee default (ADR-182 / Stage 183):** `guestServiceFeePercent` = **15%**, `hostCommissionPercent` = **0%** (partner override via `profiles.custom_commission_rate`).
 
 ---
 

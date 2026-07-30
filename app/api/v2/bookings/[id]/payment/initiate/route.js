@@ -22,6 +22,8 @@ import {
   resolveInvoicePaymentExpiresAtIso,
 } from '@/lib/booking/payment-window-policy.js'
 import { resolveCheckoutHoldExpiresAtIso } from '@/lib/booking/checkout-hold-policy.js'
+import { applyCheckoutPromoToBooking } from '@/lib/services/booking/apply-checkout-promo.service.js'
+import { promoErrorJson } from '@/lib/promo/promo-error-codes'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,18 +44,20 @@ export async function POST(request, { params }) {
     const method = normalizeMethod(body?.method)
     const invoiceId = body?.invoiceId ? String(body.invoiceId) : null
     const walletUseRequestedThb = Number(body?.walletUseThb ?? body?.wallet_use_thb ?? 0)
+    const promoCodeRaw = body?.promoCode ?? body?.promo_code ?? null
     if (!method) {
       return NextResponse.json({ success: false, error: 'Invalid payment method' }, { status: 400 })
     }
 
-    const { data: booking, error: bErr } = await supabaseAdmin
+    const { data: bookingRow, error: bErr } = await supabaseAdmin
       .from('bookings')
       .select('*')
       .eq('id', bookingId)
       .maybeSingle()
-    if (bErr || !booking) {
+    if (bErr || !bookingRow) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
     }
+    let booking = bookingRow
 
     const sessionUserId = await getUserIdFromSession()
     if (booking.renter_id) {
@@ -165,6 +169,30 @@ export async function POST(request, { params }) {
     let walletUseAppliedThb = 0
     let walletSpendResult = null
     let bookingForIntent = booking
+
+    // Stage 197.1 — persist promo reprice before intent (booking checkout only; invoice amounts stay SSOT).
+    const promoCode = promoCodeRaw != null ? String(promoCodeRaw).trim() : ''
+    if (promoCode && !invoice) {
+      const applied = await applyCheckoutPromoToBooking({ booking, promoCode })
+      if (!applied.ok) {
+        if (applied.error_code) {
+          return promoErrorJson(applied.error_code, applied.status || 400, {
+            min_amount_thb: applied.min_amount_thb,
+          })
+        }
+        return NextResponse.json(
+          {
+            success: false,
+            error: applied.error || 'PROMO_APPLY_FAILED',
+            code: applied.code || 'PROMO_APPLY_FAILED',
+          },
+          { status: applied.status || 400 },
+        )
+      }
+      booking = applied.booking
+      bookingForIntent = applied.booking
+    }
+
     const existingWalletDiscountThb = Math.max(0, Math.round(Number(booking?.metadata?.wallet_discount_thb || 0)))
     if (existingWalletDiscountThb > 0) {
       walletUseAppliedThb = existingWalletDiscountThb

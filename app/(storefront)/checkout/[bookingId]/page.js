@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, use, useState } from 'react'
+import { Suspense, use, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -48,6 +48,7 @@ function CheckoutPageInner({ params: paramsProp }) {
 
   const c = useCheckoutPricing({
     booking: p.booking,
+    onBookingUpdated: p.setBooking,
     invoice: p.invoice,
     paymentMethod: p.paymentMethod,
     setPaymentMethod: p.setPaymentMethod,
@@ -56,6 +57,12 @@ function CheckoutPageInner({ params: paramsProp }) {
     walletUseThb: p.walletUseThb,
     guestUiCurrency,
   })
+
+  // Keep initiate payload in sync with applied promo (Apply persist + safety net on pay).
+  useEffect(() => {
+    const code = c.promoDiscount?.code || (c.promoCode || '').trim() || null
+    p.setPromoCodeForPay?.(code || null)
+  }, [c.promoDiscount?.code, c.promoCode, p.setPromoCodeForPay])
 
   const paymentMethodOptions = [
     {

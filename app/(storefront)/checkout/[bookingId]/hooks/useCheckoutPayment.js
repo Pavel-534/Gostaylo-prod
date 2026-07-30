@@ -32,6 +32,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
   const [payment, setPayment] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [cryptoModalOpen, setCryptoModalOpen] = useState(false)
+  const [promoCodeForPay, setPromoCodeForPay] = useState(null)
   const walletFlow = useCheckoutWalletFlow({ user, booking, queryClient })
   const loadState = useCheckoutLoadState({
     bookingId,
@@ -79,6 +80,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     acceptedLegalTermsForPayment: walletFlow.acceptedLegalTermsForPayment,
     handleConfirmPayment: confirmFlow.handleConfirmPayment,
     refreshWalletEverywhere: walletFlow.refreshWalletEverywhere,
+    promoCode: promoCodeForPay,
   })
 
   useEffect(() => {
@@ -112,6 +114,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     loading: loadState.loading,
     accessDenied: loadState.accessDenied,
     booking,
+    setBooking,
+    setPromoCodeForPay,
     listing,
     payment,
     invoice,
