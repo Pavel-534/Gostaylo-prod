@@ -17,6 +17,7 @@ import {
   CalendarListingPriceDisplay,
   useCalendarListingPriceFormat,
 } from '@/components/calendar/calendar-listing-price-display'
+import { CalendarMarketingPromoHint } from '@/components/calendar/CalendarMarketingPromoHint'
 import {
   BLOCK_DISPLAY_KIND,
   buildBlockedCellTitle,
@@ -234,12 +235,6 @@ export function CalendarGrid({
                           : 'text-slate-500'
 
                       const baseCur = resolveListingBaseCurrency(item.listing)
-                      const promoBase = formatListingPrice(
-                        marketingPromo.baseSeasonPrice || price,
-                        baseCur,
-                      )
-                      const promoDiscount = formatListingPrice(marketingPromo.discountAmount || 0, baseCur)
-                      const promoGuest = formatListingPrice(marketingPromo.guestPrice || price, baseCur)
 
                       content = (
                         <div className="flex flex-col items-center justify-center gap-0.5 px-0.5">
@@ -249,30 +244,14 @@ export function CalendarGrid({
                             priceClassName={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}
                           />
                           {marketingPromo ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span
-                                  className={cn(
-                                    'inline-flex max-w-full cursor-help items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none',
-                                    marketingPromo.isFlashSale
-                                      ? 'bg-orange-100 text-orange-700'
-                                      : 'bg-brand/15 text-brand-hover',
-                                  )}
-                                >
-                                  {marketingPromo.isFlashSale ? t('partnerCal_chipFlash') : t('partnerCal_chipPromo')}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-[240px] leading-relaxed">
-                                <p className="font-semibold">{marketingPromo.code || 'PROMO'}</p>
-                                <p>
-                                  {trTpl(t('partnerCal_tooltipPromoLine'), {
-                                    base: promoBase.primary,
-                                    discount: promoDiscount.primary,
-                                    guest: promoGuest.primary,
-                                  })}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
+                            <CalendarMarketingPromoHint
+                              promo={marketingPromo}
+                              baseCurrency={baseCur}
+                              formatListingPrice={formatListingPrice}
+                              t={t}
+                              trTpl={trTpl}
+                              variant="chip"
+                            />
                           ) : null}
                           {minStay > 1 && viewMode !== 'compact' && (
                             <span className="text-[9px] font-medium leading-none text-slate-500">

@@ -24,6 +24,7 @@ import {
   CalendarListingPriceDisplay,
   useCalendarListingPriceFormat,
 } from '@/components/calendar/calendar-listing-price-display'
+import { CalendarMarketingPromoHint } from '@/components/calendar/CalendarMarketingPromoHint'
 import {
   BLOCK_DISPLAY_KIND,
   formatBlockExpiresAt,
@@ -413,21 +414,15 @@ function AgendaRow({ date, item, onCellClick, rangeRole = null, listItemRef, tod
       </div>
     )
     if (cellData.marketingPromo) {
-      const promo = cellData.marketingPromo
-      const badge = promo.isFlashSale ? t('partnerCal_chipFlash') : t('partnerCal_chipPromo')
       promoLine = (
-        <div className="mt-1 w-full max-w-full rounded-md border border-orange-100/90 bg-orange-50/90 px-1.5 py-1 text-right leading-tight">
-          <span className="inline-block rounded bg-orange-600/95 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
-            {badge}
-          </span>
-          <p className="mt-0.5 break-words text-[9px] font-medium tabular-nums text-slate-600">
-            {trTpl(t('partnerCal_tooltipPromoLine'), {
-              base: formatListingPrice(promo.baseSeasonPrice || 0, baseCur).primary,
-              discount: formatListingPrice(promo.discountAmount || 0, baseCur).primary,
-              guest: formatListingPrice(promo.guestPrice || 0, baseCur).primary,
-            })}
-          </p>
-        </div>
+        <CalendarMarketingPromoHint
+          promo={cellData.marketingPromo}
+          baseCurrency={baseCur}
+          formatListingPrice={formatListingPrice}
+          t={t}
+          trTpl={trTpl}
+          variant="agenda"
+        />
       )
     }
     label = t('partnerCal_rowFree')

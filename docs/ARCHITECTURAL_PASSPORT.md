@@ -1,7 +1,15 @@
 # Architectural Passport
 
-> **Version**: 12.200.4.0 | **Last Updated**: 2026-07-30 | **Stage 200.4:** PWA icons from Airento mark; splash name = brand only.
+> **Version**: 12.200.5.0 | **Last Updated**: 2026-07-30 | **Stage 200.5:** Partner calendar promo trust copy.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.5 — Partner calendar promo trust (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Promo hint UI** | `CalendarMarketingPromoHint` | Agenda + grid tooltip: guest price wording, not `−` equation; link `/partner/promo` |
+| **Owner** | `marketingPromo.createdByType` | «Ваша акция» vs «Акция платформы» |
+| **Meaning** | Stage 35 calendar marketing indicator | Preview of guest checkout discount — not partner wallet debit |
 
 ### Stage 200.4 — PWA brand icons & splash (2026-07-30)
 
