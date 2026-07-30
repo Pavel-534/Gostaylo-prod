@@ -2,11 +2,14 @@
 
 /**
  * Stage 170.9 — compact rail card SSOT («Недавно смотрели», discovery rails).
+ * Stage 200.15 — optimistic PDP entry (progress + prefetch + press).
  * Минимум: фото, название, категория, цена — без specs/trust/location дублей.
  */
 
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { getListingText, getCategoryName } from '@/lib/translations'
 import { getCategoryDisplayName } from '@/lib/category-display-name'
@@ -15,6 +18,8 @@ import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -42,29 +47,52 @@ export function RecommendationRailCard({
   className,
   onNavigate,
 }) {
+  const router = useRouter()
+  const [pdpPending, setPdpPending] = useState(false)
   const id = String(listing?.id || '').trim()
-  if (!id) return null
+  const detailUrl = href || (id ? `/listings/${id}` : '#')
 
   const title = getListingText(listing, 'title', language) || listing?.title || ''
   const categoryLabel = resolveCategoryLabel(listing, language)
-  const images = mapPublicImageUrls(getListingCardImageUrls(listing))
+  const images = useMemo(
+    () => mapPublicImageUrls(getListingCardImageUrls(listing || {})),
+    [listing],
+  )
   const cover = images[0] || PLACEHOLDER
   const unoptimized = isRemoteHttpImageSrc(cover)
-  const detailUrl = href || `/listings/${id}`
   const categorySlug =
     listing?.categorySlug || listing?.category?.slug || listing?.categories?.slug || ''
 
   const listingForPrice = {
     ...listing,
-    basePriceThb: listing.basePriceThb ?? listing.base_price_thb,
-    guestDisplayPriceThb: listing.guestDisplayPriceThb ?? listing.guest_display_price_thb,
+    basePriceThb: listing?.basePriceThb ?? listing?.base_price_thb,
+    guestDisplayPriceThb: listing?.guestDisplayPriceThb ?? listing?.guest_display_price_thb,
   }
+
+  const handlePrefetch = useCallback(() => {
+    if (!id) return
+    prefetchListingPdp(router, id)
+  }, [id, router])
+
+  const handleNavigate = useCallback(() => {
+    if (!id || detailUrl === '#') return
+    setPdpPending(true)
+    dispatchOptimisticNavPending(detailUrl)
+    onNavigate?.()
+  }, [detailUrl, id, onNavigate])
+
+  if (!id) return null
 
   return (
     <article
+      data-pdp-pending={pdpPending ? 'true' : undefined}
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
       className={cn(
         'flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white',
-        'shadow-sm transition-shadow duration-200 hover:shadow-md',
+        'shadow-sm transition-shadow duration-200 hover:shadow-md touch-manipulation',
+        'active:scale-[0.99]',
+        pdpPending && 'opacity-90 ring-2 ring-brand/30',
         'dark:border-slate-700 dark:bg-slate-900',
         className,
       )}
@@ -72,7 +100,7 @@ export function RecommendationRailCard({
       <Link
         href={detailUrl}
         className="flex h-full min-h-0 flex-col"
-        onClick={() => onNavigate?.()}
+        onClick={handleNavigate}
       >
         <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-800">
           <Image

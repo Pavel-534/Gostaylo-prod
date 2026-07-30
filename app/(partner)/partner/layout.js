@@ -56,6 +56,11 @@ import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificatio
 import { PartnerMobileBottomNav } from '@/components/partner/PartnerMobileBottomNav'
 import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
+  PARTNER_SIDEBAR_PREFETCH_PATHS,
+  matchesOptimisticNavHref,
+  useOptimisticNavHref,
+} from '@/hooks/use-optimistic-nav-href'
+import {
   WORKSPACE_FRAME_CLASS,
   WORKSPACE_MAIN_CLASS,
   WORKSPACE_MOBILE_TOOLBAR_CLASS,
@@ -95,6 +100,9 @@ export default function PartnerLayout({ children }) {
   const { totalUnread } = useChatUnreadBadge()
   const [language, setLanguage] = useState('ru')
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth()
+  const { pendingHref, markPending } = useOptimisticNavHref({
+    prefetchPaths: PARTNER_SIDEBAR_PREFETCH_PATHS,
+  })
   const isImpersonating = user?.is_impersonating === true
   const allowedRoles = ['PARTNER', 'ADMIN', 'MODERATOR']
   const accessDenied = !authLoading && (!isAuthenticated || !allowedRoles.includes(String(user?.role || '').toUpperCase()))
@@ -314,7 +322,7 @@ export default function PartnerLayout({ children }) {
               variant="brand"
               data-testid="create-listing-btn"
             >
-              <Link href="/partner/listings/new">
+              <Link href="/partner/listings/new" onClick={() => markPending('/partner/listings/new')}>
                 <Plus className="mr-2 h-4 w-4" />
                 {getUIText('partnerNav_createListing', language)}
               </Link>
@@ -331,28 +339,33 @@ export default function PartnerLayout({ children }) {
                   pathname?.startsWith('/messages/')
                 : pathname === item.href ||
                   (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
+              const pending = matchesOptimisticNavHref(pendingHref, item.href)
+              const active = isActive || pending
               const isMessages = isMessagesItem
-              const showUnreadDot = isMessages && totalUnread > 0 && !isActive
+              const showUnreadDot = isMessages && totalUnread > 0 && !active
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? 'page' : undefined}
                   onClick={() => {
+                    markPending(item.href)
                     if (window.innerWidth < 1024) {
                       setSidebarOpen(false)
                     }
                   }}
                   className={cn(
-                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-colors',
-                    isActive ? 'gsl-nav-item-active' : 'gsl-nav-item-idle',
+                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-colors touch-manipulation',
+                    'active:scale-[0.99] active:bg-brand/10',
+                    active ? 'gsl-nav-item-active' : 'gsl-nav-item-idle',
                   )}
                 >
                   <span className="relative shrink-0">
                     <Icon
                       className={cn(
                         'h-[18px] w-[18px]',
-                        isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600',
+                        active ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600',
                       )}
                     />
                     {showUnreadDot ? (
@@ -360,14 +373,14 @@ export default function PartnerLayout({ children }) {
                     ) : null}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <span className={cn('block text-sm', isActive ? 'font-semibold' : 'font-medium')}>
+                    <span className={cn('block text-sm', active ? 'font-semibold' : 'font-medium')}>
                       {item.name}
                     </span>
                     <span className="hidden truncate text-[10px] leading-tight text-slate-400 lg:block">
                       {item.description}
                     </span>
                   </div>
-                  {isMessages && totalUnread > 0 && !isActive ? (
+                  {isMessages && totalUnread > 0 && !active ? (
                     <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
                       {totalUnread > 99 ? '99+' : totalUnread}
                     </Badge>
@@ -387,11 +400,12 @@ export default function PartnerLayout({ children }) {
             <Link
               href="/my-bookings"
               onClick={() => {
+                markPending('/my-bookings')
                 if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                   setSidebarOpen(false)
                 }
               }}
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
               data-testid="partner-switch-to-guest"
             >
               <CalendarDays className="h-[18px] w-[18px] shrink-0" />
@@ -408,7 +422,8 @@ export default function PartnerLayout({ children }) {
             </Link>
             <Link
               href="/"
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              onClick={() => markPending('/')}
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 touch-manipulation active:scale-[0.99]"
             >
               <ExternalLink className="h-[18px] w-[18px] shrink-0 text-slate-400" />
               <span className="min-w-0 leading-snug">{getUIText('partnerNav_publicSite', language)}</span>

@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import {
   listingHeroTransitionStyle,
   navigateWithListingHeroTransition,
+  prefetchListingPdp,
 } from '@/lib/navigation/listing-hero-transition'
 import { LISTING_CARD_MEDIA_ASPECT } from '@/lib/listing/listing-card-layout'
 
@@ -44,6 +45,8 @@ export function CardImageCarousel({
   priority = false,
   /** Stage 171.22 — shared element morph → PDP hero. */
   listingId = null,
+  /** Stage 200.15 — parent paints pending chrome on the card. */
+  onNavigateStart = null,
 }) {
   const router = useRouter()
   const networkQuality = useNetworkQuality()
@@ -83,13 +86,18 @@ export function CardImageCarousel({
   const unoptimized = isRemoteHttpImageSrc(displaySrc)
   const heroTransitionStyle = listingHeroTransitionStyle(listingId)
 
+  const handlePrefetch = useCallback(() => {
+    prefetchListingPdp(router, listingId)
+  }, [listingId, router])
+
   const handleDetailNavigate = useCallback(
     (e) => {
       if (!detailHref) return
       e.preventDefault()
-      navigateWithListingHeroTransition(() => router.push(detailHref), listingId)
+      onNavigateStart?.(detailHref)
+      navigateWithListingHeroTransition(() => router.push(detailHref), listingId, detailHref)
     },
-    [detailHref, listingId, router],
+    [detailHref, listingId, onNavigateStart, router],
   )
 
   const showNavigationArrows = imagesProxied.length > 1 && (isHovered || isMobile)
@@ -100,8 +108,12 @@ export function CardImageCarousel({
         'group relative overflow-hidden bg-slate-100',
         LISTING_CARD_MEDIA_ASPECT,
       )}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true)
+        handlePrefetch()
+      }}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={handlePrefetch}
     >
       <div className="absolute inset-0" style={heroTransitionStyle}>
         <Image

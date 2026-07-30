@@ -37,6 +37,11 @@ import { useCurrency } from '@/contexts/currency-context'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
+import {
+  PUBLIC_HEADER_NAV_PREFETCH_PATHS,
+  matchesOptimisticNavHref,
+  useOptimisticNavHref,
+} from '@/hooks/use-optimistic-nav-href'
 
 /** Определить variant из pathname */
 function detectVariant(pathname) {
@@ -92,6 +97,9 @@ export function AppHeader({
   const { language } = useI18n()
   const { currency, setCurrency } = useCurrency()
   const { user } = useAuth()
+  const { pendingHref, markPending } = useOptimisticNavHref({
+    prefetchPaths: PUBLIC_HEADER_NAV_PREFETCH_PATHS,
+  })
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => {
@@ -174,6 +182,7 @@ export function AppHeader({
             <Link
               href="/"
               data-testid="app-header-logo"
+              onClick={() => markPending('/')}
               className={cn(
                 'group flex-shrink-0 rounded-2xl px-2.5 py-1.5 transition-all',
                 isPublic && 'border border-white/70 bg-white/75 shadow-[0_10px_26px_rgba(0,102,102,0.1)] backdrop-blur-md hover:border-brand/35 hover:shadow-[0_14px_30px_rgba(0,102,102,0.16)]',
@@ -232,11 +241,14 @@ export function AppHeader({
                     active = onListings && !(typeof window !== 'undefined' && window.location.search.includes('group=destinations'))
                   }
                 }
+                if (matchesOptimisticNavHref(pendingHref, item.href)) active = true
                 return (
                   <Link
                     key={`${item.href}-${idx}`}
                     href={item.href}
                     data-testid={`app-header-nav-${item.key}`}
+                    onClick={() => markPending(item.href)}
+                    aria-current={active ? 'page' : undefined}
                     className={cn(
                       'text-sm font-medium transition-colors pb-1',
                       active ? 'text-brand border-b-2 border-brand' : 'text-slate-600 hover:text-brand',
@@ -269,6 +281,7 @@ export function AppHeader({
                 href="/"
                 aria-label={getUIText('partnerLayout_backToSiteAria', language) || 'Home'}
                 data-testid="app-header-home-link"
+                onClick={() => markPending('/')}
                 className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-brand"
               >
                 <HomeIcon className="h-4 w-4" />

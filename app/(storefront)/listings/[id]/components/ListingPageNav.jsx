@@ -12,7 +12,7 @@ export function ListingPageNav({ language, onBack, isFavorite, favoriteLoading, 
         <Button
           variant="ghost"
           onClick={onBack}
-          className="h-11 min-h-11 min-w-11 shrink-0 gap-2 px-2 sm:min-w-0 sm:px-3"
+          className="h-11 min-h-11 min-w-11 shrink-0 gap-2 px-2 sm:min-w-0 sm:px-3 touch-manipulation active:scale-[0.99]"
           type="button"
           aria-label={getUIText('listingDetail_back', language)}
         >

@@ -11,6 +11,7 @@ import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 
 /** @param {object} props */
 export function ListingPopupCard({
@@ -76,7 +77,8 @@ export function ListingPopupCard({
         </div>
         <a
           href={`/listings/${listing.id}`}
-          className="mt-2 block w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-center text-xs font-semibold text-white antialiased shadow-none transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          onClick={() => dispatchOptimisticNavPending(`/listings/${listing.id}`)}
+          className="mt-2 block w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-center text-xs font-semibold text-white antialiased shadow-none transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
         >
           {getUIText('viewDetails', language)}
         </a>

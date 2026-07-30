@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { MapPin, Loader2, CalendarX, Flame } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +18,8 @@ import { formatDisplayDate } from '@/lib/date-display-format'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 
 export function TopListingsGrid({
   language,
@@ -35,6 +38,7 @@ export function TopListingsGrid({
   onViewAll,
   customTitle = null,
 }) {
+  const router = useRouter()
   const cleanCustomTitle = typeof customTitle === 'string' ? customTitle.trim() : ''
   const fallbackTitle =
     dateRange.from && dateRange.to
@@ -120,7 +124,14 @@ export function TopListingsGrid({
                   : resolveImageThumbDisplayUrl(thumbRaw) || thumbRaw
 
               return (
-                <Link key={listing.id} href={listingUrl}>
+                <Link
+                  key={listing.id}
+                  href={listingUrl}
+                  onClick={() => dispatchOptimisticNavPending(listingUrl)}
+                  onMouseEnter={() => prefetchListingPdp(router, listing.id)}
+                  onTouchStart={() => prefetchListingPdp(router, listing.id)}
+                  className="touch-manipulation active:scale-[0.99] block h-full"
+                >
                   <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all duration-300 border border-slate-200 hover:border-brand hover:-translate-y-1 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
                     <div className="relative h-44 sm:h-48 overflow-hidden flex-shrink-0">
                       <Image

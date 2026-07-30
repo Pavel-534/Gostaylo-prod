@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, LifeBuoy, Check, X } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 
 /** Partner confirm / decline / complete + lightweight support link (Stage 185.1). */
 export function OrderCardPartnerActions({
@@ -65,8 +66,8 @@ export function OrderCardPartnerActions({
       ) : null}
 
       {bookingId && helpAsLink ? (
-        <Button asChild type="button" variant="ghost" className={cn(btnClass, 'text-slate-600')}>
-          <Link href={helpHref}>
+        <Button asChild type="button" variant="ghost" className={cn(btnClass, 'text-slate-600 touch-manipulation active:scale-[0.99]')}>
+          <Link href={helpHref} onClick={() => dispatchOptimisticNavPending(helpHref)}>
             <LifeBuoy className="h-4 w-4 mr-2" />
             {getUIText('orderAction_help', language)}
           </Link>

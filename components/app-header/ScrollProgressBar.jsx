@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { AIRENTO_NAV_PENDING_EVENT } from '@/lib/navigation/optimistic-nav-href'
 
 export function ScrollProgressBar() {
   const [progress, setProgress] = useState(0)
@@ -79,13 +80,15 @@ export function ScrollProgressBar() {
 
   useEffect(() => {
     let startDelayTimeoutId = null
+    const startRouteLoading = () => {
+      setRouteLoading(true)
+      setRouteProgress((prev) => (prev > 8 ? prev : 8))
+    }
     const markRouteLoading = () => {
       if (routeLoading) return
       if (startDelayTimeoutId) window.clearTimeout(startDelayTimeoutId)
-      startDelayTimeoutId = window.setTimeout(() => {
-        setRouteLoading(true)
-        setRouteProgress((prev) => (prev > 8 ? prev : 8))
-      }, 120)
+      // Stage 200.13 — instant bar (was 120ms); optimistic tabs already paint chrome.
+      startRouteLoading()
     }
 
     const onClickCapture = (event) => {
@@ -111,15 +114,22 @@ export function ScrollProgressBar() {
       markRouteLoading()
     }
 
+    const onNavPending = () => {
+      if (routeLoading) return
+      startRouteLoading()
+    }
+
     const onPopState = () => markRouteLoading()
 
     document.addEventListener('click', onClickCapture, true)
     window.addEventListener('popstate', onPopState)
+    window.addEventListener(AIRENTO_NAV_PENDING_EVENT, onNavPending)
 
     return () => {
       if (startDelayTimeoutId) window.clearTimeout(startDelayTimeoutId)
       document.removeEventListener('click', onClickCapture, true)
       window.removeEventListener('popstate', onPopState)
+      window.removeEventListener(AIRENTO_NAV_PENDING_EVENT, onNavPending)
     }
   }, [routeLoading])
 

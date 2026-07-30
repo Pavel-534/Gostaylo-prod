@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.12.0 | **Last Updated**: 2026-07-30 | **Stage 200.12:** Guest fee label + rail 2-up mobile.
+> **Version**: 12.200.17.0 | **Last Updated**: 2026-07-31 | **Stage 200.17:** Soft back-nav + catalog scroll memory (Phase 4).
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,16 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.17 (2026-07-31):** **Soft back-nav + catalog scroll memory** — `useSoftBack` (progress + `history.back` / fallback); `route-scroll-memory` session keys for catalog filter URLs; restore scroll on `/listings` remount when TanStack cache paints; wired on PDP nav, chat hall back, favorites. Closes optimistic-nav Phase 4.
+
+**Stage 200.16 (2026-07-31):** **Optimistic secondary CTAs** — `UserMenuDropdown` prefetch + `markPending` before `router.push`; order card pay/details/repeat/chat/help Links; `ChatTopBar` back/catalog/home; wallet → referral; `loading.js` for `/renter/favorites` and `/checkout/[bookingId]`. Next: Phase 4 back-nav cache polish.
+
+**Stage 200.15 (2026-07-31):** **Optimistic catalog → PDP** — `prefetchListingPdp` on hover/touch; `navigateWithListingHeroTransition` signals `airento:nav-pending`; `ListingCard` / carousel / recommendation rails / home top grid / map popup CTA paint press + pending; existing PDP `loading.js` skeleton. Next: Phase 3 secondary CTAs · Phase 4 back-nav cache polish.
+
+**Stage 200.14 (2026-07-31):** **Optimistic chrome Phase 1** — expand beyond bottom docks: `AppHeader` public nav + logo, partner sidebar (prefetch + active paint), `ProfileHubNav` tabs; `loading.js` for `/profile` and `/my-bookings`; query-safe `matchesOptimisticNavHref` (destinations vs listings). Next: Phase 2 catalog/PDP cards · Phase 3 secondary CTAs · Phase 4 back-nav cache polish.
+
+**Stage 200.13 (2026-07-31):** **Optimistic shell nav** — `useOptimisticNavHref` paints bottom-tab active state on click (before RSC/chunk); storefront + partner docks prefetch destinations + press scale; `loading.js` skeletons for `/listings`, `/messages` hall, `/renter/profile`; `ScrollProgressBar` starts instantly and listens for `airento:nav-pending`. Pattern: optimistic chrome + navigate-to-skeleton (no nprogress).
 
 **Stage 200.12 (2026-07-30):** **Guest fee label + rail 2-up** — PDP `BookingPriceBreakdown` shows service fee amount without platform %; recommendation rails (`RecentlyViewed` / `ForYou` / `Similar`) use `RECOMMENDATION_RAIL_ITEM_CLASS` `basis-1/2` on mobile so two cards fit the viewport (fluid `w-full`), `sm+` keeps Stage 170.8 fixed-width carousel.
 

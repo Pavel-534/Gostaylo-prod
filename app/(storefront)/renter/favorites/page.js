@@ -17,10 +17,13 @@ import { getUIText } from '@/lib/translations'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { EmptyState } from '@/components/empty-state'
+import { useSoftBack } from '@/hooks/use-soft-back'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 
 export default function FavoritesPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const softBack = useSoftBack('/listings')
   const { language } = useI18n()
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,7 @@ export default function FavoritesPage() {
   
   const fetchFavorites = async () => {
     if (!user?.id) {
+      dispatchOptimisticNavPending('/')
       router.push('/');
       return;
     }
@@ -122,8 +126,8 @@ export default function FavoritesPage() {
         <div className="container mx-auto px-4">
           <Button
             variant="ghost"
-            onClick={() => router.back()}
-            className="mb-4 min-h-11 text-white hover:bg-white/20"
+            onClick={softBack}
+            className="mb-4 min-h-11 text-white hover:bg-white/20 touch-manipulation active:scale-[0.99]"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             {getUIText('back', language)}

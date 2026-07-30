@@ -51,6 +51,8 @@ import {
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
+import { listingsCatalogScrollKey } from '@/lib/navigation/route-scroll-memory'
+import { useRouteScrollMemory } from '@/hooks/use-route-scroll-memory'
 
 const ITEMS_PER_PAGE = 12
 
@@ -287,6 +289,14 @@ function ListingsContent() {
     itemsPerPage: ITEMS_PER_PAGE,
     displayCurrency: currency,
     catalogSort,
+  })
+
+  const catalogScrollKey = useMemo(
+    () => listingsCatalogScrollKey(searchParamsKey),
+    [searchParamsKey],
+  )
+  useRouteScrollMemory(catalogScrollKey, {
+    ready: !loading || listings.length > 0,
   })
 
   const visibleListingIds = useMemo(() => listings.map((listing) => listing.id), [listings])

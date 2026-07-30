@@ -24,6 +24,7 @@ import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceB
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 
 function summarizePayload(data) {
   const w = data?.wallet
@@ -152,7 +153,13 @@ export function HeaderWalletCompact({ className = '', variant = 'default', densi
         <DropdownMenuSeparator />
         <div className="px-2 pb-2">
           <Button asChild variant="outline" size="sm" className="w-full min-h-[44px]">
-            <Link href="/profile/referral" onClick={() => setOpen(false)}>
+            <Link
+              href="/profile/referral"
+              onClick={() => {
+                dispatchOptimisticNavPending('/profile/referral')
+                setOpen(false)
+              }}
+            >
               {t('stage73_walletHeaderDetails')}
             </Link>
           </Button>

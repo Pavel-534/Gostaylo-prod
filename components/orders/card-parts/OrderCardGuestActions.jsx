@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, LifeBuoy, Star } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 
 const ACTION_BTN = 'min-h-11'
 
@@ -26,6 +27,8 @@ export function OrderCardGuestActions({
   showRepeat,
 }) {
   const showPayNow = Boolean(bookingId && isBookingPayable(status))
+  const checkoutHref = bookingId ? `/checkout/${encodeURIComponent(bookingId)}` : null
+  const repeatHref = listingId ? `/listings/${encodeURIComponent(String(listingId))}` : null
 
   return (
     <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -37,25 +40,25 @@ export function OrderCardGuestActions({
                 asChild
                 variant="brand"
                 size="lg"
-                className={`${ACTION_BTN} min-w-[9.5rem] font-semibold shadow-md`}
+                className={`${ACTION_BTN} min-w-[9.5rem] font-semibold shadow-md touch-manipulation active:scale-[0.99]`}
               >
-                <Link href={`/checkout/${encodeURIComponent(bookingId)}`}>
+                <Link href={checkoutHref} onClick={() => dispatchOptimisticNavPending(checkoutHref)}>
                   {getUIText('orderAction_payNow', language)}
                 </Link>
               </Button>
               <Button
                 asChild
                 variant="link"
-                className={`${ACTION_BTN} shrink-0 px-2 text-sm text-slate-600`}
+                className={`${ACTION_BTN} shrink-0 px-2 text-sm text-slate-600 touch-manipulation`}
               >
-                <Link href={`/checkout/${encodeURIComponent(bookingId)}`}>
+                <Link href={checkoutHref} onClick={() => dispatchOptimisticNavPending(checkoutHref)}>
                   {getUIText('orderAction_details', language)}
                 </Link>
               </Button>
             </>
           ) : (
-            <Button asChild variant="outline" className={ACTION_BTN}>
-              <Link href={`/checkout/${encodeURIComponent(bookingId)}`}>
+            <Button asChild variant="outline" className={`${ACTION_BTN} touch-manipulation active:scale-[0.99]`}>
+              <Link href={checkoutHref} onClick={() => dispatchOptimisticNavPending(checkoutHref)}>
                 {getUIText('orderAction_details', language)}
               </Link>
             </Button>
@@ -100,9 +103,9 @@ export function OrderCardGuestActions({
         </Button>
       ) : null}
 
-      {showRepeat ? (
-        <Button asChild variant="outline" className={ACTION_BTN}>
-          <Link href={`/listings/${encodeURIComponent(String(listingId))}`}>
+      {showRepeat && repeatHref ? (
+        <Button asChild variant="outline" className={`${ACTION_BTN} touch-manipulation active:scale-[0.99]`}>
+          <Link href={repeatHref} onClick={() => dispatchOptimisticNavPending(repeatHref)}>
             {getUIText('orderAction_repeatBooking', language)}
           </Link>
         </Button>

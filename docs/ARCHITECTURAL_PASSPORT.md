@@ -1,7 +1,57 @@
 # Architectural Passport
 
-> **Version**: 12.200.12.0 | **Last Updated**: 2026-07-30 | **Stage 200.12:** Guest fee label + rail 2-up mobile.
+> **Version**: 12.200.17.0 | **Last Updated**: 2026-07-31 | **Stage 200.17:** Soft back-nav + catalog scroll memory (Phase 4).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.17 — Soft back-nav + catalog scroll memory (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Soft back** | `hooks/use-soft-back.js` | `airento:nav-pending` + `history.back` / fallback push |
+| **Scroll memory** | `lib/navigation/route-scroll-memory.js` + `useRouteScrollMemory` | sessionStorage restore for `/listings` filter key |
+| **PDP / chat / favorites** | `ListingPdpClient`, `ChatTopBar`, favorites | Soft back wired |
+| **Catalog** | `listings-catalog-client.jsx` | Save on leave; restore when TanStack cache paints |
+| **Roadmap** | Optimistic nav phases 0–4 complete | |
+
+### Stage 200.16 — Optimistic secondary CTAs (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **User menu** | `UserMenuDropdown` + `USER_MENU_PREFETCH_PATHS` | Prefetch + `markPending` before `router.push` |
+| **Order deep links** | `OrderCardGuest/Admin/PartnerActions` | Checkout / chat / PDP / help signal progress |
+| **Chat chrome** | `ChatTopBar` | Back + catalog/home/logo pending |
+| **Wallet** | `HeaderWalletCompact` | Referral CTA pending |
+| **Route shells** | `loading.js` | `/renter/favorites`, `/checkout/[bookingId]` |
+| **Roadmap** | Soft back complete — see Stage 200.17 | |
+
+### Stage 200.15 — Optimistic catalog → PDP (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Prefetch** | `prefetchListingPdp` / `listingPdpPrefetchPath` | Hover/touch → `/listings/:id` chunk |
+| **Progress** | `navigateWithListingHeroTransition(..., href)` | Dispatches `airento:nav-pending` before push |
+| **Cards** | `ListingCard` / `CardImageCarousel` / `RecommendationRailCard` | Pending ring + `active:scale`; home grid + map popup CTA |
+| **Shell** | `listings/[id]/loading.js` | Existing `ListingPageSkeleton` (unchanged) |
+| **Roadmap** | Soft back complete — see Stage 200.17 | |
+
+### Stage 200.14 — Optimistic chrome Phase 1 (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Header** | `AppHeader` + `PUBLIC_HEADER_NAV_PREFETCH_PATHS` | Public nav + logo/`/` markPending + optimistic underline |
+| **Partner sidebar** | `partner/layout.js` + `PARTNER_SIDEBAR_PREFETCH_PATHS` | Drawer/desktop items paint active on click |
+| **Profile hub** | `ProfileHubNav` + `PROFILE_HUB_PREFETCH_PATHS` | Tab buttons markPending before `router.push` |
+| **Route shells** | `loading.js` | `/profile`, `/my-bookings` (+ prior 200.13 shells) |
+| **Roadmap** | Soft back complete — see Stage 200.17 | |
+
+### Stage 200.13 — Optimistic shell nav (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Pending tab** | `hooks/use-optimistic-nav-href.js` | Paint active tab on click; clear on pathname |
+| **Docks** | `MobileBottomNav` / `PartnerMobileBottomNav` | Prefetch + `active:scale` + optimistic highlight |
+| **Route shells** | `loading.js` | `/listings`, `/messages`, `/renter/profile` skeletons |
+| **Top bar** | `ScrollProgressBar` | Instant on click + `airento:nav-pending` event |
 
 ### Stage 200.12 — Guest fee label + recommendation rail 2-up (2026-07-30)
 

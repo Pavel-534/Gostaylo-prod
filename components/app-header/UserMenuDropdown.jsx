@@ -3,12 +3,12 @@
 /**
  * UserMenuDropdown — avatar + выпадающее меню пользователя.
  * Extracted from AppHeader для чистоты (SRP).
+ * Stage 200.16 — optimistic navigate + prefetch.
  *
  * Props:
  *   - variant: 'public'|'workspace' (для стилизации avatar fallback)
  */
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   User, LogOut, ChevronDown, Heart, CalendarDays,
@@ -29,14 +29,24 @@ import { useI18n } from '@/contexts/i18n-context'
 import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import {
+  USER_MENU_PREFETCH_PATHS,
+  useOptimisticNavHref,
+} from '@/hooks/use-optimistic-nav-href'
 
 export function UserMenuDropdown() {
   const router = useRouter()
   const { language } = useI18n()
   const { user, logout, openLoginModal, isAdmin, isPartner, refreshUserFromServer } = useAuth()
   const { totalUnread } = useChatUnreadBadge()
+  const { markPending } = useOptimisticNavHref({
+    prefetchPaths: USER_MENU_PREFETCH_PATHS,
+  })
 
-  const navigate = (href) => router.push(href)
+  const navigate = (href) => {
+    markPending(href)
+    router.push(href)
+  }
 
   if (!user) {
     return (

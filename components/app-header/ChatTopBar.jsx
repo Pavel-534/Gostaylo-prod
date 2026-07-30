@@ -20,6 +20,8 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { cn } from '@/lib/utils'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { useSoftBack } from '@/hooks/use-soft-back'
 
 function normalizeMessagesPath(pathname) {
   return String(pathname || '').replace(/\/+$/, '') || ''
@@ -31,6 +33,8 @@ export function ChatTopBar({ threadTitle = null, onBack = null }) {
   const { language } = useI18n()
   const { totalUnread } = useChatContext()
   const ref = useRef(null)
+  const softBackToMessages = useSoftBack('/messages')
+  const softBackToListings = useSoftBack('/listings')
 
   const pathNorm = useMemo(() => normalizeMessagesPath(pathname), [pathname])
   const isArchivedHall = pathNorm === '/messages/archived'
@@ -54,18 +58,15 @@ export function ChatTopBar({ threadTitle = null, onBack = null }) {
   const handleBack = () => {
     if (typeof onBack === 'function') return onBack()
     if (isArchivedHall) {
+      dispatchOptimisticNavPending('/messages')
       router.push('/messages')
       return
     }
     if (isHall) {
-      if (typeof window !== 'undefined' && window.history.length > 1) {
-        router.back()
-        return
-      }
-      router.push('/listings')
+      softBackToListings()
       return
     }
-    router.push('/messages')
+    softBackToMessages()
   }
 
   const backAria = isArchivedHall
@@ -113,7 +114,8 @@ export function ChatTopBar({ threadTitle = null, onBack = null }) {
       <Link
         href="/"
         data-testid="app-header-chat-logo"
-        className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl px-1 py-1 hover:bg-slate-50"
+        onClick={() => dispatchOptimisticNavPending('/')}
+        className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl px-1 py-1 hover:bg-slate-50 touch-manipulation active:scale-[0.99]"
       >
         <AirentoLogo compact label={getSiteDisplayName()} scrolled hideLabelOnMobile />
       </Link>
@@ -139,7 +141,8 @@ export function ChatTopBar({ threadTitle = null, onBack = null }) {
             <Link
               href="/listings"
               data-testid="app-header-chat-catalog"
-              className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10"
+              onClick={() => dispatchOptimisticNavPending('/listings')}
+              className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
               title={language === 'ru' ? 'Каталог и поиск' : 'Catalog & search'}
             >
               <Search className="h-5 w-5 shrink-0" aria-hidden />
@@ -148,7 +151,8 @@ export function ChatTopBar({ threadTitle = null, onBack = null }) {
             <Link
               href="/"
               data-testid="app-header-chat-home"
-              className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
+              onClick={() => dispatchOptimisticNavPending('/')}
+              className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 touch-manipulation active:scale-[0.99]"
               title={language === 'ru' ? 'Главная' : 'Home'}
             >
               <Home className="h-5 w-5 shrink-0" aria-hidden />

@@ -2,11 +2,12 @@
 
 /**
  * ListingCard — карточка листинга в сетках и сайдбаре.
- * Phase 7.6 Final
+ * Phase 7.6 Final + Stage 200.15 optimistic PDP entry.
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Star, MapPin } from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
@@ -23,6 +24,8 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 import {
   LISTING_CARD_BODY_PAD,
   LISTING_CARD_CONTENT_MIN_H,
@@ -48,7 +51,9 @@ export function ListingCard({
   /** Stage 171.18 — LCP for first catalog cards only. */
   imagePriority = false,
 }) {
+  const router = useRouter()
   const [isFavorite, setIsFavorite] = useState(isFavorited)
+  const [pdpPending, setPdpPending] = useState(false)
   
   // Sync with prop changes
   useEffect(() => {
@@ -114,6 +119,15 @@ export function ListingCard({
     return queryString ? `/listings/${id}?${queryString}` : `/listings/${id}`
   }, [id, initialDates, guests])
 
+  const markPdpPending = useCallback((href = detailUrl) => {
+    setPdpPending(true)
+    dispatchOptimisticNavPending(href || detailUrl)
+  }, [detailUrl])
+
+  const handlePrefetch = useCallback(() => {
+    prefetchListingPdp(router, id)
+  }, [id, router])
+
   // Favorite toggle
   const handleFavorite = useCallback((e) => {
     e.preventDefault()
@@ -145,12 +159,17 @@ export function ListingCard({
     <article
       id={`listing-card-${id}`}
       data-testid={`listing-card-${id}`}
+      data-pdp-pending={pdpPending ? 'true' : undefined}
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
       className={cn(
         // Base
         'group flex h-full min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
         // Premium hover: lift + deepen shadow + teal border accent
-        'transition-all duration-300 ease-out',
+        'transition-all duration-300 ease-out touch-manipulation',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
+        'active:scale-[0.99]',
+        pdpPending && 'opacity-90 ring-2 ring-brand/30 ring-offset-1',
         isMapHighlighted
           ? 'relative z-0 border-brand shadow-lg ring-2 ring-brand/40 ring-offset-2 hover:z-20'
           : 'relative z-0 border-slate-100 hover:border-brand/25 md:hover:z-20',
@@ -170,6 +189,7 @@ export function ListingCard({
         shareLabel={getUIText('shareListing', language)}
         blurDataURL={getListingCardBlurDataURL(listing)}
         priority={imagePriority}
+        onNavigateStart={markPdpPending}
         topLeftBadge={
           promoBadgeLabel ? (
             <Badge className="border-0 bg-gradient-to-r from-rose-600 to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
@@ -194,7 +214,11 @@ export function ListingCard({
       />
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
-      <Link href={detailUrl} className={cn('flex flex-1 flex-col', LISTING_CARD_BODY_PAD, LISTING_CARD_CONTENT_MIN_H)}>
+      <Link
+        href={detailUrl}
+        onClick={() => markPdpPending(detailUrl)}
+        className={cn('flex flex-1 flex-col', LISTING_CARD_BODY_PAD, LISTING_CARD_CONTENT_MIN_H)}
+      >
           {/* Title Row */}
           <div
             className={cn(

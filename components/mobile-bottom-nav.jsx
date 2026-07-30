@@ -1,5 +1,5 @@
 /**
- * Mobile Bottom Navigation Bar (ADR-100 / Stage 189.3).
+ * Mobile Bottom Navigation Bar (ADR-100 / Stage 189.3 + Stage 200.13 optimistic tabs).
  *
  * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
  * (height already includes safe-area padding on the nav itself — do not add inset again in shell).
@@ -20,6 +20,12 @@ import {
   dispatchMobileSearchTabAction,
   isMobileSearchTabInterceptPath,
 } from '@/lib/search/mobile-search-tab-action';
+import {
+  STOREFRONT_NAV_PREFETCH_PATHS,
+  matchesOptimisticNavHref,
+  useOptimisticNavHref,
+} from '@/hooks/use-optimistic-nav-href';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   {
@@ -80,6 +86,9 @@ export function MobileBottomNav() {
   const { user, openLoginModal } = useAuth();
   const { totalUnread } = useChatUnreadBadge();
   const { language } = useI18n();
+  const { pendingHref, markPending } = useOptimisticNavHref({
+    prefetchPaths: STOREFRONT_NAV_PREFETCH_PATHS,
+  });
 
   const routeAllowsNav = useMemo(
     () => mounted && shouldRenderBottomNav(pathname),
@@ -153,7 +162,10 @@ export function MobileBottomNav() {
     if (item.interceptSearchTab && isMobileSearchTabInterceptPath(pathname)) {
       e.preventDefault();
       dispatchMobileSearchTabAction({ source: 'bottom-nav' });
+      return;
     }
+
+    markPending(item.href);
   };
 
   const isActive = (item) => {
@@ -172,6 +184,12 @@ export function MobileBottomNav() {
     return pathname.startsWith(item.href);
   };
 
+  const isPending = (item) => {
+    if (matchesOptimisticNavHref(pendingHref, item.href)) return true;
+    if (!pendingHref || !item.activeMatches) return false;
+    return item.activeMatches.some((match) => matchesOptimisticNavHref(pendingHref, match));
+  };
+
   return (
     <nav
       ref={navRef}
@@ -180,7 +198,7 @@ export function MobileBottomNav() {
     >
       <div className="flex h-16 items-center justify-around px-2 min-[375px]:h-20 min-[375px]:px-3">
         {NAV_ITEMS.map((item) => {
-          const active = isActive(item);
+          const active = isActive(item) || isPending(item);
           const Icon = item.icon;
           const href = item.requiresAuth && !user ? '#' : item.href;
 
@@ -193,14 +211,17 @@ export function MobileBottomNav() {
               href={href}
               onClick={(e) => handleNavClick(item, e)}
               data-testid={item.interceptSearchTab ? 'mobile-nav-search' : undefined}
-              className={`flex min-h-12 min-w-12 flex-1 flex-col items-center justify-center rounded-xl transition-all duration-200 ${
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex min-h-12 min-w-12 flex-1 flex-col items-center justify-center rounded-xl touch-manipulation transition-colors duration-150',
+                'active:scale-[0.97] active:bg-brand/10',
                 active
                   ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
+                  : 'text-slate-400 hover:text-slate-600',
+              )}
             >
               <span className="relative inline-flex">
-                <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
+                <Icon className={cn('h-5 w-5', active ? 'stroke-[2.5]' : 'stroke-[1.5]')} />
                 {showBadge && (
                   <span
                     className="absolute -top-2 -right-2 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-1 ring-white"
@@ -210,7 +231,7 @@ export function MobileBottomNav() {
                   </span>
                 )}
               </span>
-              <span className={`mt-1 text-[10px] ${active ? 'font-semibold' : 'font-medium'}`}>
+              <span className={cn('mt-1 text-[10px]', active ? 'font-semibold' : 'font-medium')}>
                 {getUIText(item.labelKey, language)}
               </span>
             </Link>

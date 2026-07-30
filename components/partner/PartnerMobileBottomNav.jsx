@@ -20,6 +20,11 @@ import {
 } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import {
+  PARTNER_NAV_PREFETCH_PATHS,
+  matchesOptimisticNavHref,
+  useOptimisticNavHref,
+} from '@/hooks/use-optimistic-nav-href'
 
 const KEYBOARD_VIEWPORT_SHRINK_PX = 120
 
@@ -88,6 +93,9 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const navRef = useRef(null)
   const pathname = usePathname()
+  const { pendingHref, markPending } = useOptimisticNavHref({
+    prefetchPaths: PARTNER_NAV_PREFETCH_PATHS,
+  })
 
   const routeAllowsNav = useMemo(
     () => mounted && shouldRenderPartnerBottomNav(pathname),
@@ -151,6 +159,7 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
 
   const moreActive = isMoreRouteActive(pathname)
   const primaryActiveId = PRIMARY_TABS.find((tab) => tab.match(pathname || ''))?.id ?? null
+  const pendingTabId = PRIMARY_TABS.find((tab) => matchesOptimisticNavHref(pendingHref, tab.href))?.id ?? null
 
   return (
     <nav
@@ -161,15 +170,18 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
     >
       <div className="flex h-16 items-center justify-around px-1 min-[375px]:h-20 min-[375px]:px-2">
         {PRIMARY_TABS.map((tab) => {
-          const active = primaryActiveId === tab.id
+          const active = primaryActiveId === tab.id || pendingTabId === tab.id
           const Icon = tab.icon
           return (
             <Link
               key={tab.id}
               href={tab.href}
               data-testid={`partner-nav-${tab.id}`}
+              aria-current={active ? 'page' : undefined}
+              onClick={() => markPending(tab.href)}
               className={cn(
-                'flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center rounded-xl transition-all duration-200',
+                'flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center rounded-xl touch-manipulation transition-colors duration-150',
+                'active:scale-[0.97] active:bg-brand/10',
                 active
                   ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
                   : 'text-slate-400 hover:text-slate-600',
@@ -189,7 +201,8 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
           aria-label={getUIText('partnerNav_moreAria', language)}
           onClick={() => onMoreClick?.()}
           className={cn(
-            'flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center rounded-xl transition-all duration-200',
+            'flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center rounded-xl touch-manipulation transition-colors duration-150',
+            'active:scale-[0.97] active:bg-brand/10',
             moreActive
               ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
               : 'text-slate-400 hover:text-slate-600',
