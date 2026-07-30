@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import {
-  CheckCircle2,
   CreditCard,
   Loader2,
   MessageSquare,
@@ -12,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { getUIText } from '@/lib/translations'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
@@ -33,8 +33,13 @@ const SUCCESS_NEXT_STEP_ICONS = [MessageSquare, CalendarRange, Shield, HelpCircl
 
 export function CheckoutFullPageSpinner() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+    <div
+      className="min-h-screen bg-slate-50 flex items-center justify-center"
+      data-testid="checkout-loading"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-12 w-12 animate-spin text-brand" aria-hidden />
     </div>
   )
 }
@@ -86,38 +91,25 @@ export function CheckoutUnavailableView({ language, bookingId = null, chatHref =
     : '/my-bookings'
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full">
-        <CardContent className="pt-6 text-center space-y-4">
-          <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_unavailableTitle', language)}</h3>
-          <p className="text-slate-600 mb-4">{getUIText('checkout_unavailableBody', language)}</p>
-          <div className="flex flex-col gap-2">
-            <Button asChild variant="brand">
-              <Link
-                href={bookingDetailsHref}
-                onClick={() => trackCheckoutEscapeClick('unavailable_booking_details', bookingId)}
-              >
-                {getUIText('checkout_escapeBookingDetails', language)}
-              </Link>
-            </Button>
-            {chatHref ? (
-              <Button asChild variant="outline">
-                <Link
-                  href={chatHref}
-                  onClick={() => trackCheckoutEscapeClick('unavailable_open_chat', bookingId)}
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  {getUIText('checkout_escapeOpenChat', language)}
-                </Link>
-              </Button>
-            ) : null}
-            <Button asChild variant="ghost" className="text-slate-600">
-              <Link href="/">{getUIText('checkout_home', language)}</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <StorefrontStateView
+      variant="denied"
+      testId="checkout-unavailable"
+      className="min-h-screen bg-slate-50"
+      title={getUIText('checkout_unavailableTitle', language)}
+      body={getUIText('checkout_unavailableBody', language)}
+      primaryLabel={getUIText('checkout_escapeBookingDetails', language)}
+      primaryHref={bookingDetailsHref}
+      onPrimaryClick={() => trackCheckoutEscapeClick('unavailable_booking_details', bookingId)}
+      secondaryLabel={
+        chatHref ? getUIText('checkout_escapeOpenChat', language) : getUIText('checkout_home', language)
+      }
+      secondaryHref={chatHref || '/'}
+      onSecondaryClick={
+        chatHref ? () => trackCheckoutEscapeClick('unavailable_open_chat', bookingId) : undefined
+      }
+      tertiaryLabel={chatHref ? getUIText('checkout_home', language) : undefined}
+      tertiaryHref={chatHref ? '/' : undefined}
+    />
   )
 }
 
@@ -133,78 +125,60 @@ export function CheckoutSuccessView({
   const uiCtx = listingCategorySlug ? { listingCategorySlug, wizardProfile } : undefined
   const bodyText = successBody || getUIText('checkout_successBody', language, uiCtx)
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full border-slate-200/80 shadow-sm">
-        <CardContent className="pt-8 pb-8 text-center">
-          <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" aria-hidden />
-          <h3 className="text-2xl font-bold mb-2 text-slate-900">
-            {getUIText('checkout_successTitle', language)}
-          </h3>
-          <p className="text-slate-600 mb-5 leading-relaxed">{bodyText}</p>
-          <div className="text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 mb-6 space-y-3">
-            <p className="text-sm font-semibold text-slate-900">
-              {getUIText('checkout_successNextSteps_title', language)}
-            </p>
-            <ul className="space-y-3">
-              {SUCCESS_NEXT_STEP_KEYS.map((key, index) => {
-                const Icon = SUCCESS_NEXT_STEP_ICONS[index]
-                const isHelpStep = key === 'checkout_successNextSteps_4'
-                const isEscrowStep = key === 'checkout_successNextSteps_3'
-                const stepText =
-                  isEscrowStep && successNextStep3
-                    ? successNextStep3
-                    : getUIText(key, language, uiCtx)
-                return (
-                  <li key={key} className="flex gap-3 items-start text-sm text-slate-600 leading-relaxed">
-                    <Icon className="h-4 w-4 shrink-0 mt-0.5 text-brand" aria-hidden />
-                    <span>
-                      {stepText}
-                      {isHelpStep ? (
-                        <>
-                          {' '}
-                          <Link
-                            href="/help/escrow-protection"
-                            className="font-medium text-brand hover:text-brand-hover underline underline-offset-2"
-                          >
-                            {getUIText('checkout_escrowInfoLink', language)}
-                          </Link>
-                        </>
-                      ) : null}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-            {escrowHint ? (
-              <p className="text-xs text-slate-500 leading-snug border-t border-slate-200/80 pt-3">
-                {escrowHint}
-              </p>
-            ) : null}
-          </div>
-          <div className="space-y-3">
-            <Button asChild variant="brand" size="lg" className="w-full font-semibold shadow-sm">
-              <Link href="/my-bookings">{getUIText('checkout_successMyBookingsCta', language)}</Link>
-            </Button>
-            {chatHref ? (
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="w-full border-brand/30 text-brand hover:bg-brand/5 font-semibold"
-              >
-                <Link href={chatHref}>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  {getUIText('checkout_chatHost', language, uiCtx)}
-                </Link>
-              </Button>
-            ) : null}
-            <Button asChild variant="ghost" className="w-full text-slate-600">
-              <Link href="/">{getUIText('checkout_home', language)}</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <StorefrontStateView
+      variant="success"
+      testId="checkout-success"
+      className="min-h-screen bg-slate-50"
+      title={getUIText('checkout_successTitle', language)}
+      body={bodyText}
+      primaryLabel={getUIText('checkout_successMyBookingsCta', language)}
+      primaryHref="/my-bookings"
+      secondaryLabel={chatHref ? getUIText('checkout_chatHost', language, uiCtx) : undefined}
+      secondaryHref={chatHref || undefined}
+      tertiaryLabel={getUIText('checkout_home', language)}
+      tertiaryHref="/"
+    >
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 space-y-3">
+        <p className="text-sm font-semibold text-slate-900">
+          {getUIText('checkout_successNextSteps_title', language)}
+        </p>
+        <ul className="space-y-3">
+          {SUCCESS_NEXT_STEP_KEYS.map((key, index) => {
+            const Icon = SUCCESS_NEXT_STEP_ICONS[index]
+            const isHelpStep = key === 'checkout_successNextSteps_4'
+            const isEscrowStep = key === 'checkout_successNextSteps_3'
+            const stepText =
+              isEscrowStep && successNextStep3
+                ? successNextStep3
+                : getUIText(key, language, uiCtx)
+            return (
+              <li key={key} className="flex gap-3 items-start text-sm text-slate-600 leading-relaxed">
+                <Icon className="h-4 w-4 shrink-0 mt-0.5 text-brand" aria-hidden />
+                <span>
+                  {stepText}
+                  {isHelpStep ? (
+                    <>
+                      {' '}
+                      <Link
+                        href="/help/escrow-protection"
+                        className="font-medium text-brand hover:text-brand-hover underline underline-offset-2"
+                      >
+                        {getUIText('checkout_escrowInfoLink', language)}
+                      </Link>
+                    </>
+                  ) : null}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        {escrowHint ? (
+          <p className="text-xs text-slate-500 leading-snug border-t border-slate-200/80 pt-3">
+            {escrowHint}
+          </p>
+        ) : null}
+      </div>
+    </StorefrontStateView>
   )
 }
 
@@ -232,7 +206,7 @@ export function CheckoutPaymentReturnVerifyingView({
             </p>
           </div>
           <div className="flex flex-col gap-2 pt-2">
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" className="min-h-[44px] w-full">
               <Link
                 href={bookingDetailsHref}
                 onClick={() => trackCheckoutEscapeClick('verifying_booking_details', bookingId)}
@@ -241,7 +215,7 @@ export function CheckoutPaymentReturnVerifyingView({
               </Link>
             </Button>
             {chatHref ? (
-              <Button asChild variant="ghost" size="sm" className="text-brand">
+              <Button asChild variant="ghost" className="min-h-[44px] w-full text-brand">
                 <Link
                   href={chatHref}
                   onClick={() => trackCheckoutEscapeClick('verifying_open_chat', bookingId)}
@@ -339,7 +313,7 @@ export function CheckoutPaymentFailedView({
 export function CheckoutSuspenseFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+      <Loader2 className="h-10 w-10 animate-spin text-brand" />
     </div>
   )
 }

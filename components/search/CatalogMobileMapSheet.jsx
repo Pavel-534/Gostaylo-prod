@@ -105,7 +105,7 @@ export function CatalogMobileMapSheet({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-full"
+              className="min-h-[44px] min-w-[44px] rounded-full"
               onClick={onClose}
               aria-label={getUIText('showList', language)}
               data-testid="catalog-mobile-map-close"
@@ -126,8 +126,7 @@ export function CatalogMobileMapSheet({
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[13] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
+              className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[13] min-h-[44px] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
               onClick={onClose}
               data-testid="catalog-mobile-map-floating-list"
             >

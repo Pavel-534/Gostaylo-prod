@@ -3,17 +3,18 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 import { resolveGuestPayInitiateI18nKey } from '@/lib/checkout/guest-pay-error-messages.js'
+import {
+  isTechnicalErrorCode,
+  isUnresolvedI18nKey,
+} from '@/lib/i18n/is-unresolved-i18n-key.js'
 import { DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 
 function resolveCheckoutInitiateError(data, language) {
   const key = resolveGuestPayInitiateI18nKey(data)
-  if (key === 'checkout_error_notPayable') {
-    return getUIText(key, language)
-  }
   const msg = getUIText(key, language)
-  if (msg && msg !== key) return msg
+  if (!isUnresolvedI18nKey(msg, key) && !isTechnicalErrorCode(msg)) return msg
   const err = String(data?.error || data?.message || '').trim()
-  if (err && !/^[A-Z][A-Z0-9_]{7,}$/.test(err)) return err
+  if (err && !isTechnicalErrorCode(err)) return err
   return getUIText('checkout_toast_paymentInitFailFriendly', language)
 }
 

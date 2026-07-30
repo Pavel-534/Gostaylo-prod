@@ -48,7 +48,7 @@ export default function RenterDashboard() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{getUIText('dashboard', language)}</h1>
-          <p className="text-slate-500 text-sm">{language === 'ru' ? 'Быстрые действия и разделы' : 'Quick actions & sections'}</p>
+          <p className="text-slate-500 text-sm">{getUIText('renterNav_dashboardDesc', language)}</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function RenterDashboard() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="min-h-11 w-full">
-                  {language === 'ru' ? 'Открыть' : 'Open'}
+                  {getUIText('open', language)}
                 </Button>
               </CardContent>
             </Card>

@@ -114,7 +114,7 @@ export function EmptyState({
         <Button
           onClick={onCtaClick}
           data-testid="empty-state-cta"
-          className="rounded-2xl px-6 py-5 text-sm font-semibold"
+          className="min-h-[44px] rounded-2xl px-6 py-5 text-sm font-semibold"
           variant="brand"
         >
           {buttonLabel} →
@@ -123,7 +123,7 @@ export function EmptyState({
         <Button
           asChild
           data-testid="empty-state-cta"
-          className="rounded-2xl px-6 py-5 text-sm font-semibold"
+          className="min-h-[44px] rounded-2xl px-6 py-5 text-sm font-semibold"
           variant="brand"
         >
           <Link href={ctaHref}>{buttonLabel} →</Link>
@@ -162,7 +162,7 @@ export function WorkspaceEmptyState({
         <h3 className="text-lg font-semibold text-slate-900 mb-2 text-center">{title}</h3>
         <p className="text-slate-600 text-center max-w-md text-sm leading-relaxed">{hint}</p>
         {ctaHref && ctaLabel ? (
-          <Button asChild variant="brand" className="mt-6">
+          <Button asChild variant="brand" className="mt-6 min-h-[44px]">
             <Link href={ctaHref}>{ctaLabel}</Link>
           </Button>
         ) : null}

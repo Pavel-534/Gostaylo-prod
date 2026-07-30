@@ -9,6 +9,7 @@ const FILTER_IDS = [
   { id: 'home', labelKey: 'orderTypeFilter_home', icon: 'home' },
   { id: 'transport', labelKey: 'orderTypeFilter_transport', icon: 'transport' },
   { id: 'activity', labelKey: 'orderTypeFilter_activity', icon: 'activity' },
+  { id: 'service', labelKey: 'orderTypeFilter_service', icon: 'service' },
 ]
 
 export default function OrderTypeFilter({ activeType = 'all', counters = {}, onChange, language = 'ru' }) {

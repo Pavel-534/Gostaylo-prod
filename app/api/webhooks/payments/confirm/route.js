@@ -21,7 +21,6 @@ import PaymentIntentService from '@/lib/services/payment-intent.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
-import { recordTreasuryWebhookError } from '@/lib/treasury/treasury-monitoring-alerts.js';
 import {
   resolveAdapterFromWebhook,
   verifyWebhookSignatureByAdapter,
@@ -41,6 +40,8 @@ import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-pa
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 import { formatRubAmountValue, getPayment } from '@/lib/payments/yookassa.js';
 import { touchControlledLiveMirFirstPaymentAlert, touchControlledLiveMirSoftLimit } from '@/lib/payment/controlled-live-mir-guard.js';
+import { logPaymentWebhookFailure } from '@/lib/payment/payment-webhook-failure-log.js';
+import { logStructured } from '@/lib/critical-telemetry.js';
 
 /**
  * Stage 198 — payment.canceled / failed: update intent for checkout UI; never ledger.
@@ -382,9 +383,12 @@ export async function POST(request) {
 
   const ipCheck = verifyPaymentWebhookIp({ adapterKey, request });
   if (!ipCheck.ok) {
-    void recordTreasuryWebhookError({
+    logPaymentWebhookFailure({
       error: ipCheck.error || 'ip_rejected',
-      context: `adapter=${adapterKey} ip=${ipCheck.ip || 'unknown'}`,
+      adapterKey,
+      stage: 'ip_allowlist',
+      context: `ip=${ipCheck.ip || 'unknown'}`,
+      httpStatus: 403,
     });
     return NextResponse.json(
       { success: false, error: 'Forbidden', code: ipCheck.error },
@@ -392,6 +396,24 @@ export async function POST(request) {
     );
   }
 
+  try {
+    return await handlePaymentConfirmWebhook({ request, json, adapterKey, rawBody });
+  } catch (err) {
+    logPaymentWebhookFailure({
+      error: err?.message || String(err),
+      adapterKey,
+      stage: 'unhandled_exception',
+      context: err?.stack ? String(err.stack).slice(0, 400) : undefined,
+      httpStatus: 500,
+    });
+    return NextResponse.json({ success: false, error: 'webhook_handler_failed' }, { status: 500 });
+  }
+}
+
+/**
+ * @param {{ request: Request, json: object, adapterKey: string, rawBody: string }} args
+ */
+async function handlePaymentConfirmWebhook({ json, adapterKey }) {
   const metaCheck = assertGatewayObjectMetadata(json);
   if (!metaCheck.ok) {
     return NextResponse.json({ success: false, error: metaCheck.error }, { status: 400 });
@@ -458,6 +480,14 @@ export async function POST(request) {
       json,
     });
     if (postEscrow) return postEscrow;
+    logStructured({
+      event: 'payment_webhook_idempotent',
+      channel: 'payments/confirm',
+      bookingId,
+      bookingStatus: String(booking.status || ''),
+      adapterKey,
+      gatewayRef: gatewayRef || undefined,
+    });
     return idempotentPaidBookingResponse(booking);
   }
 
@@ -473,10 +503,16 @@ export async function POST(request) {
       webhookCurrency: currency,
     });
     if (!ykVerify.ok) {
-      void recordTreasuryWebhookError({
+      logPaymentWebhookFailure({
         error: ykVerify.error || 'yookassa_verify_failed',
         bookingId,
+        adapterKey,
+        gatewayRef,
+        intentId,
+        paymentId,
+        stage: 'yookassa_verify',
         context: `code=${ykVerify.code || ''} expected=${JSON.stringify(ykVerify.expected || {})} received=${JSON.stringify(ykVerify.received || {})}`,
+        httpStatus: 400,
       });
       if (ykVerify.error === 'YOOKASSA_AMOUNT_MISMATCH') {
         void notifySystemAlert(
@@ -538,10 +574,13 @@ export async function POST(request) {
       void notifySystemAlert(
         `💳 <b>Webhook payments/confirm</b> — confirmPayment failed\n<code>${escapeSystemAlertHtml(String(confirm?.error || ''))}</code>`,
       );
-      void recordTreasuryWebhookError({
+      logPaymentWebhookFailure({
         error: confirm?.error || 'confirmPayment failed',
         bookingId,
-        context: 'legacy confirmPayment',
+        paymentId: payId,
+        adapterKey,
+        stage: 'legacy_confirmPayment',
+        httpStatus: 500,
       });
       return NextResponse.json(
         { success: false, error: confirm?.error || 'confirmPayment failed' },
@@ -578,10 +617,14 @@ export async function POST(request) {
     void notifySystemAlert(
       `💳 <b>Webhook payments/confirm</b> — ${escapeSystemAlertHtml(amountCheck.error || 'amount_check')}\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.expected))}</b>\ngot: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.received))}</b>`,
     );
-    void recordTreasuryWebhookError({
+    logPaymentWebhookFailure({
       error: amountCheck.error || 'amount_check',
       bookingId,
+      adapterKey,
+      intentId: intentForAmount?.id || intentId,
+      stage: 'amount_check',
       context: `expected ${JSON.stringify(amountCheck.expected)} got ${JSON.stringify(amountCheck.received)}`,
+      httpStatus: 400,
     });
     return NextResponse.json(
       {
@@ -622,10 +665,14 @@ export async function POST(request) {
     },
   });
   if (!marked.success) {
-    void recordTreasuryWebhookError({
+    logPaymentWebhookFailure({
       error: marked.error || 'intent_mark_failed',
       bookingId,
-      context: 'PaymentIntentService.markPaid',
+      intentId: intent.id,
+      adapterKey,
+      gatewayRef,
+      stage: 'markPaid',
+      httpStatus: 500,
     });
     return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 });
   }
@@ -668,10 +715,14 @@ export async function POST(request) {
     captureGuestTotalThb: Number.isFinite(captureGuestTotalThb) && captureGuestTotalThb > 0 ? captureGuestTotalThb : undefined,
   });
   if (!escrow?.success) {
-    void recordTreasuryWebhookError({
+    logPaymentWebhookFailure({
       error: escrow?.error || 'escrow_failed',
       bookingId,
-      context: 'EscrowService.moveToEscrow',
+      intentId: intent.id,
+      adapterKey,
+      gatewayRef,
+      stage: 'moveToEscrow',
+      httpStatus: 502,
     });
     return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 });
   }

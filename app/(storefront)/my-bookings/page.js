@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, ArrowLeft, Home } from 'lucide-react'
+import { ArrowLeft, Home } from 'lucide-react'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { EmptyState } from '@/components/empty-state'
+import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
@@ -35,6 +37,8 @@ function normalizeOrderType(type) {
   const t = String(type || '').trim().toLowerCase()
   if (t === 'transport') return 'transport'
   if (t === 'activity' || t === 'tour' || t === 'tours') return 'activity'
+  if (t === 'service' || t === 'services') return 'service'
+  if (t === 'stay' || t === 'home' || t === 'housing') return 'home'
   return 'home'
 }
 
@@ -108,6 +112,7 @@ function MyBookingsContent() {
 
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [typeSwitchLoading, setTypeSwitchLoading] = useState(false)
   const [activeType, setActiveType] = useState('all')
   const [activeTab, setActiveTab] = useState('all')
@@ -119,6 +124,7 @@ function MyBookingsContent() {
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
       const meJson = await meRes.json().catch(() => ({}))
@@ -140,13 +146,16 @@ function MyBookingsContent() {
 
       if (!res.ok || !data.success || !Array.isArray(data.data)) {
         setBookings([])
+        setLoadError(true)
         return
       }
 
       setBookings(data.data)
+      setLoadError(false)
     } catch (e) {
       console.error('Failed to load bookings:', e)
       setBookings([])
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -186,7 +195,7 @@ function MyBookingsContent() {
   )
 
   const typeCounters = useMemo(() => {
-    const counters = { all: statusFilteredBookings.length, home: 0, transport: 0, activity: 0 }
+    const counters = { all: statusFilteredBookings.length, home: 0, transport: 0, activity: 0, service: 0 }
     for (const booking of statusFilteredBookings) {
       const type = normalizeOrderType(booking.unified_order?.type)
       if (counters[type] == null) counters[type] = 0
@@ -321,7 +330,7 @@ function MyBookingsContent() {
               <CardDescription>{getUIText('myBookings_loginDesc', language)}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button asChild variant="brand">
+              <Button asChild variant="brand" className="min-h-[44px] w-full sm:w-auto">
                 <Link href="/profile?login=true&redirect=%2Fmy-bookings">
                   {getUIText('renterPortal_signInCta', language)}
                 </Link>
@@ -411,17 +420,27 @@ function MyBookingsContent() {
 
             {typeSwitchLoading ? (
               <OrdersListSkeleton count={2} />
+            ) : loadError ? (
+              <StorefrontStateView
+                variant="error"
+                testId="my-bookings-load-error"
+                className="min-h-0 py-8"
+                title={getUIText('loadError', language)}
+                body={getUIText('myBookings_loadErrorBody', language)}
+                primaryLabel={getUIText('myBookings_retry', language)}
+                onPrimaryClick={() => void loadBookings()}
+                secondaryLabel={getUIText('myBookings_goSearch', language)}
+                secondaryHref="/listings"
+              />
             ) : visibleBookings.length === 0 ? (
-              <Card>
-                <CardContent className="py-16 text-center">
-                  <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">{emptyCopy.title}</h3>
-                  <p className="text-slate-600 mb-4">{emptyCopy.body}</p>
-                  <Button asChild variant="brand">
-                    <Link href="/listings">{getUIText('myBookings_goSearch', language)}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <EmptyState
+                language={language}
+                title={emptyCopy.title}
+                hint={emptyCopy.body}
+                ctaLabel={getUIText('myBookings_goSearch', language)}
+                ctaHref="/listings"
+                variant="compact"
+              />
             ) : (
               <div className="space-y-4">
                 {visibleBookings.map((booking) => (

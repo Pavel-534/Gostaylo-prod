@@ -11,7 +11,6 @@
 
 import { useState, useMemo, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import {
   getPdpLightboxImageUrls,
   resolvePdpHeroBlurDataURL,
@@ -20,6 +19,10 @@ import { useListingViewData } from '@/hooks/useListingViewData'
 import { useListingChat } from '@/hooks/useListingChat'
 import { ListingPageNav } from './components/ListingPageNav'
 import { ListingPageSkeleton } from './components/ListingPageSkeleton'
+import {
+  ListingPdpModerationView,
+  ListingPdpNotFoundView,
+} from './ListingPdpGateViews'
 import { GalleryModal } from '@/components/listing/GalleryModal'
 import { getUIText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
@@ -191,36 +194,11 @@ function ListingPdpContent({ listingId, lang }) {
   if (loading) return <ListingPageSkeleton />
 
   if (moderationPending) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center max-w-md px-6">
-          <h2 className="text-2xl font-semibold mb-2">
-            {getUIText('listingDetail_underModeration', language)}
-          </h2>
-          <p className="text-slate-600 mb-6">
-            {getUIText('listingDetail_underModerationDesc', language)}
-          </p>
-          <Button onClick={() => router.push('/listings')} variant="outline">
-            {getUIText('listingDetail_backToListings', language)}
-          </Button>
-        </div>
-      </div>
-    )
+    return <ListingPdpModerationView lang={language} />
   }
 
   if (!listing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-2">
-            {getUIText('listingDetail_notFound', language)}
-          </h2>
-          <Button onClick={() => router.push('/listings')} variant="outline">
-            {getUIText('listingDetail_backToListings', language)}
-          </Button>
-        </div>
-      </div>
-    )
+    return <ListingPdpNotFoundView lang={language} />
   }
 
   return (

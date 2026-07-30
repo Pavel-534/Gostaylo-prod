@@ -606,8 +606,8 @@ export function WhereCombobox({
         <button
           type="button"
           onClick={clear}
-          className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex-shrink-0"
-          aria-label="Clear"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex-shrink-0 sm:min-h-0 sm:min-w-0 sm:p-1"
+          aria-label={getUIText('clearLocation', language)}
         >
           <X className="h-3.5 w-3.5" />
         </button>

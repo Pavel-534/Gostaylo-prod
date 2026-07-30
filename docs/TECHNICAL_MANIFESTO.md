@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.199.2.0 | **Last Updated**: 2026-07-30 | **Stage 199.2:** Wave I.3 Supply quality, listing health score and host SLA polish.
+> **Version**: 12.200.0.0 | **Last Updated**: 2026-07-30 | **Stage 200:** Wave J.1 Operational reliability, cron sync and unified order types.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,12 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200 / Wave J.1 (2026-07-30):** **Operational reliability** — `lib/cron/cron-registry.js` (Hobby daily vs cron-job.org hourly; no hourly in `vercel.json`); `toUnifiedOrder` vertical types (`home`/`transport`/`activity`/`service` + canonical `serviceType`); payment webhook structured failures (`logPaymentWebhookFailure`) + idempotent short-circuit logging; Concierge payouts stay manual. Test: `__tests__/stage200-operational-reliability.test.js`.
+
+**Stage 199.4 / Wave I.4 Final (2026-07-30):** **Golden Loop complete** — checkout success/unavailable on `StorefrontStateView` (+ `success` / tertiary CTA); `failedToLoad` generic vs `failedToLoadTransactions` for partner finances; `UnifiedSearchBar` filter select/time/guests ≥44px mobile; renter favorites/dashboard/layout on `getUIText`; smoke `__tests__/stage199-4-wave-i-final.test.js`.
+
+**Stage 199.3 / Wave I.4 (2026-07-30):** **One Surface** — `StorefrontStateView` for catalog/PDP/checkout/my-bookings empty·error; Button mobile touch ≥44px; `isUnresolvedI18nKey` for guest pay/SLA; skeletons retained (`ListingGridSkeleton` / `OrdersPageSkeleton` / `ListingPageSkeleton`); test `__tests__/stage199-3-one-surface.test.js`. Completes Golden Loop UX seal for Wave I. Polish: `myBookings_loadErrorBody` (not finance `failedToLoad`), catalog soft-fallback/segment i18n, search clear chips ≥44px mobile.
 
 **Stage 199.2 / Wave I.3 (2026-07-30):** **Supply quality** — `calculateListingHealthScore` + partner wizard widget; PDP `HostResponseSlaBadge` from reputation SLA samples; partner listings calendar freshness nudge (≥14d); test `__tests__/listing-health-score.test.js`.
 

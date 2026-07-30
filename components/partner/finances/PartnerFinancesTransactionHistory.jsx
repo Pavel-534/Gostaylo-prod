@@ -92,7 +92,7 @@ export function PartnerFinancesTransactionHistory({
           </div>
         ) : isError ? (
           <div className="text-center py-8">
-            <p className="mb-2 text-slate-700 font-medium">{t('failedToLoad')}</p>
+            <p className="mb-2 text-slate-700 font-medium">{t('failedToLoadTransactions')}</p>
             <p className="text-sm text-slate-500 mb-4">{error?.message}</p>
             <Button onClick={() => onRefetch()} variant="outline" className="min-h-[44px]">
               {t('retry')}

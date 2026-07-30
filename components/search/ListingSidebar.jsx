@@ -11,10 +11,12 @@ import Link from 'next/link';
 import { ListingCard } from '@/components/listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { EmptyState } from '@/components/empty-state';
+import { StorefrontStateView } from '@/components/product/StorefrontStateView';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon, CalendarX } from 'lucide-react';
+import { Loader2, List as ListIcon, Map as MapIcon, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUIText } from '@/lib/translations';
+import { isTechnicalErrorCode } from '@/lib/i18n/is-unresolved-i18n-key';
 import { isTransportListingCategory } from '@/lib/listing-category-slug';
 import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
 import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
@@ -92,19 +94,21 @@ function ListingSidebarComponent({
 
   // Error State
   if (error) {
+    const raw = typeof error === 'string' ? error : error?.message || ''
+    const body =
+      raw && !isTechnicalErrorCode(raw) ? raw : getUIText('catalogLoadError_body', language)
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-6">
-        <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-red-700 mb-2">
-          {getUIText('loadError', language)}
-        </h3>
-        <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={onRetry} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {getUIText('retry', language)}
-        </Button>
-      </div>
-    );
+      <StorefrontStateView
+        variant="error"
+        testId="catalog-load-error"
+        title={getUIText('loadError', language)}
+        body={body}
+        primaryLabel={getUIText('retry', language)}
+        onPrimaryClick={onRetry}
+        secondaryLabel={getUIText('catalogShowAllListings', language)}
+        secondaryHref="/listings"
+      />
+    )
   }
   
   // Loading / mobile refetch — skeleton grid (SSOT layout, no layout shift)
@@ -169,7 +173,7 @@ function ListingSidebarComponent({
           <Button
             onClick={onToggleMap}
             variant="outline"
-            className="gap-2 rounded-2xl"
+            className="min-h-[44px] gap-2 rounded-2xl"
             data-testid="catalog-mobile-map-toggle"
           >
             {showMap && !mobileMapSheet ? (
@@ -193,22 +197,10 @@ function ListingSidebarComponent({
           <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
             <p className="text-sm font-semibold text-amber-800">
-              {language === 'ru'
-                ? 'На выбранные даты нет свободных объектов'
-                : language === 'zh'
-                  ? '所选日期没有可用房源'
-                  : language === 'th'
-                    ? 'ไม่มีที่พักว่างสำหรับวันที่เลือก'
-                    : 'No listings available for selected dates'}
+              {getUIText('catalogSoftFallback_title', language)}
             </p>
             <p className="mt-0.5 text-xs text-amber-700">
-              {language === 'ru'
-                ? 'Показываем все объекты — уточните доступность напрямую у хозяина.'
-                : language === 'zh'
-                  ? '显示所有房源 — 请直接向房东确认可用性。'
-                  : language === 'th'
-                    ? 'แสดงที่พักทั้งหมด — กรุณาตรวจสอบความพร้อมกับเจ้าของโดยตรง'
-                    : 'Showing all listings — please confirm availability with the host directly.'}
+              {getUIText('catalogSoftFallback_body', language)}
             </p>
           </div>
         </div>

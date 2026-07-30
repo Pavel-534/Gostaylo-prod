@@ -1,6 +1,6 @@
 /**
- * GoStayLo - Renter Favorites Page
- * Displays all listings the user has "hearted"
+ * Renter Favorites Page — saved listings.
+ * Stage 199.4 — copy via getUIText (ru/en/zh/th).
  */
 
 'use client';
@@ -11,10 +11,12 @@ import { useRouter } from 'next/navigation';
 import { ListingCard } from '@/components/listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
-import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Heart, ArrowLeft } from 'lucide-react';
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
+import { StorefrontStateView } from '@/components/product/StorefrontStateView'
+import { EmptyState } from '@/components/empty-state'
 
 export default function FavoritesPage() {
   const { user } = useAuth();
@@ -79,11 +81,11 @@ export default function FavoritesPage() {
         
         setFavorites(listings);
       } else {
-        setError(language === 'ru' ? 'Не удалось загрузить избранное' : 'Failed to load favorites');
+        setError(getUIText('renterFavorites_loadError', language));
       }
     } catch (err) {
       console.error('[FAVORITES PAGE] Error:', err);
-      setError(language === 'ru' ? 'Ошибка сети' : 'Network error');
+      setError(getUIText('networkError', language));
     } finally {
       setLoading(false);
     }
@@ -124,7 +126,7 @@ export default function FavoritesPage() {
             className="mb-4 min-h-11 text-white hover:bg-white/20"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {language === 'ru' ? 'Назад' : 'Back'}
+            {getUIText('back', language)}
           </Button>
           
           <div className="flex items-center gap-3 mb-2">
@@ -134,49 +136,43 @@ export default function FavoritesPage() {
           <p className="text-white/90">
             {loading
               ? getUIText('loading', language)
-              : `${favorites.length} ${language === 'ru' ? 'избранных объектов' : 'favorites'}`}
+              : getUIText('renterFavorites_count', language, { count: favorites.length })}
           </p>
         </div>
       </div>
       
       {/* Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={fetchFavorites} variant="outline" className="min-h-11">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              {getUIText('retry', language)}
-            </Button>
-          </div>
-        )}
+        {error ? (
+          <StorefrontStateView
+            variant="error"
+            testId="renter-favorites-load-error"
+            className="min-h-0 py-8"
+            title={getUIText('loadError', language)}
+            body={error}
+            primaryLabel={getUIText('retry', language)}
+            onPrimaryClick={() => void fetchFavorites()}
+            secondaryLabel={getUIText('browse', language)}
+            secondaryHref="/listings"
+          />
+        ) : null}
         
-        {/* Loading State */}
-        {loading && !error && (
+        {loading && !error ? (
           <ListingGridSkeleton count={6} />
-        )}
+        ) : null}
         
-        {/* Empty State */}
-        {!loading && !error && favorites.length === 0 && (
-          <div className="text-center py-20">
-            <Heart className="h-20 w-20 text-slate-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-slate-700 mb-2">
-              {language === 'ru' ? 'Нет избранных объектов' : 'No favorites yet'}
-            </h2>
-            <p className="text-slate-500 mb-6">
-              {language === 'ru'
-                ? 'Добавляйте понравившиеся объекты в избранное, нажимая на ❤️'
-                : 'Add listings to favorites by tapping ❤️'}
-            </p>
-            <Button variant="brand" className="min-h-11" onClick={() => router.push('/listings')}>
-              {getUIText('browse', language)}
-            </Button>
-          </div>
-        )}
+        {!loading && !error && favorites.length === 0 ? (
+          <EmptyState
+            language={language}
+            title={getUIText('renterFavorites_emptyTitle', language)}
+            hint={getUIText('renterFavorites_emptyHint', language)}
+            ctaLabel={getUIText('browse', language)}
+            ctaHref="/listings"
+            variant="compact"
+          />
+        ) : null}
         
-        {/* Favorites Grid */}
-        {!loading && !error && favorites.length > 0 && (
+        {!loading && !error && favorites.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {favorites.map(listing => (
               <ListingCard
@@ -190,7 +186,7 @@ export default function FavoritesPage() {
               />
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -1,12 +1,9 @@
-import { Activity, Bike, Home } from 'lucide-react'
+import { Activity, Bike, Briefcase, Home } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-function normalizeType(type) {
-  return String(type || '').trim().toLowerCase()
-}
+import { normalizeOrderType } from '@/lib/orders/order-timeline'
 
 export default function OrderTypeIcon({ type, className }) {
-  const normalized = normalizeType(type)
+  const normalized = normalizeOrderType(type)
 
   if (normalized === 'home') {
     return <Home className={cn('h-4 w-4', className)} aria-hidden="true" />
@@ -16,9 +13,13 @@ export default function OrderTypeIcon({ type, className }) {
     return <Bike className={cn('h-4 w-4', className)} aria-hidden="true" />
   }
 
-  if (normalized === 'activity' || normalized === 'tour' || normalized === 'tours') {
+  if (normalized === 'service') {
+    return <Briefcase className={cn('h-4 w-4', className)} aria-hidden="true" />
+  }
+
+  if (normalized === 'activity') {
     return <Activity className={cn('h-4 w-4', className)} aria-hidden="true" />
   }
 
-  return <Activity className={cn('h-4 w-4', className)} aria-hidden="true" />
+  return <Home className={cn('h-4 w-4', className)} aria-hidden="true" />
 }

@@ -1,7 +1,35 @@
 # Architectural Passport
 
-> **Version**: 12.199.2.0 | **Last Updated**: 2026-07-30 | **Stage 199.2:** Wave I.3 Supply quality, listing health score and host SLA polish.
+> **Version**: 12.200.0.0 | **Last Updated**: 2026-07-30 | **Stage 200:** Wave J.1 Operational reliability, cron sync and unified order types.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200 — Wave J.1 Operational Reliability (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Cron registry** | `lib/cron/cron-registry.js` + `docs/CRON_EXTERNAL_FINANCIAL.md` | Hobby: daily in `vercel.json`; hourly money via cron-job.org — **не** hourly в Vercel |
+| **CRON_SECRET** | `assertCronAuthorized` on all `/api/cron/*` | Bearer / `x-cron-secret` |
+| **Unified order types** | `toUnifiedOrder` | UI: `home`/`transport`/`activity`/`service`; canonical `serviceType` stay/tour/… |
+| **Payment webhook** | `logPaymentWebhookFailure` + status idempotency | Structured fail logs; duplicate `payment.succeeded` → 2xx no double escrow |
+| **Payouts** | Concierge manual | Auto bank payouts **deferred** until live ops proven |
+
+### Stage 199.4 — Wave I.4 Final Polish (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Checkout states** | `CheckoutSuccessView` / `CheckoutUnavailableView` → `StorefrontStateView` | Success + unavailable monolith with catalog/PDP/my-bookings |
+| **failedToLoad** | `lib/translations/errors.js` | Generic load copy; finances → `failedToLoadTransactions` |
+| **Search touch** | `UnifiedSearchBar` filter/compact | Select / time / guests triggers ≥44px on mobile |
+| **Renter i18n** | `profile.js` + `getUIText` | No `language === 'ru'` ternaries on favorites/dashboard/layout |
+
+### Stage 199.3 — Wave I.4 One Surface (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **State surface** | `StorefrontStateView` + `EmptyState` | Catalog/PDP/checkout/my-bookings empty·error·denied share one visual language + CTA ≥44px |
+| **Touch** | `components/ui/button.jsx` | Default/icon/sm/lg: `min-h-[44px]` on mobile; denser `sm:` desktop |
+| **Friendly i18n** | `lib/i18n/is-unresolved-i18n-key.js` | No raw keys / SCREAMING_SNAKE on guest pay + SLA badge |
+| **Load errors** | `myBookings_loadErrorBody`, `catalogLoadError_*` | Not finance `failedToLoad` («transactions»); soft-fallback without «host/хозяин» |
 
 ### Stage 199.2 — Wave I.3 Supply Quality (2026-07-30)
 

@@ -68,6 +68,7 @@ npm run export-tokens
 | `ProfileHubNav` | Тот же хаб — единая навигация |
 | `PageSectionHeader` | Заголовок + подзаголовок секции |
 | `LoadingPageShell` | Единый loading (spinner + card); partner finances/calendar — `variant="inline"` |
+| `StorefrontStateView` | Stage 199.3–199.4 — empty / error / denied / success для Golden Loop (catalog, PDP, checkout success·unavailable, my-bookings, renter favorites) |
 | `GuestBookingFlowHint` | PDP, checkout, messages hall + thread sidebar (guest) |
 | `MessagesAuthGate` | `/messages`, `/messages/[id]` loading & sign-in |
 

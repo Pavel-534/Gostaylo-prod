@@ -1,46 +1,41 @@
 'use client'
 
 /**
- * Error Boundary for /listings segment
+ * Error Boundary for /listings segment — Stage 199.3 One Surface.
  */
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
+import { StorefrontStateView } from '@/components/product/StorefrontStateView'
+import { isUnresolvedI18nKey } from '@/lib/i18n/is-unresolved-i18n-key'
 
 export default function ListingsError({ error, reset }) {
+  const { language } = useI18n()
+
   useEffect(() => {
     console.error('[Listings Error]', error)
   }, [error])
 
+  const titleRaw = getUIText('loadError', language)
+  const bodyRaw = getUIText('listingsSegmentError_body', language)
+  const retryRaw = getUIText('retry', language)
+  const homeRaw = getUIText('backToHome', language)
+
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4 bg-slate-50">
-      <div
-        className={cn(
-          'rounded-xl border bg-card text-card-foreground shadow max-w-md w-full'
-        )}
-      >
-        <div className="p-6 pt-6 text-center">
-          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Что-то пошло не так</h2>
-          <p className="text-slate-600 mb-6">
-            Не удалось загрузить результаты поиска. Попробуйте обновить страницу или вернуться назад.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={reset} variant="brand">
-              Попробовать снова
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                На главную
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <StorefrontStateView
+      variant="error"
+      testId="listings-segment-error"
+      title={isUnresolvedI18nKey(titleRaw, 'loadError') ? 'Something went wrong' : titleRaw}
+      body={
+        isUnresolvedI18nKey(bodyRaw, 'listingsSegmentError_body')
+          ? getUIText('catalogLoadError_body', language)
+          : bodyRaw
+      }
+      primaryLabel={isUnresolvedI18nKey(retryRaw, 'retry') ? 'Try again' : retryRaw}
+      onPrimaryClick={reset}
+      secondaryLabel={isUnresolvedI18nKey(homeRaw, 'backToHome') ? 'Home' : homeRaw}
+      secondaryHref="/"
+    />
   )
 }

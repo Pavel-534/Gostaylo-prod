@@ -157,8 +157,13 @@ export function FilterBar({
                 <span className="text-slate-500">
                   ({nights} {getUIText('nightShort', language)})
                 </span>
-                <button type="button" onClick={clearDates} className="ml-1 hover:text-red-600">
-                  <X className="h-3 w-3" />
+                <button
+                  type="button"
+                  onClick={clearDates}
+                  className="ml-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-red-50 hover:text-red-600"
+                  aria-label={getUIText('clearDates', language)}
+                >
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </Badge>
             ) : null}

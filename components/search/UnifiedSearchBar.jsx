@@ -82,7 +82,7 @@ function CompactSummaryChip({ icon: Icon, children, onClick, onClear, testid, cl
       className="group inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 pl-2.5 pr-1 py-1 text-xs font-semibold text-brand-hover shadow-sm transition-all hover:border-brand/40 hover:bg-brand/15 hover:shadow"
       data-testid={testid}
     >
-      <button type="button" onClick={onClick} className="flex cursor-pointer items-center gap-1.5 focus:outline-none">
+      <button type="button" onClick={onClick} className="flex min-h-[44px] cursor-pointer items-center gap-1.5 focus:outline-none sm:min-h-0">
         <Icon className="h-3 w-3 text-brand" aria-hidden />
         <span>{children}</span>
       </button>
@@ -90,9 +90,9 @@ function CompactSummaryChip({ icon: Icon, children, onClick, onClear, testid, cl
         type="button"
         onClick={onClear}
         aria-label={clearAriaLabel}
-        className="flex h-5 w-5 items-center justify-center rounded-full text-brand/70 transition-colors hover:bg-brand/20 hover:text-brand"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-brand/70 transition-colors hover:bg-brand/20 hover:text-brand sm:min-h-0 sm:min-w-0 sm:h-5 sm:w-5"
       >
-        <X className="h-3 w-3" aria-hidden />
+        <X className="h-3.5 w-3.5 sm:h-3 sm:w-3" aria-hidden />
       </button>
     </span>
   )
@@ -237,7 +237,7 @@ export function UnifiedSearchBar({
         <button
           type="button"
           onClick={() => onSearchSubmit?.()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand-hover"
+          className="flex min-h-[44px] min-w-[44px] h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand-hover sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9"
           aria-label={getUIText('findButton', language)}
         >
           <Search className="h-4 w-4" aria-hidden />
@@ -272,7 +272,7 @@ export function UnifiedSearchBar({
                 }
               }}
               className={cn(
-                'flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 transition-colors',
+                'flex min-h-[44px] h-11 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 transition-colors sm:min-h-0 sm:h-9',
                 !semanticSearchFeatureEnabled && 'cursor-not-allowed opacity-50',
                 semanticSearchFeatureEnabled &&
                   smartSearchOn &&
@@ -420,8 +420,8 @@ export function UnifiedSearchBar({
                 {transportIntervalMode && dateRange?.from && dateRange?.to ? (
                   <div className="mt-2 space-y-2">
                     <div className="grid grid-cols-2 gap-1">
-                      <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-9 text-xs" />
-                      <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-9 text-xs" />
+                      <TimeSelect value={checkInTime} onChange={setCheckInTime} className="min-h-[44px] h-11 text-xs sm:min-h-0 sm:h-9" />
+                      <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="min-h-[44px] h-11 text-xs sm:min-h-0 sm:h-9" />
                     </div>
                     <Button
                       type="button"
@@ -507,7 +507,7 @@ export function UnifiedSearchBar({
         <div className="grid grid-cols-2 gap-2 border-t-0 p-2 md:grid-cols-4 md:p-2">
           <div data-search-section="what" className="min-w-0">
             <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="min-h-[44px] h-11 sm:min-h-0 sm:h-9">
                 <Layers className="h-4 w-4 mr-2 text-brand" />
                 <span className="truncate">
                   {category && category !== 'all'
@@ -547,12 +547,12 @@ export function UnifiedSearchBar({
               onChange={setDateRange}
               locale={language}
               placeholder={getUIText('dates', language)}
-              className="h-9 w-full min-w-0 border rounded-md justify-start px-3"
+              className="min-h-[44px] h-11 w-full min-w-0 border rounded-md justify-start px-3 sm:min-h-0 sm:h-9"
             />
             {transportIntervalMode && dateRange?.from && dateRange?.to && (
               <div className="grid grid-cols-2 gap-1">
-                <TimeSelect value={checkInTime} onChange={setCheckInTime} className="h-8 text-xs" />
-                <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="h-8 text-xs" />
+                <TimeSelect value={checkInTime} onChange={setCheckInTime} className="min-h-[44px] h-11 text-xs sm:min-h-0 sm:h-8" />
+                <TimeSelect value={checkOutTime} onChange={setCheckOutTime} className="min-h-[44px] h-11 text-xs sm:min-h-0 sm:h-8" />
               </div>
             )}
           </div>
@@ -565,7 +565,7 @@ export function UnifiedSearchBar({
               guestsBreakdown={guestsBreakdown}
               setGuestsBreakdown={setGuestsBreakdown}
               align="end"
-              triggerClassName="h-9 w-full rounded-md px-3"
+              triggerClassName="min-h-[44px] h-11 w-full rounded-md px-3 sm:min-h-0 sm:h-9"
             />
           </div>
         </div>
@@ -613,7 +613,7 @@ export function UnifiedSearchBar({
               guestsBreakdown={guestsBreakdown}
               setGuestsBreakdown={setGuestsBreakdown}
               align="end"
-              triggerClassName="h-9 w-[clamp(168px,20vw,220px)] min-w-[168px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700"
+              triggerClassName="min-h-[44px] h-11 w-[clamp(168px,20vw,220px)] min-w-[168px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700 sm:min-h-0 sm:h-9"
             />
           </div>
 
@@ -622,7 +622,7 @@ export function UnifiedSearchBar({
               type="button"
               variant="outline"
               size="sm"
-              className="hidden h-9 shrink-0 border-slate-300 px-3 md:inline-flex"
+              className="hidden shrink-0 border-slate-300 px-3 md:inline-flex"
               onClick={onFiltersClick}
               data-testid="public-compact-filters-button"
             >
@@ -633,7 +633,7 @@ export function UnifiedSearchBar({
           <Button
             onClick={handleSearchClick}
             data-testid="sticky-search-submit"
-            className="h-9 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(0,102,102,0.28)] hover:bg-brand-hover"
+            className="min-h-[44px] h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(0,102,102,0.28)] hover:bg-brand-hover sm:min-h-0 sm:h-9"
           >
             <Search className="mr-1.5 h-4 w-4" />
             <span className="hidden sm:inline">{getUIText('findButton', language)}</span>
@@ -646,7 +646,7 @@ export function UnifiedSearchBar({
             className="mt-2 flex flex-wrap items-center gap-1.5 px-1"
           >
             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-              {language === 'ru' ? 'Фильтры' : 'Filters'}:
+              {getUIText('filtersBtn', language)}:
             </span>
             {compactWhereLabel ? (
               <CompactSummaryChip
@@ -657,7 +657,7 @@ export function UnifiedSearchBar({
                   e.stopPropagation()
                   setWhere?.('all')
                 }}
-                clearAriaLabel={language === 'ru' ? 'Убрать локацию' : 'Clear location'}
+                clearAriaLabel={getUIText('clearLocation', language)}
               >
                 {compactWhereLabel}
               </CompactSummaryChip>
@@ -671,7 +671,7 @@ export function UnifiedSearchBar({
                   e.stopPropagation()
                   setDateRange?.({ from: undefined, to: undefined })
                 }}
-                clearAriaLabel={language === 'ru' ? 'Убрать даты' : 'Clear dates'}
+                clearAriaLabel={getUIText('clearDates', language)}
               >
                 {compactDatesLabel}
               </CompactSummaryChip>
@@ -686,7 +686,7 @@ export function UnifiedSearchBar({
                   setGuests?.('1')
                   setGuestsBreakdown?.({ adults: 1, children: 0, infants: 0 })
                 }}
-                clearAriaLabel={language === 'ru' ? 'Сбросить гостей' : 'Clear guests'}
+                clearAriaLabel={getUIText('clearGuests', language)}
               >
                 {compactGuestsLabel}
               </CompactSummaryChip>

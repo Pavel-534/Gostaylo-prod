@@ -149,7 +149,7 @@ export function GuestsPopover({
         const canDec = value > row.min
         const stepperBtnClass = isWizardStep
           ? 'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors'
-          : 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors'
+          : 'inline-flex min-h-[44px] min-w-[44px] h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0'
         return (
           <div
             key={row.key}

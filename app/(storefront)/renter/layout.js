@@ -211,7 +211,7 @@ export default function RenterLayout({ children }) {
               type="button"
               onClick={() => setSidebarOpen(false)}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-slate-100"
-              aria-label={language === 'ru' ? 'Закрыть меню' : 'Close menu'}
+              aria-label={getUIText('renterLayout_closeMenu', language)}
             >
               <X className="h-5 w-5 text-slate-400" />
             </button>

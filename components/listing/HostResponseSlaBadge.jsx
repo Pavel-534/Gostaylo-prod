@@ -8,6 +8,7 @@ import { Clock, Zap } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 import { resolveHostResponseSlaBadge } from '@/lib/listing/host-response-sla'
+import { isUnresolvedI18nKey } from '@/lib/i18n/is-unresolved-i18n-key'
 
 /**
  * @param {{
@@ -26,7 +27,7 @@ export function HostResponseSlaBadge({ trust = null, language = 'ru', className 
       label = label.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v))
     }
   }
-  if (!label || label === badge.i18nKey) return null
+  if (isUnresolvedI18nKey(label, badge.i18nKey)) return null
 
   const Icon = badge.kind === 'fast' ? Zap : Clock
 

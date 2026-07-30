@@ -23,10 +23,11 @@ const buttonVariants = cva(
           "bg-brand text-white shadow-[0_6px_18px_rgba(0,102,102,0.22)] hover:bg-brand-hover",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-2xl px-3 text-xs",
-        lg: "h-10 rounded-2xl px-8",
-        icon: "h-9 w-9",
+        // Stage 199.3 — mobile touch ≥44px; desktop keeps denser heights.
+        default: "min-h-[44px] h-11 px-4 py-2 sm:min-h-0 sm:h-9",
+        sm: "min-h-[44px] h-11 rounded-2xl px-3 text-xs sm:min-h-0 sm:h-8",
+        lg: "min-h-[44px] h-11 rounded-2xl px-8 sm:min-h-0 sm:h-10",
+        icon: "min-h-[44px] min-w-[44px] h-11 w-11 sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9",
       },
     },
     defaultVariants: {
