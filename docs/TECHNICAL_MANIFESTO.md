@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.197.1.0 | **Last Updated**: 2026-07-28 | **Stage 197.1:** Fix checkout promo reprice, align payment passport & referral terms.
+> **Version**: 12.199.2.0 | **Last Updated**: 2026-07-30 | **Stage 199.2:** Wave I.3 Supply quality, listing health score and host SLA polish.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,14 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 199.2 / Wave I.3 (2026-07-30):** **Supply quality** — `calculateListingHealthScore` + partner wizard widget; PDP `HostResponseSlaBadge` from reputation SLA samples; partner listings calendar freshness nudge (≥14d); test `__tests__/listing-health-score.test.js`.
+
+**Stage 199.1 / Wave I.2 (2026-07-30):** **Convert loop** — mobile search card density (`LISTING_CARD_ROOT_MAX_H` ≤80dvh); unpaid checkout deep-link `?resume=1#checkout-sticky-pay` + checkout scroll; PDP `BookingTrustSignals` (Escrow / cancel / chat); test `__tests__/stage199-1-convert-loop.test.js`.
+
+**Stage 199 / Wave I.1 (2026-07-30):** **Price Truth** — `lib/pricing/price-truth.js`; search `getGuestDisplayForStay` no longer double-applies guest fee on batch payable; PDP breakdown shows fee % + cleaning exclusion hints; PDP default fee **15%**; retail FX shared PDP↔checkout; test `__tests__/price-truth-consistency.test.js`.
+
+**Stage 198 / Wave I.0 (2026-07-30):** **Pre-Live ops** — owner checklist `docs/OWNER_CHECKLIST_GO_LIVE.md`; webhook `payment.canceled` → intent terminal (no ledger); guest pay error SSOT `guest-pay-error-messages.js`; checkout legal + privacy link; Controlled Live / TG FINANCE confirmed for pilot.
 
 **Stage 197.1 (2026-07-28):** **Checkout promo reprice** — `POST /api/v2/bookings/[id]/apply-promo` + initiate `promoCode` persist discount into booking before PaymentIntent; `valid_from` in `promo-engine`; passport §11 YooKassa/Mandarin/Crypto (no Stripe MOCKED); guest fee default **15%**; referral UI accrual-after-COMPLETED copy.
 

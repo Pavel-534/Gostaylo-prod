@@ -24,6 +24,7 @@ import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import {
+  LISTING_CARD_BODY_PAD,
   LISTING_CARD_CONTENT_MIN_H,
   LISTING_CARD_PRICE_ROW_MIN_H,
   LISTING_CARD_SPEC_ROW_MIN_H,
@@ -179,7 +180,7 @@ export function ListingCard({
       />
 
       {shouldShowFlashUrgencyTimerAboveStrip(catalog_flash_urgency, catalog_flash_social_proof) ? (
-        <div className="px-4 pt-2">
+        <div className="px-3 pt-1.5 sm:px-4 sm:pt-2">
           <UrgencyTimer endsAt={catalog_flash_urgency.ends_at} language={language} variant="compact" />
         </div>
       ) : null}
@@ -189,39 +190,39 @@ export function ListingCard({
         catalog_flash_social_proof={catalog_flash_social_proof}
         language={language}
         compact
-        className="mx-4 mt-2"
+        className="mx-3 mt-1.5 sm:mx-4 sm:mt-2"
       />
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
-      <Link href={detailUrl} className={cn('flex flex-1 flex-col p-4', LISTING_CARD_CONTENT_MIN_H)}>
+      <Link href={detailUrl} className={cn('flex flex-1 flex-col', LISTING_CARD_BODY_PAD, LISTING_CARD_CONTENT_MIN_H)}>
           {/* Title Row */}
           <div
             className={cn(
-              'mb-2 flex min-w-0 items-start justify-between gap-2',
+              'mb-1.5 flex min-w-0 items-start justify-between gap-2 sm:mb-2',
               LISTING_CARD_TITLE_ROW_MIN_H,
             )}
           >
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-brand-hover transition-colors">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="font-semibold text-slate-900 line-clamp-1 text-sm sm:text-base group-hover:text-brand-hover transition-colors">
                   {getListingText(listing, 'title', language) || title}
                 </h3>
                 {ownerVerified ? (
                   <Badge
                     variant="outline"
-                    className="shrink-0 border-brand/30 bg-brand/10 px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-brand-hover"
+                    className="shrink-0 border-brand/30 bg-brand/10 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-brand-hover sm:px-2 sm:text-[10px]"
                   >
                     {getUIText('listingCard_verifiedPartner', language)}
                   </Badge>
                 ) : null}
               </div>
-              <div className={cn('mt-1 space-y-0.5', LISTING_CARD_TRUST_ROW_MIN_H)}>
+              <div className={cn('mt-0.5 space-y-0.5 sm:mt-1', LISTING_CARD_TRUST_ROW_MIN_H)}>
                 {categoryLine ? (
-                  <p className="text-[11px] font-medium leading-snug text-slate-400">{categoryLine}</p>
+                  <p className="text-[10px] font-medium leading-snug text-slate-400 sm:text-[11px]">{categoryLine}</p>
                 ) : null}
                 {district ? (
-                  <p className="flex items-center gap-1 text-sm text-slate-500">
-                    <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <p className="flex items-center gap-1 text-xs text-slate-500 sm:text-sm">
+                    <MapPin className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" aria-hidden />
                     <span className="min-w-0 truncate">{district}</span>
                   </p>
                 ) : null}
@@ -256,7 +257,7 @@ export function ListingCard({
           {/* Price — pinned to card bottom via flex-1 + mt-auto */}
           <div
             className={cn(
-              'relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3',
+              'relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-2 sm:pt-3',
               LISTING_CARD_PRICE_ROW_MIN_H,
             )}
           >

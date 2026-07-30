@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { ArrowRight, Clock, MessageCircle, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BookingTrustSignals } from '@/components/listing/booking/BookingTrustSignals'
 
 function ChatPreviewBadge({ preview, hasUnread, language }) {
   if (!preview) return null
@@ -73,6 +74,8 @@ export function BookingActionButtons({
   exclusiveDatesUnavailable = false,
   onPrivateTripClick,
   onSpecialPriceClick,
+  listingCategorySlug = null,
+  wizardProfile = null,
 }) {
   const sharedMode = bookingUiMode === 'shared'
 
@@ -120,6 +123,12 @@ export function BookingActionButtons({
       </Button>
 
       <BookingPayTimingHint isInstantBookListing={isInstantBookListing} tx={tx} />
+
+      <BookingTrustSignals
+        language={language}
+        listingCategorySlug={listingCategorySlug}
+        wizardProfile={wizardProfile}
+      />
 
       {sharedMode && (onPrivateTripClick || onSpecialPriceClick) && (
         <div className="grid gap-2">

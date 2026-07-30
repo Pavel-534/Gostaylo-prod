@@ -47,6 +47,20 @@ export function LegalConsentCheckboxRow({
           >
             {getUIText('footerRefundPolicy', language)}
           </Link>
+          {variant === 'checkout' ? (
+            <>
+              <span>{getUIText('legalConsent_checkoutAndPrivacy', language)}</span>{' '}
+              <Link
+                href="/legal/privacy/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {getUIText('privacyPolicy', language)}
+              </Link>
+            </>
+          ) : null}
         </label>
       </div>
     )

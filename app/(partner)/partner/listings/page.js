@@ -40,6 +40,7 @@ import {
   usePartnerListingDelete,
 } from '@/lib/hooks/use-partner-listings'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
+import { evaluateCalendarFreshness } from '@/lib/partner/calendar-freshness.js'
 
 function isPartnerHiddenMetadata(metadata) {
   const v = metadata?.partner_hidden
@@ -431,6 +432,7 @@ export default function PartnerListings() {
               isPartnerHiddenMetadata(listing.metadata) &&
               listing.status === 'INACTIVE' &&
               listing.metadata?.is_draft !== true
+            const calendarFreshness = evaluateCalendarFreshness(listing)
             
             return (
               <Card 
@@ -507,6 +509,17 @@ export default function PartnerListings() {
                           </Badge>
                         )}
                       </div>
+                      {calendarFreshness.stale ? (
+                        <p
+                          className="mt-1.5 text-[11px] leading-snug text-amber-800"
+                          data-testid={`listing-calendar-freshness-${listing.id}`}
+                        >
+                          {t(
+                            'partnerListings_calendarFreshnessNudge',
+                            'Check that prices and dates are still up to date',
+                          )}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </Link>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { resolveGuestPayReturnFailureCopy } from '@/lib/checkout/guest-pay-error-messages.js'
 import {
   isCheckoutIntentPaymentFailed,
   isCheckoutIntentPaymentPaid,
@@ -14,7 +15,7 @@ const FAST_POLL_MS = 1000
 const MAX_POLLS = 12
 
 /**
- * Stage 130.3 / 138.2 — return from YooKassa redirect (?payment=return&intent=pi-*).
+ * Stage 130.3 / 138.2 / 198 — return from YooKassa redirect (?payment=return&intent=pi-*).
  */
 export function useCheckoutPaymentReturn({
   bookingId,
@@ -24,6 +25,7 @@ export function useCheckoutPaymentReturn({
   loadPaymentIntent,
   setPaymentSuccess,
   setPaymentFailed,
+  setPaymentFailReason,
   setPaymentReturnVerifying,
 }) {
   const searchParams = useSearchParams()
@@ -37,6 +39,7 @@ export function useCheckoutPaymentReturn({
     handledRef.current = true
     setPaymentReturnVerifying(true)
     setPaymentFailed(false)
+    if (typeof setPaymentFailReason === 'function') setPaymentFailReason(null)
 
     let polls = 0
     let cancelled = false
@@ -60,10 +63,13 @@ export function useCheckoutPaymentReturn({
       stripReturnQuery()
     }
 
-    const finishFailed = () => {
+    const finishFailed = (intentStatus, { timedOut = false } = {}) => {
       if (cancelled) return
+      const copy = resolveGuestPayReturnFailureCopy(intentStatus, { timedOut })
+      if (typeof setPaymentFailReason === 'function') setPaymentFailReason(copy.reason)
       setPaymentReturnVerifying(false)
       setPaymentFailed(true)
+      toast.error(getUIText(copy.bodyKey, language))
       stripReturnQuery()
     }
 
@@ -108,12 +114,12 @@ export function useCheckoutPaymentReturn({
         return
       }
       if (isCheckoutIntentPaymentFailed(intentStatus)) {
-        finishFailed()
+        finishFailed(intentStatus)
         return
       }
 
       if (polls >= MAX_POLLS) {
-        finishFailed()
+        finishFailed(intentStatus, { timedOut: true })
         return
       }
       const delay = polls === 1 ? FAST_POLL_MS : POLL_MS
@@ -134,6 +140,7 @@ export function useCheckoutPaymentReturn({
     loadPaymentStatus,
     router,
     searchParams,
+    setPaymentFailReason,
     setPaymentFailed,
     setPaymentReturnVerifying,
     setPaymentSuccess,

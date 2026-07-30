@@ -1,7 +1,42 @@
 # Architectural Passport
 
-> **Version**: 12.197.1.0 | **Last Updated**: 2026-07-28 | **Stage 197.1:** Fix checkout promo reprice, align payment passport & referral terms.
+> **Version**: 12.199.2.0 | **Last Updated**: 2026-07-30 | **Stage 199.2:** Wave I.3 Supply quality, listing health score and host SLA polish.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 199.2 — Wave I.3 Supply Quality (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Listing Health** | `lib/partner/listing-health-score.js` | Photos 30% / description 20% / amenities 20% / rules 30%; widget in wizard preview |
+| **Host response SLA** | `lib/listing/host-response-sla.js` | PDP badge from `partnerTrust.avgInitialResponseMinutes30d` (+ soft fallback) |
+| **Calendar freshness** | `lib/partner/calendar-freshness.js` | Partner list nudge if activity ≥14d old (`syncSettings.last_sync` / `updatedAt`) |
+
+### Stage 199.1 — Wave I.2 Convert Loop (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Search density** | `lib/listing/listing-card-layout.js` | Mobile media `max-h ~48dvh` + tighter pad/type/`gap-3` so card stays under ~80dvh and next listing peeks |
+| **Resume unpaid** | `lib/checkout/checkout-resume-focus.js` | Banner/push → `/checkout/{id}?resume=1#checkout-sticky-pay` + scroll to sticky pay |
+| **PDP trust** | `BookingTrustSignals` | Escrow / cancel-per-rules / direct chat with provider next to Book CTA |
+
+### Stage 199 — Wave I.1 Price Truth (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Stay formula** | `lib/pricing/price-truth.js` | Lodging − promo + guest fee (15%) + tax + pot → one payable |
+| **Search card** | `getGuestDisplayForStay` | Uses batch `guestPayableRoundedThb` — **no double fee** |
+| **PDP breakdown** | `BookingPriceBreakdown` | Base × nights + fee% + tax = total; cleaning as «не в итоге» hint |
+| **Checkout charge** | `resolveCheckoutChargeTotalThb` | `price_thb + commission_thb + rounding_diff_pot` |
+| **FX display** | `useFxRatesQuery({ retail: true })` | Same retail map on PDP + checkout (THB math unchanged) |
+
+### Stage 198 — Wave I.0 Pre-Live Operations (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Owner checklist** | `docs/OWNER_CHECKLIST_GO_LIVE.md` | ЮKassa кабинет, касса 54-ФЗ, юр. ссылки, FinTech «зелёные» перед ~100 ₽ |
+| **Webhook idempotency** | `POST /api/webhooks/payments/confirm` | `payment.succeeded` повтор → 2xx без второго ledger; `canceled/failed` → `markTerminalFailure` (без ledger) |
+| **Guest pay errors** | `lib/checkout/guest-pay-error-messages.js` | Понятные RU/EN/ZH/TH тексты + retry CTA на checkout |
+| **Controlled Live** | `controlled-live.js` + MIR guard | Дневной лимит THB + TG FINANCE (первая оплата / soft limit) |
 
 ### Performance & Caching (Stage 113.0 → 128.x)
 
@@ -428,7 +463,7 @@
 
 | Слой | Правило | Файлы |
 |------|---------|--------|
-| **Формула витрины** | Гостевая цена = база (или календарный субтотал / `pricing.averagePerNight` при датах) + **guest service fee %** из комиссий платформы. Налоги и полный breakdown — только в блоке бронирования/checkout, не в hero каталога. | **`lib/pricing/guest-display-price.js`** (`computeGuestDisplayFromBaseThb`, `getGuestDisplayPerNight`, `getGuestDisplayForStay`, **`getGuestDisplayForSearchFilters`**, `getPdpHeroGuestPriceThb`, `formatCardPricePeriodSuffix`) |
+| **Формула витрины** | Без дат: база/`averagePerNight` + guest fee %. **С датами (Stage 199):** batch `guestPayableRoundedThb` (уже fee+tax+pot) — без повторного fee. Полный breakdown — PDP widget / checkout. | **`lib/pricing/guest-display-price.js`** + **`lib/pricing/price-truth.js`** |
 | **Поиск: фильтр и гистограмма** | Min/max и `meta.priceHistogram` — **та же** единица, что на карточке (гостевая за ночь), не голый `base_price_thb`. | **`getGuestDisplayForSearchFilters`** → **`lib/search/effective-unit-price-for-search.js`** |
 | **API** | Поиск: `guestDisplayPriceThb` + **`guestServiceFeePercent`** (календарь в `pricing` при датах); PDP: **`GET /api/v2/listings/[id]`** → те же поля. | **`lib/api/run-listings-search-get.js`**, **`app/api/v2/listings/[id]/route.js`** |
 | **Партнёрский wizard** | Витрина: `storefrontGuestDisplayThb` + конвертация в `baseCurrency` через **retail** `rateMap` (**`computeWizardStorefrontPricePreview`**); **`chatInvoiceReferenceThb`** — ориентир чат-счёта (THB × multiplier), не подменяет каталог. | **`lib/pricing/fx-display.js`**, **`listing-wizard-step-validation.js`**, **`useListingWizardState`** (`fetchExchangeRates({ retail: true })`) |

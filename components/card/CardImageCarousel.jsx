@@ -20,6 +20,7 @@ import {
   listingHeroTransitionStyle,
   navigateWithListingHeroTransition,
 } from '@/lib/navigation/listing-hero-transition'
+import { LISTING_CARD_MEDIA_ASPECT } from '@/lib/listing/listing-card-layout'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -94,8 +95,11 @@ export function CardImageCarousel({
   const showNavigationArrows = imagesProxied.length > 1 && (isHovered || isMobile)
 
   return (
-    <div 
-      className="group relative aspect-[4/3] overflow-hidden bg-slate-100"
+    <div
+      className={cn(
+        'group relative overflow-hidden bg-slate-100',
+        LISTING_CARD_MEDIA_ASPECT,
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

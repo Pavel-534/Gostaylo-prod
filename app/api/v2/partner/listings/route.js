@@ -99,7 +99,8 @@ export async function GET(request) {
       rejectionReason: l.rejection_reason ?? null,
       rejectedAt: l.rejected_at ?? null,
       createdAt: l.created_at,
-      updatedAt: l.updated_at
+      updatedAt: l.updated_at,
+      syncSettings: l.sync_settings && typeof l.sync_settings === 'object' ? l.sync_settings : null,
     }));
     
     return NextResponse.json({ 

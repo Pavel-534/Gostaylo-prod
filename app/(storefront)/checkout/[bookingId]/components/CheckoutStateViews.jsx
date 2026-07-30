@@ -259,19 +259,36 @@ export function CheckoutPaymentReturnVerifyingView({
 }
 
 /**
- * Stage 138.2 — payment declined/cancelled or polling timeout after YooKassa return.
- * @param {{ language: string, chatHref?: string | null, onRetry: () => void, retrying?: boolean }} props
+ * Stage 138.2 / 198 — payment declined/cancelled or polling timeout after YooKassa return.
+ * @param {{ language: string, chatHref?: string | null, onRetry: () => void, retrying?: boolean, failReason?: string | null }} props
  */
 export function CheckoutPaymentFailedView({
   language,
   chatHref,
   onRetry,
   retrying = false,
+  failReason = null,
   listingCategorySlug = null,
   wizardProfile = null,
 }) {
   const supportHref = chatHref || '/help'
   const uiCtx = listingCategorySlug ? { listingCategorySlug, wizardProfile } : undefined
+  const titleKey =
+    failReason === 'timeout'
+      ? 'checkout_failedTitleTimeout'
+      : failReason === 'canceled'
+        ? 'checkout_failedTitleCanceled'
+        : failReason === 'declined'
+          ? 'checkout_failedTitleDeclined'
+          : 'checkout_failedTitle'
+  const bodyKey =
+    failReason === 'timeout'
+      ? 'checkout_failedBodyTimeout'
+      : failReason === 'canceled'
+        ? 'checkout_failedBodyCanceled'
+        : failReason === 'declined'
+          ? 'checkout_failedBodyDeclined'
+          : 'checkout_failedBody'
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -281,16 +298,16 @@ export function CheckoutPaymentFailedView({
             <CreditCard className="h-8 w-8 text-amber-700" aria-hidden />
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-2">
-            {getUIText('checkout_failedTitle', language)}
+            {getUIText(titleKey, language)}
           </h3>
           <p className="text-slate-600 mb-6 leading-relaxed">
-            {getUIText('checkout_failedBody', language)}
+            {getUIText(bodyKey, language)}
           </p>
           <div className="space-y-3">
             <Button
               type="button"
               variant="brand"
-              className="w-full"
+              className="w-full min-h-[44px]"
               onClick={onRetry}
               disabled={retrying}
             >
@@ -301,7 +318,7 @@ export function CheckoutPaymentFailedView({
               )}
               {getUIText('checkout_failedRetry', language)}
             </Button>
-            <Button asChild variant="outline" className="w-full">
+            <Button asChild variant="outline" className="w-full min-h-[44px]">
               <Link href={supportHref}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 {chatHref
@@ -309,7 +326,7 @@ export function CheckoutPaymentFailedView({
                   : getUIText('checkout_failedSupport', language)}
               </Link>
             </Button>
-            <Button asChild variant="ghost" className="w-full text-slate-600">
+            <Button asChild variant="ghost" className="w-full min-h-[44px] text-slate-600">
               <Link href="/my-bookings">{getUIText('checkout_myBookings', language)}</Link>
             </Button>
           </div>

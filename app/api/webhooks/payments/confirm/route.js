@@ -6,6 +6,12 @@
  * Тело (JSON), примеры:
  * - Плоское: { "bookingId", "paymentId?", "amount", "currency": "THB", "paid": true }
  * - YooKassa-style: { "event": "payment.succeeded", "object": { "amount": { "value", "currency" }, "metadata": { "booking_id", "payment_id" } } }
+ *
+ * Stage 198 — Idempotency (payment.succeeded):
+ * 1) Booking already in escrow pipeline / COMPLETED → HTTP 2xx, no second ledger / moveToEscrow.
+ * 2) Intent already PAID + booking escrowed mid-flight → same 2xx short-circuit after markPaid.
+ * 3) EscrowService.moveToEscrow itself is idempotent (RPC already-escrowed).
+ * payment.canceled / failed → mark intent terminal (guest UI), never touch ledger.
  */
 
 import { NextResponse } from 'next/server';
@@ -23,6 +29,7 @@ import {
 import { verifyPaymentWebhookIp } from '@/lib/payment/webhook-ip-allowlist.js';
 import {
   isIntentPaidStatus,
+  isIntentTerminalNonPaidStatus,
   normalizeProviderStatus,
 } from '@/lib/services/payment-adapters/status-normalizer';
 import {
@@ -34,6 +41,47 @@ import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-pa
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 import { formatRubAmountValue, getPayment } from '@/lib/payments/yookassa.js';
 import { touchControlledLiveMirFirstPaymentAlert, touchControlledLiveMirSoftLimit } from '@/lib/payment/controlled-live-mir-guard.js';
+
+/**
+ * Stage 198 — payment.canceled / failed: update intent for checkout UI; never ledger.
+ */
+async function markIntentTerminalFromNonPaidWebhook({
+  bookingId,
+  intentIdFromPayload,
+  paymentIdFromPayload,
+  gatewayRef,
+  normalizedStatus,
+  json,
+}) {
+  const { intent, error } = await resolvePaymentIntentForWebhook({
+    bookingId,
+    intentIdFromPayload,
+    paymentIdFromPayload,
+  })
+  if (error || !intent?.id) {
+    return {
+      success: true,
+      ignored: true,
+      reason: 'not_paid_no_intent',
+      normalizedStatus,
+    }
+  }
+  const marked = await PaymentIntentService.markTerminalFailure(intent.id, {
+    status: normalizedStatus,
+    gatewayRef: gatewayRef || null,
+    source: 'payment_acquiring_webhook_non_paid',
+    raw: json,
+  })
+  return {
+    success: true,
+    ignored: false,
+    reason: 'terminal_non_paid',
+    normalizedStatus,
+    intentId: intent.id,
+    marked: Boolean(marked?.success),
+    alreadyTerminal: Boolean(marked?.alreadyTerminal),
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -373,6 +421,17 @@ export async function POST(request) {
     );
   }
   if (!isIntentPaidStatus(normalizedStatus)) {
+    if (isIntentTerminalNonPaidStatus(normalizedStatus)) {
+      const terminal = await markIntentTerminalFromNonPaidWebhook({
+        bookingId,
+        intentIdFromPayload: intentId,
+        paymentIdFromPayload: paymentId,
+        gatewayRef,
+        normalizedStatus,
+        json,
+      })
+      return NextResponse.json(terminal)
+    }
     return NextResponse.json({
       success: true,
       ignored: true,

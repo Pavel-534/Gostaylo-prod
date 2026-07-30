@@ -27,6 +27,7 @@ import {
   BookingActionButtons,
   resolveListingInstantBooking,
 } from '@/components/listing/booking/BookingActionButtons'
+import { BookingTrustSignals } from '@/components/listing/booking/BookingTrustSignals'
 
 function formatSpecialOfferLine(tier, language, rentalPeriodMode) {
   const pct = Math.round(Number(tier.percent) || 0)
@@ -318,6 +319,8 @@ export function DesktopBookingWidget({
             exchangeRates={exchangeRates}
             language={language}
             rentalPeriodMode={rentalPeriodMode}
+            listingCategorySlug={listing?.categorySlug || listing?.category?.slug || ''}
+            listingMetadata={listing?.metadata || null}
           />
 
           <BookingActionButtons
@@ -340,6 +343,8 @@ export function DesktopBookingWidget({
             exclusiveDatesUnavailable={exclusiveDatesUnavailable}
             onPrivateTripClick={onPrivateTripClick}
             onSpecialPriceClick={onSpecialPriceClick}
+            listingCategorySlug={listing?.categorySlug || listing?.category?.slug || ''}
+            wizardProfile={listing?.wizardProfile || listing?.category?.wizard_profile || null}
           />
         </CardContent>
       </Card>
@@ -492,6 +497,14 @@ export function MobileBookingBar({
           </Button>
         </div>
       </div>
+
+      <BookingTrustSignals
+        compact
+        className="mt-2"
+        language={language}
+        listingCategorySlug={listing?.categorySlug || listing?.category?.slug || ''}
+        wizardProfile={listing?.wizardProfile || listing?.category?.wizard_profile || null}
+      />
     </div>
   )
 }

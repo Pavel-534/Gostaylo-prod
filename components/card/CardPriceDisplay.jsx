@@ -78,13 +78,13 @@ export function CardPriceDisplay({
   return (
     <div className="flex items-baseline gap-1.5 flex-wrap">
       <span
-        className="text-lg font-semibold text-slate-900"
+        className="text-base font-semibold text-slate-900 sm:text-lg"
         data-test-raw-value={displayPriceRawForTest(displayPrice, currency, rates)}
         data-test-fee-value="0"
       >
         <AnimatedPrice value={formattedPrice} />
       </span>
-      <span className="text-sm text-slate-500">{periodSuffix}</span>
+      <span className="text-xs text-slate-500 sm:text-sm">{periodSuffix}</span>
       {pricing?.isPromoApplied ? (
         <span className="ml-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
           SALE

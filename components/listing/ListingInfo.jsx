@@ -19,6 +19,7 @@ import { ListingGuestPolicies } from '@/components/listing/ListingStayPolicies'
 import { listingHasGuestPolicies } from '@/lib/listing/listing-good-to-know'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
+import { HostResponseSlaBadge } from '@/components/listing/HostResponseSlaBadge'
 
 /**
  * Title, location, rating, and spec row (SSOT: `ListingCardSpecsRow`).
@@ -134,6 +135,11 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                         getUIText('hostNamePlaceholder', language)}
                     </h3>
                     <p className="text-sm text-slate-500">{getUIText('propertyOwner', language)}</p>
+                    <HostResponseSlaBadge
+                      trust={listing.partnerTrust}
+                      language={language}
+                      className="pt-0.5"
+                    />
                     {listing.partnerTrust ? (
                       <div className="pt-2 space-y-1.5">
                         <PartnerTrustBadge trust={listing.partnerTrust} language={language} />

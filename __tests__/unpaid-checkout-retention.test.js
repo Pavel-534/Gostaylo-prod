@@ -7,11 +7,14 @@ const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
 
 describe('unpaidCheckoutDeepLink', () => {
-  it('points to checkout booking route', async () => {
+  it('points to checkout booking route with sticky pay resume focus', async () => {
     const { unpaidCheckoutDeepLink } = await import(
       '../lib/booking/unpaid-checkout-retention-policy.js'
     )
-    assert.equal(unpaidCheckoutDeepLink('bk-99'), '/checkout/bk-99')
+    assert.equal(
+      unpaidCheckoutDeepLink('bk-99'),
+      '/checkout/bk-99?resume=1#checkout-sticky-pay',
+    )
   })
 })
 

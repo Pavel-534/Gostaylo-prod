@@ -1,22 +1,20 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
-import { DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
+import { resolveGuestPayInitiateI18nKey } from '@/lib/checkout/guest-pay-error-messages.js'
+import { DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 
 function resolveCheckoutInitiateError(data, language) {
-  const code = String(data?.code || '').toUpperCase()
-  if (code === 'BOOKING_NOT_PAYABLE') {
-    return getUIText('checkout_error_notPayable', language)
+  const key = resolveGuestPayInitiateI18nKey(data)
+  if (key === 'checkout_error_notPayable') {
+    return getUIText(key, language)
   }
-  if (code === 'WALLET_ACTIVATION_REQUIRED') {
-    return getUIText('checkout_toast_paymentInitFail', language)
-  }
-  const err = String(data?.error || '').trim()
-  if (/^[A-Z][A-Z0-9_]{7,}$/.test(err)) {
-    return getUIText('checkout_toast_paymentInitFail', language)
-  }
-  return err || getUIText('checkout_toast_paymentInitFail', language)
+  const msg = getUIText(key, language)
+  if (msg && msg !== key) return msg
+  const err = String(data?.error || data?.message || '').trim()
+  if (err && !/^[A-Z][A-Z0-9_]{7,}$/.test(err)) return err
+  return getUIText('checkout_toast_paymentInitFailFriendly', language)
 }
 
 export function useCheckoutIntentFlow({

@@ -8,6 +8,8 @@ import {
   BOOKING_PRICE_BREAKDOWN_ID,
   getGuestPayableTotalThb,
 } from '@/lib/pricing/guest-display-price'
+import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions.js'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 
 function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
@@ -43,6 +45,8 @@ export function BookingPriceBreakdown({
   exchangeRates,
   language,
   rentalPeriodMode = 'night',
+  listingCategorySlug = '',
+  listingMetadata = null,
 }) {
   if (!priceCalc) return null
 
@@ -53,7 +57,12 @@ export function BookingPriceBreakdown({
   const serviceFee = Math.round(Number(priceCalc.serviceFee) || 0)
   const taxAmount = Math.round(Number(priceCalc.taxAmountThb) || 0)
   const taxRate = Number(priceCalc.taxRatePercent) || 0
+  const feePct =
+    Number(priceCalc.guestServiceFeePercent) >= 0
+      ? Number(priceCalc.guestServiceFeePercent)
+      : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
   const payableTotal = getGuestPayableTotalThb(priceCalc)
+  const exclusionHints = buildGuestPriceExclusionHints(listingCategorySlug, listingMetadata)
 
   const baseRaw = priceCalc.baseRawSubtotal
   const seasonalAdj = priceCalc.seasonalAdjustment
@@ -95,8 +104,17 @@ export function BookingPriceBreakdown({
       ? getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(taxRate))
       : getUIText('breakdownTaxIncluded', language)
 
+  const serviceFeeLabel = getUIText('priceBreakdown_serviceFeePct', language).replace(
+    /\{\{pct\}\}/g,
+    String(feePct),
+  )
+
   return (
-    <div id={BOOKING_PRICE_BREAKDOWN_ID} className="space-y-2 pt-4 border-t text-sm scroll-mt-24">
+    <div
+      id={BOOKING_PRICE_BREAKDOWN_ID}
+      className="space-y-2 pt-4 border-t text-sm scroll-mt-24"
+      data-testid="booking-price-breakdown"
+    >
       {baseRaw != null ? (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">{baseTimesLabel}</span>
@@ -165,7 +183,7 @@ export function BookingPriceBreakdown({
       )}
 
       <div className="flex justify-between gap-2">
-        <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
+        <span className="text-slate-600">{serviceFeeLabel}</span>
         <span
           className="font-medium tabular-nums"
           data-testid="booking-breakdown-service-fee"
@@ -215,6 +233,19 @@ export function BookingPriceBreakdown({
           {fmt(payableTotal)}
         </span>
       </div>
+
+      {exclusionHints.length > 0 ? (
+        <ul className="mt-2 space-y-1 text-xs text-slate-500" data-testid="booking-price-exclusions">
+          {exclusionHints.map((hint) => (
+            <li key={hint.key}>
+              {getUIText(hint.key, language).replace(
+                /\{\{amount\}\}/g,
+                hint.amountThb != null ? fmt(hint.amountThb) : '',
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {priceCalc.partnerPayoutThb != null && Number.isFinite(Number(priceCalc.partnerPayoutThb)) && (
         <span

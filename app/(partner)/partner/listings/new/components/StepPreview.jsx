@@ -5,6 +5,7 @@ import { Info } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ListingCard } from '@/components/listing-card'
 import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
+import { ListingHealthScoreWidget } from '@/components/partner/listing/ListingHealthScoreWidget'
 import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/WizardPartnerEarningsCalculator'
 import { useListingWizard } from '../context/ListingWizardContext'
 import {
@@ -43,6 +44,8 @@ function StepPreviewInner() {
         <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>{t('livePreview')}</h2>
         <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('listingQuality_previewHint', t('continueFilling'))}</p>
       </div>
+
+      <ListingHealthScoreWidget formData={formData} t={t} className="sm:hidden" />
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
 

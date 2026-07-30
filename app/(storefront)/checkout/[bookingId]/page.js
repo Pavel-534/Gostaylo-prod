@@ -22,6 +22,10 @@ import {
   getPayoutReleaseDisplayText,
 } from '@/lib/booking/payout-release-config.js'
 import {
+  CHECKOUT_STICKY_PAY_ANCHOR_ID,
+  shouldFocusCheckoutStickyPay,
+} from '@/lib/checkout/checkout-resume-focus.js'
+import {
   CheckoutFullPageSpinner,
   CheckoutAccessDeniedView,
   CheckoutUnavailableView,
@@ -63,6 +67,34 @@ function CheckoutPageInner({ params: paramsProp }) {
     const code = c.promoDiscount?.code || (c.promoCode || '').trim() || null
     p.setPromoCodeForPay?.(code || null)
   }, [c.promoDiscount?.code, c.promoCode, p.setPromoCodeForPay])
+
+  // Stage 199.1 — unpaid banner / push → checkout with focus on sticky pay.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    if (!shouldFocusCheckoutStickyPay(searchParams?.toString?.() || '', window.location.hash)) {
+      return undefined
+    }
+    if (p.loading || authLoading || !p.booking) return undefined
+
+    let attempts = 0
+    const maxAttempts = 12
+    const tryScroll = () => {
+      attempts += 1
+      const el =
+        document.getElementById(CHECKOUT_STICKY_PAY_ANCHOR_ID) ||
+        document.querySelector('[data-testid="checkout-sticky-pay-bar"]') ||
+        document.querySelector('[data-testid="checkout-pay-submit"]')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (attempts < maxAttempts) {
+        window.setTimeout(tryScroll, 80)
+      }
+    }
+    const t = window.setTimeout(tryScroll, 50)
+    return () => window.clearTimeout(t)
+  }, [searchParams, p.loading, authLoading, p.booking, p.paymentSuccess, p.paymentFailed])
 
   const paymentMethodOptions = [
     {
@@ -184,6 +216,7 @@ function CheckoutPageInner({ params: paramsProp }) {
       <CheckoutPaymentFailedView
         language={c.language}
         chatHref={chatHref}
+        failReason={p.paymentFailReason}
         listingCategorySlug={listingCategorySlug}
         wizardProfile={checkoutUiCtx?.wizardProfile}
         retrying={p.processing}
@@ -277,6 +310,7 @@ function CheckoutPageInner({ params: paramsProp }) {
         />
       </div>
 
+      <div id={CHECKOUT_STICKY_PAY_ANCHOR_ID} className="scroll-mt-24" aria-hidden />
       <CheckoutStickyPayBar
         language={c.language}
         amountText={c.payableText}

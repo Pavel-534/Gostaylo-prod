@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { format, differenceInDays } from 'date-fns'
 import { calculatePrice } from '@/lib/listing/listing-price-sync.js'
 import { computeRoundedGuestTotal } from '@/lib/booking-price-integrity'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { usePricingEngineConfig } from '@/hooks/use-pricing-engine-config'
 
 /**
@@ -65,7 +66,7 @@ export function useListingPricing({
     }
     const guestFeePct = Number.isFinite(Number(guestServiceFeePercent))
       ? Number(guestServiceFeePercent)
-      : 5
+      : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
     const serviceFeeRate = guestFeePct / 100
     const hostCommissionRate = commissionPct / 100
     const sync = syncPricing && typeof syncPricing === 'object' ? syncPricing : null
