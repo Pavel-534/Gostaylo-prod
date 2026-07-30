@@ -1,7 +1,14 @@
 # Architectural Passport
 
-> **Version**: 12.200.5.0 | **Last Updated**: 2026-07-30 | **Stage 200.5:** Partner calendar promo trust copy.
+> **Version**: 12.200.6.0 | **Last Updated**: 2026-07-30 | **Stage 200.6:** Home mobile hero content-height (no 82svh dead air).
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.6 — Home mobile hero densify (2026-07-30)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Hero height** | `HomeHeroLuxe` | `< md`: content-height; `md+`: `min-h-[min(600px,82svh)]` |
+| **Loyalty strip** | `PlatformHomeContent` | Compact strip immediately under hero → feed |
 
 ### Stage 200.5 — Partner calendar promo trust (2026-07-30)
 

@@ -194,8 +194,12 @@ export function PlatformHomeContent() {
         onOpenMobileSearch={openMobileSearch}
       />
 
-      <div className="border-b border-brand/15 bg-gradient-to-r from-brand-muted/80 via-white to-brand-muted/80">
-        <div className="gsl-page-container max-w-6xl py-2.5 flex flex-wrap items-center justify-center gap-2 text-center text-sm text-slate-700">
+      {/* Stage 200.6 — loyalty strip sits flush under content-height mobile hero (no dead air). */}
+      <div
+        data-testid="home-loyalty-teaser"
+        className="border-b border-brand/15 bg-gradient-to-r from-brand-muted/80 via-white to-brand-muted/80"
+      >
+        <div className="gsl-page-container flex max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-1 py-2 text-center text-xs text-slate-700 sm:py-2.5 sm:text-sm">
           <span>{getUIText('stage91_loyaltyHomeTeaser', language)}</span>
           <Link
             href="/about/loyalty"

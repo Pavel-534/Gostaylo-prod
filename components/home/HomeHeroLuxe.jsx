@@ -13,6 +13,7 @@ import { buildCatalogSearchSummaryLabels } from '@/lib/search/catalog-search-sum
  * Airy Premium hero: светлый фон, опциональный заголовок (`heroTitle`),
  * category pill-tabs + UnifiedSearchBar variant="hero" в glass-капсуле.
  * Stage 191.0 — mobile `<md`: collapsed Airbnb-like search pill → sheet (no full form on hero).
+ * Stage 200.6 — mobile: height follows content (no 82svh desktop port); md+ keeps airy min-height.
  *
  * @param {string | null} heroTitle — уже разрезолвленный заголовок (env / AUTO → перевод). `null` → блок скрыт.
  */
@@ -74,13 +75,17 @@ export function HomeHeroLuxe({
   return (
     <section
       data-hero-search
-      className="relative isolate z-[40] min-h-[min(600px,82svh)] overflow-visible pt-[calc(var(--app-header-height,64px)+8px)] pb-12"
+      className={cn(
+        'relative isolate z-[40] overflow-visible pt-[calc(var(--app-header-height,64px)+8px)]',
+        // Mobile: content-height (Airbnb-like). Desktop: keep premium airy canvas.
+        'pb-5 md:min-h-[min(600px,82svh)] md:pb-12',
+      )}
     >
       <div
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
-          maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 78%, transparent 100%)',
         }}
         aria-hidden
       >
@@ -92,13 +97,13 @@ export function HomeHeroLuxe({
           sizes="100vw"
           className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/45" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand/10 via-black/30 to-transparent" />
       </div>
 
       <div className="relative z-20 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
         {showTitle ? (
-          <h1 className="mb-6 max-w-3xl text-center text-[28px] font-semibold leading-[1.1] tracking-[-0.015em] text-white drop-shadow-md sm:mb-8 sm:text-[40px] lg:text-[44px]">
+          <h1 className="mb-4 max-w-3xl text-center text-[26px] font-semibold leading-[1.12] tracking-[-0.015em] text-white drop-shadow-md sm:mb-8 sm:text-[40px] lg:text-[44px]">
             {cleanTitle}
           </h1>
         ) : null}

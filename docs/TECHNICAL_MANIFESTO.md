@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.5.0 | **Last Updated**: 2026-07-30 | **Stage 200.5:** Partner calendar promo trust copy.
+> **Version**: 12.200.6.0 | **Last Updated**: 2026-07-30 | **Stage 200.6:** Home mobile hero content-height (no 82svh dead air).
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,8 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.6 (2026-07-30):** **Home mobile hero densify** — `HomeHeroLuxe` drops `min-h-[min(600px,82svh)]` below `md` (height = title + chips + search pill + tight padding); desktop keeps airy min-height. Loyalty strip stays under hero (now flush with feed start). Pattern: Airbnb-like first screen → listings sooner.
 
 **Stage 200.5 (2026-07-30):** **Partner calendar promo trust copy** — mobile agenda no longer shows raw `base − discount = guest`; `CalendarMarketingPromoHint` explains guest price + yours vs platform code + link `/partner/promo`; `createdByType` on calendar marketing promo DTO.
 
