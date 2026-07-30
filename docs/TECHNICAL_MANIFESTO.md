@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 12.200.17.0 | **Last Updated**: 2026-07-31 | **Stage 200.17:** Soft back-nav + catalog scroll memory (Phase 4).
+> **Version**: 12.200.19.0 | **Last Updated**: 2026-07-31 | **Stage 200.19:** PDP map cooperative overlay no longer covers booking bar.
 
 **Brand (white-label):** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). Не литералить в i18n — **`{brand}`** (ADR §7a).
 
@@ -284,6 +284,10 @@
 **Stage 193.0 (2026-07-22):** **iCal smart defaults (partner UI)** — first successful iCal source add sets `sync_settings.auto_sync: true` + `sync_interval_hours: 1`; (193.0 interval Select superseded by 193.1 platform SSOT). Audit: `docs/AUDIT_ICAL_ONBOARDING_DETAILS.md`.
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
+
+**Stage 200.19 (2026-07-31):** **PDP map cooperative overlay** — `ListingMap` / `MapPicker` map frame uses `isolate` so cooperative tap hint (`mapPicker_cooperativeTap`) cannot paint over mobile `MobileBookingBar` (z-50); hint centered in map instead of bottom-aligned.
+
+**Stage 200.18 (2026-07-31):** **Dock exclusive pending + Search/View-all** — `isOptimisticDockTabActive` (no dual Home+Search green); home Search intercept `markPending('/listings')`; `navigateToCatalog` dispatches pending so «Смотреть все» / Find paint Search; hook listens for `airento:nav-pending`.
 
 **Stage 200.17 (2026-07-31):** **Soft back-nav + catalog scroll memory** — `useSoftBack` (progress + `history.back` / fallback); `route-scroll-memory` session keys for catalog filter URLs; restore scroll on `/listings` remount when TanStack cache paints; wired on PDP nav, chat hall back, favorites. Closes optimistic-nav Phase 4.
 

@@ -101,18 +101,20 @@ export function ListingMap({
       <ListingCardSpecsRow listing={listingForSpecs} language={language} compact />
       <div
         className={cn(
-          'relative h-[min(280px,50vw)] max-h-[400px] min-h-[220px] rounded-xl overflow-hidden border border-slate-200 sm:h-[400px]',
+          // isolate — keep Leaflet/cooperative z-index inside the map frame so it
+          // cannot paint over PDP MobileBookingBar (z-50).
+          'relative z-0 isolate h-[min(280px,50vw)] max-h-[400px] min-h-[220px] rounded-xl overflow-hidden border border-slate-200 sm:h-[400px]',
           cooperativeTouch && !mapGestureActive && 'touch-pan-y',
         )}
       >
         {cooperativeTouch && !mapGestureActive ? (
           <button
             type="button"
-            className="absolute inset-0 z-[1000] flex items-end justify-center bg-slate-900/[0.03] pb-3"
+            className="absolute inset-0 z-[500] flex items-center justify-center bg-slate-900/[0.03] px-3"
             onClick={() => setMapGestureActive(true)}
             aria-label={t('mapPicker_cooperativeTap')}
           >
-            <span className="rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+            <span className="pointer-events-none max-w-[min(100%,18rem)] rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-center text-xs font-medium text-slate-600 shadow-sm">
               {t('mapPicker_cooperativeTap')}
             </span>
           </button>

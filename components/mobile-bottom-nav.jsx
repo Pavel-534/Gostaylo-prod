@@ -22,7 +22,7 @@ import {
 } from '@/lib/search/mobile-search-tab-action';
 import {
   STOREFRONT_NAV_PREFETCH_PATHS,
-  matchesOptimisticNavHref,
+  isOptimisticDockTabActive,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href';
 import { cn } from '@/lib/utils';
@@ -161,6 +161,12 @@ export function MobileBottomNav() {
 
     if (item.interceptSearchTab && isMobileSearchTabInterceptPath(pathname)) {
       e.preventDefault();
+      // Home → catalog: paint Search immediately (intercept skips <Link> navigation).
+      // Catalog → sheet: already on /listings; keep Search active without a fake pending.
+      const normalized = String(pathname || '').replace(/\/+$/, '') || '/'
+      if (normalized === '/') {
+        markPending('/listings')
+      }
       dispatchMobileSearchTabAction({ source: 'bottom-nav' });
       return;
     }
@@ -184,12 +190,6 @@ export function MobileBottomNav() {
     return pathname.startsWith(item.href);
   };
 
-  const isPending = (item) => {
-    if (matchesOptimisticNavHref(pendingHref, item.href)) return true;
-    if (!pendingHref || !item.activeMatches) return false;
-    return item.activeMatches.some((match) => matchesOptimisticNavHref(pendingHref, match));
-  };
-
   return (
     <nav
       ref={navRef}
@@ -198,7 +198,12 @@ export function MobileBottomNav() {
     >
       <div className="flex h-16 items-center justify-around px-2 min-[375px]:h-20 min-[375px]:px-3">
         {NAV_ITEMS.map((item) => {
-          const active = isActive(item) || isPending(item);
+          const active = isOptimisticDockTabActive({
+            routeActive: isActive(item),
+            pendingHref,
+            itemHref: item.href,
+            activeMatches: item.activeMatches || null,
+          });
           const Icon = item.icon;
           const href = item.requiresAuth && !user ? '#' : item.href;
 

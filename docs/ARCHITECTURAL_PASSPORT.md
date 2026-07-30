@@ -1,7 +1,24 @@
 # Architectural Passport
 
-> **Version**: 12.200.17.0 | **Last Updated**: 2026-07-31 | **Stage 200.17:** Soft back-nav + catalog scroll memory (Phase 4).
+> **Version**: 12.200.19.0 | **Last Updated**: 2026-07-31 | **Stage 200.19:** PDP map cooperative overlay no longer covers booking bar.
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/airento-docs-constitution.mdc`**.
+
+### Stage 200.19 — PDP map cooperative overlay clip (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Map frame** | `ListingMap` / `MapPicker` | `isolate` + `z-0` contain Leaflet/cooperative z-index |
+| **Hint** | cooperative tap pill | Centered in map (`items-center`); cannot cover `MobileBookingBar` z-50 |
+
+### Stage 200.18 — Dock exclusive pending + Search/View-all (2026-07-31)
+
+| Слой | SSOT | Поведение |
+|------|------|-----------|
+| **Exclusive active** | `isOptimisticDockTabActive` | While pending, only destination tab is green (no Home+Search dual) |
+| **Dock match** | `matchesOptimisticNavTab` | `/listings?…` lights Search tab |
+| **Search intercept** | `MobileBottomNav` | Home → `markPending('/listings')` before catalog navigate |
+| **View all / Find** | `navigateToCatalog` | `dispatchOptimisticNavPending('/listings')` → dock listens |
+| **Hook sync** | `useOptimisticNavHref` | Subscribes to `airento:nav-pending` for cross-component paint |
 
 ### Stage 200.17 — Soft back-nav + catalog scroll memory (2026-07-31)
 

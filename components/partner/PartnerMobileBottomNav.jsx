@@ -22,7 +22,7 @@ import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 import {
   PARTNER_NAV_PREFETCH_PATHS,
-  matchesOptimisticNavHref,
+  isOptimisticDockTabActive,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href'
 
@@ -157,9 +157,8 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
 
   if (!navVisible) return null
 
-  const moreActive = isMoreRouteActive(pathname)
+  const moreActive = isMoreRouteActive(pathname) && !pendingHref
   const primaryActiveId = PRIMARY_TABS.find((tab) => tab.match(pathname || ''))?.id ?? null
-  const pendingTabId = PRIMARY_TABS.find((tab) => matchesOptimisticNavHref(pendingHref, tab.href))?.id ?? null
 
   return (
     <nav
@@ -170,7 +169,11 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
     >
       <div className="flex h-16 items-center justify-around px-1 min-[375px]:h-20 min-[375px]:px-2">
         {PRIMARY_TABS.map((tab) => {
-          const active = primaryActiveId === tab.id || pendingTabId === tab.id
+          const active = isOptimisticDockTabActive({
+            routeActive: primaryActiveId === tab.id,
+            pendingHref,
+            itemHref: tab.href,
+          })
           const Icon = tab.icon
           return (
             <Link
