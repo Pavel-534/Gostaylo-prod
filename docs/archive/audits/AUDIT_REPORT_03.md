@@ -240,9 +240,9 @@ WHERE upper(p.status) = 'CONFIRMED'
 | **CRITICAL_03** | C3.4 CONFIRMED without escrow | P0 | open (вне ТЗ) |
 | **CRITICAL_03** | C3.5 partner payout TOCTOU | P0 | **fixed** `c09b3634` |
 | **CRITICAL_03** | C3.6/C3.7 admin CAS + T-Bank | P0 | **fixed** `e82a865b` |
-| **CRITICAL_03** | C3.8 invoice sticky intent | P0 | **fixed** _(hash pending)_ |
+| **CRITICAL_03** | C3.8 invoice sticky intent | P0 | **fixed** `26577b76` |
 | **CRITICAL_03** | C3.9 invoice status gate | P0 | open (вне ТЗ) |
-| **CRITICAL_03** | C3.10 thaw .limit(800) | P0 | pending |
+| **CRITICAL_03** | C3.10 thaw .limit(800) | P0 | **fixed** _(hash pending)_ |
 | **CRITICAL_03** | C3.11 alert daily limit | P0 | pending |
 | **WARN_03** | W3.1–W3.14 | P1 | deferred |
 | **MISSING_03** | M3.1–M3.8 | P2 | deferred |
@@ -283,3 +283,6 @@ WHERE upper(p.status) = 'CONFIRMED'
 | C13 Alerts/telemetry | Daily limit CRITICAL; retention MISSING | |
 
 *Конец AUDIT_03. Код не изменялся.*
+
+| C3.8 | `26577b76` | Intent reuse requires matching invoice_id + amount_thb; metadata.invoice_id |
+
