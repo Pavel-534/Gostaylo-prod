@@ -550,6 +550,14 @@ async function handlePaymentConfirmWebhook({ json, adapterKey }) {
   let resolvedIntentForEscrow = null;
 
   if (isLegacyPaymentsPath) {
+    // AUDIT_03 W3.6 — visible deprecation; keep path for compatibility
+    void notifySystemAlert(
+      `[DEPRECATION] Legacy payment confirmation for booking ${escapeSystemAlertHtml(bookingId)} ` +
+        `(paymentId=${escapeSystemAlertHtml(String(payId))}, no paymentIntentId)`,
+      { severity: 'WARN' },
+    );
+    console.warn('[payments/confirm] legacy payments path', { bookingId, payId });
+
     const expectedThb = await resolveExpectedGuestTotalThbFromBooking(booking);
     if (Number.isFinite(amount) && amount > 0 && String(currency || 'THB').toUpperCase() === 'THB') {
       const tol = 1.0;

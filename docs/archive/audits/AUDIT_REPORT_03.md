@@ -244,8 +244,23 @@ WHERE upper(p.status) = 'CONFIRMED'
 | **CRITICAL_03** | **C3.9** invoice status gate | P0 | **fixed** `81227b35` |
 | **CRITICAL_03** | C3.10 thaw .limit(800) | P0 | **fixed** `90ff15c8` |
 | **CRITICAL_03** | C3.11 alert daily limit | P0 | **fixed** `fd63d14f` |
-| **WARN_03** | W3.1–W3.14 | P1 | deferred |
-| **MISSING_03** | M3.1–M3.8 | P2 | deferred |
+| **WARN_03** | **W3.1** inquiry attestation re-gate | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.2** min 100 chat invoice | P1 | **fixed** (pending commit) |
+| **WARN_03** | W3.3 guest attestation optional | P1 | deferred |
+| **WARN_03** | **W3.4** atomic RPC lock retry | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.5** empty allowed_methods | P1 | **fixed** (pending commit) — fail-closed `NO_PAYMENT_METHODS_AVAILABLE` |
+| **WARN_03** | **W3.6** legacy payments deprecation | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.7** escrow insurance SSOT | P1 | **fixed** (pending commit) — JS folds insurance→platform to match RPC `v_insurance:=0` |
+| **WARN_03** | **W3.8** TZ invalid alert | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.9** thaw SLO docs | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.10** payout method null | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.11** crypto FX lock | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.12** cron timingSafeEqual | P1 | **fixed** (pending commit) |
+| **WARN_03** | **W3.13** dual schedulers docs | P1 | **fixed** (pending commit) |
+| **WARN_03** | W3.14 snapshot / I4 | P1 | deferred |
+| **MISSING_03** | M3.1–M3.5, M3.8 | P2 | deferred (mostly covered by CRITICAL) |
+| **MISSING_03** | **M3.6** critical_signal retention | P2 | **fixed** (pending commit) |
+| **MISSING_03** | **M3.7** CRITICAL alert ceiling | P2 | **fixed** (pending commit) |
 
 ### Remediation commits (CRITICAL only)
 
@@ -268,7 +283,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 2. После фиксов — `smoke` concurrent payout + crypto replay + invoice reprice.  
 3. Повторять **AUDIT_03-style** systemic pass **раз в квартал** (или после любого нового PSP / payout rail).  
 4. Пока `ledger_journals=0` в prod — добавить staging financial smoke с реальными journals до go-live money.
-5. Все CRITICAL_03 из §8 ТЗ закрыты (WARN/MISSING deferred).
+5. CRITICAL_03 закрыты. Safe + risky WARN (кроме **W3.3**, **W3.14**) — в working tree (pending commit). MISSING: M3.6–7 fixed; M3.8 deferred.
 
 ---
 

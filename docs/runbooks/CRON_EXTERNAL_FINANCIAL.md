@@ -3,30 +3,56 @@
 [Vercel Hobby](https://vercel.com/docs/cron-jobs/usage-and-pricing) allows **at most one cron invocation per day per expression**.  
 Expressions like `0 * * * *` (hourly) **fail deployment**.
 
-Financial routes stay **API routes** protected by `CRON_SECRET` (`lib/cron/verify-cron-secret.js`).  
+Financial routes stay **API routes** protected by `CRON_SECRET` (`lib/cron/verify-cron-secret.js` — **timingSafeEqual**, AUDIT_03 W3.12).  
 **Do not** add hourly jobs to `vercel.json` on Hobby — use [cron-job.org](https://cron-job.org) (or Upstash QStash).
 
 **Code SSOT (Stage 200):** `lib/cron/cron-registry.js` — path, criticality, vercel vs external, recommended schedules.  
 Partner **auto bank payouts remain Concierge/manual** until ops are proven; `payout-batch-pools` only drafts pools.
+
+**Prod host:** `https://airento.ru` (no `www` — avoid 301 false failures).
 
 ## Money-critical routes
 
 | Route | Method | Hobby: Vercel `vercel.json` | cron-job.org schedule |
 |-------|--------|----------------------------|------------------------|
 | `/api/cron/escrow-thaw` | POST | Daily 00:00 UTC (fallback) | **Every hour** |
+| `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (fallback) | **Every hour** (AUDIT_03 C3.4) |
 | `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
 | `/api/cron/financial-health-monitor` | POST | Daily 06:30 UTC | Daily 06:30 UTC (optional duplicate) |
+| `/api/cron/cleanup-critical-signals` | GET/POST | Daily 05:00 UTC | Optional duplicate (AUDIT_03 M3.6) |
 | `/api/cron/ical-sync` | POST | Daily fallback | **~30 min** recommended |
 
 All other handlers: see `CRON_REGISTRY` in `lib/cron/cron-registry.js` (auth guard required on every route).
+
+## Escrow thaw SLO (AUDIT_03 W3.9)
+
+| Scheduler | Cadence | Max lag after `escrow_thaw_at` |
+|-----------|---------|--------------------------------|
+| **cron-job.org** (canonical) | Hourly `0 * * * *` | **≤ 59 minutes** |
+| **Vercel Hobby** daily fallback | `0 0 * * *` UTC | **≤ 23h 59min** |
+
+Ops expectation: production thaw freshness is defined by the **external hourly** job. Daily Vercel is only a safety net if cron-job.org is down.  
+If both run the same hour, thaw must remain **idempotent** (safe double-run) — see Duplicate run protection below.
+
+## Duplicate run protection (AUDIT_03 W3.13)
+
+Vercel Hobby (daily fallback in `vercel.json`) **plus** cron-job.org (real hourly/custom) **will** occasionally invoke the same route twice close together.
+
+| Rule | Guidance |
+|------|----------|
+| Money jobs (`escrow-thaw`, `reconcile-confirmed-payments`, `promote-ready-for-payout`, ledger-ish) | Must be **idempotent** — status/CAS filters, unique idempotency keys, “already done” → 2xx |
+| Email / marketing digests | Prefer `ops_job_runs` dedup: same `job_name` + `date_trunc('hour', now())` (or day) before send |
+| Outbox / push sweepers | Safe re-entry; claim rows before mutate |
+
+Do **not** disable the Vercel daily fallback solely to avoid duplicates — prefer idempotent handlers. Keep **one** active cron-job.org entry per logical job (avoid two Escrow Thaw titles both Enabled).
 
 ## cron-job.org setup
 
 1. Create account → **Cronjobs** → **Create cronjob**.
 2. For each job:
-   - **URL:** `https://<your-production-domain>/api/cron/<path>`
-   - **Request method:** POST
+   - **URL:** `https://airento.ru/api/cron/<path>`
+   - **Request method:** POST (unless route documents GET=run, e.g. cleanup-critical-signals / review-reminder)
    - **Schedule:** see table / registry
    - **Headers:**
      - `Authorization: Bearer <CRON_SECRET>`
@@ -39,10 +65,12 @@ All other handlers: see `CRON_REGISTRY` in `lib/cron/cron-registry.js` (auth gua
 
 | Job | Cron expression | Notes |
 |-----|-----------------|-------|
-| escrow-thaw | `0 * * * *` | Every hour at :00 |
+| escrow-thaw | `0 * * * *` | Every hour at :00 — SLO ≤59m |
+| reconcile-confirmed-payments | `0 * * * *` | Every hour — heal CONFIRMED∧¬escrow (C3.4) |
 | promote-ready-for-payout | `0 * * * *` | Every hour at :00 |
 | payout-batch-pools | `0 7 * * 1,4` | Mon & Thu 07:00 UTC — draft only |
 | financial-health-monitor | `30 6 * * *` | Daily 06:30 UTC |
+| cleanup-critical-signals | `0 5 * * *` | Daily — 90d retention (M3.6) |
 | ical-sync | `*/30 * * * *` | Calendar freshness |
 
 4. Set **CRON_SECRET** in Vercel → Project → Settings → Environment Variables (Production).
@@ -50,7 +78,7 @@ All other handlers: see `CRON_REGISTRY` in `lib/cron/cron-registry.js` (auth gua
 ## Verify after deploy
 
 ```bash
-CRON_SECRET=xxx BASE_URL=https://your-domain EXPECT_PRICING_V2=true \
+CRON_SECRET=xxx BASE_URL=https://airento.ru EXPECT_PRICING_V2=true \
   node scripts/financial-prelaunch-smoke.mjs
 # or: npm run smoke:financial
 ```

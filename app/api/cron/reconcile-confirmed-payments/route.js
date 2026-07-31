@@ -1,6 +1,9 @@
 /**
  * POST /api/cron/reconcile-confirmed-payments
  * AUDIT_03 C3.4 — CONFIRMED payments whose bookings never reached PAID_ESCROW.
+ *
+ * Vercel Hobby: daily fallback in vercel.json only.
+ * Production cadence: cron-job.org hourly — see docs/runbooks/CRON_EXTERNAL_FINANCIAL.md
  */
 
 export const dynamic = 'force-dynamic'

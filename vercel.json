@@ -40,6 +40,10 @@
       "schedule": "30 6 * * *"
     },
     {
+      "path": "/api/cron/cleanup-critical-signals",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/cron/partner-client-review-invite",
       "schedule": "30 0 * * *"
     },
