@@ -54,7 +54,12 @@ export async function POST(request) {
     })
 
     if (result.error) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+      const code = result.code || null
+      const status = code === 'INSUFFICIENT_BALANCE' ? 409 : 400
+      return NextResponse.json(
+        { success: false, error: result.error, code: code || undefined },
+        { status },
+      )
     }
 
     return NextResponse.json({
