@@ -1,4 +1,4 @@
-# AUDIT REPORT 03 — Systemic money-flow risks (booking → partner payout)
+﻿# AUDIT REPORT 03 — Systemic money-flow risks (booking → partner payout)
 
 > **Дата:** 2026-07-31  
 > **Проект:** Airento / Supabase **FannRent** (`vtzzcdsjwudkaloxhvnw`)  
@@ -236,7 +236,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 |-------|-------|----------|--------|
 | **CRITICAL_03** | **C3.1** expectedAmount override | P0 | **fixed** `e4338160` |
 | **CRITICAL_03** | **C3.2** crypto txid replay | P0 | **fixed** `de60c5e3` |
-| **CRITICAL_03** | C3.3 Tron amount=0 skip | P0 | open |
+| **CRITICAL_03** | **C3.3** Tron amount=0 skip | P0 | **fixed** `c140bf82` |
 | **CRITICAL_03** | C3.4 CONFIRMED without escrow | P0 | open |
 | **CRITICAL_03** | C3.5 partner payout TOCTOU | P0 | **fixed** `c09b3634` |
 | **CRITICAL_03** | C3.6/C3.7 admin CAS + T-Bank | P0 | **fixed** `e82a865b` |
@@ -253,6 +253,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 |----------|--------|-------|
 | C3.1 | `e4338160` | Ignore body `expectedAmount`; USDT SSOT = `getExpectedUsdtForBooking` / intent `amountThb`→USDT |
 | C3.2 | `de60c5e3` | `payments_tx_id_unique` + `assertCryptoTxidAvailable` → 409 `already_processed`; key `crypto_payment:{txid}:{booking_id}` |
+| C3.3 | `c140bf82` | `verifyTronTransaction`: unresolved/`0` amount + expected → `AMOUNT_UNRESOLVED` (fail-closed; no underpay skip) |
 | C3.5 | `c09b3634` | RPC `insert_partner_host_payout_if_available` (advisory lock + reserve vs gross); no debit of `profiles.available_balance_thb` |
 | C3.6/C3.7 | `e82a865b` | Admin PATCH CAS `updated_at` + status; T-Bank `claim_payouts_for_tbank_registry` |
 | C3.8 | `26577b76` | Intent reuse requires matching invoice_id + amount_thb; metadata.invoice_id |
@@ -265,7 +266,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 2. После фиксов — `smoke` concurrent payout + crypto replay + invoice reprice.  
 3. Повторять **AUDIT_03-style** systemic pass **раз в квартал** (или после любого нового PSP / payout rail).  
 4. Пока `ledger_journals=0` в prod — добавить staging financial smoke с реальными journals до go-live money.
-5. Остались open CRITICAL: **C3.3**, **C3.4**, **C3.9**.
+5. Остались open CRITICAL: **C3.4**, **C3.9**.
 
 ---
 
