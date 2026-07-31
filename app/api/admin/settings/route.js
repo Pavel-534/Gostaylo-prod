@@ -4,7 +4,7 @@
  * PUT - Update system settings by section
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
@@ -66,10 +66,7 @@ let mockSettings = {
 }
 
 function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+  return supabaseAdmin || null
 }
 
 function asNumber(value, fallback = NaN) {
@@ -106,6 +103,13 @@ export async function GET(request) {
   if (gate.error) return gate.error
 
   try {
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Database not configured', code: 'SERVICE_UNAVAILABLE' },
+        { status: 503 },
+      )
+    }
+
     const byKey = await readSystemSettingsByKeys(['general'])
     const data = byKey.general
     if (!data?.value) return NextResponse.json({ data: mockSettings })
@@ -278,54 +282,10 @@ export async function PUT(request) {
     const supabase = getSupabaseClient()
 
     if (!supabase) {
-      const prev = { ...mockSettings }
-      const applyAll = () => {
-        const generalPatch = buildGeneralSettingsPatch(body, prev)
-        const financePatch = buildFinanceSettingsPatch(body, prev)
-        const marketingPatch = buildMarketingSettingsPatch(body, prev, {
-          guestServiceFeePercent: financePatch.guestServiceFeePercent,
-          hostCommissionPercent: financePatch.hostCommissionPercent,
-          insuranceFundPercent: financePatch.insuranceFundPercent,
-          taxRatePercent: financePatch.taxRatePercent,
-        })
-        if (!marketingPatch.ok) return marketingPatch
-        const chatPatch = buildChatSafetySettingsPatch(body, prev)
-        return { ok: true, patch: { ...generalPatch, ...financePatch, ...marketingPatch.patch, ...chatPatch } }
-      }
-      let result
-      switch (section) {
-        case 'general':
-          result = { ok: true, patch: await buildGeneralSettingsPatch(body, prev) }
-          break
-        case 'finance':
-          result = { ok: true, patch: buildFinanceSettingsPatch(body, prev) }
-          break
-        case 'marketing': {
-          const finance = buildFinanceSettingsPatch(body, prev)
-          result = buildMarketingSettingsPatch(body, prev, {
-            guestServiceFeePercent: finance.guestServiceFeePercent,
-            hostCommissionPercent: finance.hostCommissionPercent,
-            insuranceFundPercent: finance.insuranceFundPercent,
-            taxRatePercent: finance.taxRatePercent,
-          })
-          break
-        }
-        case 'chat_safety':
-        case 'chat-safety':
-          result = { ok: true, patch: buildChatSafetySettingsPatch(body, prev) }
-          break
-        case 'all':
-        default:
-          result = await applyAll()
-      }
-      if (!result.ok) {
-        return NextResponse.json(
-          { success: false, error: 'SAFETY_GATE_REJECTED', details: result.details, budget: result.budget },
-          { status: 400 },
-        )
-      }
-      mockSettings = { ...mockSettings, ...result.patch }
-      return NextResponse.json({ success: true, data: mockSettings })
+      return NextResponse.json(
+        { success: false, error: 'Database not configured', code: 'SERVICE_UNAVAILABLE' },
+        { status: 503 },
+      )
     }
 
     const existingRows = await readSystemSettingsByKeys(['general'])

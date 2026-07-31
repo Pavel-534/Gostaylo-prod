@@ -3,8 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceBreakdown } from '@/components/price-breakdown'
 
-/** Demo-only rate — avoid `useCommission` (pulls server-only graph into client bundle). */
-const DEMO_COMMISSION_RATE = 0.15
+/** Demo-only rate — percent (PriceBreakdown expects %), not fraction. */
+const DEMO_COMMISSION_RATE = 15
 
 export default function PriceBreakdownDemo() {
   // Mock data: Booking that spans two seasons

@@ -394,7 +394,7 @@ export default function UsersPage() {
                             step="0.1"
                           />
                           <span className="text-xs text-gray-500">
-                            % (пусто = глобальная 15%)
+                            % (пусто = глобальная ставка из settings)
                           </span>
                         </div>
                       )}

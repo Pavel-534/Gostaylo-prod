@@ -67,3 +67,23 @@ describe('resolveGuestServiceFeePercentFromGeneral (Stage 183)', () => {
     )
   })
 })
+
+describe('imputeSubtotalThbFromGuestPayable (AUDIT_02 P0)', () => {
+  it('reverses 15% guest fee so forward payable matches quote', async () => {
+    const {
+      imputeSubtotalThbFromGuestPayable,
+      calculateFeeSplitWithPolicy,
+    } = await import('@/lib/services/pricing/pricing-fee-policy.js')
+    const policy = {
+      guestServiceFeePercent: 15,
+      hostCommissionPercent: 0,
+      insuranceFundPercent: 0.5,
+      taxRatePercent: 0,
+    }
+    const quote = 11500
+    const sub = imputeSubtotalThbFromGuestPayable(quote, policy)
+    assert.equal(sub, 10000)
+    const split = calculateFeeSplitWithPolicy(sub, policy)
+    assert.equal(split.guestPayableThb, quote)
+  })
+})

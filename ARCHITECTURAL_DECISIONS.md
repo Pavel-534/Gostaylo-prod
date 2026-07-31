@@ -4,10 +4,15 @@
 
 ## Единственный источник истины (SSOT)
 
-- **Этот файл (`ARCHITECTURAL_DECISIONS.md` в корне репозитория)** — канонический манифест проекта: стек, золотые правила, порядок ревью.
-- **`docs/TECHNICAL_MANIFESTO.md`** и **`docs/ARCHITECTURAL_PASSPORT.md`** — снимок кода и архитектуры; их нужно обновлять при изменении API/БД/поведения (см. **`AGENTS.md`**, **`.cursor/rules/airento-docs-constitution.mdc`**, чеклист в **`.github/pull_request_template.md`**).
+- **Этот файл (`ARCHITECTURAL_DECISIONS.md` в корне репозитория)** — канонический манифест **политики**: стек, золотые правила, порядок ревью.
+- **Живая документация реализации** (см. **`docs/README.md`**):
+  - **`docs/TECHNICAL_MANIFESTO.md`** — code-truth (что в коде);
+  - **`docs/CONSTITUTION.md`** — инварианты (FSM, цена, FX, роли);
+  - **`docs/SYSTEM_MAP.md`** — архитектурный паспорт (таблицы, API-пути, интеграции);
+  - **`docs/ARCHITECTURAL_PASSPORT.md`** — индекс-алиас (не монолит).
+- Обновлять Manifesto / Constitution / System Map при изменении API/БД/поведения (см. **`AGENTS.md`**, **`.cursor/rules/airento-docs-constitution.mdc`**, чеклист в **`.github/pull_request_template.md`**).
 - **`.cursorrules`** + **`.cursor/rules/*.mdc`** — указатели для Cursor; политики не дублировать длинно. **При любом расхождении побеждает только `ARCHITECTURAL_DECISIONS.md`.**
-- Менять архитектурные правила нужно **здесь**; затем при необходимости сжато обновить `.cursorrules` / правило в `.cursor/rules/` (если добавились новые жёсткие триггеры для агента).
+- Менять архитектурные **правила политики** нужно **здесь**; затем при необходимости сжато обновить `.cursorrules` / правило в `.cursor/rules/`.
 
 ---
 
@@ -123,7 +128,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **All production reads/writes** go through **Supabase** (`@/lib/supabase`, `supabaseAdmin`, or REST from server routes).
 - **`prisma/schema.prisma`** stays aligned with the real Supabase schema and enums, but **do not introduce new Prisma Client queries** for product features unless ADR explicitly allows it.
 - **`lib/prisma.js` was removed** — runtime data access uses Supabase only; Prisma remains as **`schema.prisma` documentation** (see Golden rule §1).
-- **SQL migrations / new tables (TEXT vs UUID):** In production Supabase (**FannyRent**), **`profiles.id`** and domain keys such as **`listings.id`**, **`bookings.id`**, **`conversations.id`** are **`TEXT`**, not native **`uuid`**. Any new column that references them (e.g. `user_id`, `listing_id`) must use **`TEXT`** in raw SQL unless you have verified the parent column type in Supabase; otherwise FK creation fails with **42804**. Canonical write-up: **`docs/TECHNICAL_MANIFESTO.md` §0** and **`docs/ARCHITECTURAL_PASSPORT.md`** §2 intro.
+- **SQL migrations / new tables (TEXT vs UUID):** In production Supabase (**FannyRent**), **`profiles.id`** and domain keys such as **`listings.id`**, **`bookings.id`**, **`conversations.id`** are **`TEXT`**, not native **`uuid`**. Any new column that references them (e.g. `user_id`, `listing_id`) must use **`TEXT`** in raw SQL unless you have verified the parent column type in Supabase; otherwise FK creation fails with **42804**. Canonical write-up: **`docs/TECHNICAL_MANIFESTO.md` §0**, **`docs/CONSTITUTION.md`**, **`docs/SYSTEM_MAP.md`** §2 (detail historically also in **`docs/archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`** §2).
 
 ### 2. No hardcoded commissions or exchange rates
 
@@ -240,7 +245,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 5. **Compliance / бухгалтерия** — реестр **`GET /api/admin/finances/compliance-export`** (SSOT **`lib/admin/compliance-registry-csv.js`**); период по **дате оплаты**.
 6. **Исходящий FX партнёра (Stage 100.6):** THB в ledger неизменен; сумма перевода — **`amount_in_payout_currency`** + **`payout_currency`**. SSOT конвертации — **`lib/partner/partner-payout-fx.js`**; RUB — mid **`exchange_rates`** минус выплатной спред (**`PARTNER_PAYOUT_FX_RUB_SPREAD_PCT`**, default 1.75); USDT — mid без спреда. Резерв available = сумма PENDING/PROCESSING **`payouts`** (gross THB), без UPDATE **`profiles.available_balance_thb`**.
 
-**Операционные доки (не SSOT политики):** **`docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`**, **`docs/PRE_LAUNCH_CHECKLIST.md`**, **`docs/SOFT_LAUNCH_PLAN.md`**, **`docs/CRON_EXTERNAL_FINANCIAL.md`**.
+**Операционные доки (не SSOT политики):** **`docs/runbooks/`** — Concierge treasury, pre-launch, soft-launch, `CRON_EXTERNAL_FINANCIAL.md` (старые пути в `docs/*.md` — stub).
 
 **Откат:** отключить **`PRICING_ENGINE_V2`**; не вызывать **`settled`** без фактического банковского перевода; при ошибочном пуле — не Lock, править DRAFT по runbook.
 

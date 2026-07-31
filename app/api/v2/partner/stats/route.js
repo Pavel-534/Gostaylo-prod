@@ -45,7 +45,8 @@ const PARTNER_STATS_BOOKING_SELECT = [
 ].join(',')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+/** Server partner stats — service_role only (no anon fallback). */
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 /**
  * Get seasonal price for a specific date

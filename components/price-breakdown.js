@@ -72,7 +72,7 @@ export function PriceBreakdown({
   if (!priceData || !priceData.breakdown) {
     const totalBase = basePrice * days
     const serviceFee = totalBase * (ratePct / 100)
-    const total = totalBase
+    const total = totalBase + serviceFee
 
     return (
       <div className={`space-y-3 ${className}`}>
@@ -93,7 +93,7 @@ export function PriceBreakdown({
           <span className="text-2xl font-bold text-brand tabular-nums">{fp(total)}</span>
         </div>
         <div className="text-xs text-slate-500">
-          {t('priceBreakdown_hostReceivesShort', language)} {fp(totalBase - serviceFee)}
+          {t('priceBreakdown_hostReceivesShort', language)} {fp(totalBase)}
         </div>
       </div>
     )

@@ -10,7 +10,7 @@ import { BookingService } from '@/lib/services/booking.service'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 import { attachDisputeToBookings } from '@/lib/booking/attach-dispute-to-bookings.js'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
@@ -21,8 +21,16 @@ import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js'
 
 export const dynamic = 'force-dynamic'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+function serviceUnavailable() {
+  return NextResponse.json(
+    {
+      status: 'error',
+      error: 'Database not configured',
+      code: 'SERVICE_UNAVAILABLE',
+    },
+    { status: 503 },
+  )
+}
 
 const PARTNER_BOOKING_DETAIL_SELECT = `
   *,
@@ -59,17 +67,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ status: 'error', error: 'Partner access denied' }, { status: 403 })
     }
 
-    if (!isSupabaseConfigured() || !supabaseAdmin) {
-      return NextResponse.json({
-        status: 'success',
-        data: {
-          id,
-          partnerId: userId,
-          status: 'PENDING',
-          guestName: 'Test',
-          financial_snapshot: null,
-        },
-      })
+    if (!supabaseAdmin) {
+      return serviceUnavailable()
     }
 
     const { data: row, error } = await supabaseAdmin
@@ -120,7 +119,9 @@ export async function PUT(request, { params }) {
       )
     }
 
-    const { status: newStatus, reason, declineReasonKey, declineReasonDetail } = body
+    let { status: newStatus, reason, declineReasonKey, declineReasonDetail } = body
+    // UI-only alias: clients may still send DECLINED; FSM persists CANCELLED
+    if (newStatus === 'DECLINED') newStatus = 'CANCELLED'
     
     if (!userId) {
       return NextResponse.json({ status: 'error', error: 'Authentication required' }, { status: 401 })
@@ -134,34 +135,23 @@ export async function PUT(request, { params }) {
     if (!newStatus) {
       return NextResponse.json({ status: 'error', error: 'Status is required' }, { status: 400 })
     }
+
+    if (!supabaseAdmin) {
+      return serviceUnavailable()
+    }
     
     console.log(`[BOOKING UPDATE] ${id} -> ${newStatus} by ${userId}`)
-    
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      return NextResponse.json({
-        status: 'success',
-        data: { id, partnerId: userId, status: newStatus, updatedAt: new Date().toISOString() },
-        message: `Status updated to ${newStatus}`
-      })
-    }
-    
-    // 1. Fetch current booking
-    const getRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}&partner_id=eq.${userId}&select=id,status,partner_id,listing_id`,
-      {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      }
-    )
-    const bookings = await getRes.json()
-    
-    if (!Array.isArray(bookings) || bookings.length === 0) {
+
+    const { data: currentBooking, error: loadErr } = await supabaseAdmin
+      .from('bookings')
+      .select('id,status,partner_id,listing_id')
+      .eq('id', id)
+      .eq('partner_id', userId)
+      .maybeSingle()
+
+    if (loadErr || !currentBooking) {
       return NextResponse.json({ status: 'error', error: 'Booking not found or access denied' }, { status: 404 })
     }
-    
-    const currentBooking = bookings[0]
     
     const transition = validatePartnerBookingStatusTransition(
       currentBooking.status,
@@ -213,7 +203,7 @@ export async function PUT(request, { params }) {
     const updated = statusRes.booking
     console.log(`[BOOKING UPDATE] Success: ${id} -> ${newStatus}`)
 
-    if (newStatus === 'CONFIRMED' || newStatus === 'CANCELLED' || newStatus === 'DECLINED') {
+    if (newStatus === 'CONFIRMED' || newStatus === 'CANCELLED') {
       await releaseInquirySoftHold(id)
     }
 
@@ -237,7 +227,7 @@ export async function PUT(request, { params }) {
       }
     }
 
-    if (newStatus === 'CANCELLED' || newStatus === 'DECLINED') {
+    if (newStatus === 'CANCELLED') {
       try {
         const full = await BookingService.getBookingById(id)
         if (full) {

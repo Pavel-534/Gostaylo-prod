@@ -1,6 +1,6 @@
 {
   "name": "gostaylo-production",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS='--max-old-space-size=4096' next dev --hostname 0.0.0.0 --port 3000",
@@ -44,6 +44,7 @@
     "smoke:full-financial:rub": "node scripts/smoke-full-financial.mjs --rail=rub",
     "smoke:full-financial:intl": "node scripts/smoke-full-financial.mjs --rail=intl",
     "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all",
+    "smoke:audit02": "node scripts/smoke-audit02-regression.mjs",
     "test:visual-referral": "playwright test --project=referral-dashboard-visual",
     "test:discovery-analytics": "playwright test --project=discovery-analytics",
     "export-tokens": "node scripts/export-figma-tokens.mjs",

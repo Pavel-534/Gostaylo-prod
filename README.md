@@ -14,12 +14,14 @@ Escrow-style bookings, FX, payouts, and category verticals demand **one canonica
 
 | # | Document |
 |---|----------|
-| **1** | **`ARCHITECTURAL_DECISIONS.md`** — rules, auth contracts, categories, financial guardrails |
-| **2** | **`docs/TECHNICAL_MANIFESTO.md`** — shipped behavior |
-| **3** | **`docs/ARCHITECTURAL_PASSPORT.md`** — routes, services, UX invariants |
+| **1** | **`ARCHITECTURAL_DECISIONS.md`** — policy SSOT |
+| **2** | **`docs/TECHNICAL_MANIFESTO.md`** — code-truth (manifesto) |
+| **3** | **`docs/CONSTITUTION.md`** — invariants (FSM, price, FX, roles) |
+| **4** | **`docs/SYSTEM_MAP.md`** — living architecture passport |
 
-Workflow: **`AGENTS.md`**, **`.cursorrules`**, **`.github/pull_request_template.md`**. Archives: **`docs/history/`** (`docs/history/README.md`).
+Hub: **`docs/README.md`**. Passport: **`docs/SYSTEM_MAP.md`**. History / plans: **`docs/HISTORY.md`**, **`docs/ROADMAP.md`**. Archive: **`docs/archive/`**. Runbooks: **`docs/runbooks/`**.
 
+Workflow: **`AGENTS.md`**, **`.cursorrules`**, **`.github/pull_request_template.md`**.
 **Schema & RLS** — `migrations/`, `database/`, `prisma/schema.prisma`, and the docs above — never duplicated in this README.
 
 ---
@@ -147,7 +149,7 @@ Image uploads: **`POST /api/v2/upload`** → Sharp WebP + optional **`thumb_*.we
 
 ## Roadmap, contributing, diligence
 
-**`ROADMAP.md`** · **`docs/TECHNICAL_MANIFESTO.md`** (stage log). Before material changes: **`ARCHITECTURAL_DECISIONS.md`**; update manifesto + passport when APIs, DB, RLS, or UX move (**`AGENTS.md`**). No new magic **commission / FX** literals — **`CurrencyService`**, **`exchange_rates`**, **`system_settings`**, **`currency-last-resort.js`**.
+**`docs/ROADMAP.md`** · **`docs/TECHNICAL_MANIFESTO.md`** (stage log / code-truth) · **`docs/HISTORY.md`**. Before material changes: **`ARCHITECTURAL_DECISIONS.md`**; update manifesto + **`CONSTITUTION`** / **`SYSTEM_MAP`** when APIs, DB, RLS, or UX move (**`AGENTS.md`**). No new magic **commission / FX** literals — **`CurrencyService`**, **`exchange_rates`**, **`system_settings`**, **`currency-last-resort.js`**.
 
 **Partners & investors:** documentation-first, escrow-aware flows, admin **marketplace health** — **policy → implementation** traceable under diligence.
 

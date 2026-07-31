@@ -21,7 +21,7 @@
 |----------|------|
 | `ARCHITECTURAL_DECISIONS.md` | Политика, золотые правила |
 | `docs/TECHNICAL_MANIFESTO.md` | Сжатый code-truth по стадиям |
-| `docs/ARCHITECTURAL_PASSPORT.md` | Маршруты, таблицы, UI |
+| `docs/SYSTEM_MAP.md` / `docs/CONSTITUTION.md` | Маршруты, таблицы, активные правила (индекс: `ARCHITECTURAL_PASSPORT.md`) |
 | `docs/ADR/097-financial-model-v2.md` | Финмодель v2, Concierge |
 | `docs/SEARCH_FILTERS_QUERY_MAP.md` | Каталог → SQL |
 | `docs/CRON_EXTERNAL_FINANCIAL.md` | Hourly financial crons |

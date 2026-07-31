@@ -8,6 +8,7 @@ import { computeRoundedGuestTotal } from '@/lib/booking-price-integrity'
 import { usePricingEngineConfig } from '@/hooks/use-pricing-engine-config'
 import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { interpolateTemplate } from './interpolate.js'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
@@ -130,7 +131,7 @@ export function useCheckoutPricing({
   const guestServiceFeePercent =
     !commissionFromApi.loading && Number.isFinite(commissionFromApi.guestServiceFeePercent)
       ? Number(commissionFromApi.guestServiceFeePercent)
-      : 15
+      : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
 
   const {
     discountAmount,

@@ -10,8 +10,14 @@ export async function GET(request, { params }) {
 
   const format = new URL(request.url).searchParams.get('format') === 'csv' ? 'csv' : 'json'
   const result = await PayoutBatchService.exportBatchRegistry(params.id, format)
+  if (result.error === 'not_found') {
+    return NextResponse.json({ success: false, error: 'not_found' }, { status: 404 })
+  }
   if (result.error) {
-    return NextResponse.json({ success: false, error: result.error }, { status: 404 })
+    return NextResponse.json(
+      { success: false, error: result.error, message: result.message, status: result.status },
+      { status: result.error === 'invalid_status' ? 400 : 404 },
+    )
   }
 
   return new NextResponse(result.body, {

@@ -1,11 +1,12 @@
 /**
  * GET /api/v2/admin/ledger-balances — system ledger positions (THB) from posted entries.
+ * Finances: ADMIN only (CONSTITUTION §4.2) — not MODERATOR.
  */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import LedgerService from '@/lib/services/ledger.service';
-import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic';
 
@@ -16,16 +17,10 @@ const SYSTEM_IDS = {
   processingPot: 'la-sys-processing-pot',
 };
 
-async function requireAdmin(request) {
-  const access = await requireAdminStaff(request);
-  if (access.error) return { error: access.error };
-  return { userId: access.profile?.id || null };
-}
-
-export async function GET(request) {
-  const auth = await requireAdmin(request);
-  if (auth.error) {
-    return auth.error;
+export async function GET() {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) {
+    return access.error;
   }
 
   try {

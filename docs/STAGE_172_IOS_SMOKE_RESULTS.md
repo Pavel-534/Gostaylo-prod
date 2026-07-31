@@ -1,7 +1,3 @@
-# Stage 172.0 — iOS smoke results (legacy filename)
+> **Moved:** see [archive/stages/STAGE_172_IOS_SMOKE_RESULTS.md](./archive/stages/STAGE_172_IOS_SMOKE_RESULTS.md)
 
-**Superseded by Stage 189 numbering.**
-
-→ Fill and analyze: [`docs/STAGE_189_IOS_SMOKE_RESULTS.md`](STAGE_189_IOS_SMOKE_RESULTS.md)
-
-Do not add new measurements here.
+Stable URL stub. Edit the target file, not this stub.

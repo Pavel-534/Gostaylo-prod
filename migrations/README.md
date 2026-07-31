@@ -24,6 +24,18 @@
 
 Приложение в основном ходит через **`supabaseAdmin`** (service role) в `app/api/**` — RLS обходит, но **anon key в браузере** всё равно должен быть закрыт политиками.
 
+## Stage 201 — AUDIT_02 money RPCs (порядок)
+
+Независимые объекты (нет shared race). Применяйте **по номеру**:
+
+| # | Файл | Что |
+|---|------|-----|
+| 1 | `stage201_01_adjust_held_referral_balance_atomic.sql` | Held referral balance RPC |
+| 2 | `stage201_02_payout_batch_settle_single_flight.sql` | Settle try_claim / release (metadata CAS) |
+| 3 | `stage201_03_payout_batch_settle_lock_refresh.sql` | Heartbeat refresh + TTL default 1800s |
+
+Можно атомарно в одном SQL-транзактном прогоне (один `psql` session) или последовательно. `CREATE OR REPLACE` — идемпотентно.
+
 ## Уже применено в проекте
 
 - **Stage 121.0** — `stage121_0_rls_security_sweep.sql` (Security Advisor: RLS на открытых таблицах)

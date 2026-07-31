@@ -1,39 +1,46 @@
 ---
-description: Platform (white-label) — обязательное чтение доков и синхронизация манифеста/паспорта с кодом
+description: Platform (white-label) — чтение доков и синхронизация манифеста / конституции / паспорта с кодом
 alwaysApply: true
 ---
 
 # Документация и правда по репозиторию
 
+**Хаб:** **`docs/README.md`** — масштаб, что читать, что писать, пакет для внешнего ИИ.
+
 ## Порядок чтения (перед задачей)
 
-1. **`ARCHITECTURAL_DECISIONS.md`** (корень) — SSOT по политике; при конфликте с другими файлами верен только он.
-2. **`docs/TECHNICAL_MANIFESTO.md`** — сжатый code-truth (чат, валюта, пуши, E2E, типы Supabase).
-3. **`docs/ARCHITECTURAL_PASSPORT.md`** — маршруты, схемы, сервисы, UX-инварианты.
+1. **`ARCHITECTURAL_DECISIONS.md`** — policy SSOT; при конфликте верен только он.
+2. **`docs/TECHNICAL_MANIFESTO.md`** — code-truth / манифест.
+3. **`docs/CONSTITUTION.md`** — инварианты (FSM, цена, FX, роли, SSOT-файлы).
+4. **`docs/SYSTEM_MAP.md`** — живой архитектурный паспорт (стек, таблицы, API, интеграции).
 
-Сомнение по колонкам БД — паспорт §2 и **`migrations/`**, не догадки.
+Индекс: **`docs/ARCHITECTURAL_PASSPORT.md`**. History / Roadmap: **`docs/HISTORY.md`**, **`docs/ROADMAP.md`**.  
+Ops: **`docs/runbooks/`**. Guides: **`docs/guides/`**. Архив: **`docs/archive/`** (не SSOT).
 
-## После изменений (в том же PR / той же сессии)
+Сомнение по колонкам БД — **`docs/SYSTEM_MAP.md`** §2 + **`migrations/`**, не догадки.
 
-Если менялись **API** (`app/api/**`), **БД** (`migrations/**`, RLS, типы), **поведение продукта** или **значимый UI/UX**:
+## После изменений (в том же PR)
 
-- Обновите **`docs/TECHNICAL_MANIFESTO.md`** (что изменилось в логике/контракте).
-- Обновите **`docs/ARCHITECTURAL_PASSPORT.md`** (эндпоинты, таблицы, экраны, версия/дата в шапке при существенном апдейте).
-- Если решение нормативное — **`ARCHITECTURAL_DECISIONS.md`**.
+API / БД / поведение / значимый UX:
 
-Чистый рефактор без смены контракта/поведения — доки трогать не обязательно.
+- **`docs/TECHNICAL_MANIFESTO.md`** — кратко (§ / «Свежие дельты»); **не** раздувать Stage-логом
+- **`docs/CONSTITUTION.md`** и/или **`docs/SYSTEM_MAP.md`** по смыслу
+- Stage / backlog → **`HISTORY.md`** / **`ROADMAP.md`**
+- Политика → **`ARCHITECTURAL_DECISIONS.md`**
+- **`docs/README.md`** — только если меняется структура доков
+- **Не** писать в **`docs/archive/`**
+
+Чистый рефактор без смены контракта — доки необязательны. Матрица — **`docs/README.md`**.
 
 ## Практика
 
-- **Категория листинга (Stage 26.0 + 67.0):** канон — **`categories.slug`** + **`categories.wizard_profile`** (SSOT вертикали); в бронях и снимках — **`category_slug`**. Любой новый функционал по объявлениям/броням/отзывам/подсказкам должен учитывать профиль и slug, а не только «жильё».
-- Узкий diff; не удалять чужие комментарии без причины.
-- Пуши: `lib/services/push.service.js`, `POST /api/v2/push`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`.
-- Не размножать хардкод комиссий/курсов — только БД, env, `currency-last-resort.js` по ADR.
-- **Новая таблица в `public`:** в миграции обязательно **GRANT → RLS → POLICY** (шаблон `migrations/_template_new_public_table.sql`, правило `airento-supabase-migrations.mdc`). С 2026-10-30 Supabase не выдаёт grants на новые таблицы автоматически.
+- Категории: **`categories.slug`** + **`wizard_profile`**; в бронях — **`category_slug`**.
+- Узкий diff; пуши через `push.service.js` / `POST /api/v2/push`.
+- Нет хардкода комиссий/курсов вне settings / snapshot / `currency-last-resort.js`.
+- Новая таблица `public`: **GRANT → RLS → POLICY** (`airento-supabase-migrations.mdc`).
 
-## Имя бренда (Stage 151.1)
+## Бренд
 
-- В ответах пользователю, новых doc-строках и i18n — **`getSiteDisplayName()`** / **`{brand}`**; прод: **Airento** через env.
-- **Не использовать** GoStayLo / Gostaylo как текущее продуктовое имя (legacy internal id и исторические Stage-записи — исключение).
+`getSiteDisplayName()` / `{brand}` — prod **Airento**. Не GoStayLo как display name.
 
-Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**, **`npm run check:brand`**, **`npm run check:guest-terminology`** (renter UI — SSOT **`lib/i18n/get-guest-provider-label.js`**).
+Подробности: **`AGENTS.md`**, **`.cursorrules`**, **`docs/README.md`**.

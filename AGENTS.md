@@ -4,6 +4,8 @@
 
 Вы ведёте изменения так, чтобы **код и документация не расходились**.
 
+**Операционная модель доков (обязательно прочитать один раз):** [`docs/README.md`](docs/README.md).
+
 ## Имя бренда (white-label)
 
 | Контекст | Канон |
@@ -17,37 +19,51 @@
 
 ## Обязательные документы (порядок)
 
-| Файл | Роль |
-|------|------|
-| `ARCHITECTURAL_DECISIONS.md` | SSOT: политика и «золотые» правила. При противоречии с другими доками верен он. |
-| `docs/TECHNICAL_MANIFESTO.md` | Сжатый снимок текущей реализации (API-идеи, чат, валюта, пуши, E2E, типы TEXT в Supabase). |
-| `docs/ARCHITECTURAL_PASSPORT.md` | Архитектура, критичные маршруты, схемы, стандарты UI. |
+| # | Файл | Роль |
+|---|------|------|
+| 1 | `ARCHITECTURAL_DECISIONS.md` | **Policy SSOT.** При противоречии с любыми другими доками верен он. |
+| 2 | `docs/TECHNICAL_MANIFESTO.md` | **Манифест / code-truth** — §0–13 + короткие «Свежие дельты» (не Stage-роман). |
+| 3 | `docs/CONSTITUTION.md` | **Инварианты** — FSM броней, формула цены, FX, роли, таблица SSOT-файлов. |
+| 4 | `docs/SYSTEM_MAP.md` | **Живой архитектурный паспорт** — стек, таблицы, API-пути, интеграции. |
 
-Конституция для Cursor: **`.cursorrules`** + правило **`.cursor/rules/airento-docs-constitution.mdc`** (`alwaysApply`).
+| Вспомогательные | Роль |
+|-----------------|------|
+| `docs/HISTORY.md` | Хронология Stage (не правила) |
+| `docs/ROADMAP.md` | Планы после запуска |
+| `docs/ARCHITECTURAL_PASSPORT.md` | **Индекс-алиас** → ссылки на живые доки |
+| `docs/archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md` | Архив монолита — **только чтение** (stub: `docs/ARCHITECTURAL_PASSPORT_ARCHIVE.md`) |
+| `docs/runbooks/` · `docs/guides/` | Ops и продуктовые гайды |
 
-## Когда обновлять манифест и паспорт
+Конституция для Cursor: **`.cursorrules`** + **`.cursor/rules/airento-docs-constitution.mdc`** (`alwaysApply`) — оба указывают на ту же матрицу.
 
-**Обновляйте в том же изменении**, если тронули:
+## Когда что обновлять (кратко)
 
-- контракт HTTP (`app/api/**`), схему БД или RLS (`migrations/**`, политики Supabase);
-- поведение продукта (брони, чат, платежи, пуши, валюта);
-- зафиксированные в доках UX-инварианты или новые важные экраны.
+| Изменили | Обновить |
+|----------|----------|
+| API / поведение / значимый UX | **Manifesto** + при необходимости Constitution / System Map |
+| FSM, fee, FX, RBAC | **Constitution** (+ Manifesto) |
+| Таблицы, эндпоинты, интеграции | **System Map** (+ Manifesto) |
+| Закрыли Stage | **History** (не ARCHIVE) |
+| Backlog / post-launch | **Roadmap** |
+| Политика / «золотое правило» | **ARCHITECTURAL_DECISIONS** (+ ADR) |
+| Чистый рефактор без контракта | доки не обязательны |
 
-**Можно не трогать** доки при чистом рефакторе (имена, форматирование) без смены поведения и контрактов.
+Полная матрица — в **`docs/README.md` §3**.
 
-В шапке паспорта поддерживайте **Version / Last Updated**, когда меняете смысловые разделы.
+**Не** пишите новые Stage в **`docs/archive/`** (в т.ч. монолит-паспорт).
 
 ## PR
 
-В описании PR отмечайте чеклист из **`.github/pull_request_template.md`**.
+Чеклист: **`.github/pull_request_template.md`**.
 
 ## Быстрые ссылки
 
-- Supabase: новая таблица — **`migrations/_template_new_public_table.sql`**, **`migrations/README.md`** (GRANT + RLS; deadline платформы 2026-10-30)
-- Сквозной продуктовый поток + backlog PR — **`docs/PRODUCT_FLOW_MAP.md`**
-- Phase D итог + roadmap 2–3 мес. — **`docs/PHASE_D_CLOSURE_AND_ROADMAP.md`**
-- Каталог: query-параметры поиска → файлы — **`docs/SEARCH_FILTERS_QUERY_MAP.md`**
-- Пуши / PWA SW: `lib/services/push.service.js`, `components/push-client-init.jsx`, **`src/pwa/sw.template.js`** → generated **`public/sw.js`** (gitignored; `npm run prebuild` / `postbuild`)
+- Хаб доков — **`docs/README.md`**
+- Supabase: новая таблица — **`migrations/_template_new_public_table.sql`**, **`migrations/README.md`**
+- Продуктовый поток — **`docs/PRODUCT_FLOW_MAP.md`**
+- Roadmap — **`docs/ROADMAP.md`**
+- Каталог query → файлы — **`docs/SEARCH_FILTERS_QUERY_MAP.md`**
+- Пуши / PWA SW: `lib/services/push.service.js`, `components/push-client-init.jsx`, **`src/pwa/sw.template.js`**
 - Критичная телеметрия: `lib/critical-telemetry.js`
-- Бронирования: `lib/services/booking.service.js` (оркестратор) + модули в `lib/services/booking/` (Stage 2.1)
-- **Resend в тестах:** `lib/email/resend-transport-guard.js` — smoke/E2E/тестовые адреса не вызывают Resend API; правило `.cursor/rules/airento-resend-transport-guard.mdc`
+- Бронирования: `lib/services/booking.service.js` + `lib/services/booking/`
+- Resend в тестах: `lib/email/resend-transport-guard.js`

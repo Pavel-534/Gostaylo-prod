@@ -1,0 +1,57 @@
+# AUDIT_02 regression smoke (secrets-gated)
+# Runs before merge to main when Supabase service-role secrets are configured.
+# Local: npm run smoke:audit02
+# Manual checklist: docs/runbooks/AUDIT_02_REGRESSION_E2E.md
+
+name: AUDIT_02 regression smoke
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke-audit02:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check required secrets
+        id: secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing — smoke skipped (configure repo secrets to enforce pre-merge)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run AUDIT_02 regression smoke
+        if: steps.secrets.outputs.configured == 'true'
+        env:
+          CI: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PRICING_ENGINE_V2: 'true'
+        run: npm run smoke:audit02
+
+      - name: Fail if secrets missing on main/PR
+        if: steps.secrets.outputs.configured != 'true'
+        run: |
+          echo "AUDIT_02 smoke requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+          echo "Add them as repository secrets, then re-run."
+          exit 1

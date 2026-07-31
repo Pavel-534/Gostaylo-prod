@@ -52,6 +52,12 @@ export async function PATCH(request, { params }) {
     if (r.error === 'open_partner_payout_requests') {
       return NextResponse.json({ success: false, ...r }, { status: 409 })
     }
+    if (r.error === 'settle_in_progress' || r.error === 'settle_lock_unavailable') {
+      return NextResponse.json({ success: false, ...r }, { status: 409 })
+    }
+    if (r.error === 'ledger_errors' || (r.success === false && r.ledgerErrors)) {
+      return NextResponse.json({ success: false, ...r }, { status: 422 })
+    }
     try {
       const { invalidateFinancialIntelligenceCache } = await import(
         '@/lib/analytics/core/invalidate-financial-intelligence.js'
@@ -61,7 +67,7 @@ export async function PATCH(request, { params }) {
       console.warn('[payout-batches/settled] cache invalidate', e?.message || e)
     }
 
-    if (r.success !== false) {
+    if (r.success === true) {
       await recordAdminAudit({
         actorId: gate.profile?.id || null,
         actorRole,
@@ -74,7 +80,7 @@ export async function PATCH(request, { params }) {
       })
     }
 
-    return NextResponse.json({ success: r.success !== false, ...r })
+    return NextResponse.json({ success: r.success === true, ...r })
   }
   return NextResponse.json({ success: false, error: 'unknown_action' }, { status: 400 })
 }

@@ -2,7 +2,7 @@
 
 **Purpose:** single reference for how money moves between **PricingService**, **WalletService**, **ReferralPnlService** (promo tank + referral ledger), and **PayoutService**, with an explicit guarantee that **guest wallet discounts never reduce the partner’s earned share**.
 
-**Related code:** `lib/services/pricing.service.js`, `lib/services/finance/wallet.service.js`, `lib/services/marketing/referral-pnl.service.js`, `lib/services/escrow/payout.service.js`, `app/api/v2/bookings/[id]/payment/initiate/route.js`, `lib/services/payment-intent.service.js`, `lib/services/booking/cancel-wallet-restore.service.js`, `app/api/v2/bookings/[id]/cancel/route.js`.
+**Related code:** `lib/services/pricing.service.js`, `lib/services/finance/wallet.service.js`, `lib/services/marketing/referral-pnl.service.js`, `lib/services/payout-batch.service.js`, `lib/services/escrow/payout.service.js` (legacy, guarded), `app/api/v2/bookings/[id]/payment/initiate/route.js`, `lib/services/payment-intent.service.js`, `lib/services/booking/cancel-wallet-restore.service.js`, `app/api/v2/bookings/[id]/cancel/route.js`.
 
 **Version:** Stage 114.1 | **Last updated:** 2026-05-21
 
@@ -69,7 +69,7 @@ flowchart LR
 4. **Split:**  
    - `referrerAmountThb = referralPoolThb × referral_split_ratio + referrerShareOfBoost`  
    - `refereeAmountThb = remainder + refereeShareOfBoost`
-5. **Ledger:** `referral_ledger` rows (`bonus` / `cashback`) transition **pending → earned** in the same flow; **`WalletService.addFunds`** mirrors earned rows.
+5. **Ledger:** `referral_ledger` rows (`bonus` / `cashback`) transition **pending → earned** / **earned_held**; wallet credit via **`referral_distribute_bonus_atomic`** (not direct `WalletService.addFunds` on the earn path).
 
 ```mermaid
 flowchart TB
@@ -104,7 +104,7 @@ flowchart TB
 3. Build L1/L2 recipients from `ancestor_path` + `referrer_id`.
 4. Split by `mlm_level1_percent` / `mlm_level2_percent`.
 5. Insert `referral_ledger` rows with `referral_type='host_activation'` and `ledger_depth` 1..2.
-6. Credit wallets of uplines (`WalletService.addFunds`).
+6. Credit wallets of uplines via **`referral_distribute_bonus_atomic`** (retention split inside wallet apply).
 
 **Admin safety gate:** `PUT /api/admin/settings` validates that configured payout+cost envelope does not exceed platform margin budget before persistence.
 
@@ -165,12 +165,14 @@ So **guest wallet discount cannot exceed the platform fee line** stored as `comm
 
 ---
 
-## 6. Partner payouts (PayoutService / escrow)
+## 6. Partner payouts (Concierge / PayoutBatchService)
 
-**File:** `lib/services/escrow/payout.service.js`.
+**Prod SSOT:** `lib/services/payout-batch.service.js` (+ `payout-batch-settlement.js`, export, creation).  
+Legacy `lib/services/escrow/payout.service.js` (`processPayout`) is **guarded** on prod (`legacy-payout-guard.js`); do not use for Concierge treasury.
 
 - Amounts derive from **`pricing_snapshot` / settlement**, **`partner_earnings_thb`**, **`price_thb`** — not from post-checkout wallet UI.
 - Guest wallet spend only reduced the **guest’s** payable total via **`commission_thb`** on payment intent; it is **not** modeled as shrinking **`partner_earnings_thb`**.
+- Flow: Lock → bank CSV/ZIP (not DRAFT) → settle fail-closed (ledger OK before batch `SETTLED`).
 
 ---
 

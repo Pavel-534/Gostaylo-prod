@@ -8,7 +8,7 @@ import { buildPayoutBatchBankPackageZip } from '@/lib/services/payout-batch-bank
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 

@@ -1,0 +1,125 @@
+# Roadmap — планы после запуска
+
+> Собран из пометок **future / backlog / Phase B–D / deferred** в архиве паспорта и связанных docs.  
+> Активные правила — [`CONSTITUTION.md`](./CONSTITUTION.md). Закрытые Stage — [`HISTORY.md`](./HISTORY.md).
+
+---
+
+## 1. Operational readiness (деньги и надёжность)
+
+Приоритет после закрытия аналитической Phase D: **не новые дашборды**, а live money + cron.
+
+| Тема | Суть | Источник |
+|------|------|----------|
+| Live payments | Боевой контур YooKassa + fiscal + prod verify/smoke | Phase D roadmap P0; `PRE_REAL_PAYMENTS_CHECKLIST`, Go/No-Go |
+| External cron on prod | Hourly `escrow-thaw`, `promote-ready-for-payout`, payout pools | `CRON_EXTERNAL_FINANCIAL.md` |
+| Cron observability | Единая «последний successful run» + TG alert при stale | Phase D §4.1 (частично закрыто FinTech cron health — довести ops) |
+| Prod env audit | Один реестр всех financial env | `PRODUCTION_ENV.md` |
+| Controlled live bookings | 10–50 Concierge-броней с ручным payout | Phase D §4.2 |
+| Partner payout SOP | Документ + UI checklist | `CONCIERGE_LAUNCH_TREASURY_RUNBOOK` |
+| Referral withdrawal ops | Ручная очередь до автоматизации банка | Phase D; GO/No-Go |
+
+**Отложено явно:** полная автоматизация referral bank payouts; microservices / analytics warehouse.
+
+---
+
+## 2. Payment rails (довести до READY)
+
+| Рельс | Сейчас | Backlog |
+|-------|--------|---------|
+| **YooKassa MIR_RU** | READY | Hardening / fiscal / first real payments |
+| **Mandarin CARD_INTL** | PARTIAL | Live env + contract + adapter polish |
+| **Crypto USDT TRC-20** | PARTIAL | Wallet config / adapter registry polish; Tron webhook path |
+| **Stripe** | Absent | Не в runtime (не приоритет) |
+
+---
+
+## 3. MLM / Ambassador L2
+
+| Элемент | Состояние | План |
+|---------|-----------|------|
+| `ambassador_guest_l2_enabled` | **false** (launch default в `system_fintech_settings`) | Включение live L2 — продуктовое решение владельца |
+| Shadow L2 | Пишет `metadata.fintech_snapshot.shadow_l2_thb` без ledger | Наблюдение → решение о live |
+| Live L2 | Stub `createL2PendingLedgerRow` / `split_role=l2_mentor` при flag=true | После shadow validation + caps |
+| Pool split | `ambassador_guest_pool_*_percent` (45/12/43) при L2 on | Настройка в FinTech admin |
+| Supply Builder MLM | `mlm_level*_percent`, `partner_activation_bonus_thb` | Уже в settings; масштабирование — post-PMF |
+
+См. `docs/ADR/131-ambassador-3-0.md`, referral financial docs.
+
+---
+
+## 4. Capacitor / native shell
+
+| Фаза | Содержание | Статус |
+|------|------------|--------|
+| Scaffold | `capacitor.config.ts`, `lib/capacitor/*`, AASA/assetlinks templates | В репо; ветка `feature/capacitor-shell` |
+| **Phase A** | Apple/Google developer, Team ID, APNs, Play SHA, staging URL | Owner blockers |
+| **Phase B** | TestFlight MVP: WebView + deep links + push → chat/checkout | Engineering; **не** смешивать с main PWA |
+| **Phase C** | Cookie/SameSite, badge parity, CI `cap sync`, store vs PWA decision | Post-TestFlight |
+| PWA iOS polish backlog | `STAGE_189_PWA_IOS_BACKLOG.md`, smoke matrix | Параллельно; Cap не стартует до измеренного smoke |
+
+**Инвариант:** никакой второй pricing/escrow/math в native-слое.
+
+См. `docs/CAPACITOR_SHELL_PREP.md`, `docs/STAGE_189_CAPACITOR_INTEGRATION_PLAN.md`.
+
+---
+
+## 5. Новые страны / multi-jurisdiction
+
+| Тема | Сейчас | Backlog |
+|------|--------|---------|
+| Учёт | THB-centric ledger; RU/KG split в pricing snapshot / FI | Не plug-and-play |
+| Гость платит | RUB MIR + crypto paths + display FX | Расширение PSP под юрисдикцию |
+| Партнёр получает | RUB Direct, KG crypto scaffolding (ADR-097) | Новые payout rails |
+| Compliance | KG IT summary, compliance CSV | Полная multi-jurisdiction legal matrix |
+| Страна #2 | — | **Сначала ADR** «что нужно для новой юрисдикции» (pricing profile, payout, fiscal, legal, FX) — **не код** |
+
+Амбиция «международный агрегатор»: сначала безупречный контур **THB + RU Concierge**, затем документированное расширение.
+
+См. `docs/archive/reports/PHASE_D_CLOSURE_AND_ROADMAP.md` §3.4 / §4.2 #11 / §5.
+
+---
+
+## 6. Product / UX backlog (из паспорта и аудитов)
+
+| Тема | Примечание |
+|------|------------|
+| Wave H mobile retention | `docs/WAVE_H_MOBILE_RETENTION.md`; backlog SSOT также `CRO_FUNNEL_CLOSURE_191` + `AUDIT_PARTNER_CABINET_MOBILE` |
+| Soft back / optimistic nav | Частично shipped (200.13–200.17); дальнейший polish по ощущениям |
+| Partner cabinet mobile | Аудит `AUDIT_PARTNER_CABINET_MOBILE` — residual items |
+| Listing quality & conversion | Publish checklist, search ranking — post first live cohort |
+| Dispute / support loop | Медиация + SLA в TG — закрепить ops |
+| Design system UI-1+ | Component hex cleanup, partner `teal-*`, FinTech inline styles |
+| Referral 2.0 «Phase E» | Digest Excel, side-by-side campaigns — **только по боли владельца** |
+| Mobile apps (store) | Web-first до PMF; Cap — shell над web |
+| AI listing generation at scale | Вторично к trust & payments |
+| Discovery / location roadmap | `docs/LOCATION_DISCOVERY_ROADMAP.md` |
+
+---
+
+## 7. Technical debt (месяц 2–3)
+
+| Задача | Приоритет |
+|--------|-----------|
+| Split fat `reporting.service` (funnel → module) | P2 |
+| API integration tests — top 20 financial routes | P2 |
+| ROI/FI cache invalidation completeness | P2 |
+| Staging environment mirror | P2 |
+| DB index review (referral_ledger, admin reports) | P2 |
+| E2E: booking → pay (mock) → escrow → FI P&L | P2 |
+| Financial SSOT audit page «кто пишет в ledger» | P1 |
+| Worker tier (вынести длинные job с HTTP cron) | Отложено / средне |
+
+---
+
+## 8. Что не делать сейчас
+
+- Новые marketing dashboards «ради полноты» после Phase D.
+- Параллельная стройка multi-country до стабильного THB/RU.
+- Cap Phase B до заполненного iOS PWA smoke + owner Phase A.
+- Включение live Ambassador L2 без shadow-данных и caps.
+- Автопулы выплат партнёрам без решения владельца (Concierge manual — launch default).
+
+---
+
+*Обновляйте этот файл при смене launch-приоритетов; закрытые пункты переносите в HISTORY или помечайте Done здесь.*

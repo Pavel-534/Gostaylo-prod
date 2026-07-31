@@ -34,4 +34,4 @@ alwaysApply: true
 
 ## Доки в PR
 
-Новая таблица / политики → обновить `docs/TECHNICAL_MANIFESTO.md` (и паспорт при существенном изменении схемы).
+Новая таблица / политики → обновить `docs/TECHNICAL_MANIFESTO.md` и `docs/SYSTEM_MAP.md` (при смене правил доступа/финансов — также `docs/CONSTITUTION.md`).

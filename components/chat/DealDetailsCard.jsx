@@ -53,14 +53,6 @@ function resolveFinancialLines({ booking, isHosting, language }) {
       ? booking.financial_snapshot
       : null
 
-  const guestTotal =
-    snap?.guest_total_thb ??
-    booking?.total_price_thb ??
-    booking?.totalPriceThb ??
-    booking?.price_thb ??
-    booking?.priceThb ??
-    null
-
   const partnerEarnings =
     snap?.partner_earnings_thb ??
     booking?.partner_earnings_thb ??
@@ -71,7 +63,8 @@ function resolveFinancialLines({ booking, isHosting, language }) {
   const commissionRate = snap?.commission_rate ?? booking?.commission_rate ?? null
 
   if (isHosting) {
-    const earnings = partnerEarnings ?? guestTotal
+    // Never fall back to price_thb (lodging subtotal) as "earnings" (AUDIT_02 W2.16)
+    const earnings = partnerEarnings
     return {
       amountLabel: getUIText('dealCard_hostEarnings', language),
       amountLine:

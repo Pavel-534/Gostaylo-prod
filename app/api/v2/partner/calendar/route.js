@@ -18,9 +18,6 @@ import { promoIsActiveAt } from '@/lib/promo/promo-engine'
 
 export const dynamic = 'force-dynamic'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 const YMD = /^\d{4}-\d{2}-\d{2}$/
 
 function ymdRangeInclusive(startYmd, endYmd) {
@@ -33,29 +30,16 @@ function ymdRangeInclusive(startYmd, endYmd) {
   return dates
 }
 
-async function loadActivePromoRows(useAdmin) {
-  if (useAdmin && supabaseAdmin) {
-    const { data: promosData } = await supabaseAdmin
-      .from('promo_codes')
-      .select(
-        'code,promo_type,value,is_active,valid_until,max_uses,current_uses,created_by_type,partner_id,allowed_listing_ids,is_flash_sale',
-      )
-      .eq('is_active', true)
-    const nowMs = Date.now()
-    return (promosData || []).filter((row) => promoIsActiveAt(row, nowMs).ok)
-  }
-  if (!SUPABASE_URL || !SUPABASE_KEY) return []
-  try {
-    const promosRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/promo_codes?is_active=eq.true&select=code,promo_type,value,is_active,valid_until,max_uses,current_uses,created_by_type,partner_id,allowed_listing_ids,is_flash_sale`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+async function loadActivePromoRows() {
+  if (!supabaseAdmin) return []
+  const { data: promosData } = await supabaseAdmin
+    .from('promo_codes')
+    .select(
+      'code,promo_type,value,is_active,valid_until,max_uses,current_uses,created_by_type,partner_id,allowed_listing_ids,is_flash_sale',
     )
-    const pd = await promosRes.json()
-    const nowMs = Date.now()
-    return (Array.isArray(pd) ? pd : []).filter((row) => promoIsActiveAt(row, nowMs).ok)
-  } catch {
-    return []
-  }
+    .eq('is_active', true)
+  const nowMs = Date.now()
+  return (promosData || []).filter((row) => promoIsActiveAt(row, nowMs).ok)
 }
 
 export async function GET(request) {
@@ -99,8 +83,7 @@ export async function GET(request) {
       )
     }
 
-    const useAdmin = !!supabaseAdmin
-    if (!useAdmin && (!SUPABASE_URL || !SUPABASE_KEY)) {
+    if (!supabaseAdmin) {
       return NextResponse.json(
         {
           status: 'error',
@@ -114,23 +97,14 @@ export async function GET(request) {
     try {
       let listings = []
 
-      if (useAdmin) {
-        const { data: listingsData, error: listingsErr } = await supabaseAdmin
-          .from('listings')
-          .select(
-            'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)',
-          )
-          .eq('owner_id', userId)
-        if (listingsErr) throw listingsErr
-        listings = listingsData || []
-      } else {
-        const listingsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)`,
-          { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+      const { data: listingsData, error: listingsErr } = await supabaseAdmin
+        .from('listings')
+        .select(
+          'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)',
         )
-        const data = await listingsRes.json()
-        listings = Array.isArray(data) ? data : []
-      }
+        .eq('owner_id', userId)
+      if (listingsErr) throw listingsErr
+      listings = listingsData || []
 
       if (filterListingId) {
         const fid = String(filterListingId)
@@ -155,7 +129,7 @@ export async function GET(request) {
         })
       }
 
-      const promoRows = await loadActivePromoRows(useAdmin)
+      const promoRows = await loadActivePromoRows()
       const defaultListingCommission = await resolveDefaultCommissionPercent()
 
       const listingsPayload = []
