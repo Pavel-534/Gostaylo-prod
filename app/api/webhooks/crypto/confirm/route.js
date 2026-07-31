@@ -263,11 +263,33 @@ export async function POST(request) {
       .limit(1)
       .maybeSingle();
 
-    if (latestPayment?.status === 'CONFIRMED') {
+    if (latestPayment?.status === 'CONFIRMED' && latestPayment?.id) {
+      // AUDIT_03 C3.4: may be CONFIRMED without escrow — confirmPayment heals via ensureEscrow
+      const confirm = await PaymentsV3Service.confirmPayment(latestPayment.id, {
+        source: 'crypto_webhook_reconcile',
+        txid,
+        idempotencyKey: cryptoPaymentIdempotencyKey(txid, bookingId),
+        tron: verification.data,
+      });
+      if (!confirm?.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            verified: true,
+            alreadyConfirmed: true,
+            error: confirm?.error || 'Escrow transition failed',
+            code: confirm?.code || 'CONFIRMED_WITHOUT_ESCROW',
+            bookingId,
+            txid,
+          },
+          { status: 500 },
+        );
+      }
       return NextResponse.json({
         success: true,
         verified: true,
         alreadyConfirmed: true,
+        escrowHealed: Boolean(confirm.escrowHealed),
         bookingId,
         txid,
       });
