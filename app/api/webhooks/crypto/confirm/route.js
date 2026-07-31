@@ -10,6 +10,11 @@ import EscrowService from '@/lib/services/escrow.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
+import {
+  assertCryptoTxidAvailable,
+  cryptoPaymentIdempotencyKey,
+  normalizeCryptoTxid,
+} from '@/lib/payment/crypto-txid-replay-guard.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -166,7 +171,8 @@ export async function POST(request) {
       );
     }
 
-    const { txid, bookingId, expectedAmount, targetWallet } = body || {};
+    const { txid: rawTxid, bookingId, expectedAmount, targetWallet } = body || {};
+    const txid = normalizeCryptoTxid(rawTxid);
     if (!txid || !bookingId) {
       void notifySystemAlert(
         `🔌 <b>Webhook: crypto/confirm</b> — нет txid/bookingId\n<code>${escapeSystemAlertHtml(JSON.stringify(body).slice(0, 500))}</code>`,
@@ -193,6 +199,21 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, verified: false, error: 'targetWallet does not match platform wallet' },
         { status: 400 },
+      );
+    }
+
+    // AUDIT_03 C3.2 — replay guard before chain verify / capture
+    const replay = await assertCryptoTxidAvailable(supabaseAdmin, { txid, bookingId });
+    if (!replay.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: replay.error || 'already_processed',
+          code: replay.code || 'ALREADY_PROCESSED',
+          idempotencyKey: cryptoPaymentIdempotencyKey(txid, bookingId),
+          existingBookingId: replay.existingBookingId || null,
+        },
+        { status: replay.status || 409 },
       );
     }
 
@@ -263,18 +284,27 @@ export async function POST(request) {
       const confirm = await PaymentsV3Service.confirmPayment(latestPayment.id, {
         source: 'crypto_webhook',
         txid,
+        idempotencyKey: cryptoPaymentIdempotencyKey(txid, bookingId),
         tron: verification.data,
       });
       if (!confirm?.success) {
         console.error('[CRYPTO CONFIRM] confirmPayment failed:', confirm?.error);
-        void notifySystemAlert(
-          `🔌 <b>Webhook: crypto/confirm</b> — Tron OK, confirmPayment упал\n` +
-            `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
-            `<code>${escapeSystemAlertHtml(String(confirm?.error || '').slice(0, 600))}</code>`,
-        );
+        const isReplay =
+          confirm?.code === 'ALREADY_PROCESSED' || String(confirm?.error || '') === 'already_processed'
+        if (!isReplay) {
+          void notifySystemAlert(
+            `🔌 <b>Webhook: crypto/confirm</b> — Tron OK, confirmPayment упал\n` +
+              `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+              `<code>${escapeSystemAlertHtml(String(confirm?.error || '').slice(0, 600))}</code>`,
+          );
+        }
         return NextResponse.json(
-          { success: false, error: confirm?.error || 'confirmPayment failed' },
-          { status: 500 },
+          {
+            success: false,
+            error: isReplay ? 'already_processed' : confirm?.error || 'confirmPayment failed',
+            code: isReplay ? 'ALREADY_PROCESSED' : undefined,
+          },
+          { status: isReplay ? 409 : 500 },
         );
       }
       return NextResponse.json({
@@ -305,9 +335,20 @@ export async function POST(request) {
       txId: txid,
       gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
       raw: verification.data,
+      idempotencyKey: cryptoPaymentIdempotencyKey(txid, bookingId),
     })
     if (!marked.success) {
-      return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 })
+      const isReplay =
+        String(marked.error || '').includes('payments_tx_id_unique') ||
+        String(marked.code || '') === 'ALREADY_PROCESSED'
+      return NextResponse.json(
+        {
+          success: false,
+          error: isReplay ? 'already_processed' : marked.error || 'intent_mark_failed',
+          code: isReplay ? 'ALREADY_PROCESSED' : undefined,
+        },
+        { status: isReplay ? 409 : 500 },
+      )
     }
 
     const captureGuestTotalThb = Number(intent.amountThb)
