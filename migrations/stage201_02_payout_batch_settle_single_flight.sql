@@ -137,11 +137,13 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.try_claim_payout_batch_settle_lock(text, text, integer) IS
-  'Single-flight claim for Concierge settle. TTL reclaim default 600s. service_role only.';
+  'Single-flight claim for Concierge settle. TTL reclaim default 1800s. service_role only.';
 COMMENT ON FUNCTION public.release_payout_batch_settle_lock(text, text) IS
   'Release settle single-flight lock by token (or force if token null and no reclaim race).';
 
 REVOKE ALL ON FUNCTION public.try_claim_payout_batch_settle_lock(text, text, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.release_payout_batch_settle_lock(text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.try_claim_payout_batch_settle_lock(text, text, integer) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.release_payout_batch_settle_lock(text, text) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.try_claim_payout_batch_settle_lock(text, text, integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.release_payout_batch_settle_lock(text, text) TO service_role;

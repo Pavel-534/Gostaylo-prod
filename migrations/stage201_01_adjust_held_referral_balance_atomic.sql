@@ -64,4 +64,5 @@ COMMENT ON FUNCTION public.adjust_held_referral_balance_thb(text, numeric) IS
   'Atomic held_referral_balance_thb += delta (floored at 0). service_role / SECURITY DEFINER.';
 
 REVOKE ALL ON FUNCTION public.adjust_held_referral_balance_thb(text, numeric) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.adjust_held_referral_balance_thb(text, numeric) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.adjust_held_referral_balance_thb(text, numeric) TO service_role;
