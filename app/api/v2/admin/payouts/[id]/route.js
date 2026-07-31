@@ -1,7 +1,8 @@
 /**
  * PATCH /api/v2/admin/payouts/[id] — ручной статус выплаты (PAID / FAILED) без банковского API.
  * PAID: финальная проводка PARTNER_EARNINGS → PARTNER_PAYOUTS_SETTLED (см. LedgerService.postPartnerPayoutObligationSettled).
- * Body: `{ "status": "PAID"|"FAILED", "adminNote"?: string }` — если ключ **adminNote** передан (в т.ч. пустая строка),
+ * Body: `{ "status": "PAID"|"FAILED", "adminNote"?: string, "expectedUpdatedAt"?: string }` —
+ * CAS по `updated_at` (AUDIT_03 C3.7). Если ключ **adminNote** передан (в т.ч. пустая строка),
  * для **PAID** пишется **metadata.admin_marked_paid_note**, для **FAILED** — **metadata.admin_marked_failed_note** и **rejection_reason** (при непустом тексте).
  */
 
@@ -12,6 +13,10 @@ import { generatePayoutRequestDocuments } from '@/lib/services/payout-document.s
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { notifyReferralWithdrawalStatus } from '@/lib/services/marketing/referral-withdrawal-status-notify.service.js';
 import { isReferralWithdrawalPayout } from '@/lib/referral/referral-payout-row.js';
+import {
+  interpretPayoutCasUpdate,
+  resolvePayoutCasUpdatedAt,
+} from '@/lib/admin/payout-status-cas.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +72,14 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ success: false, error: 'Payout not found' }, { status: 404 });
   }
 
+  const expectedUpdatedAt = resolvePayoutCasUpdatedAt(body, row);
+  if (!expectedUpdatedAt) {
+    return NextResponse.json(
+      { success: false, error: 'updated_at required for CAS', code: 'CAS_TOKEN_REQUIRED' },
+      { status: 400 },
+    );
+  }
+
   const cur = String(row.status || '').toUpperCase();
   if (nextStatus === 'PAID') {
     if (!['PROCESSING', 'PENDING'].includes(cur)) {
@@ -99,39 +112,45 @@ export async function PATCH(request, { params }) {
         },
       })
       .eq('id', id)
+      .eq('updated_at', expectedUpdatedAt)
+      .in('status', ['PENDING', 'PROCESSING'])
       .select()
       .maybeSingle();
 
-    if (upErr) {
-      return NextResponse.json({ success: false, error: upErr.message }, { status: 500 });
+    const cas = interpretPayoutCasUpdate({ data: updated, error: upErr }, expectedUpdatedAt);
+    if (!cas.ok) {
+      return NextResponse.json(
+        { success: false, error: cas.error, code: cas.code || undefined },
+        { status: cas.status },
+      );
     }
 
     let documents = null;
     try {
-      documents = await generatePayoutRequestDocuments(updated || row);
+      documents = await generatePayoutRequestDocuments(cas.payout || row);
     } catch (docErr) {
       console.error('[admin/payouts PAID] PDF', id, docErr);
     }
 
-    if (isReferralWithdrawalPayout(updated || row)) {
-      const meta = (updated || row).metadata && typeof (updated || row).metadata === 'object'
-        ? (updated || row).metadata
+    if (isReferralWithdrawalPayout(cas.payout || row)) {
+      const meta = (cas.payout || row).metadata && typeof (cas.payout || row).metadata === 'object'
+        ? (cas.payout || row).metadata
         : {};
-      void notifyReferralWithdrawalStatus((updated || row).partner_id, 'paid', {
+      void notifyReferralWithdrawalStatus((cas.payout || row).partner_id, 'paid', {
         payoutId: id,
         grossThb: meta.gross_thb,
         netThb: meta.net_thb,
-        netRub: (updated || row).amount_in_payout_currency ?? meta.net_rub,
+        netRub: (cas.payout || row).amount_in_payout_currency ?? meta.net_rub,
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: { payout: updated, ledger, documents },
+      data: { payout: cas.payout, ledger, documents },
     });
   }
 
-  /* FAILED */
+  /* FAILED — only from PROCESSING; never overwrite PAID */
   if (cur !== 'PROCESSING') {
     return NextResponse.json(
       { success: false, error: `Cannot mark FAILED from status ${cur}` },
@@ -155,12 +174,18 @@ export async function PATCH(request, { params }) {
       },
     })
     .eq('id', id)
+    .eq('updated_at', expectedUpdatedAt)
+    .eq('status', 'PROCESSING')
     .select()
     .maybeSingle();
 
-  if (upErr) {
-    return NextResponse.json({ success: false, error: upErr.message }, { status: 500 });
+  const cas = interpretPayoutCasUpdate({ data: updated, error: upErr }, expectedUpdatedAt);
+  if (!cas.ok) {
+    return NextResponse.json(
+      { success: false, error: cas.error, code: cas.code || undefined },
+      { status: cas.status },
+    );
   }
 
-  return NextResponse.json({ success: true, data: { payout: updated } });
+  return NextResponse.json({ success: true, data: { payout: cas.payout } });
 }

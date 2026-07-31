@@ -238,8 +238,8 @@ WHERE upper(p.status) = 'CONFIRMED'
 | **CRITICAL_03** | **C3.2** crypto txid replay | P0 | **fixed** `de60c5e3` |
 | **CRITICAL_03** | C3.3 Tron amount=0 skip | P0 | open (вне ТЗ) |
 | **CRITICAL_03** | C3.4 CONFIRMED without escrow | P0 | open (вне ТЗ) |
-| **CRITICAL_03** | C3.5 partner payout TOCTOU | P0 | **fixed** _(hash pending)_ |
-| **CRITICAL_03** | C3.6/C3.7 admin CAS + T-Bank | P0 | pending |
+| **CRITICAL_03** | C3.5 partner payout TOCTOU | P0 | **fixed** `c09b3634` |
+| **CRITICAL_03** | C3.6/C3.7 admin CAS + T-Bank | P0 | **fixed** _(hash pending)_ |
 | **CRITICAL_03** | C3.8 invoice sticky intent | P0 | pending |
 | **CRITICAL_03** | C3.9 invoice status gate | P0 | open (вне ТЗ) |
 | **CRITICAL_03** | C3.10 thaw .limit(800) | P0 | pending |
@@ -252,6 +252,8 @@ WHERE upper(p.status) = 'CONFIRMED'
 | CRITICAL | Commit | Notes |
 |----------|--------|-------|
 | C3.2 | `de60c5e3` | `payments_tx_id_unique` + `assertCryptoTxidAvailable` → 409 `already_processed`; key `crypto_payment:{txid}:{booking_id}` |
+| C3.5 | `c09b3634` | RPC `insert_partner_host_payout_if_available` (advisory lock + reserve vs gross); no debit of `profiles.available_balance_thb` |
+| C3.6/C3.7 | _(pending)_ | Admin PATCH CAS `updated_at` + status; T-Bank `claim_payouts_for_tbank_registry` |
 
 ### Рекомендации процесса
 
