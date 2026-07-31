@@ -79,13 +79,9 @@ async function tryPostEscrowInvoiceFromCryptoWebhook({ booking, bookingId, txid,
 
   const intent = intentRes.intent;
   const amountThb = Number(intent.amountThb);
-  let expectedUsdt =
-    body?.expectedAmount != null && String(body.expectedAmount).trim() !== ''
-      ? parseFloat(body.expectedAmount)
-      : null;
-  if (!Number.isFinite(expectedUsdt) || expectedUsdt <= 0) {
-    expectedUsdt = Number.isFinite(amountThb) && amountThb > 0 ? await thbToUsdt(amountThb) : null;
-  }
+  // AUDIT_03 C3.1: never trust body.expectedAmount — intent/DB SSOT only
+  const expectedUsdt =
+    Number.isFinite(amountThb) && amountThb > 0 ? await thbToUsdt(amountThb) : null;
   if (!Number.isFinite(expectedUsdt) || expectedUsdt <= 0) {
     return NextResponse.json(
       { success: false, error: 'Could not resolve expected USDT amount for post-escrow invoice' },
@@ -171,7 +167,7 @@ export async function POST(request) {
       );
     }
 
-    const { txid: rawTxid, bookingId, expectedAmount, targetWallet } = body || {};
+    const { txid: rawTxid, bookingId, targetWallet } = body || {};
     const txid = normalizeCryptoTxid(rawTxid);
     if (!txid || !bookingId) {
       void notifySystemAlert(
@@ -237,11 +233,8 @@ export async function POST(request) {
       return idempotentPaidBookingResponse(booking);
     }
 
-    const expectedFromDb = await getExpectedUsdtForBooking(booking);
-    const expectedUsdt =
-      expectedAmount != null && String(expectedAmount).trim() !== ''
-        ? parseFloat(expectedAmount)
-        : expectedFromDb;
+    // AUDIT_03 C3.1: expected USDT only from booking/intent SSOT — ignore body.expectedAmount
+    const expectedUsdt = await getExpectedUsdtForBooking(booking);
     if (!Number.isFinite(expectedUsdt) || expectedUsdt <= 0) {
       return NextResponse.json(
         { success: false, error: 'Could not resolve expected USDT amount' },
@@ -397,7 +390,7 @@ export async function GET() {
       endpoint: 'POST /api/webhooks/crypto/confirm',
       auth: 'Header x-crypto-webhook-secret or body webhookSecret (must match CRYPTO_WEBHOOK_SHARED_SECRET)',
       required_fields: ['txid', 'bookingId'],
-      optional_fields: ['expectedAmount', 'targetWallet'],
+      optional_fields: ['targetWallet', 'invoiceId'],
       network: 'TRC-20 (USDT)',
     },
   });

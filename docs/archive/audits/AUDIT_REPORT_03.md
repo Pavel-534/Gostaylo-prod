@@ -234,14 +234,14 @@ WHERE upper(p.status) = 'CONFIRMED'
 
 | Queue | Items | Priority | Status |
 |-------|-------|----------|--------|
-| **CRITICAL_03** | C3.1 expectedAmount override | P0 | open (вне ТЗ remediations) |
+| **CRITICAL_03** | **C3.1** expectedAmount override | P0 | **fixed** `e4338160` |
 | **CRITICAL_03** | **C3.2** crypto txid replay | P0 | **fixed** `de60c5e3` |
-| **CRITICAL_03** | C3.3 Tron amount=0 skip | P0 | open (вне ТЗ) |
-| **CRITICAL_03** | C3.4 CONFIRMED without escrow | P0 | open (вне ТЗ) |
+| **CRITICAL_03** | C3.3 Tron amount=0 skip | P0 | open |
+| **CRITICAL_03** | C3.4 CONFIRMED without escrow | P0 | open |
 | **CRITICAL_03** | C3.5 partner payout TOCTOU | P0 | **fixed** `c09b3634` |
 | **CRITICAL_03** | C3.6/C3.7 admin CAS + T-Bank | P0 | **fixed** `e82a865b` |
 | **CRITICAL_03** | C3.8 invoice sticky intent | P0 | **fixed** `26577b76` |
-| **CRITICAL_03** | C3.9 invoice status gate | P0 | open (вне ТЗ) |
+| **CRITICAL_03** | C3.9 invoice status gate | P0 | open |
 | **CRITICAL_03** | C3.10 thaw .limit(800) | P0 | **fixed** `90ff15c8` |
 | **CRITICAL_03** | C3.11 alert daily limit | P0 | **fixed** `fd63d14f` |
 | **WARN_03** | W3.1–W3.14 | P1 | deferred |
@@ -251,6 +251,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 
 | CRITICAL | Commit | Notes |
 |----------|--------|-------|
+| C3.1 | `e4338160` | Ignore body `expectedAmount`; USDT SSOT = `getExpectedUsdtForBooking` / intent `amountThb`→USDT |
 | C3.2 | `de60c5e3` | `payments_tx_id_unique` + `assertCryptoTxidAvailable` → 409 `already_processed`; key `crypto_payment:{txid}:{booking_id}` |
 | C3.5 | `c09b3634` | RPC `insert_partner_host_payout_if_available` (advisory lock + reserve vs gross); no debit of `profiles.available_balance_thb` |
 | C3.6/C3.7 | `e82a865b` | Admin PATCH CAS `updated_at` + status; T-Bank `claim_payouts_for_tbank_registry` |
@@ -264,7 +265,7 @@ WHERE upper(p.status) = 'CONFIRMED'
 2. После фиксов — `smoke` concurrent payout + crypto replay + invoice reprice.  
 3. Повторять **AUDIT_03-style** systemic pass **раз в квартал** (или после любого нового PSP / payout rail).  
 4. Пока `ledger_journals=0` в prod — добавить staging financial smoke с реальными journals до go-live money.
-5. Остались open CRITICAL вне ТЗ: **C3.1**, **C3.3**, **C3.4**, **C3.9**.
+5. Остались open CRITICAL: **C3.3**, **C3.4**, **C3.9**.
 
 ---
 
