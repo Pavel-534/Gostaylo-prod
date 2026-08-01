@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getRawRateMap } from '@/lib/services/pricing/pricing-fx-helpers.js'
 import { mapLedgerRowToConversionDto } from '@/lib/admin/treasury-conversions-csv'
 import { isFintechTestConversionRow } from '@/lib/admin/fintech-test-data-markers.js'
-import { skipCompensatingJournalDelete } from '@/lib/services/ledger/ledger-append-only.js'
+import { skipCompensatingJournalDelete, journalNeedsEntryHeal } from '@/lib/services/ledger/ledger-append-only.js'
+import { buildTreasuryConversionIds } from '@/lib/admin/treasury-conversion-idempotency.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -193,13 +194,52 @@ export async function POST(request) {
     )
   }
 
-  const conversionId = `cnv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const journalId = `lj-fx-conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const idempotencyKey = `treasury_conversion:${conversionId}`
+  const clientKey =
+    request.headers.get('idempotency-key') ||
+    request.headers.get('Idempotency-Key') ||
+    body.idempotencyKey ||
+    null
+
+  const ids = buildTreasuryConversionIds({
+    clientKey,
+    externalTxReference,
+    operationType,
+    fromCurrency,
+    toCurrency,
+    amountFrom,
+    amountTo,
+    rateUsed,
+    conversionFeeThb,
+    conversionLossThb,
+    createdBy: gate.profile?.id || null,
+  })
+  const { conversionId, journalId, idempotencyKey } = ids
   const now = new Date().toISOString()
 
+  const { data: existingJournal } = await supabaseAdmin
+    .from('ledger_journals')
+    .select('id, metadata')
+    .eq('idempotency_key', idempotencyKey)
+    .maybeSingle()
+
+  if (existingJournal?.id) {
+    const needsHeal = await journalNeedsEntryHeal(supabaseAdmin, existingJournal.id)
+    if (!needsHeal) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        data: {
+          conversionId:
+            existingJournal.metadata?.conversion_id || conversionId,
+          journalId: existingJournal.id,
+          totalImpactThb,
+        },
+      })
+    }
+  }
+
   const journalPayload = {
-    id: journalId,
+    id: existingJournal?.id || journalId,
     booking_id: null,
     event_type: 'TREASURY_CONVERSION_RECORDED',
     idempotency_key: idempotencyKey,
@@ -214,13 +254,34 @@ export async function POST(request) {
       external_tx_reference: externalTxReference,
       note: note || null,
       created_by: gate.profile?.id || null,
+      idempotency_source: ids.source,
     },
     created_at: now,
   }
 
-  const { error: journalError } = await supabaseAdmin.from('ledger_journals').insert(journalPayload)
-  if (journalError) {
-    return NextResponse.json({ success: false, error: journalError.message }, { status: 500 })
+  if (!existingJournal?.id) {
+    const { error: journalError } = await supabaseAdmin.from('ledger_journals').insert(journalPayload)
+    if (journalError) {
+      if (String(journalError.message || '').includes('duplicate') || journalError.code === '23505') {
+        const { data: raced } = await supabaseAdmin
+          .from('ledger_journals')
+          .select('id, metadata')
+          .eq('idempotency_key', idempotencyKey)
+          .maybeSingle()
+        if (raced?.id) {
+          return NextResponse.json({
+            success: true,
+            skipped: true,
+            data: {
+              conversionId: raced.metadata?.conversion_id || conversionId,
+              journalId: raced.id,
+              totalImpactThb,
+            },
+          })
+        }
+      }
+      return NextResponse.json({ success: false, error: journalError.message }, { status: 500 })
+    }
   }
 
   const commonMeta = {
@@ -235,8 +296,8 @@ export async function POST(request) {
 
   const entries = [
     {
-      id: `le-${journalId}-dr-loss`,
-      journal_id: journalId,
+      id: `le-${journalPayload.id}-dr-loss`,
+      journal_id: journalPayload.id,
       account_id: ACC.fxLosses,
       side: 'DEBIT',
       amount_thb: totalImpactThb,
@@ -252,8 +313,8 @@ export async function POST(request) {
       created_at: now,
     },
     {
-      id: `le-${journalId}-cr-pot`,
-      journal_id: journalId,
+      id: `le-${journalPayload.id}-cr-pot`,
+      journal_id: journalPayload.id,
       account_id: ACC.processingPot,
       side: 'CREDIT',
       amount_thb: totalImpactThb,
@@ -265,7 +326,18 @@ export async function POST(request) {
 
   const { error: entriesError } = await supabaseAdmin.from('ledger_entries').insert(entries)
   if (entriesError) {
-    await skipCompensatingJournalDelete(journalId, entriesError.message)
+    if (String(entriesError.message || '').includes('duplicate') || entriesError.code === '23505') {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        data: {
+          conversionId,
+          journalId: journalPayload.id,
+          totalImpactThb,
+        },
+      })
+    }
+    await skipCompensatingJournalDelete(journalPayload.id, entriesError.message)
     return NextResponse.json({ success: false, error: entriesError.message }, { status: 500 })
   }
 
@@ -282,7 +354,7 @@ export async function POST(request) {
     success: true,
     data: {
       conversionId,
-      journalId,
+      journalId: journalPayload.id,
       totalImpactThb,
     },
   })

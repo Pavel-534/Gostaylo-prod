@@ -37,6 +37,9 @@ export async function POST(request) {
       errorMessage: ops.errorMessage,
     })
     if (ops.status === 'error') {
+      void notifySystemAlert(
+        `💰 <b>Cron: promote-ready-for-payout FAILED</b>\n<code>${escapeSystemAlertHtml(ops.errorMessage)}</code>`,
+      )
       return NextResponse.json({ success: false, ...result }, { status: 503 })
     }
     return NextResponse.json({ success: true, ...result })

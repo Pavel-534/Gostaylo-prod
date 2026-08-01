@@ -30,6 +30,7 @@ export async function GET(request) {
   if (denied) return denied
   return NextResponse.json({
     success: true,
-    message: 'Scans PENDING_FISCAL backlog, partner ledger drift, and gateway vs ledger (24h)',
+    message:
+      'Scans PENDING_FISCAL, ledger drift, gateway reconcile, settle orphans, STALE_CRON (ops success age)',
   })
 }

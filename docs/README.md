@@ -102,8 +102,10 @@ docs/
 |-------|------|
 | Ops cron / money jobs | [`runbooks/CRON_EXTERNAL_FINANCIAL.md`](./runbooks/CRON_EXTERNAL_FINANCIAL.md) |
 | Go-live / treasury | [`runbooks/`](./runbooks/) |
+| Launch risk register (РФ / TH) | [`LAUNCH_RISK_REGISTER.md`](./LAUNCH_RISK_REGISTER.md) |
 | Referral | [`guides/referral/`](./guides/referral/) |
 | Последний аудит vs Constitution | [`archive/audits/AUDIT_REPORT_02.md`](./archive/audits/AUDIT_REPORT_02.md) (prev: [`AUDIT_REPORT_01`](./archive/audits/AUDIT_REPORT_01.md)) |
+| Money-flow / FSM / webhooks / dual SSOT | [`archive/audits/AUDIT_REPORT_MONEY_FLOW_04.md`](./archive/audits/AUDIT_REPORT_MONEY_FLOW_04.md) |
 | Миграции Supabase | [`../migrations/README.md`](../migrations/README.md) |
 | Монолит-паспорт (только чтение) | [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md) |
 | Исторический Stage-проз манифеста | [`archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md`](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md) |

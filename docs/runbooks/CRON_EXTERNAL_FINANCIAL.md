@@ -16,7 +16,7 @@ Partner **auto bank payouts remain Concierge/manual** until ops are proven; `pay
 | Route | Method | Hobby: Vercel `vercel.json` | cron-job.org schedule |
 |-------|--------|----------------------------|------------------------|
 | `/api/cron/escrow-thaw` | POST | Daily 00:00 UTC (fallback) | **Every hour** |
-| `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (fallback) | **Every hour** (AUDIT_03 C3.4) |
+| `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (fallback) | **Every hour** (AUDIT_03 C3.4 + intents/crypto heal) |
 | `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
 | `/api/cron/financial-health-monitor` | POST | Daily 06:30 UTC | Daily 06:30 UTC (optional duplicate) |
@@ -67,7 +67,7 @@ Do **not** disable the Vercel daily fallback solely to avoid duplicates — pref
 | Job | Cron expression | Notes |
 |-----|-----------------|-------|
 | escrow-thaw | `0 * * * *` | Every hour at :00 — SLO ≤59m |
-| reconcile-confirmed-payments | `0 * * * *` | Every hour — heal CONFIRMED∧¬escrow (C3.4) |
+| reconcile-confirmed-payments | `0 * * * *` | Every hour — heal CONFIRMED∧¬escrow + PAID intents / CRYPTO+txid (≥5m) |
 | promote-ready-for-payout | `0 * * * *` | Every hour at :00 |
 | payout-batch-pools | `0 7 * * 1,4` | Mon & Thu 07:00 UTC — draft only |
 | financial-health-monitor | `30 6 * * *` | Daily 06:30 UTC |
@@ -84,7 +84,24 @@ CRON_SECRET=xxx BASE_URL=https://airento.ru EXPECT_PRICING_V2=true \
 # or: npm run smoke:financial
 ```
 
-FinTech UI: cron freshness from `ops_job_runs` (`lib/admin/financial-cron-health.js`).
+FinTech UI: cron freshness from `ops_job_runs` (`lib/admin/financial-cron-health.js`) — age from **last `status=success` only**.
+
+### Stale monitor (AUDIT_MONEY_FLOW_04 P1)
+
+`lib/ops/stale-cron-monitor.js` (`runStaleCronMonitor`):
+
+| Job | Cadence | Stale if last success older than |
+|-----|---------|----------------------------------|
+| `escrow-thaw` | hourly | **2h** |
+| `promote-ready-for-payout` | hourly | **2h** |
+| `reconcile-confirmed-payments` | hourly | **2h** |
+| `ledger_shadow_reconcile` | daily | **26h** |
+
+Alert: TG **`[STALE_CRON] {jobName}`** + `critical_signal_events` (`STALE_CRON`). Invoked from `financial-health-monitor` and after hourly `escrow-thaw` / `reconcile-confirmed-payments` (does not change money mutations).
+
+### Soft fail ≠ ops success
+
+Empty work stays **`success`**. DB / freeze / compare failures → **`error`** (+ TG) for `escrow-thaw`, `payout-batch-pools`, `ledger_shadow_reconcile`, reconcile. Helpers: `lib/ops/ops-job-outcome.js`.
 
 ## Local test
 

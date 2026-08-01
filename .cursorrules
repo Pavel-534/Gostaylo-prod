@@ -55,6 +55,19 @@
 ## Нельзя
 
 - Размножать хардкод комиссий (**15%** и т.п.) и курсов (**35.5** и т.п.) — только БД, env, **`currency-last-resort.js`** по правилам ADR.
+- Менять **финансовые формулы** (fee split, escrow capture legs, partner net, FX payout math, ledger posting amounts) **без ADR** в **`ARCHITECTURAL_DECISIONS.md`** (или явного Accepted Stage / owner sign-off в том же PR).
+
+## Перед изменением API
+
+- Перед правкой / новым **`app/api/**`** endpoint — свериться с **`docs/CONSTITUTION.md`** (SSOT-таблица §5 и инварианты FSM/цены/ролей) и **`docs/SYSTEM_MAP.md`** (существующие маршруты). Не плодить параллельный контракт без обновления доков в том же PR.
+
+## Financial Safety Locks
+
+- **`lib/pricing/price-truth.js`** — не менять без аудита (сверка с CONSTITUTION / манифестом / существующими smoke); сомнение → спросить owner, не «улучшать молча».
+- **Новые статусы брони** — только вместе с **`lib/booking/status-transitions.js`** (+ при необходимости `status-sets.js`, `app-constants` / `BOOKING_STATUS`, UI display). Статус «только в БД/enum» без FSM — запрещён.
+- **Финансовые операции из UI** — не вызывать сырой **`fetch()`** к payment / escrow / payout / ledger / admin finances из `components/` / `app/**` client; только существующие API-клиенты / серверные route handlers / сервисы (`PaymentsV3Service`, `EscrowService`, admin fintech clients и т.п.).
+- **`getPartnerBalance` / `balance.service.js` / hot-path RPC fee-split** — не flip’ать на ledger SoT и не менять без ADR-203 Phase gate (shadow / proof); см. ADR-203.
+- Не обходить **`BookingService`** price gates и не хардкодить комиссии/курсы (см. «Нельзя» выше).
 
 ## UI / Design System Rules (Stage 129+)
 

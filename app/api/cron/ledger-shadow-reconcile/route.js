@@ -9,6 +9,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
+import { resolveLedgerShadowOps } from '@/lib/ops/ops-job-outcome.js'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import {
   LEDGER_SHADOW_JOB_NAME,
   PROOF_ZERO_DRIFT_DAYS,
@@ -34,16 +36,19 @@ export async function POST(request) {
       alert: body?.alert !== false,
     })
 
+    const ops = resolveLedgerShadowOps(result)
     await finishOpsJobRun(run, {
-      status: 'success',
-      stats: {
-        compared: result.compared,
-        errors: result.errors,
-        driftCount: result.driftCount,
-        zeroDrift: result.zeroDrift,
-        toleranceThb: result.toleranceThb,
-      },
+      status: ops.status,
+      stats: ops.stats,
+      errorMessage: ops.errorMessage,
     })
+
+    if (ops.status === 'error') {
+      void notifySystemAlert(
+        `📒 <b>Cron: ledger-shadow-reconcile FAILED</b>\n<code>${escapeSystemAlertHtml(ops.errorMessage)}</code>`,
+      )
+      return NextResponse.json({ success: false, ...result, error: ops.errorMessage }, { status: 503 })
+    }
 
     const proofStreakDays = await countConsecutiveZeroDriftDays()
     return NextResponse.json({
@@ -55,6 +60,9 @@ export async function POST(request) {
     })
   } catch (e) {
     await finishOpsJobRun(run, { status: 'error', errorMessage: e?.message })
+    void notifySystemAlert(
+      `📒 <b>Cron: ledger-shadow-reconcile</b>\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
     return NextResponse.json({ success: false, error: e?.message }, { status: 500 })
   }
 }

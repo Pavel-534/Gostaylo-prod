@@ -199,6 +199,12 @@
 
 ```
 BookingService          → create / query / status orchestration
+  booking-status.service → transitionBookingStatus (FSM SSOT)
+  smoke-booking-status   → smoke/E2E FSM helpers (+ negative_test force only)
+  payout-batch-settle-two-phase → settling_at → ledger → COMPLETED (+ orphan scan)
+  ops-job-outcome / stale-cron-monitor → soft-fail≠success; [STALE_CRON]
+  ESCROW_THAW_SOURCE_STATUSES → PAID_ESCROW∪CHECKED_IN → THAWED
+  treasury-conversion-idempotency → client/ext/fp keys
 PricingService          → stay math, fee policy, promo validate
 PaymentsV3Service       → initiate / confirm / adapters
 EscrowService           → PAID_ESCROW + thaw + balance sync

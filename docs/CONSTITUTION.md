@@ -72,6 +72,8 @@ INQUIRY|PENDING → CONFIRMED → AWAITING_PAYMENT → PAID_ESCROW
   → (CHECKED_IN опционально) → THAWED → READY_FOR_PAYOUT → COMPLETED
 ```
 
+Системный переход **`CHECKED_IN → THAWED`** разрешён (cron `escrow-thaw` выбирает `PAID_ESCROW` ∪ `CHECKED_IN` по `escrow_thaw_at`). Партнёрский PUT в `THAWED` из `CHECKED_IN` — нет.
+
 Оплата в `PAID_ESCROW` допускается **только** через `EscrowService.moveToEscrow` (RPC capture). Прямой FSM UPDATE в `PAID_ESCROW` запрещён (`validatePaidEscrowFsmGuard`).
 
 ### 1.5 Наборы статусов (фильтры)

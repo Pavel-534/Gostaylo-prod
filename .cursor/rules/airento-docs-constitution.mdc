@@ -38,9 +38,11 @@ API / БД / поведение / значимый UX:
 - Узкий diff; пуши через `push.service.js` / `POST /api/v2/push`.
 - Нет хардкода комиссий/курсов вне settings / snapshot / `currency-last-resort.js`.
 - Новая таблица `public`: **GRANT → RLS → POLICY** (`airento-supabase-migrations.mdc`).
+- Перед изменением **`app/api/**`** — SSOT в **`docs/CONSTITUTION.md`** + маршруты в **`docs/SYSTEM_MAP.md`**.
+- Финансовые формулы / `price-truth.js` / статусы брони / client `fetch` к money API — **Financial Safety Locks** в **`.cursorrules`** (без ADR / FSM / сервисов — нельзя).
 
 ## Бренд
 
-`getSiteDisplayName()` / `{brand}` — prod **Airento**. Не GoStayLo как display name.
+`getSiteDisplayName()` / `{brand}` — prod **Airento**. **GoStayLo / Gostaylo** — только legacy internal id / история Stage, не display name.
 
 Подробности: **`AGENTS.md`**, **`.cursorrules`**, **`docs/README.md`**.
