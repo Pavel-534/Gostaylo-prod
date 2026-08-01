@@ -234,6 +234,7 @@ ADMIN > MODERATOR > PARTNER > RENTER
 
 Server guard: `lib/security/access-guard.js` — JWT + обязательная перепроверка роли/`is_banned` в `profiles`.  
 Admin financial routes: `requireAccess({ roles: ['ADMIN'] })` (e.g. `GET /api/v2/admin/ledger-balances`).  
+Partner ledger shadow (ADR-203 Phase 1, read-only): `GET /api/v2/admin/partner-ledger-shadow` — `ADMIN`/`MODERATOR` via `requireAdminStaff`.  
 Staff moderation/metrics: `requireAdminStaff` где применимо.
 Cron: **не** cookie-session — только `CRON_SECRET`.
 
@@ -256,6 +257,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Бронирование (оркестратор)** | `lib/services/booking.service.js` + `lib/services/booking/*` |
 | **Unified order UI** | `lib/models/unified-order.js`, `components/orders/UnifiedOrderCard.jsx` |
 | **Эскроу / thaw** | `lib/services/escrow.service.js`, `lib/escrow-thaw-rules.js` |
+| **Partner cash SoT (interim)** | Booking statuses → `getPartnerBalance` (`lib/services/escrow/balance.service.js`); ADR-203 Phase 1 shadow: `getPartnerBalanceFromLedger` — **не** SoT до flip |
 | **Ledger** | `lib/services/ledger.service.js`, `lib/services/ledger/*` |
 | **Выплаты / Concierge** | `lib/services/payout-batch.service.js` (+ `payout-batch-settlement.js` fail-closed; SKIPPED re-queue), `lib/partner/partner-payout-fx.js`, ADR-097 |
 | **Платежи** | `lib/services/payments-v3.service.js`, `lib/services/payment-adapters/*` |

@@ -40,6 +40,10 @@
       "schedule": "30 6 * * *"
     },
     {
+      "path": "/api/cron/ledger-shadow-reconcile",
+      "schedule": "45 6 * * *"
+    },
+    {
       "path": "/api/cron/cleanup-critical-signals",
       "schedule": "0 5 * * *"
     },

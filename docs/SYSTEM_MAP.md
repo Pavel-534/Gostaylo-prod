@@ -57,9 +57,9 @@
 | `seasonal_prices` | Сезонные цены (приоритет над metadata) |
 | `promo_codes` | Промо PLATFORM/PARTNER, flash sale, allowlist |
 | `reviews` / `guest_reviews` | Отзывы гостя о листинге / партнёра о клиенте (+ moderation) |
-| `ledger_accounts` | План счетов (THB double-entry) |
-| `ledger_journals` | Журналы проводок |
-| `ledger_entries` | DEBIT/CREDIT строки |
+| `ledger_accounts` | План счетов (THB double-entry); Stage 203: +`DISPUTE_HOLD_RESERVE` |
+| `ledger_journals` | Журналы; append-only; `booking_id` ON DELETE SET NULL + `deleted_booking_id` |
+| `ledger_entries` | DEBIT/CREDIT строки; append-only |
 | `payout_methods` | Рельсы выплат (CARD/BANK/CRYPTO) |
 | `partner_payout_profiles` | Реквизиты партнёра |
 | `payouts` / `payout_batches` / `payout_batch_items` | Заявки и Concierge-пулы |
@@ -142,6 +142,7 @@
 | `GET /api/admin/finances/dashboard` · treasury / conversions / movements |
 | `/admin/finance/intelligence*` |
 | `GET /api/v2/admin/ledger-balances` (ADMIN only) · `ledger-reconciliation` |
+| `GET /api/v2/admin/partner-ledger-shadow?partnerId=` (ADMIN/MODERATOR) — ADR-203 Phase 1 |
 | `GET|PATCH /api/v2/admin/payouts*` |
 | `POST /api/v2/admin/payouts/tbank-registry` |
 | `POST /api/v2/admin/bookings/[id]/emergency-actions` |
@@ -172,6 +173,7 @@
 | `/api/cron/review-reminder` |
 | `/api/cron/exchange-rates-refresh` |
 | `/api/cron/referral-*` · financial health monitors |
+| `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |
 
 ---
 

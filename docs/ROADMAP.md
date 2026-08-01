@@ -12,6 +12,7 @@
 | Тема | Суть | Источник |
 |------|------|----------|
 | Live payments | Боевой контур YooKassa + fiscal + prod verify/smoke | Phase D roadmap P0; `PRE_REAL_PAYMENTS_CHECKLIST`, Go/No-Go |
+| ADR-203 ledger SoT | Phase 1 shadow live (`ledger-shadow-reconcile`); **30d zeroDrift** → Phase 2/3 flip | `ARCHITECTURAL_DECISIONS.md` ADR-203 |
 | External cron on prod | Hourly `escrow-thaw`, `promote-ready-for-payout`, payout pools | `CRON_EXTERNAL_FINANCIAL.md` |
 | Cron observability | Единая «последний successful run» + TG alert при stale | Phase D §4.1 (частично закрыто FinTech cron health — довести ops) |
 | Prod env audit | Один реестр всех financial env | `PRODUCTION_ENV.md` |

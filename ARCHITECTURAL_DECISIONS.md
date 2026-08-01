@@ -793,3 +793,45 @@ Stage **180.6** исправил **отображение** (wizard inputs в `b
 - Админка синхронизирует **`defaultCommissionRate`** ↔ **`hostCommissionPercent`** при save (зеркало).
 - **`commission_thb`** на брони = guest service fee (rename — backlog P1).
 - Launch: **15% guest / 0% host** — `system_settings` + `pricing_profiles`; миграция `stage183_0_fee_policy_launch_ssot.sql`.
+
+---
+
+## ADR-203: Ledger as SoT — **Accepted: Transition to A** (AUDIT_LEDGER_01)
+
+**Status:** Accepted (2026-08-01) — **Transition to Option A** (phased). Stage **203** first-posting blockers + Phase 1 shadow are in tree. Smoke: **`npm run smoke:ledger-first-posting`**.
+
+**Hard rules until Phase 2/3 cutover:**
+
+- **Do not** flip `balance.service.js` / `getPartnerBalance` / payout eligibility to ledger SoT.
+- **Do not** change hot-path RPC fee-split (`move_to_escrow_and_post_ledger_v1`, `v_insurance`) without a dedicated Stage after proof.
+- Partner UI / Concierge payouts remain **booking-status SoT**; ledger is audit + **shadow**.
+
+### Context
+
+Partner cash UI / payout eligibility today derives from **booking statuses** (`PAID_ESCROW` / `THAWED` / `READY_FOR_PAYOUT` / …) via `getPartnerBalance` → sync cache `profiles.available_balance_thb` / `frozen_balance_thb`.  
+Ledger (`PARTNER_EARNINGS` net) is posted on capture / settle / dispute. Soft drift alerts: `LEDGER_DRIFT` (tol ฿0.05).
+
+### Target — Option A (end state)
+
+- `available` / `frozen` (and payout eligibility) **derived from ledger** (and explicit hold journals), not booking status buckets alone.
+- Requires RPC fee-split alignment so GL matches economics; rewrite of balance + eligibility + thaw UX.
+
+### Transition phases
+
+| Phase | What | Gate |
+|-------|------|------|
+| **1 — Shadow (now)** | `getPartnerBalanceFromLedger` · `GET /api/v2/admin/partner-ledger-shadow` · daily `POST /api/cron/ledger-shadow-reconcile` → `ops_job_runs.job_name=ledger_shadow_reconcile` (`stats.zeroDrift`) · alert `[LEDGER_DRIFT]` | No product flip |
+| **2 — Parallel cutover prep** | Map thaw-hold / dispute / pending-payout into ledger-derived buckets; smokes; admin dashboards | **Hard rule:** **30 consecutive calendar days** with `stats.zeroDrift: true` on `ledger_shadow_reconcile` |
+| **3 — Flip SoT** | `getPartnerBalance` (or successor) reads ledger; eligibility follows; status buckets become derived/diagnostic | Owner go + green Phase 2 gates + RPC v2 design if needed |
+
+### Option B (rejected as end state)
+
+Dual SSOT forever (status SoT, ledger = audit only) is **not** the accepted end state. Dual SSOT remains **interim** during Phase 1–2 only.
+
+### Code pointers (Phase 1)
+
+- `lib/services/ledger/partner-ledger-balance.js` — `getPartnerBalanceFromLedger` (available/frozen = status buckets × capture amounts; `accountNetThb` = true books)
+- `lib/ops/ledger-shadow-reconcile.js` — compare + daily scan
+- `app/api/v2/admin/partner-ledger-shadow/route.js`
+- `app/api/cron/ledger-shadow-reconcile/route.js`
+- Dry run: **`npm run smoke:ledger-shadow-dry-run`**

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.0.0 | **Last Updated**: 2026-07-31 | **Tip of tree:** Stage **200.19** (optimistic nav / PDP map clip).
+> **Version**: 13.2.0 | **Last Updated**: 2026-08-01 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow (ledger vs status).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,16 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 203 — AUDIT_LEDGER_01 first-posting blockers + Phase 1 shadow
+
+- Seed **`la-sys-dispute-hold`** / `DISPUTE_HOLD_RESERVE` (`stage203_01`)
+- Journals FK: booking delete → **`ON DELETE SET NULL`** + **`deleted_booking_id`** stamp (`stage203_02`); entries stay CASCADE from journal
+- Append-only triggers on journals/entries + GRANT SELECT/INSERT only + RLS re-assert (`stage203_03`); detach booking_id allowed
+- JS: no compensating journal DELETE — heal empty journals (`lib/services/ledger/ledger-append-only.js`); E2E cleanup skips money bookings / ledger DELETE
+- Staging smoke: **`npm run smoke:ledger-first-posting`** (`lib/smoke/ledger-first-posting-smoke.js`) — PENDING→CONFIRMED→capture journal + §8.1–8.3 + dispute hold
+- **ADR-203 Accepted: Transition to A** — Phase 1 shadow only (`getPartnerBalanceFromLedger`, `GET /api/v2/admin/partner-ledger-shadow`, daily `POST /api/cron/ledger-shadow-reconcile` → `ops_job_runs.ledger_shadow_reconcile`, alert `[LEDGER_DRIFT]`). **Hard gate:** 30 consecutive days `stats.zeroDrift: true` before Phase 2/3 flip. **`getPartnerBalance` unchanged.** Shadow available/frozen mirror status buckets (capture − refund by booking status); `accountNetThb` tracks true PARTNER_EARNINGS after settlements/holds. Dry run: **`npm run smoke:ledger-shadow-dry-run`**.
+- Order: **`migrations/README.md`** Stage 203. RPC fee-split unchanged until Phase 3 design.
 
 ### Wave J / optimistic chrome (200.13–200.19)
 

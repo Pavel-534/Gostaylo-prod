@@ -19,6 +19,8 @@ export type AdminApiAccessRule = {
 
 /** API-only префиксы без прямого пункта меню (`/api/admin`). */
 const ADMIN_API_EXTRA_RULES: AdminApiAccessRule[] = [
+  /** ADR-203 Phase 1 — read-only shadow compare (ops visibility). */
+  { prefix: '/api/v2/admin/partner-ledger-shadow', allowedRoles: ['ADMIN', 'MODERATOR'] },
   { prefix: '/api/admin/smoke', allowedRoles: ['ADMIN'] },
   { prefix: '/api/admin/clean-test-data', allowedRoles: ['ADMIN'] },
   { prefix: '/api/admin/blacklist', allowedRoles: ['ADMIN'] },
@@ -52,6 +54,7 @@ const ADMIN_V2_PREFIX_MENU_HREF: Record<string, string> = {
   '/api/v2/admin/payment-adapters/health': '/admin/finances',
   '/api/v2/admin/ledger-balances': '/admin/financial-health',
   '/api/v2/admin/ledger-reconciliation': '/admin/financial-health',
+  '/api/v2/admin/partner-ledger-shadow': '/admin/financial-health',
   '/api/v2/admin/payouts/tbank-registry': '/admin/marketing/referral-payouts',
   '/api/v2/admin/payouts': '/admin/financial-health',
   '/api/v2/admin/payout-methods': '/admin/payout-methods',

@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getRawRateMap } from '@/lib/services/pricing/pricing-fx-helpers.js'
 import { mapLedgerRowToConversionDto } from '@/lib/admin/treasury-conversions-csv'
 import { isFintechTestConversionRow } from '@/lib/admin/fintech-test-data-markers.js'
+import { skipCompensatingJournalDelete } from '@/lib/services/ledger/ledger-append-only.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -264,7 +265,7 @@ export async function POST(request) {
 
   const { error: entriesError } = await supabaseAdmin.from('ledger_entries').insert(entries)
   if (entriesError) {
-    await supabaseAdmin.from('ledger_journals').delete().eq('id', journalId)
+    await skipCompensatingJournalDelete(journalId, entriesError.message)
     return NextResponse.json({ success: false, error: entriesError.message }, { status: 500 })
   }
 

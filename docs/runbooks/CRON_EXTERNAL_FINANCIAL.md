@@ -20,6 +20,7 @@ Partner **auto bank payouts remain Concierge/manual** until ops are proven; `pay
 | `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
 | `/api/cron/financial-health-monitor` | POST | Daily 06:30 UTC | Daily 06:30 UTC (optional duplicate) |
+| `/api/cron/ledger-shadow-reconcile` | POST | Daily 06:45 UTC | Daily 06:45 UTC (ADR-203 Phase 1 shadow) |
 | `/api/cron/cleanup-critical-signals` | GET/POST | Daily 05:00 UTC | Optional duplicate (AUDIT_03 M3.6) |
 | `/api/cron/ical-sync` | POST | Daily fallback | **~30 min** recommended |
 
