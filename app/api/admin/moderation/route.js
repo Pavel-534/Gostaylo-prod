@@ -1,7 +1,9 @@
 ﻿/**
  * Admin Moderation API
  * GET — pending listings (без черновиков)
- * PATCH — approve | reject | set_featured; при approve опционально title, description, metadata (нормализация SSOT).
+ * PATCH — approve | reject | set_featured | update;
+ *   approve/update: опционально title, description, district, basePriceThb, metadata (нормализация SSOT).
+ *   update — правки без смены статуса (только PENDING).
  */
 
 import { NextResponse } from 'next/server'
@@ -53,6 +55,54 @@ function categorySlugFromListing(listing) {
   }
   const m = listing?.metadata && typeof listing.metadata === 'object' ? listing.metadata : {}
   return String(m.category_slug || m.categorySlug || '').toLowerCase().trim()
+}
+
+/**
+ * Apply optional content fields from moderation PATCH body onto updateData.
+ * @param {Record<string, unknown>} updateData
+ * @param {{ title?: unknown, description?: unknown, district?: unknown, basePriceThb?: unknown, metadata?: unknown }} body
+ * @param {unknown} listing
+ */
+function applyModerationContentFields(updateData, body, listing) {
+  const { title, description, district, basePriceThb, metadata: metadataPatch } = body
+
+  if (title !== undefined && title !== null) {
+    const t = String(title).trim().slice(0, 255)
+    if (t) updateData.title = t
+  }
+  if (description !== undefined && description !== null) {
+    updateData.description = String(description).trim().slice(0, 50_000)
+  }
+  if (district !== undefined && district !== null) {
+    updateData.district = String(district).trim().slice(0, 200)
+  }
+  if (basePriceThb !== undefined && basePriceThb !== null && basePriceThb !== '') {
+    const n = Number(basePriceThb)
+    if (!Number.isFinite(n) || n < 0) {
+      const err = new Error('basePriceThb must be a non-negative number')
+      err.status = 400
+      throw err
+    }
+    updateData.base_price_thb = Math.round(n * 100) / 100
+  }
+
+  if (metadataPatch != null && typeof metadataPatch === 'object' && !Array.isArray(metadataPatch)) {
+    const categorySlug = categorySlugFromListing(listing)
+    const nameFb = String(listing.categories?.name || listing.categories?.[0]?.name || '')
+    const prevMeta =
+      listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
+        ? { ...listing.metadata }
+        : {}
+    const merged = { ...prevMeta, ...metadataPatch }
+    const catRow = listing?.categories
+    const wp =
+      (catRow && typeof catRow === 'object' && !Array.isArray(catRow)
+        ? catRow.wizard_profile
+        : Array.isArray(catRow)
+          ? catRow[0]?.wizard_profile
+          : null) ?? null
+    updateData.metadata = normalizePartnerListingMetadata(merged, categorySlug, nameFb, wp)
+  }
 }
 
 export async function GET(request) {
@@ -119,7 +169,7 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json()
-    const { listingId, action, rejectReason, isFeatured, title, description, metadata: metadataPatch } = body
+    const { listingId, action, rejectReason, isFeatured } = body
 
     if (!listingId || !action) {
       return NextResponse.json({ error: 'listingId and action required' }, { status: 400 })
@@ -168,37 +218,21 @@ export async function PATCH(request) {
     let updateData = {}
 
     if (action === 'approve') {
-      const categorySlug = categorySlugFromListing(listing)
-      const nameFb = String(listing.categories?.name || listing.categories?.[0]?.name || '')
-
       updateData = {
         status: 'ACTIVE',
         available: true,
         updated_at: timestamp,
       }
-
-      if (title !== undefined && title !== null) {
-        const t = String(title).trim().slice(0, 255)
-        if (t) updateData.title = t
+      applyModerationContentFields(updateData, body, listing)
+    } else if (action === 'update') {
+      if (String(listing.status || '').toUpperCase() !== 'PENDING') {
+        return NextResponse.json({ error: 'update only allowed for PENDING listings' }, { status: 400 })
       }
-      if (description !== undefined && description !== null) {
-        updateData.description = String(description).trim().slice(0, 50_000)
-      }
-
-      if (metadataPatch != null && typeof metadataPatch === 'object' && !Array.isArray(metadataPatch)) {
-        const prevMeta =
-          listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
-            ? { ...listing.metadata }
-            : {}
-        const merged = { ...prevMeta, ...metadataPatch }
-        const catRow = listing?.categories
-        const wp =
-          (catRow && typeof catRow === 'object' && !Array.isArray(catRow)
-            ? catRow.wizard_profile
-            : Array.isArray(catRow)
-              ? catRow[0]?.wizard_profile
-              : null) ?? null
-        updateData.metadata = normalizePartnerListingMetadata(merged, categorySlug, nameFb, wp)
+      updateData = { updated_at: timestamp }
+      applyModerationContentFields(updateData, body, listing)
+      const contentKeys = Object.keys(updateData).filter((k) => k !== 'updated_at')
+      if (contentKeys.length === 0) {
+        return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
       }
     } else if (action === 'reject') {
       if (!rejectReason) {
@@ -227,6 +261,32 @@ export async function PATCH(request) {
       throw new Error('Failed to update listing')
     }
 
+    const finalTitle = updateData.title ?? listing.title
+    const finalDescription = updateData.description ?? listing.description
+    const finalDistrict = updateData.district ?? listing.district
+    const finalPrice =
+      updateData.base_price_thb !== undefined ? updateData.base_price_thb : listing.base_price_thb
+
+    if (action === 'update') {
+      void recordStaffListingModeration({
+        actorId: gate.profile.id,
+        actorRole: gate.profile.role,
+        listingId,
+        action: 'update',
+        listingTitle: finalTitle,
+        ownerId: listing.owner?.id,
+      })
+      return NextResponse.json({
+        success: true,
+        action: 'update',
+        listingId,
+        title: finalTitle,
+        description: finalDescription,
+        district: finalDistrict,
+        base_price_thb: finalPrice,
+      })
+    }
+
     if (action === 'approve') {
       void recordTeammateNewListingIfFirst(String(listingId)).catch((err) =>
         console.warn('[moderation] referral_team_events listing:', err?.message || err),
@@ -240,7 +300,6 @@ export async function PATCH(request) {
       }
     }
 
-    const finalTitle = updateData.title ?? listing.title
     void recordStaffListingModeration({
       actorId: gate.profile.id,
       actorRole: gate.profile.role,
@@ -249,8 +308,6 @@ export async function PATCH(request) {
       listingTitle: finalTitle,
       ownerId: listing.owner?.id,
     })
-
-    const finalDescription = updateData.description ?? listing.description
 
     if (action === 'approve' || action === 'reject') {
       const partner = listing.owner
@@ -312,6 +369,7 @@ export async function PATCH(request) {
     })
   } catch (error) {
     console.error('Moderation PATCH error:', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    const status = error?.status === 400 ? 400 : 500
+    return NextResponse.json({ success: false, error: error.message }, { status })
   }
 }

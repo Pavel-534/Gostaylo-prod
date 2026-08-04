@@ -24,8 +24,12 @@ import {
   formatModerationCreatedAt,
   truncateModerationDescription,
 } from '@/lib/admin/moderation-queue.js'
+import { useI18n } from '@/contexts/i18n-context'
+import { getCategoryName } from '@/lib/translations'
+import { resolveCategoryDisplayName } from '@/lib/category-display-name'
 
 export default function ModerationPage() {
+  const { language } = useI18n()
   const [pendingListings, setPendingListings] = useState([])
   const [totalPending, setTotalPending] = useState(0)
   const [facets, setFacets] = useState({ partners: [], categories: [] })
@@ -45,6 +49,8 @@ export default function ModerationPage() {
   const [editTextMode, setEditTextMode] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftDescription, setDraftDescription] = useState('')
+  const [draftDistrict, setDraftDistrict] = useState('')
+  const [draftPrice, setDraftPrice] = useState('')
 
   useEffect(() => {
     loadData()
@@ -55,6 +61,12 @@ export default function ModerationPage() {
     setEditTextMode(false)
     setDraftTitle(selectedListing.title ?? '')
     setDraftDescription(selectedListing.description ?? '')
+    setDraftDistrict(selectedListing.district ?? '')
+    setDraftPrice(
+      selectedListing.base_price_thb != null && selectedListing.base_price_thb !== ''
+        ? String(selectedListing.base_price_thb)
+        : '',
+    )
   }, [selectedListing?.id])
 
   async function loadData() {
@@ -92,6 +104,11 @@ export default function ModerationPage() {
     ? formatListingCoordinates(selectedListing.latitude, selectedListing.longitude)
     : null
 
+  function categoryLabel(cat) {
+    if (!cat) return ''
+    return resolveCategoryDisplayName(cat, language, getCategoryName) || cat.name || cat.slug || ''
+  }
+
   async function revalidateListingsCache(listingId) {
     try {
       await fetch('/api/admin/revalidate', {
@@ -109,8 +126,19 @@ export default function ModerationPage() {
   async function handleApproveListing(listingId, overrides = {}) {
     const titleTrim = String(overrides.title ?? draftTitle ?? '').trim()
     const description = overrides.description ?? draftDescription ?? ''
+    const district = overrides.district ?? draftDistrict ?? ''
+    const basePriceThb =
+      overrides.basePriceThb !== undefined
+        ? overrides.basePriceThb
+        : draftPrice !== ''
+          ? Number(draftPrice)
+          : undefined
     if (!titleTrim) {
       toast.error('Укажите заголовок объявления')
+      return
+    }
+    if (basePriceThb !== undefined && (!Number.isFinite(basePriceThb) || basePriceThb < 0)) {
+      toast.error('Укажите корректную цену')
       return
     }
 
@@ -124,6 +152,8 @@ export default function ModerationPage() {
           action: 'approve',
           title: titleTrim,
           description,
+          district,
+          ...(basePriceThb !== undefined ? { basePriceThb } : {}),
         }),
       })
 
@@ -133,8 +163,8 @@ export default function ModerationPage() {
         await revalidateListingsCache(listingId)
         toast.success(
           data.notificationSent
-            ? 'ACTIVE — в каталоге и поиске. Партнёр уведомлён в Telegram.'
-            : 'ACTIVE — объявление в каталоге и поиске.',
+            ? 'Одобрено — объявление в каталоге и поиске. Партнёр уведомлён в Telegram.'
+            : 'Одобрено — объявление в каталоге и поиске.',
         )
         setSelectedListing(null)
         loadData()
@@ -143,6 +173,55 @@ export default function ModerationPage() {
       }
     } catch (error) {
       toast.error('Не удалось одобрить объявление')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  async function handleSaveListingEdits() {
+    if (!selectedListing) return
+    const titleTrim = String(draftTitle ?? '').trim()
+    if (!titleTrim) {
+      toast.error('Укажите заголовок объявления')
+      return
+    }
+    const priceNum = draftPrice !== '' ? Number(draftPrice) : undefined
+    if (priceNum !== undefined && (!Number.isFinite(priceNum) || priceNum < 0)) {
+      toast.error('Укажите корректную цену')
+      return
+    }
+
+    setProcessingId(selectedListing.id)
+    try {
+      const res = await fetch('/api/admin/moderation', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: selectedListing.id,
+          action: 'update',
+          title: titleTrim,
+          description: draftDescription ?? '',
+          district: draftDistrict ?? '',
+          ...(priceNum !== undefined ? { basePriceThb: priceNum } : {}),
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error)
+
+      const next = {
+        ...selectedListing,
+        title: data.title ?? titleTrim,
+        description: data.description ?? draftDescription,
+        district: data.district ?? draftDistrict,
+        base_price_thb:
+          data.base_price_thb !== undefined ? data.base_price_thb : selectedListing.base_price_thb,
+      }
+      setSelectedListing(next)
+      setPendingListings((prev) => prev.map((l) => (l.id === next.id ? { ...l, ...next } : l)))
+      setEditTextMode(false)
+      toast.success('Правки сохранены — объявление остаётся на проверке')
+    } catch {
+      toast.error('Не удалось сохранить правки')
     } finally {
       setProcessingId(null)
     }
@@ -160,6 +239,8 @@ export default function ModerationPage() {
     void handleApproveListing(listing.id, {
       title: listing.title,
       description: listing.description ?? '',
+      district: listing.district ?? '',
+      basePriceThb: listing.base_price_thb,
     })
   }
 
@@ -299,7 +380,7 @@ export default function ModerationPage() {
                 <option value="">Все</option>
                 {facets.categories?.map((c) => (
                   <option key={c.slug} value={c.slug}>
-                    {c.name} ({c.count})
+                    {categoryLabel(c)} ({c.count})
                   </option>
                 ))}
               </select>
@@ -371,7 +452,7 @@ export default function ModerationPage() {
                       </div>
                     )}
                     <Badge className="absolute top-2 left-2 bg-orange-500 text-[10px]">
-                      PENDING
+                      На проверке
                     </Badge>
                   </div>
 
@@ -396,8 +477,8 @@ export default function ModerationPage() {
                           <Clock className="h-3.5 w-3.5" />
                           {formatModerationCreatedAt(listing.created_at)}
                         </span>
-                        {listing.categories?.name ? (
-                          <span>{listing.categories.name}</span>
+                        {listing.categories ? (
+                          <span>{categoryLabel(listing.categories)}</span>
                         ) : null}
                         <span className="inline-flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
@@ -426,7 +507,7 @@ export default function ModerationPage() {
                         ) : (
                           <>
                             <CheckCircle className="h-5 w-5 mr-2" />
-                            Approve
+                            Одобрить
                           </>
                         )}
                       </Button>
@@ -439,7 +520,7 @@ export default function ModerationPage() {
                         onClick={(e) => openRejectModal(listing, e)}
                       >
                         <XCircle className="h-5 w-5 mr-2" />
-                        Reject
+                        Отклонить
                       </Button>
                       <Button
                         type="button"
@@ -459,16 +540,20 @@ export default function ModerationPage() {
         </div>
       )}
 
-      {/* Detailed View Modal */}
+      {/* Detailed View Modal — Stage 200.24: wide dialog + scroll body + sticky footer */}
       <Dialog
         open={!!selectedListing}
         onOpenChange={(open) => {
           if (!open) setSelectedListing(null)
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[min(95vh,calc(100dvh-1rem))] w-full max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
+        >
           {selectedListing && (
             <>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {/* Image Carousel */}
               <div className="relative bg-slate-900">
                 {selectedListing.images?.length > 0 ? (
@@ -503,15 +588,16 @@ export default function ModerationPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full z-20 shadow-lg"
+                  className="absolute top-3 right-3 z-20 min-h-[44px] min-w-[44px] rounded-full bg-white/90 shadow-lg hover:bg-white"
                   onClick={() => setSelectedListing(null)}
+                  aria-label="Закрыть"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
               {/* Content */}
-              <div className="p-4 md:p-6 space-y-4">
+              <div className="space-y-4 p-4 md:p-6">
                 {/* Title & Badge */}
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0 flex-1 space-y-2">
@@ -533,13 +619,36 @@ export default function ModerationPage() {
                         {selectedListing.title || 'Без названия'}
                       </h2>
                     )}
-                    <p className="text-slate-600 flex items-center gap-1 mt-1">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      {selectedListing.district || 'Район не указан'}
-                      {selectedListing.categories?.name
-                        ? ` · ${selectedListing.categories.name}`
-                        : ''}
-                    </p>
+                    {editTextMode ? (
+                      <div className="space-y-2">
+                        <div>
+                          <Label htmlFor="mod-district" className="text-xs text-slate-500">
+                            Район
+                          </Label>
+                          <Input
+                            id="mod-district"
+                            value={draftDistrict}
+                            onChange={(e) => setDraftDistrict(e.target.value)}
+                            className="mt-1"
+                            maxLength={200}
+                            placeholder="Район"
+                          />
+                        </div>
+                        {selectedListing.categories ? (
+                          <p className="text-slate-600 text-sm">
+                            {categoryLabel(selectedListing.categories)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-slate-600 flex items-center gap-1 mt-1">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        {selectedListing.district || 'Район не указан'}
+                        {selectedListing.categories
+                          ? ` · ${categoryLabel(selectedListing.categories)}`
+                          : ''}
+                      </p>
+                    )}
                     {coords ? (
                       <p className="text-sm text-slate-600 flex items-center gap-2 mt-1 flex-wrap">
                         <Navigation className="h-4 w-4 shrink-0 text-indigo-600" />
@@ -563,20 +672,28 @@ export default function ModerationPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="text-slate-700"
+                          className="min-h-[44px] text-slate-700"
                           onClick={() => setEditTextMode(true)}
                         >
                           <Pencil className="h-4 w-4 mr-1.5" />
-                          Править текст
+                          Править объявление
                         </Button>
                       ) : (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
+                          className="min-h-[44px]"
                           onClick={() => {
                             setDraftTitle(selectedListing.title ?? '')
                             setDraftDescription(selectedListing.description ?? '')
+                            setDraftDistrict(selectedListing.district ?? '')
+                            setDraftPrice(
+                              selectedListing.base_price_thb != null &&
+                                selectedListing.base_price_thb !== ''
+                                ? String(selectedListing.base_price_thb)
+                                : '',
+                            )
                             setEditTextMode(false)
                           }}
                         >
@@ -584,6 +701,14 @@ export default function ModerationPage() {
                         </Button>
                       )}
                     </div>
+                    {editTextMode ? (
+                      <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                        Можно править заголовок, описание, район и цену. «Сохранить правки» оставляет
+                        статус «На проверке»; «Одобрить» публикует с текущими значениями. Фото здесь
+                        не меняются — при необходимости отклоните или попросите партнёра обновить
+                        объявление.
+                      </p>
+                    ) : null}
                   </div>
                   <Badge className="bg-orange-500 shrink-0">На проверке</Badge>
                 </div>
@@ -639,7 +764,22 @@ export default function ModerationPage() {
                       <span className="text-xs font-medium">Цена</span>
                     </div>
                     <p className="text-lg md:text-xl font-bold text-indigo-700">
-                      ฿{selectedListing.base_price_thb?.toLocaleString() || 0}
+                      {editTextMode ? (
+                        <span className="flex items-center gap-1">
+                          <span className="text-base font-semibold">฿</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={draftPrice}
+                            onChange={(e) => setDraftPrice(e.target.value)}
+                            className="h-9 max-w-[9rem] bg-white text-base font-bold"
+                            aria-label="Цена в батах"
+                          />
+                        </span>
+                      ) : (
+                        <>฿{selectedListing.base_price_thb?.toLocaleString() || 0}</>
+                      )}
                     </p>
                     <p className="text-xs text-indigo-600">/день</p>
                   </div>
@@ -716,32 +856,50 @@ export default function ModerationPage() {
                     )}
                   </div>
                 )}
+              </div>
+              </div>
 
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t sticky bottom-0 bg-white/95 backdrop-blur py-3 -mx-4 px-4 md:-mx-6 md:px-6">
+              {/* Sticky footer outside scroll */}
+              <div className="flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white p-3 sm:flex-row sm:gap-3 sm:p-4">
+                {editTextMode ? (
                   <Button
-                    onClick={() => handleApproveListing(selectedListing.id)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 h-14 text-lg font-semibold shadow-md"
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleSaveListingEdits()}
+                    className="min-h-[44px] h-12 flex-1 text-base font-semibold sm:h-14 sm:text-lg"
                     disabled={processing}
                   >
                     {processing ? (
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     ) : (
-                      <CheckCircle className="h-6 w-6 mr-2" />
+                      <Pencil className="h-5 w-5 mr-2" />
                     )}
-                    Approve → ACTIVE
+                    Сохранить правки
                   </Button>
+                ) : null}
+                <Button
+                  onClick={() => handleApproveListing(selectedListing.id)}
+                  variant="brand"
+                  className="min-h-[44px] h-12 flex-1 text-base font-semibold shadow-md sm:h-14 sm:text-lg"
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle className="h-6 w-6 mr-2" />
+                  )}
+                  Одобрить и опубликовать
+                </Button>
 
-                  <Button
-                    onClick={() => openRejectModal(selectedListing)}
-                    variant="destructive"
-                    className="flex-1 h-14 text-lg font-semibold shadow-md"
-                    disabled={processing}
-                  >
-                    <XCircle className="h-6 w-6 mr-2" />
-                    Reject
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => openRejectModal(selectedListing)}
+                  variant="destructive"
+                  className="min-h-[44px] h-12 flex-1 text-base font-semibold shadow-md sm:h-14 sm:text-lg"
+                  disabled={processing}
+                >
+                  <XCircle className="h-6 w-6 mr-2" />
+                  Отклонить
+                </Button>
               </div>
             </>
           )}

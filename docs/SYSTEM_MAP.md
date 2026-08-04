@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.3 | **Last Updated**: 2026-08-04 | **Stage 200.23:** Wizard P2 soft publish + AI translate; **200.22** draft cleanup TTL.  
+> **Version**: 13.2.7 | **Last Updated**: 2026-08-04 | **Stage 200.27:** wizard currency/map SSOT; **200.26** moderation update.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -136,7 +136,7 @@
 
 | Path |
 |------|
-| `GET|PATCH /api/admin/moderation` |
+| `GET|PATCH /api/admin/moderation` (approve/reject/set_featured/**update**: title/desc/district/price) |
 | `GET /api/admin/metrics/overview` |
 | `GET|PUT /api/admin/finances/fintech-settings` |
 | `GET|POST /api/admin/finances/payout-batches` · `…/[id]` (lock/settled; settled single-flight → 409 `settle_in_progress`, TTL 1800s + heartbeat; `finally` release) · export · bank-package |

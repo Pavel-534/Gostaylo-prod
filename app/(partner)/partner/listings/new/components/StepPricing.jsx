@@ -15,6 +15,7 @@ import { PartnerListingDurationDiscountFields } from '@/components/partner/Partn
 import { PartnerCancellationPolicyPreview } from '@/components/partner/wizard/PartnerCancellationPolicyPreview'
 import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/WizardPartnerEarningsCalculator'
 import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
+import { getCurrencySymbol } from '@/lib/currency'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { cn } from '@/lib/utils'
@@ -46,12 +47,23 @@ function StepPricingInner() {
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
   const { formatInListingBase } = useStorefrontDisplayFx()
+  const currencySymbol = getCurrencySymbol(baseCurrency)
 
   const periodLabel = useMemo(() => {
     if (transportWizard) return t('wizardPriceCalcPeriodBookingDay')
     if (toursWizard) return t('wizardPriceCalcPeriodTour')
     return t('wizardPriceCalcPeriodNight')
   }, [transportWizard, toursWizard, t])
+
+  const basePriceLabel = useMemo(() => {
+    if (transportWizard) {
+      return tr('basePriceVehicle', { unit: `${currencySymbol}/${t('wizardPriceCalcPeriodNight')}` })
+    }
+    if (toursWizard) {
+      return tr('basePriceTour', { currency: currencySymbol })
+    }
+    return tr('basePrice', { unit: `${currencySymbol}/${t('wizardPriceCalcPeriodNight')}` })
+  }, [transportWizard, toursWizard, currencySymbol, tr, t])
 
   return (
     <TooltipProvider>
@@ -63,10 +75,7 @@ function StepPricingInner() {
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <Label className="text-base font-medium text-slate-800">
-              {transportWizard ? t('basePriceVehicle') : toursWizard ? t('basePriceTour') : t('basePrice')}{' '}
-              <span className="text-xs font-normal text-slate-500">({baseCurrency})</span>
-            </Label>
+            <Label className="text-base font-medium text-slate-800">{basePriceLabel}</Label>
             <Input
               inputMode="numeric"
               autoComplete="off"
@@ -274,7 +283,7 @@ function StepPricingInner() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <Label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  {t('pricePerDayShort')} ({baseCurrency})
+                  {t('pricePerDayShort')} ({currencySymbol})
                 </Label>
                 <Input
                   inputMode="numeric"
@@ -287,7 +296,7 @@ function StepPricingInner() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <Label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  {t('pricePerMonthOptional')} ({baseCurrency})
+                  {t('pricePerMonthOptional')} ({currencySymbol})
                 </Label>
                 <Input
                   inputMode="numeric"

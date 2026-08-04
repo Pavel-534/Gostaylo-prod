@@ -29,6 +29,30 @@ if (typeof window !== 'undefined') {
 
 const PHUKET_CENTER = [7.8804, 98.3923]
 
+/** Default map center when pin is empty — country cascade (wizard GP-1). */
+const COUNTRY_MAP_CENTERS = {
+  TH: PHUKET_CENTER,
+  RU: [55.7558, 37.6173],
+  TR: [41.0082, 28.9784],
+  CN: [31.2304, 121.4737],
+  US: [40.7128, -74.006],
+  GB: [51.5074, -0.1278],
+  DE: [52.52, 13.405],
+  AU: [-33.8688, 151.2093],
+  JP: [35.6762, 139.6503],
+  KR: [37.5665, 126.978],
+  SG: [1.3521, 103.8198],
+  IN: [28.6139, 77.209],
+}
+
+function defaultCenterForCountry(countryCode) {
+  const code = String(countryCode || '')
+    .trim()
+    .slice(0, 2)
+    .toUpperCase()
+  return (code && COUNTRY_MAP_CENTERS[code]) || PHUKET_CENTER
+}
+
 function MapClickHandler({ onMapClick, enabled }) {
   useMapEvents({
     click(e) {
@@ -80,6 +104,8 @@ export default function MapPicker({
   language = 'ru',
   /** Mobile scrollport: require tap before map captures touch (Leaflet cooperative gesture). */
   cooperativeTouch = false,
+  /** ISO country for empty-pin default viewport (wizard). */
+  countryCode = null,
 }) {
   const t = (key) => getUIText(key, language)
   const [mounted, setMounted] = useState(false)
@@ -153,7 +179,7 @@ export default function MapPicker({
     )
   }
 
-  const center = position || PHUKET_CENTER
+  const center = position || defaultCenterForCountry(countryCode)
   const zoom = position ? 15 : 12
   const markerDraggable = lockable ? unlocked : true
   const mapClicksEnabled = lockable ? unlocked : true
@@ -227,7 +253,7 @@ export default function MapPicker({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MapClickHandler onMapClick={handleMapClick} enabled={mapClicksEnabled} />
-          {position && <MapCenterUpdater center={position} zoom={15} />}
+          <MapCenterUpdater center={center} zoom={zoom} />
           {position && (
             <Marker
               position={position}

@@ -120,22 +120,26 @@ export default function AdminLayout({ children }) {
           : 'min-h-screen',
       )}
     >
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       <AppHeader variant="workspace" onMenuClick={() => setSidebarOpen((v) => !v)} />
 
       <div className={WORKSPACE_FRAME_CLASS}>
+        {/* Mobile backdrop — inside frame so z-50 sidebar stacks above z-40 (partner pattern). */}
+        {sidebarOpen ? (
+          <div
+            className="fixed inset-x-0 bottom-0 top-[var(--app-header-height,64px)] z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden
+          />
+        ) : null}
+
         <aside
           className={cn(
             WORKSPACE_SIDEBAR_CLASS,
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-            'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl lg:shadow-none',
+            'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl max-lg:backdrop-blur-none lg:shadow-none',
           )}
+          data-testid="admin-workspace-sidebar"
+          data-open={sidebarOpen ? 'true' : 'false'}
         >
           <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
             <div className={`${!sidebarOpen && 'lg:hidden'}`}>
@@ -146,7 +150,7 @@ export default function AdminLayout({ children }) {
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">{getSiteDisplayName()}</h1>
                   <p className="text-[10px] text-brand/80 font-medium uppercase tracking-wider">
-                    {adminRole === 'MODERATOR' ? 'Moderator' : 'Admin Panel'}
+                    {adminRole === 'MODERATOR' ? 'Модератор' : 'Панель администратора'}
                   </p>
                 </div>
               </div>
@@ -215,7 +219,7 @@ export default function AdminLayout({ children }) {
                               active ? 'text-white/90' : 'text-emerald-200',
                             )}
                           >
-                            FIN
+                            ФИН
                           </span>
                         ) : null}
                       </Link>
@@ -262,7 +266,7 @@ export default function AdminLayout({ children }) {
                   data-testid="return-to-admin-desktop"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Вернуться в Admin
+                  Вернуться в админку
                 </Button>
               </div>
             )}
@@ -287,7 +291,7 @@ export default function AdminLayout({ children }) {
                 <HeaderWalletCompact />
                 <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
                   <div className="w-2 h-2 bg-brand rounded-full animate-pulse"></div>
-                  <span className="font-medium">{adminRole === 'MODERATOR' ? 'Moderator' : 'Admin'}</span>
+                  <span className="font-medium">{adminRole === 'MODERATOR' ? 'Модератор' : 'Админ'}</span>
                   <span className="text-slate-400">•</span>
                   <span>{user?.name}</span>
                 </div>

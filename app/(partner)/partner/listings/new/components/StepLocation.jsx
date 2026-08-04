@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2 } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
+import { defaultTimezoneForCountryCode } from '@/lib/geo/listing-timezone-ssot'
 import { WIZARD_IANA_TIMEZONES } from '@/lib/geo/wizard-iana-timezones'
 import {
   WIZARD_STEP_ROOT_CLASS,
@@ -68,7 +69,25 @@ function StepLocationInner() {
     updateField('region', r?.code || '')
     updateField('city', ci?.code || '')
     updateField('district', '')
+    const tz = defaultTimezoneForCountryCode(c.code)
+    if (tz) updateMetadata('timezone', tz)
   }
+
+  const listingTimezone =
+    String(formData.metadata?.timezone || '').trim() ||
+    defaultTimezoneForCountryCode(formData.country) ||
+    'Asia/Bangkok'
+
+  // Soft-fix: wizard default Asia/Bangkok left on non-TH country (confusing for RU partners).
+  useEffect(() => {
+    const countryCode = String(formData.country || '').toUpperCase()
+    if (!countryCode || countryCode === 'TH') return
+    const tz = String(formData.metadata?.timezone || '').trim()
+    if (tz && tz !== 'Asia/Bangkok') return
+    const next = defaultTimezoneForCountryCode(countryCode)
+    if (next && next !== tz) updateMetadata('timezone', next)
+  }, [formData.country, formData.metadata?.timezone, updateMetadata])
+
   const handleRegionChange = (code) => {
     const r = findRegion(formData.country, code)
     const ci = r?.cities?.[0]
@@ -199,7 +218,8 @@ function StepLocationInner() {
         <p className="mt-1 text-xs text-slate-500">
           {transportWizard ? t('clickToPinTransport') : t('clickToPin')}
         </p>
-        <div className="mt-2 h-[280px] max-sm:h-[260px]">
+        {/* Fixed px height on MapPicker map pane (not outer wrapper) — lock button sits above; % height collapsed the map. */}
+        <div className="mt-2">
           <MapPicker
             categoryId={formData.categoryId}
             categorySlug={listingCategorySlug}
@@ -207,8 +227,8 @@ function StepLocationInner() {
             latitude={formData.latitude}
             longitude={formData.longitude}
             onSelect={handleMapSelect}
-            height="100%"
-            mapClassName="h-full"
+            height={280}
+            countryCode={formData.country}
             cooperativeTouch
           />
         </div>
@@ -218,7 +238,7 @@ function StepLocationInner() {
         <p className="text-xs text-slate-500">{t('wizardListingTimezoneHint')}</p>
         <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
           <Select
-            value={String(formData.metadata?.timezone || 'Asia/Bangkok')}
+            value={listingTimezone}
             onValueChange={(v) => updateMetadata('timezone', v)}
           >
             <SelectTrigger className="mt-1 h-11 sm:flex-1 sm:mt-0">

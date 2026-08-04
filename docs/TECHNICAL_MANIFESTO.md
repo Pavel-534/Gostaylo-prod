@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.3 | **Last Updated**: 2026-08-04 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.23** wizard P2 soft publish + AI translate.
+> **Version**: 13.2.7 | **Last Updated**: 2026-08-04 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.27** wizard currency/map SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,31 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.27 — Wizard currency labels + map viewport
+
+- Price step labels: no hardcoded `฿`/THB — `getCurrencySymbol(baseCurrency)` + i18n `{{unit}}` / `{{currency}}` (`lib/currency.js` SSOT).
+- MapPicker: restore fixed **px** map height (wrapper `%` collapsed Leaflet); country default centers; country→timezone via `defaultTimezoneForCountryCode`; RU pin → `Europe/Moscow`.
+- Tests: `__tests__/stage200-27-wizard-currency-map.test.js`.
+
+### Stage 200.26 — Moderation edit + wizard step scroll
+
+- PATCH `/api/admin/moderation` `action: 'update'` (PENDING only): title, description, district, `basePriceThb` without status change; same fields also applied on approve.
+- Moderation detail: «Править объявление» + «Сохранить правки»; photos still partner-side.
+- Listing wizard: on `currentStep` change scroll workspace `[data-workspace-scroll]` (+ window) to top.
+- Tests: `__tests__/stage200-26-admin-moderation-edit-wizard-scroll.test.js`.
+
+### Stage 200.25 — Admin UX P2 (RU shell)
+
+- Admin menu EN leftovers → RU (`Dashboard`→`Обзор`, Waitlist, Marketplace Health, System Health, Audit, Advanced…).
+- Dashboard hub + chrome labels RU; moderation category labels via `resolveCategoryDisplayName`.
+- Tests: `__tests__/stage200-25-admin-ux-p2.test.js`.
+
+### Stage 200.24 — Admin UX P0/P1 (moderation + mobile nav)
+
+- Mobile sidebar: backdrop **inside** `WORKSPACE_FRAME` + `max-lg:backdrop-blur-none` (partner pattern) — fixes blurred burger menu.
+- Moderation detail: `sm:max-w-4xl`, scrollable body + sticky footer CTAs; RU labels (Одобрить / Отклонить / На проверке); edit-text hint (saves on approve).
+- Tests: `__tests__/stage200-24-admin-ux-p0.test.js`.
 
 ### Stage 200.23 — Listing wizard P2 (soft publish + AI translate)
 

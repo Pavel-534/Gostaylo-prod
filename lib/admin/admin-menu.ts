@@ -70,7 +70,7 @@ export type AdminQuickActionDef = {
 export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   {
     key: 'dashboard',
-    title: 'Dashboard',
+    title: 'Обзор',
     quickActions: [
       { id: 'dash-fintech', label: 'FinTech-пульт', kind: 'link', href: '/admin/settings/finances', variant: 'brand', allowedRoles: ['ADMIN'] },
       { id: 'dash-moderation', label: 'Модерация', kind: 'link', href: '/admin/moderation', variant: 'outline' },
@@ -131,7 +131,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN', 'MODERATOR'],
       },
       {
-        title: 'Marketplace Health',
+        title: 'Здоровье витрины',
         href: '/admin/marketplace-health',
         icon: 'Globe2',
         allowedRoles: ['ADMIN', 'MODERATOR'],
@@ -159,7 +159,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Waitlist',
+        title: 'Лист ожидания',
         href: '/admin/waitlist',
         icon: 'Mail',
         allowedRoles: ['ADMIN'],
@@ -196,7 +196,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         emphasize: true,
       },
       {
-        title: 'Financial Intelligence',
+        title: 'Финансовая аналитика',
         href: '/admin/finance/intelligence',
         icon: 'TrendingUp',
         allowedRoles: ['ADMIN'],
@@ -209,7 +209,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Ledger / Финансовое здоровье',
+        title: 'Ledger / здоровье',
         href: '/admin/financial-health',
         icon: 'Scale',
         allowedRoles: ['ADMIN'],
@@ -277,7 +277,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     title: 'Контроль & Безопасность',
     quickActions: [
       { id: 'ctrl-security', label: 'Безопасность контактов', kind: 'link', href: '/admin/security', variant: 'outline', allowedRoles: ['ADMIN'] },
-      { id: 'ctrl-health', label: 'System Health', kind: 'link', href: '/admin/health', variant: 'outline', allowedRoles: ['ADMIN'] },
+      { id: 'ctrl-health', label: 'Состояние системы', kind: 'link', href: '/admin/health', variant: 'outline', allowedRoles: ['ADMIN'] },
     ],
     items: [
       {
@@ -287,7 +287,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'System Health',
+        title: 'Состояние системы',
         href: '/admin/health',
         icon: 'Activity',
         allowedRoles: ['ADMIN'],
@@ -299,7 +299,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Audit log',
+        title: 'Журнал аудита',
         href: '/admin/audit',
         icon: 'Scale',
         allowedRoles: ['ADMIN', 'MODERATOR'],
@@ -312,7 +312,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
     quickActions: [
       { id: 'set-global', label: 'Глобальные настройки', kind: 'link', href: '/admin/settings', variant: 'outline', allowedRoles: ['ADMIN'] },
       { id: 'set-export', label: 'Выгрузки', kind: 'link', href: '/admin/audit-export', variant: 'outline', allowedRoles: ['ADMIN'] },
-      { id: 'set-system', label: 'Advanced: System', kind: 'link', href: '/admin/system', variant: 'outline', allowedRoles: ['ADMIN'] },
+      { id: 'set-system', label: 'Система (расширенные)', kind: 'link', href: '/admin/system', variant: 'outline', allowedRoles: ['ADMIN'] },
     ],
     items: [
       {
@@ -334,13 +334,13 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Advanced: System',
+        title: 'Система (расширенные)',
         href: '/admin/system',
         icon: 'Server',
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Advanced: Test DB',
+        title: 'Тестовая БД',
         href: '/admin/test-db',
         icon: 'Database',
         allowedRoles: ['ADMIN'],

@@ -1,6 +1,5 @@
 /**
- * GoStayLo - Admin Dashboard
- * Main admin panel page
+ * Admin dashboard — главная панель.
  */
 
 'use client';
@@ -55,15 +54,14 @@ export default function AdminDashboard() {
       const data = await res.json();
       
       if (data.success) {
-        alert('✅ Cache cleared successfully! Ghost listings should now be gone.');
-        // Reload stats to reflect changes
+        alert('Кэш очищен. «Призрачные» объявления должны исчезнуть.');
         loadStats();
       } else {
-        alert('❌ Failed to clear cache. Please try again.');
+        alert('Не удалось очистить кэш. Попробуйте ещё раз.');
       }
     } catch (error) {
       console.error('[REFRESH CACHE]', error);
-      alert('❌ Error clearing cache. Check console for details.');
+      alert('Ошибка очистки кэша. Смотрите консоль.');
     } finally {
       setRefreshing(false);
     }
@@ -74,8 +72,8 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
-          <p className="text-slate-600">System overview and management</p>
+          <h1 className="text-3xl font-bold text-slate-800">Главная панель</h1>
+          <p className="text-slate-600">Обзор системы и управление</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -85,11 +83,11 @@ export default function AdminDashboard() {
             className="bg-white hover:bg-slate-50"
           >
             <TrendingUp className="h-4 w-4 mr-2" />
-            {refreshing ? 'Refreshing...' : 'Refresh Site Data'}
+            {refreshing ? 'Обновление…' : 'Обновить данные сайта'}
           </Button>
           <Badge className="bg-indigo-100 text-indigo-800">
             <Shield className="h-3 w-3 mr-1" />
-            Admin Access
+            Доступ админа
           </Badge>
         </div>
       </div>
@@ -106,33 +104,33 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Всего пользователей</CardTitle>
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.users?.total || 0}</div>
             <p className="text-xs text-slate-500">
-              {stats?.users?.partners || 0} partners, {stats?.users?.renters || 0} renters
+              {stats?.users?.partners || 0} партнёров, {stats?.users?.renters || 0} клиентов
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Active Listings</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Активные объявления</CardTitle>
             <Building2 className="h-4 w-4 text-brand" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.listings?.active || 0}</div>
             <p className="text-xs text-slate-500">
-              {stats?.listings?.pending || 0} pending review
+              {stats?.listings?.pending || 0} на проверке
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Revenue (Month)</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Выручка (месяц)</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -144,14 +142,14 @@ export default function AdminDashboard() {
               ).toLocaleString()}
             </div>
             <p className="text-xs text-slate-500">
-              ฿{(stats?.revenue?.commission || 0).toLocaleString()} commission (all time)
+              ฿{(stats?.revenue?.commission || 0).toLocaleString()} комиссия (всего)
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Pending Actions</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Ожидают действий</CardTitle>
             <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
@@ -159,7 +157,7 @@ export default function AdminDashboard() {
               {(stats?.pending?.payments || 0) + (stats?.pending?.verifications || 0)}
             </div>
             <p className="text-xs text-slate-500">
-              {stats?.pending?.payments || 0} payments, {stats?.pending?.verifications || 0} verifications
+              {stats?.pending?.payments || 0} платежей, {stats?.pending?.verifications || 0} верификаций
             </p>
           </CardContent>
         </Card>
@@ -171,8 +169,8 @@ export default function AdminDashboard() {
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
             <CardContent className="pt-6">
               <Users className="h-8 w-8 text-blue-600 mb-2" />
-              <h3 className="font-semibold">Users</h3>
-              <p className="text-sm text-slate-600">Manage users & roles</p>
+              <h3 className="font-semibold">Пользователи</h3>
+              <p className="text-sm text-slate-600">Роли и аккаунты</p>
             </CardContent>
           </Card>
         </Link>
@@ -184,12 +182,12 @@ export default function AdminDashboard() {
                 <Building2 className="h-8 w-8 text-brand mb-2" />
                 {(stats?.listings?.pending || 0) > 0 ? (
                   <Badge className="bg-orange-100 text-orange-800 shrink-0">
-                    {stats.listings.pending} PENDING
+                    {stats.listings.pending} на проверке
                   </Badge>
                 ) : null}
               </div>
-              <h3 className="font-semibold">Listings</h3>
-              <p className="text-sm text-slate-600">Review & approve</p>
+              <h3 className="font-semibold">Объявления</h3>
+              <p className="text-sm text-slate-600">Модерация и одобрение</p>
             </CardContent>
           </Card>
         </Link>
@@ -198,8 +196,8 @@ export default function AdminDashboard() {
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-green-500">
             <CardContent className="pt-6">
               <CreditCard className="h-8 w-8 text-green-600 mb-2" />
-              <h3 className="font-semibold">Finance</h3>
-              <p className="text-sm text-slate-600">Payments & payouts</p>
+              <h3 className="font-semibold">Финансы</h3>
+              <p className="text-sm text-slate-600">Платежи и выплаты</p>
             </CardContent>
           </Card>
         </Link>
@@ -208,8 +206,8 @@ export default function AdminDashboard() {
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
             <CardContent className="pt-6">
               <MessageSquare className="h-8 w-8 text-purple-600 mb-2" />
-              <h3 className="font-semibold">Messages</h3>
-              <p className="text-sm text-slate-600">Support & disputes</p>
+              <h3 className="font-semibold">Сообщения</h3>
+              <p className="text-sm text-slate-600">Поддержка и споры</p>
             </CardContent>
           </Card>
         </Link>
@@ -220,26 +218,26 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            System Health
+            Состояние системы
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">API: Online</span>
+              <span className="text-sm">API: онлайн</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Database: Connected</span>
+              <span className="text-sm">База данных: подключена</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Telegram Bot: Active</span>
+              <span className="text-sm">Telegram-бот: активен</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Email Service: Ready</span>
+              <span className="text-sm">Email: готов</span>
             </div>
           </div>
         </CardContent>

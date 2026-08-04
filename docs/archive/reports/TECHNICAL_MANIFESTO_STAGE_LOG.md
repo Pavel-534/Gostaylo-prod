@@ -281,6 +281,14 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.27 (2026-08-04):** **Wizard currency + map** — base price labels via `getCurrencySymbol`/`{{unit}}` (no hardcoded ฿); MapPicker px height restore + country centers; country→IANA TZ; RU coords → Europe/Moscow. Test: `__tests__/stage200-27-wizard-currency-map.test.js`.
+
+**Stage 200.26 (2026-08-04):** **Moderation edit + wizard scroll** — PATCH `action: 'update'` for PENDING (title/description/district/`basePriceThb`); moderation «Сохранить правки»; wizard scrolls workspace to top on step change. Test: `__tests__/stage200-26-admin-moderation-edit-wizard-scroll.test.js`.
+
+**Stage 200.25 (2026-08-04):** **Admin UX P2** — RU admin menu/dashboard labels; moderation categories via `resolveCategoryDisplayName`. Test: `__tests__/stage200-25-admin-ux-p2.test.js`.
+
+**Stage 200.24 (2026-08-04):** **Admin UX P0/P1** — mobile sidebar backdrop inside `WORKSPACE_FRAME` + `max-lg:backdrop-blur-none` (fixes blurred burger); moderation dialog `sm:max-w-4xl` + scroll body/sticky footer; RU Approve/Reject/PENDING labels; edit-text hint on approve. Test: `__tests__/stage200-24-admin-ux-p0.test.js`.
+
 **Stage 200.23 (2026-08-04):** **Listing wizard P2** — soft publish (`validateListingSoftPublishQuality` + PATCH `softPublish` → PENDING + `quality_incomplete`); wizard step Next soft minima + secondary soft CTA; AI Translate (`mode: 'translate'`); Incomplete badge on partner list. Test: `__tests__/stage200-22-23-listing-wizard-p2.test.js`.
 
 **Stage 200.22 (2026-08-04):** **Draft cleanup tiered TTL** — SSOT `lib/partner/draft-cleanup-policy.js` (empty orphans 7d / contentful 30d); cron `/api/cron/cleanup-drafts` uses `shouldDeleteExpiredDraft`.

@@ -24,7 +24,7 @@ import {
 } from './chrome/listing-wizard-layout'
 import { PartnerReferralWizardBanner } from '@/components/partner/PartnerReferralWizardBanner'
 import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
-import { useWorkspaceScrollTrigger } from '@/lib/hooks/use-workspace-scroll-trigger'
+import { useWorkspaceScrollTrigger, findWorkspaceScrollRoot } from '@/lib/hooks/use-workspace-scroll-trigger'
 import { LISTING_WIZARD_STICKY_TOP_EXPANDED } from '@/lib/layout/workspace-shell'
 
 export function ListingWizardPageInner() {
@@ -56,6 +56,16 @@ export function ListingWizardPageInner() {
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [isDirty])
+
+  /** Stage 200.26: new wizard step starts at top (workspace scrollport + window). */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const root = findWorkspaceScrollRoot(document.body)
+    if (root) {
+      root.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [currentStep])
 
   /** Deep-link: /partner/listings/[id]?highlight=calendar */
   useEffect(() => {
