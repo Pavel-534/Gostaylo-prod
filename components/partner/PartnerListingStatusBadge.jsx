@@ -43,6 +43,8 @@ export function partnerListingStatusToTone(status) {
       return 'rejected'
     case 'BOOKED':
       return 'booked'
+    case 'DRAFT':
+      return 'draft'
     case 'INACTIVE':
     default:
       return 'draft'

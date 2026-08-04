@@ -20,6 +20,7 @@ import {
   buildListingPublishQualityChecklist,
   formatListingQualityChecklistLabel,
   listingQualityInputFromWizardForm,
+  validateListingSoftPublishQuality,
 } from '@/lib/partner/listing-quality-gates.js'
 import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
@@ -67,6 +68,22 @@ function assertPublishQualityGate(w, t) {
       duration: 12000,
     },
   )
+  return false
+}
+
+function assertSoftPublishQualityGate(w, t) {
+  const quality = validateListingSoftPublishQuality(
+    listingQualityInputFromWizardForm(w.formData, {
+      categorySlug: w.listingCategorySlug,
+      categoryName: w.formData.categoryName || '',
+      wizardProfile: w.listingCategoryWizardProfile,
+    }),
+  )
+  if (quality.ok) return true
+  toast.error(t('listingQuality_softPublishBlocked', 'Not enough for soft publish yet'), {
+    description: (quality.errors || []).slice(0, 4).join(' · '),
+    duration: 12000,
+  })
   return false
 }
 
@@ -183,8 +200,12 @@ export function useListingSave() {
     t,
   ])
 
-  const publishFromDraft = useCallback(async () => {
-    if (!assertPublishQualityGate(w, t)) return
+  const publishFromDraft = useCallback(async ({ soft = false } = {}) => {
+    if (soft) {
+      if (!assertSoftPublishQualityGate(w, t)) return
+    } else if (!assertPublishQualityGate(w, t)) {
+      return
+    }
     if (!editId) return
     setPublishing(true)
     try {
@@ -203,6 +224,7 @@ export function useListingSave() {
         description_translations: descTranslations,
         is_draft: false,
         published_at: new Date().toISOString(),
+        ...(soft ? { soft_publish: true } : { soft_publish: false, quality_incomplete: false }),
         ...(prevMeta.source === 'TELEGRAM_LAZY_REALTOR' ? { submitted_from: 'telegram' } : {}),
       }
       const tourBd =
@@ -234,6 +256,7 @@ export function useListingSave() {
           images: formData.images,
           coverImage,
           status: 'PENDING',
+          softPublish: soft,
           metadata: normalizePartnerListingMetadata(
             mergedMeta,
             categorySlug,
@@ -257,7 +280,14 @@ export function useListingSave() {
           await patchPartnerListingCoverImage(editId, newCover)
         }
         clearWizardDraft()
-        showListingModerationToast(t)
+        if (soft) {
+          toast.success(t('listingQuality_softPublishOk'), {
+            description: t('listingQuality_softPublishOkHint'),
+            duration: 10000,
+          })
+        } else {
+          showListingModerationToast(t)
+        }
         router.push(resolvePostPublishCalendarOnboardingUrl(editId))
       } else {
         const msg = result.error || t('partnerEdit_listingPublishErr')
@@ -280,6 +310,116 @@ export function useListingSave() {
     router,
     serverListing,
     t,
+    w,
+  ])
+
+  const softPublishListing = useCallback(async () => {
+    if (wizardMode === 'edit' && isEditMode) {
+      return publishFromDraft({ soft: true })
+    }
+    if (!assertSoftPublishQualityGate(w, t)) return
+    setPublishing(true)
+    try {
+      let publishListingId = editId || draftListingIdRef?.current || null
+      if (!publishListingId && typeof resolveListingIdForUpload === 'function') {
+        publishListingId = await resolveListingIdForUpload()
+      }
+      if (!publishListingId) {
+        toast.error(t('listingQuality_saveDraftFirst', 'Save a draft before publishing'))
+        return
+      }
+      const coverImage = buildCoverUrl()
+      const categorySlug = listingCategorySlug
+      const tourCat =
+        isTourListingCategory(categorySlug) ||
+        normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour'
+      const bookingDaysPayload = tourCat
+        ? { minBookingDays: 1, maxBookingDays: 730 }
+        : {
+            minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
+            maxBookingDays: parseInt(String(formData.maxBookingDays), 10) || 90,
+          }
+      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descriptionDb = buildListingDescriptionForDb(
+        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        language,
+      )
+      const publishMeta = normalizePartnerListingMetadata(
+        {
+          ...formData.metadata,
+          description_translations: descTranslations,
+          is_draft: false,
+          soft_publish: true,
+          published_at: new Date().toISOString(),
+        },
+        categorySlug,
+        formData.categoryName || '',
+        listingCategoryWizardProfile,
+      )
+      const res = await fetch(`/api/v2/partner/listings/${publishListingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title,
+          description: descriptionDb,
+          basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
+          baseCurrency: formData.baseCurrency || 'THB',
+          country: formData.country,
+          region: formData.region,
+          city: formData.city,
+          district: formData.district,
+          latitude:
+            formData.latitude === '' || formData.latitude == null
+              ? null
+              : parseFloat(String(formData.latitude)),
+          longitude:
+            formData.longitude === '' || formData.longitude == null
+              ? null
+              : parseFloat(String(formData.longitude)),
+          images: formData.images,
+          coverImage,
+          status: 'PENDING',
+          softPublish: true,
+          metadata: publishMeta,
+          cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          ...bookingDaysPayload,
+        }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        clearWizardDraft()
+        toast.success(t('listingQuality_softPublishOk'), {
+          description: t('listingQuality_softPublishOkHint'),
+          duration: 10000,
+        })
+        router.push(resolvePostPublishCalendarOnboardingUrl(publishListingId))
+      } else {
+        const msg = result.error || t('partnerEdit_listingPublishErr')
+        const extra = Array.isArray(result.errors) ? result.errors.join(' · ') : ''
+        toast.error(msg, extra ? { description: extra, duration: 12000 } : undefined)
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error(t('partnerEdit_listingPublishErr'))
+    } finally {
+      setPublishing(false)
+    }
+  }, [
+    buildCoverUrl,
+    draftListingIdRef,
+    editId,
+    formData,
+    isEditMode,
+    language,
+    listingCategorySlug,
+    listingCategoryWizardProfile,
+    publishFromDraft,
+    resolveListingIdForUpload,
+    router,
+    t,
+    w,
+    wizardMode,
   ])
 
   const saveDraft = useCallback(async () => {
@@ -481,6 +621,7 @@ export function useListingSave() {
           images: payload.images,
           coverImage: buildCoverUrl(),
           status: 'PENDING',
+          softPublish: false,
           metadata: payload.metadata,
           cancellationPolicy: formData.cancellationPolicy || 'moderate',
           ...bookingDaysPayload,
@@ -553,6 +694,7 @@ export function useListingSave() {
   return {
     saveDraft,
     publishListing,
+    softPublishListing,
     savePatchForEdit,
     patching,
     publishing,

@@ -27,6 +27,8 @@ function StepPreviewInner() {
     transportWizard,
     toursWizard,
     canProceed,
+    canSoftPublish,
+    canFullPublish,
     publishQualityChecklist,
     pricingPreview,
   } = w
@@ -65,9 +67,12 @@ function StepPreviewInner() {
         <p>{t('wizardModerationBanner')}</p>
       </div>
 
-      {!canProceed && (
+      {!canFullPublish && canSoftPublish ? (
+        <p className="text-sm text-slate-700">{t('listingQuality_softPublishHint')}</p>
+      ) : null}
+      {!canProceed && !canSoftPublish ? (
         <p className="text-sm text-amber-800">{t('listingQuality_publishBlocked', t('continueFilling'))}</p>
-      )}
+      ) : null}
 
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="p-4 sm:p-5">

@@ -20,7 +20,11 @@ import {
 } from '@/lib/partner/listing-service-type'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
-import { ensureWizardDraftListing } from '@/lib/partner/ensure-wizard-draft-listing'
+import {
+  ensureWizardDraftListing,
+  shouldCreateWizardDraftOnCategory,
+} from '@/lib/partner/ensure-wizard-draft-listing'
+import { saveWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { buildWizardFormDataFromListing } from './listing-wizard-load-existing'
 import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 
@@ -171,10 +175,76 @@ export function useListingWizardActions(state, derived) {
     [categories, setFormData],
   )
 
+  const resolveOrCreateWizardDraft = useCallback(
+    async (formSnapshot, { silentCategoryToast = false, updateUrl = true } = {}) => {
+      if (editId) return editId
+      if (draftListingIdRef.current) return draftListingIdRef.current
+      if (!formSnapshot?.categoryId) {
+        if (!silentCategoryToast) {
+          toast.error(
+            t('partnerWizard_selectCategoryBeforePhotos') ||
+              'Сначала выберите категорию на шаге «Основное»',
+          )
+        }
+        return null
+      }
+      if (ensuringDraftRef.current) {
+        return ensuringDraftRef.current
+      }
+      ensuringDraftRef.current = (async () => {
+        try {
+          const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
+          const meData = await meRes.json()
+          const partnerId = meData?.user?.id
+          if (!partnerId) {
+            toast.error(t('pleaseLogIn'))
+            return null
+          }
+          const listingId = await ensureWizardDraftListing({
+            partnerId,
+            formData: formSnapshot,
+            draftTitleFallback: t('draftDefaultTitle'),
+          })
+          draftListingIdRef.current = listingId
+          try {
+            saveWizardDraft(formSnapshot, currentStep, listingId)
+          } catch {
+            /* ignore */
+          }
+          // URL ?edit= switches create→edit and reloads server row (wipes in-progress form).
+          // Category-select drafts keep id in ref only; photo/publish may set URL.
+          if (updateUrl && typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            if (!url.searchParams.get('edit')) {
+              router.replace(`/partner/listings/new?edit=${encodeURIComponent(listingId)}`, {
+                scroll: false,
+              })
+            }
+          }
+          return listingId
+        } catch (e) {
+          console.error('[wizard] ensure draft listing:', e)
+          toast.error(
+            e?.message === 'CATEGORY_REQUIRED'
+              ? t('partnerWizard_selectCategoryBeforePhotos')
+              : t('uploadFailedToast'),
+          )
+          return null
+        } finally {
+          ensuringDraftRef.current = null
+        }
+      })()
+      return ensuringDraftRef.current
+    },
+    [editId, t, draftListingIdRef, ensuringDraftRef, router, currentStep],
+  )
+
   const setCategoryId = useCallback(
     (value) => {
       const cat = categories.find((c) => c.id === value)
       const slug = String(cat?.slug || '').toLowerCase()
+      /** @type {object | null} */
+      let snapshotForDraft = null
       setFormData((prev) => {
         const baseMeta = { ...prev.metadata }
         const amenityFiltered = filterAmenitiesForPartnerCategory(
@@ -220,10 +290,53 @@ export function useListingWizardActions(state, derived) {
             amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
           }
         }
+        snapshotForDraft = next
         return next
       })
+
+      // Stage 200.20 — draft right after category (create mode only).
+      const existingId = editId || draftListingIdRef.current
+      if (
+        shouldCreateWizardDraftOnCategory({
+          existingListingId: existingId,
+          categoryId: value,
+        }) &&
+        snapshotForDraft
+      ) {
+        void resolveOrCreateWizardDraft(snapshotForDraft, {
+          silentCategoryToast: true,
+          updateUrl: false,
+        })
+      } else if (value && draftListingIdRef.current && !editId) {
+        // Category switch on an existing create-mode draft — keep row in sync.
+        void fetch(`/api/v2/partner/listings/${encodeURIComponent(draftListingIdRef.current)}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryId: value,
+            metadata: {
+              ...(snapshotForDraft?.metadata && typeof snapshotForDraft.metadata === 'object'
+                ? snapshotForDraft.metadata
+                : {}),
+              is_draft: true,
+              wizard_upload: true,
+            },
+          }),
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}))
+              toast.error(data.error || t('partnerWizard_categoryUpdateFailed'))
+            }
+          })
+          .catch((e) => {
+            console.error('[wizard] patch draft category:', e)
+            toast.error(t('partnerWizard_categoryUpdateFailed'))
+          })
+      }
     },
-    [categories, setFormData],
+    [categories, setFormData, editId, draftListingIdRef, resolveOrCreateWizardDraft, t],
   )
 
   const loadExistingListing = useCallback(
@@ -294,6 +407,7 @@ export function useListingWizardActions(state, derived) {
           baseCurrency: formData.baseCurrency || 'THB',
           metadata: formData.metadata,
           existingDescription: formData.description || '',
+          mode: 'generate',
         }),
       })
       const data = await res.json()
@@ -353,51 +467,99 @@ export function useListingWizardActions(state, derived) {
     setFormData,
   ])
 
-  const resolveListingIdForUpload = useCallback(async () => {
-    if (editId) return editId
-    if (draftListingIdRef.current) return draftListingIdRef.current
-    if (!formData.categoryId) {
-      toast.error(
-        t('partnerWizard_selectCategoryBeforePhotos') ||
-          'Сначала выберите категорию на шаге «Основное»',
-      )
-      return null
+  const handleAiTranslateDescription = useCallback(async () => {
+    const source = String(formData.description || '').trim()
+    if (source.length < 40) {
+      toast.error(t('translateDescriptionMinLength'))
+      return
     }
-    if (ensuringDraftRef.current) return null
-    ensuringDraftRef.current = true
+    if (!formData.title || formData.title.trim().length < 3) {
+      toast.error(t('improveDescriptionTitleMin'))
+      return
+    }
+    if (aiDescQuota.exhausted) return
+    setAiDescriptionLoading(true)
     try {
-      const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
-      const meData = await meRes.json()
-      const partnerId = meData?.user?.id
-      if (!partnerId) {
-        toast.error(t('pleaseLogIn'))
-        return null
-      }
-      const listingId = await ensureWizardDraftListing({
-        partnerId,
-        formData,
-        draftTitleFallback: t('draftDefaultTitle'),
+      const res = await fetch('/api/v2/partner/listings/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          listingId: isEditMode && editId ? editId : undefined,
+          title: formData.title.trim(),
+          district: formData.district || '',
+          categorySlug: categories.find((c) => c.id === formData.categoryId)?.slug || '',
+          basePriceThb: formData.basePriceThb,
+          baseCurrency: formData.baseCurrency || 'THB',
+          metadata: formData.metadata,
+          existingDescription: source,
+          mode: 'translate',
+        }),
       })
-      draftListingIdRef.current = listingId
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href)
-        if (!url.searchParams.get('edit')) {
-          router.replace(`/partner/listings/new?edit=${encodeURIComponent(listingId)}`, { scroll: false })
-        }
+      const data = await res.json()
+      if (res.status === 429 || data.error === 'QUOTA_EXHAUSTED') {
+        setAiDescQuota((q) => ({ ...q, exhausted: true, remaining: 0 }))
+        toast.error(t('improveDescriptionAILimitExhausted'))
+        return
       }
-      return listingId
+      if (!res.ok || !data.success) {
+        toast.error(
+          data.code === 'TRANSLATE_SOURCE_TOO_SHORT'
+            ? t('translateDescriptionMinLength')
+            : data.error || t('failedToLoadListing'),
+        )
+        return
+      }
+      const dr = String(data.data?.descriptionRu || '').slice(0, 2000)
+      const enS = String(data.data?.descriptionEn || '').slice(0, 2000)
+      const zhS = String(data.data?.descriptionZh || '').slice(0, 2000)
+      const thS = String(data.data?.descriptionTh || '').slice(0, 2000)
+      const seo = data.data?.seo || {}
+      const byLang = { ru: dr, en: enS, zh: zhS, th: thS }
+      const shown = (byLang[language] || source || enS || dr).slice(0, 2000)
+      if (data.data?.quota) setAiDescQuota(data.data.quota)
+      setFormData((prev) => {
+        const meta = { ...prev.metadata }
+        const prevSeo = meta.seo && typeof meta.seo === 'object' ? meta.seo : {}
+        return {
+          ...prev,
+          description: shown,
+          metadata: {
+            ...meta,
+            description_translations: { ru: dr, en: enS, zh: zhS, th: thS },
+            seo: {
+              ...prevSeo,
+              ...(seo.ru ? { ru: seo.ru } : {}),
+              ...(seo.en ? { en: seo.en } : {}),
+              ...(seo.zh ? { zh: seo.zh } : {}),
+              ...(seo.th ? { th: seo.th } : {}),
+            },
+          },
+        }
+      })
+      toast.success(t('translateDescriptionSuccess'))
     } catch (e) {
-      console.error('[wizard] ensure draft listing for upload:', e)
-      toast.error(
-        e?.message === 'CATEGORY_REQUIRED'
-          ? t('partnerWizard_selectCategoryBeforePhotos')
-          : t('uploadFailedToast'),
-      )
-      return null
+      console.error(e)
+      toast.error(t('failedToLoadListing'))
     } finally {
-      ensuringDraftRef.current = false
+      setAiDescriptionLoading(false)
     }
-  }, [editId, formData, t, draftListingIdRef, ensuringDraftRef, router])
+  }, [
+    aiDescQuota.exhausted,
+    categories,
+    formData,
+    isEditMode,
+    editId,
+    language,
+    t,
+    setAiDescriptionLoading,
+    setAiDescQuota,
+    setFormData,
+  ])
+
+  const resolveListingIdForUpload = useCallback(async () => {
+    return resolveOrCreateWizardDraft(formData)
+  }, [formData, resolveOrCreateWizardDraft])
 
   const handleImageUpload = useCallback(
     async (files) => {
@@ -590,6 +752,7 @@ export function useListingWizardActions(state, derived) {
     setListingServiceType,
     setCategoryId,
     handleAiImproveDescription,
+    handleAiTranslateDescription,
     resolveListingIdForUpload,
     handleImageUpload,
     removeImage,

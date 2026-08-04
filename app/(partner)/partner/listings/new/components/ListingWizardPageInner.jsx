@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -15,6 +15,7 @@ import { ListingWizardChrome } from './chrome/ListingWizardChrome'
 import { ListingWizardStepFooter } from './chrome/ListingWizardStepFooter'
 import { ListingWizardMobileActionBar } from './chrome/ListingWizardMobileActionBar'
 import { ListingWizardPreviewPanel } from './preview/ListingWizardPreviewPanel'
+import { WizardResumeDraftBanner } from './chrome/WizardResumeDraftBanner'
 import {
   WIZARD_COMPACT_STEP_INDICATOR_HEIGHT,
   WIZARD_MOBILE_CHROME_PT_CLASS,
@@ -37,7 +38,12 @@ export function ListingWizardPageInner() {
     currentStep,
     setCurrentStep,
     isDirty,
-    draftRestored,
+    formData,
+    categories,
+    getCategoryDisplayName,
+    showResumeDraftBanner,
+    dismissResumeDraftBanner,
+    startFreshWizard,
   } = w
 
   useEffect(() => {
@@ -50,14 +56,6 @@ export function ListingWizardPageInner() {
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [isDirty])
-
-  const restoreToastShownRef = useRef(false)
-  useEffect(() => {
-    if (draftRestored && !restoreToastShownRef.current) {
-      restoreToastShownRef.current = true
-      toast.success(t('wizardDraftRestored'))
-    }
-  }, [draftRestored, t])
 
   /** Deep-link: /partner/listings/[id]?highlight=calendar */
   useEffect(() => {
@@ -81,6 +79,14 @@ export function ListingWizardPageInner() {
     : isEditMode
       ? t('editListing')
       : t('createNewListing')
+
+  const resumeCategoryLabel = useMemo(() => {
+    const cat = categories.find((c) => String(c.id) === String(formData.categoryId))
+    if (!cat) return formData.categoryName || ''
+    return typeof getCategoryDisplayName === 'function'
+      ? getCategoryDisplayName(cat)
+      : cat.name || ''
+  }, [categories, formData.categoryId, formData.categoryName, getCategoryDisplayName])
 
   const STEPS = useMemo(
     () => [
@@ -141,6 +147,15 @@ export function ListingWizardPageInner() {
         className={`relative z-0 mx-auto max-w-7xl px-4 ${WIZARD_MOBILE_CHROME_PT_CLASS} sm:pt-6 sm:px-6 ${WIZARD_MOBILE_CONTENT_PB_CLASS} sm:pb-10 lg:px-8`}
       >
         {!isEditRoute ? <PartnerReferralWizardBanner className="mb-6" /> : null}
+        {!isEditRoute && showResumeDraftBanner ? (
+          <WizardResumeDraftBanner
+            t={t}
+            title={formData.title}
+            categoryLabel={resumeCategoryLabel}
+            onContinue={dismissResumeDraftBanner}
+            onCreateNew={startFreshWizard}
+          />
+        ) : null}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card className="rounded-2xl border-slate-200/90 bg-white shadow-sm">

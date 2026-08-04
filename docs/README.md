@@ -101,6 +101,7 @@ docs/
 | Нужно | Куда |
 |-------|------|
 | Ops cron / money jobs | [`runbooks/CRON_EXTERNAL_FINANCIAL.md`](./runbooks/CRON_EXTERNAL_FINANCIAL.md) |
+| **Day-0 soft launch** | [`runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md`](./runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md) |
 | Go-live / treasury | [`runbooks/`](./runbooks/) |
 | Launch risk register (РФ / TH) | [`LAUNCH_RISK_REGISTER.md`](./LAUNCH_RISK_REGISTER.md) |
 | Referral | [`guides/referral/`](./guides/referral/) |

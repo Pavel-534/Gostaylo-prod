@@ -235,6 +235,10 @@
 | 200.17 | 2026-07-31 | Soft back-nav + catalog scroll memory (2026-07-31) | Active |
 | 200.18 | 2026-07-31 | Dock exclusive pending + Search/View-all (2026-07-31) | Active |
 | 200.19 | 2026-07-31 | PDP map cooperative overlay clip (2026-07-31) | Active |
+| 200.20 | 2026-08-04 | Listing wizard P0 UX polish (draft after category, honest locales, brand touch) | Done |
+| 200.21 | 2026-08-04 | Stage 200.21: Draft hygiene, resume draft banner, category picker i18n | Done |
+| 200.22 | 2026-08-04 | Draft cleanup tiered TTL (empty 7d / contentful 30d) | Done |
+| 200.23 | 2026-08-04 | Listing wizard P2: soft publish + Incomplete badge + AI Translate | Done |
 
 ## Пробелы в паспорте
 

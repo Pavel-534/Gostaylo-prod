@@ -15,7 +15,7 @@ import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
-import { validateListingPublishQuality } from '@/lib/partner/listing-quality-gates.js';
+import { validateListingPublishQuality, validateListingSoftPublishQuality } from '@/lib/partner/listing-quality-gates.js';
 import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
 import { listingBasePriceSchema } from '@/lib/validations/listing';
 import { applyListingGeoSnapshotToUpdateData } from '@/lib/partner/apply-listing-geo-snapshot';
@@ -350,7 +350,7 @@ export async function PATCH(request, context) {
     if (!categorySlug && existing.category_id) {
       categorySlug = (await resolveListingCategorySlug(existing.category_id)) || '';
     }
-    const quality = validateListingPublishQuality({
+    const qualityInput = {
       title: body.title !== undefined ? body.title : existing.title,
       description: body.description !== undefined ? body.description : existing.description,
       images: body.images !== undefined ? body.images : existing.images,
@@ -365,7 +365,16 @@ export async function PATCH(request, context) {
         body.basePriceThb !== undefined
           ? body.basePriceThb
           : readPartnerFormAssetAmount(existing) ?? existing.base_price_thb,
-    });
+    };
+    // Soft publish: PENDING only with softer gates (Stage 200.23). ACTIVE always full quality.
+    const wantsSoft =
+      nextStatus === 'PENDING' &&
+      (body.softPublish === true ||
+        mergedMeta.soft_publish === true ||
+        mergedMeta.soft_publish === 'true');
+    const quality = wantsSoft
+      ? validateListingSoftPublishQuality(qualityInput)
+      : validateListingPublishQuality(qualityInput);
     if (!quality.ok) {
       return NextResponse.json(
         {
@@ -377,6 +386,31 @@ export async function PATCH(request, context) {
         },
         { status: 400 },
       );
+    }
+    if (wantsSoft) {
+      const full = validateListingPublishQuality(qualityInput);
+      body.metadata = {
+        ...mergedMeta,
+        ...(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
+        is_draft: false,
+        soft_publish: true,
+        quality_incomplete: !full.ok,
+        soft_publish_at: new Date().toISOString(),
+      };
+    } else if (nextStatus === 'PENDING' || nextStatus === 'ACTIVE') {
+      body.metadata = {
+        ...mergedMeta,
+        ...(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
+        is_draft: false,
+        soft_publish: false,
+        quality_incomplete: false,
+      };
+    }
+    if (body.metadata !== undefined) {
+      updateData.metadata = {
+        ...(updateData.metadata || existing.metadata || {}),
+        ...body.metadata,
+      };
     }
   }
 

@@ -19,11 +19,12 @@ export function ListingWizardHeader({ headerTitle }) {
     t,
     wizardMode,
     serverListing,
-    canProceed,
+    canFullPublish,
+    canSoftPublish,
     loading,
     savingDraft,
   } = useListingWizard()
-  const { saveDraft, publishListing, patching, publishing } = useListingSave()
+  const { saveDraft, publishListing, softPublishListing, patching, publishing } = useListingSave()
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
@@ -34,9 +35,8 @@ export function ListingWizardHeader({ headerTitle }) {
     <div className="flex items-center justify-between gap-3 py-3">
       <Button
         variant="ghost"
-        size="sm"
         onClick={() => router.push('/partner/listings')}
-        className="gap-1.5 px-2 text-slate-600 hover:text-slate-900"
+        className="min-h-[44px] min-w-[44px] gap-1.5 px-2 text-slate-600 hover:text-slate-900"
         type="button"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -67,10 +67,9 @@ export function ListingWizardHeader({ headerTitle }) {
         ) : null}
         <Button
           variant="outline"
-          size="sm"
           onClick={saveDraft}
           disabled={saveBusy}
-          className="gap-1.5"
+          className="min-h-[44px] min-w-[44px] gap-1.5"
           type="button"
         >
           {saveBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -78,13 +77,25 @@ export function ListingWizardHeader({ headerTitle }) {
             {isEditRoute ? t('partnerEdit_save') : t('saveDraft')}
           </span>
         </Button>
+        {isEditRoute && isDraft && canSoftPublish ? (
+          <Button
+            onClick={softPublishListing}
+            disabled={lastStepBusy}
+            variant="outline"
+            className="hidden min-h-[44px] min-w-[44px] gap-1.5 sm:inline-flex"
+            type="button"
+            data-testid="wizard-header-soft-publish-btn"
+          >
+            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {t('listingQuality_softPublish')}
+          </Button>
+        ) : null}
         {isEditRoute && isDraft ? (
           <Button
             onClick={publishListing}
-            disabled={!canProceed || lastStepBusy}
+            disabled={!canFullPublish || lastStepBusy}
             variant="brand"
-            size="sm"
-            className="hidden gap-1.5 sm:inline-flex"
+            className="hidden min-h-[44px] min-w-[44px] gap-1.5 sm:inline-flex"
             type="button"
           >
             {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

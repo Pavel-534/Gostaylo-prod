@@ -58,6 +58,7 @@ function StepGeneralInfoInner() {
     aiDescriptionLoading,
     aiDescQuota,
     handleAiImproveDescription,
+    handleAiTranslateDescription,
     updateMetadata,
     isEditMode,
     editId,
@@ -66,244 +67,299 @@ function StepGeneralInfoInner() {
   const checkInPhotosRef = useRef(null)
   const [checkInPhotosUploading, setCheckInPhotosUploading] = useState(false)
 
+  const hasCheckInContent =
+    String(formData.metadata?.check_in_instructions ?? '').trim().length > 0 ||
+    (Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0)
+
   return (
     <div className={WIZARD_STEP_ROOT_CLASS}>
       <div>
         <h2 className={`mb-2 ${WIZARD_STEP_TITLE_CLASS}`}>{t('tellUsAboutListing')}</h2>
         <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('startWithBasics')}</p>
       </div>
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <Label className="text-base font-medium">{t('wizardServiceTypeLabel')}</Label>
-        <p className="text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
-        <RadioGroup
-          value={formData.listingServiceType || ''}
-          onValueChange={setListingServiceType}
-          className="grid gap-2 sm:grid-cols-2"
-        >
-          {(['stay', 'transport', 'service', 'tour']).map((value) => (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-brand/40"
-            >
-              <RadioGroupItem value={value} id={`svc-${value}`} />
-              <span className="font-medium text-slate-800">{t(`wizardServiceType_${value}`)}</span>
-            </label>
-          ))}
-        </RadioGroup>
-      </div>
-      <div>
-        <Label className="text-base font-medium">{t('selectCategory')}</Label>
-        <p className="mt-1 text-xs text-slate-600">
-          {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
-        </p>
-        <div className="mt-3">
-          <PartnerCategoryPickerTwoStep
-            categories={wizardCategoriesForSelect}
-            listingServiceType={formData.listingServiceType}
+
+      {/* Section A — identity (Airbnb-like: decide what you're listing first) */}
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_identity')}</h3>
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+          <Label className="text-base font-medium">{t('wizardServiceTypeLabel')}</Label>
+          <p className="text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
+          <RadioGroup
+            value={formData.listingServiceType || ''}
+            onValueChange={setListingServiceType}
+            className="grid gap-2 sm:grid-cols-2"
+          >
+            {(['stay', 'transport', 'service', 'tour']).map((value) => (
+              <label
+                key={value}
+                className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm hover:border-brand/40"
+              >
+                <RadioGroupItem value={value} id={`svc-${value}`} />
+                <span className="font-medium text-slate-800">{t(`wizardServiceType_${value}`)}</span>
+              </label>
+            ))}
+          </RadioGroup>
+        </div>
+        <div>
+          <Label className="text-base font-medium">{t('selectCategory')}</Label>
+          <p className="mt-1 text-xs text-slate-600">
+            {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
+          </p>
+          <div className="mt-3">
+            <PartnerCategoryPickerTwoStep
+              categories={wizardCategoriesForSelect}
+              listingServiceType={formData.listingServiceType}
+              categoryId={formData.categoryId}
+              language={language}
+              t={t}
+              getCategoryDisplayName={getCategoryDisplayName}
+              onSelectCategoryId={setCategoryId}
+              disabled={!formData.listingServiceType}
+            />
+          </div>
+        </div>
+        {transportWizard && formData.categoryId ? (
+          (() => {
+            const transportFields = getWizardStep1TransportFields(
+              listingCategorySlug,
+              listingCategoryWizardProfile,
+            )
+            if (!transportFields.length) return null
+            return (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4 space-y-3">
+                <p className="text-sm leading-relaxed text-slate-600">{t('wizardSpecsVehicleSearchHint')}</p>
+                <WizardSchemaFields
+                  fields={transportFields}
+                  metadata={formData.metadata}
+                  updateMetadata={updateMetadata}
+                  t={t}
+                  language={language}
+                  fuelPolicyHint
+                />
+              </div>
+            )
+          })()
+        ) : null}
+      </section>
+
+      {/* Section B — title / description / AI / import */}
+      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_basics')}</h3>
+        {formData.categoryId && !hideAirbnbImportBlock ? (
+          <PartnerListingImportBlock
             categoryId={formData.categoryId}
-            language={language}
-            getCategoryDisplayName={getCategoryDisplayName}
-            onSelectCategoryId={setCategoryId}
-            disabled={!formData.listingServiceType}
+            variant="wizard"
+            listingId={isEditMode && editId ? editId : undefined}
+            migrateImportedImagesToStorage={!!(isEditMode && editId)}
+            onApplyPreview={w.applyAirbnbPreview}
           />
+        ) : null}
+        <div>
+          <Label className="text-base font-medium text-slate-800">{t('listingTitleLabel')}</Label>
+          <Input
+            type="text"
+            placeholder={t('titlePlaceholder')}
+            value={formData.title}
+            onChange={(e) => updateField('title', e.target.value)}
+            className="mt-2 h-12"
+            maxLength={100}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            {formData.title.length}/100 {t('characters')}
+          </p>
         </div>
-      </div>
-      {transportWizard && formData.categoryId ? (
-        (() => {
-          const transportFields = getWizardStep1TransportFields(
-            listingCategorySlug,
-            listingCategoryWizardProfile,
-          )
-          if (!transportFields.length) return null
-          return (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-              <p className="text-sm leading-relaxed text-slate-600">{t('wizardSpecsVehicleSearchHint')}</p>
-              <WizardSchemaFields
-                fields={transportFields}
-                metadata={formData.metadata}
-                updateMetadata={updateMetadata}
-                t={t}
-                language={language}
-                fuelPolicyHint
-              />
-            </div>
-          )
-        })()
-      ) : null}
-      {formData.categoryId && !hideAirbnbImportBlock ? (
-        <PartnerListingImportBlock
-          categoryId={formData.categoryId}
-          variant="wizard"
-          listingId={isEditMode && editId ? editId : undefined}
-          migrateImportedImagesToStorage={!!(isEditMode && editId)}
-          onApplyPreview={w.applyAirbnbPreview}
-        />
-      ) : null}
-      <div>
-        <Label className="text-base font-medium text-slate-800">{t('listingTitleLabel')}</Label>
-        <Input
-          type="text"
-          placeholder={t('titlePlaceholder')}
-          value={formData.title}
-          onChange={(e) => updateField('title', e.target.value)}
-          className="mt-2 h-12"
-          maxLength={100}
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          {formData.title.length}/100 {t('characters')}
-        </p>
-      </div>
-      <div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100 disabled:opacity-50"
-                    disabled={aiDescriptionLoading || aiDescQuota.exhausted}
-                    onClick={handleAiImproveDescription}
-                  >
-                    {aiDescriptionLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('improveDescriptionAILoading')}
-                      </>
-                    ) : (
-                      t('improveDescriptionAI')
-                    )}
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {aiDescQuota.exhausted ? (
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p>{t('improveDescriptionAILimitExhausted')}</p>
-                </TooltipContent>
-              ) : null}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <p className="mt-1 text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
-        <p className="mt-1 text-xs text-slate-600">
-          {t('improveDescriptionAIQuotaUsed')
-            .replace('{{used}}', String(aiDescQuota.used))
-            .replace('{{limit}}', String(aiDescQuota.limit))}
-        </p>
-        <Textarea
-          placeholder={t('descriptionPlaceholder')}
-          value={formData.description}
-          onChange={(e) => updateDescription(e.target.value)}
-          className="mt-2 min-h-[120px]"
-          maxLength={2000}
-        />
-        <p className="mt-1 text-xs text-slate-500">
-          {formData.description.length}/2000 {t('characters')}
-        </p>
-      </div>
-      {formData.listingServiceType ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <Label className="text-base font-medium text-slate-800">{t('wizardCheckInInstructionsLabel')}</Label>
-          <p className="mt-1 text-xs text-slate-600 leading-relaxed">{t('wizardCheckInInstructionsHint')}</p>
+        <div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
+            <TooltipProvider delayDuration={200}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        type="button"
+                        variant="brand"
+                        className="min-h-[44px] min-w-[44px] shrink-0 disabled:opacity-50"
+                        disabled={aiDescriptionLoading || aiDescQuota.exhausted}
+                        onClick={handleAiImproveDescription}
+                        data-testid="wizard-ai-improve-btn"
+                      >
+                        {aiDescriptionLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('improveDescriptionAILoading')}
+                          </>
+                        ) : (
+                          t('improveDescriptionAI')
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {aiDescQuota.exhausted ? (
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p>{t('improveDescriptionAILimitExhausted')}</p>
+                    </TooltipContent>
+                  ) : null}
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-[44px] min-w-[44px] shrink-0 disabled:opacity-50"
+                        disabled={
+                          aiDescriptionLoading ||
+                          aiDescQuota.exhausted ||
+                          String(formData.description || '').trim().length < 40
+                        }
+                        onClick={handleAiTranslateDescription}
+                        data-testid="wizard-ai-translate-btn"
+                      >
+                        {t('translateDescriptionAI')}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>
+                      {aiDescQuota.exhausted
+                        ? t('improveDescriptionAILimitExhausted')
+                        : t('translateDescriptionAIHint')}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
+          <p className="mt-1 text-xs text-slate-600">
+            {t('improveDescriptionAIQuotaUsed')
+              .replace('{{used}}', String(aiDescQuota.used))
+              .replace('{{limit}}', String(aiDescQuota.limit))}
+          </p>
           <Textarea
-            value={String(formData.metadata?.check_in_instructions ?? '')}
-            onChange={(e) => updateMetadata('check_in_instructions', e.target.value)}
-            placeholder={pickupInstructionsPlaceholder(formData.listingServiceType, t)}
-            className="mt-2 min-h-[96px]"
+            placeholder={t('descriptionPlaceholder')}
+            value={formData.description}
+            onChange={(e) => updateDescription(e.target.value)}
+            className="mt-2 min-h-[120px]"
             maxLength={2000}
           />
           <p className="mt-1 text-xs text-slate-500">
-            {String(formData.metadata?.check_in_instructions ?? '').length}/2000 {t('characters')}
+            {formData.description.length}/2000 {t('characters')}
           </p>
-          <div className="mt-4 border-t border-slate-100 pt-4 space-y-2">
-            <Label className="text-sm font-medium text-slate-800">{t('wizardCheckInPhotosLabel')}</Label>
-            <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInPhotosHint')}</p>
-            <input
-              ref={checkInPhotosRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={async (e) => {
-                const picked = Array.from(e.target.files || []).filter((f) => f.type?.startsWith('image/'))
-                if (checkInPhotosRef.current) checkInPhotosRef.current.value = ''
-                if (picked.length === 0) return
-                const existing = Array.isArray(formData.metadata?.check_in_photos)
-                  ? formData.metadata.check_in_photos.filter((u) => typeof u === 'string' && u.trim())
-                  : []
-                const room = 3 - existing.length
-                if (room <= 0) {
-                  toast.error(t('wizardCheckInPhotosMax'))
-                  return
-                }
-                const slice = picked.slice(0, room)
-                setCheckInPhotosUploading(true)
-                try {
-                  const folderId = await resolveListingIdForUpload()
-                  if (!folderId) return
-                  const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
-                  const uploaded = await processAndUploadImages(slice, folderId, () => {})
-                  if (uploaded.length > 0) {
-                    updateMetadata('check_in_photos', [...existing, ...uploaded].slice(0, 3))
-                    toast.success(t('wizardCheckInPhotosUploaded').replace('{{n}}', String(uploaded.length)))
-                  }
-                } catch (err) {
-                  console.error(err)
-                  toast.error(t('uploadFailedToast'))
-                } finally {
-                  setCheckInPhotosUploading(false)
-                }
-              }}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={checkInPhotosUploading || (formData.metadata?.check_in_photos?.length || 0) >= 3}
-                onClick={() => checkInPhotosRef.current?.click()}
-              >
-                {checkInPhotosUploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                )}
-                {t('wizardCheckInPhotosUpload')}
-              </Button>
-              <span className="text-xs text-slate-500">{t('wizardCheckInPhotosMax')}</span>
-            </div>
-            {Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                {formData.metadata.check_in_photos.map((url, idx) => (
-                  <div
-                    key={`${url}-${idx}`}
-                    className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
-                  >
-                    <ProxiedImage src={url} alt="" fill className="object-cover" sizes="120px" />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-1 top-1 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => {
-                        const next = formData.metadata.check_in_photos.filter((_, i) => i !== idx)
-                        updateMetadata('check_in_photos', next)
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
         </div>
+      </section>
+
+      {/* Section C — check-in / handoff (collapsed by default unless already filled) */}
+      {formData.listingServiceType ? (
+        <details
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm open:pb-5 sm:p-5"
+          defaultOpen={hasCheckInContent}
+        >
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+            {t('wizardSection_checkInOptional')}
+          </summary>
+          <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+            <Label className="text-base font-medium text-slate-800">{t('wizardCheckInInstructionsLabel')}</Label>
+            <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInInstructionsHint')}</p>
+            <Textarea
+              value={String(formData.metadata?.check_in_instructions ?? '')}
+              onChange={(e) => updateMetadata('check_in_instructions', e.target.value)}
+              placeholder={pickupInstructionsPlaceholder(formData.listingServiceType, t)}
+              className="mt-2 min-h-[96px]"
+              maxLength={2000}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              {String(formData.metadata?.check_in_instructions ?? '').length}/2000 {t('characters')}
+            </p>
+            <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
+              <Label className="text-sm font-medium text-slate-800">{t('wizardCheckInPhotosLabel')}</Label>
+              <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInPhotosHint')}</p>
+              <input
+                ref={checkInPhotosRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={async (e) => {
+                  const picked = Array.from(e.target.files || []).filter((f) => f.type?.startsWith('image/'))
+                  if (checkInPhotosRef.current) checkInPhotosRef.current.value = ''
+                  if (picked.length === 0) return
+                  const existing = Array.isArray(formData.metadata?.check_in_photos)
+                    ? formData.metadata.check_in_photos.filter((u) => typeof u === 'string' && u.trim())
+                    : []
+                  const room = 3 - existing.length
+                  if (room <= 0) {
+                    toast.error(t('wizardCheckInPhotosMax'))
+                    return
+                  }
+                  const slice = picked.slice(0, room)
+                  setCheckInPhotosUploading(true)
+                  try {
+                    const folderId = await resolveListingIdForUpload()
+                    if (!folderId) return
+                    const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
+                    const uploaded = await processAndUploadImages(slice, folderId, () => {})
+                    if (uploaded.length > 0) {
+                      updateMetadata('check_in_photos', [...existing, ...uploaded].slice(0, 3))
+                      toast.success(t('wizardCheckInPhotosUploaded').replace('{{n}}', String(uploaded.length)))
+                    }
+                  } catch (err) {
+                    console.error(err)
+                    toast.error(t('uploadFailedToast'))
+                  } finally {
+                    setCheckInPhotosUploading(false)
+                  }
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-[44px]"
+                  disabled={checkInPhotosUploading || (formData.metadata?.check_in_photos?.length || 0) >= 3}
+                  onClick={() => checkInPhotosRef.current?.click()}
+                >
+                  {checkInPhotosUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                  )}
+                  {t('wizardCheckInPhotosUpload')}
+                </Button>
+                <span className="text-xs text-slate-500">{t('wizardCheckInPhotosMax')}</span>
+              </div>
+              {Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {formData.metadata.check_in_photos.map((url, idx) => (
+                    <div
+                      key={`${url}-${idx}`}
+                      className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                    >
+                      <ProxiedImage src={url} alt="" fill className="object-cover" sizes="120px" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-1 top-1 h-11 w-11 min-h-[44px] min-w-[44px] opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={() => {
+                          const next = formData.metadata.check_in_photos.filter((_, i) => i !== idx)
+                          updateMetadata('check_in_photos', next)
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </details>
       ) : null}
+
       {formData.categoryId ? (
-        <Card className="border-slate-200/80 p-4 sm:p-5">
+        <Card className="rounded-2xl border-slate-200/80 p-4 sm:p-5">
           <WizardSpecsSection />
         </Card>
       ) : null}

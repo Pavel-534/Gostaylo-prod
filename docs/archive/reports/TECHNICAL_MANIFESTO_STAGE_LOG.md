@@ -281,6 +281,14 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.23 (2026-08-04):** **Listing wizard P2** — soft publish (`validateListingSoftPublishQuality` + PATCH `softPublish` → PENDING + `quality_incomplete`); wizard step Next soft minima + secondary soft CTA; AI Translate (`mode: 'translate'`); Incomplete badge on partner list. Test: `__tests__/stage200-22-23-listing-wizard-p2.test.js`.
+
+**Stage 200.22 (2026-08-04):** **Draft cleanup tiered TTL** — SSOT `lib/partner/draft-cleanup-policy.js` (empty orphans 7d / contentful 30d); cron `/api/cron/cleanup-drafts` uses `shouldDeleteExpiredDraft`.
+
+**Stage 200.21 (2026-08-04):** **P1a Draft hygiene & category i18n** — wizard Continue vs Create-new banner; `getUIText` in category picker; toast on category PATCH fail; localStorage draft v2 + list Continue CTA. Test: `__tests__/stage200-21-listing-wizard-p1.test.js`. (Docs tip may be 13.2.3+ after 200.22/23.)
+
+**Stage 200.20 (2026-08-04):** **Listing wizard P0 UX polish** — draft created right after category select (`shouldCreateWizardDraftOnCategory` + `resolveOrCreateWizardDraft`); `mergeDescriptionTranslationsForSave` no longer copies RU→EN/ZH/TH; AI CTA `variant="brand"`; wizard chrome/touch ≥44px. Test: `__tests__/stage200-20-listing-wizard-p0.test.js`.
+
 **Stage 200.19 (2026-07-31):** **PDP map cooperative overlay** — `ListingMap` / `MapPicker` map frame uses `isolate` so cooperative tap hint (`mapPicker_cooperativeTap`) cannot paint over mobile `MobileBookingBar` (z-50); hint centered in map instead of bottom-aligned.
 
 **Stage 200.18 (2026-07-31):** **Dock exclusive pending + Search/View-all** — `isOptimisticDockTabActive` (no dual Home+Search green); home Search intercept `markPending('/listings')`; `navigateToCatalog` dispatches pending so «Смотреть все» / Find paint Search; hook listens for `airento:nav-pending`.

@@ -17,7 +17,7 @@
 | External cron on prod | Hourly `escrow-thaw`, `promote-ready-for-payout`, payout pools | `CRON_EXTERNAL_FINANCIAL.md` |
 | Cron observability | Единая «последний successful run» + TG `[STALE_CRON]` | MONEY_FLOW_04 P1 — `runStaleCronMonitor` + FinTech health last-success |
 | Prod env audit | Один реестр всех financial env | `PRODUCTION_ENV.md` |
-| Controlled live bookings | 10–50 Concierge-броней с ручным payout | Phase D §4.2 |
+| Controlled live bookings | 10–50 Concierge-броней с ручным payout | Phase D §4.2; Day-0: [`runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md`](./runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md) |
 | Partner payout SOP | Документ + UI checklist | `CONCIERGE_LAUNCH_TREASURY_RUNBOOK` |
 | Referral withdrawal ops | Ручная очередь до автоматизации банка | Phase D; GO/No-Go |
 

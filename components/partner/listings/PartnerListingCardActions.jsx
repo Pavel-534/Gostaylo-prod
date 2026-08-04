@@ -32,6 +32,7 @@ export function PartnerListingCardActions({
   listing,
   t,
   showPublishCta,
+  showContinueDraft = false,
   ready,
   publishingId,
   visibilityBusyId,
@@ -47,7 +48,17 @@ export function PartnerListingCardActions({
   const isPublishing = publishingId === listing.id
   const isVisibilityBusy = visibilityBusyId === listing.id
 
-  const primaryVisibility = showPublishCta ? (
+  const primaryVisibility = showContinueDraft ? (
+    <Button variant="brand" className="min-h-11 min-h-[44px] flex-1 text-sm" asChild>
+      <Link
+        href={`/partner/listings/${listing.id}`}
+        data-testid={`continue-draft-btn-${listing.id}`}
+      >
+        <Edit className="mr-1 h-4 w-4" />
+        <span className="truncate">{t('partnerListings_continueDraft')}</span>
+      </Link>
+    </Button>
+  ) : showPublishCta ? (
     <Button
       onClick={(e) => {
         e.preventDefault()
@@ -171,9 +182,31 @@ export function PartnerListingCardActions({
             <Button variant="outline" className="min-h-11 w-full justify-start" asChild>
               <Link href={`/partner/listings/${listing.id}`} onClick={() => setMoreOpen(false)}>
                 <Edit className="mr-2 h-4 w-4" />
-                {t('partnerListings_edit')}
+                {showContinueDraft ? t('partnerListings_continueDraft') : t('partnerListings_edit')}
               </Link>
             </Button>
+            {showContinueDraft ? (
+              <Button
+                variant="outline"
+                className="min-h-11 w-full justify-start"
+                disabled={isPublishing}
+                onClick={() => {
+                  setMoreOpen(false)
+                  if (!ready) {
+                    onOpenQualityModal?.(listing)
+                    return
+                  }
+                  onPublish?.(listing)
+                }}
+              >
+                {isPublishing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                {ready ? t('partnerListings_publish') : t('partnerListings_finishChecklist')}
+              </Button>
+            ) : null}
             <Button variant="outline" className="min-h-11 w-full justify-start" asChild>
               <Link
                 href={`/partner/listings/${listing.id}?step=pricing`}

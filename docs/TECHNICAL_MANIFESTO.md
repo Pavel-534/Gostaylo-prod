@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.0 | **Last Updated**: 2026-08-01 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow (ledger vs status).
+> **Version**: 13.2.3 | **Last Updated**: 2026-08-04 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.23** wizard P2 soft publish + AI translate.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,34 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.23 — Listing wizard P2 (soft publish + AI translate)
+
+- Soft publish: `validateListingSoftPublishQuality` (1 photo / desc≥40 / price / district); PATCH `softPublish` → **PENDING** + `quality_incomplete`; wizard secondary CTA when soft OK && !full.
+- Step Next uses soft minima; full checklist still gates primary Publish.
+- Explicit **Translate (AI)** CTA → `generate-description` `mode: 'translate'`.
+- Partner list: Incomplete badge for soft/PENDING.
+- Tests: `__tests__/stage200-22-23-listing-wizard-p2.test.js`.
+
+### Stage 200.22 — Draft cleanup tiered TTL
+
+- SSOT `lib/partner/draft-cleanup-policy.js`: empty wizard orphans **7d** (`DRAFT_CLEANUP_EMPTY_DAYS`); contentful drafts **30d** (`DRAFT_CLEANUP_DAYS`); `is_draft` true|`'true'`.
+- Cron `/api/cron/cleanup-drafts` uses `shouldDeleteExpiredDraft` + candidate cutoff = empty TTL.
+
+### Stage 200.21 — Listing wizard P1a (Draft hygiene & category i18n)
+
+- **Resume in wizard:** compact Continue vs Create-new banner (`WizardResumeDraftBanner`) when localStorage draft exists; Create-new clears draft + form (prevents orphan proliferation).
+- Category picker strings via **`getUIText`** (`partnerWizard_category*`).
+- Category PATCH failure → user toast (`partnerWizard_categoryUpdateFailed`).
+- Also: localStorage draft v2 + `listingId`; list Continue CTA / resume banner; draft POST → `INACTIVE`.
+- Tests: `__tests__/stage200-21-listing-wizard-p1.test.js`.
+
+### Stage 200.20 — Listing wizard P0 UX polish
+
+- **Draft after category:** `setCategoryId` → `resolveOrCreateWizardDraft` / `ensureWizardDraftListing` (create mode; id in `draftListingIdRef`, URL `?edit=` deferred so form is not wiped); photo upload coalesces on the same in-flight Promise (`ensuringDraftRef`).
+- **No silent copy-fill:** `mergeDescriptionTranslationsForSave` writes only the active UI locale (+ existing AI slots); storefront falls back via `getListingText`.
+- **Brand + touch:** AI CTA `variant="brand"`; wizard chrome / service-type radios / category back ≥44px.
+- Tests: `__tests__/stage200-20-listing-wizard-p0.test.js`.
 
 ### Stage 203 — AUDIT_LEDGER_01 first-posting blockers + Phase 1 shadow
 

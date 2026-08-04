@@ -24,7 +24,7 @@ export function ListingWizardMobileSlimHeader({ currentStepLabel }) {
       <Button
         variant="ghost"
         onClick={() => router.push('/partner/listings')}
-        className="h-11 w-11 shrink-0 px-0 text-slate-600 hover:text-slate-900"
+        className="h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 px-0 text-slate-600 hover:text-slate-900"
         type="button"
         aria-label={t('exit')}
         data-testid="listing-wizard-exit"
@@ -40,7 +40,7 @@ export function ListingWizardMobileSlimHeader({ currentStepLabel }) {
           variant="outline"
           onClick={saveDraft}
           disabled={saveBusy}
-          className="h-11 w-11 shrink-0 px-0"
+          className="h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 px-0"
           type="button"
           aria-label={saveLabel}
           data-testid="listing-wizard-save"

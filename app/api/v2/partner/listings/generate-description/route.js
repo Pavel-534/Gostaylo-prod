@@ -89,6 +89,20 @@ export async function POST(request) {
     )
   }
 
+  const mode = body.mode === 'translate' ? 'translate' : 'generate'
+  const existingDescription =
+    typeof body.existingDescription === 'string' ? body.existingDescription.trim() : ''
+  if (mode === 'translate' && existingDescription.length < 40) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'existingDescription is required for translate mode (min 40 characters)',
+        code: 'TRANSLATE_SOURCE_TOO_SHORT',
+      },
+      { status: 400 },
+    )
+  }
+
   const listingId =
     typeof body.listingId === 'string' && body.listingId.trim() ? body.listingId.trim() : null
 
@@ -115,8 +129,8 @@ export async function POST(request) {
         categorySlug: typeof body.categorySlug === 'string' ? body.categorySlug.trim() : '',
         basePriceThb: body.basePriceThb,
         metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
-        existingDescription:
-          typeof body.existingDescription === 'string' ? body.existingDescription : '',
+        existingDescription,
+        mode,
       },
       apiKey,
     )
@@ -127,7 +141,7 @@ export async function POST(request) {
       taskType: TASK_LISTING_DESCRIPTION,
       model,
       usage,
-      metadata: { titleLen: title.length },
+      metadata: { titleLen: title.length, mode },
     })
 
     const slice = (s) => String(s || '').slice(0, 2000)

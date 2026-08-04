@@ -4,51 +4,31 @@
 
 import { computeWizardStorefrontPricePreview } from '@/lib/pricing/fx-display-client.js'
 import {
-  LISTING_QUALITY_MIN_DESCRIPTION,
-  LISTING_QUALITY_MIN_PHOTOS,
+  LISTING_SOFT_MIN_DESCRIPTION,
+  LISTING_SOFT_MIN_PHOTOS,
   LISTING_QUALITY_MIN_TITLE,
-  listingProfileRequiresGeoCoordinates,
   validateListingPublishQuality,
-  validateListingMetadataForProfile,
 } from '@/lib/partner/listing-quality-gates.js'
 
-function metadataRequiredForStep1(formData, categorySlug, wizardProfile, categoryName) {
-  return validateListingMetadataForProfile(
-    formData.metadata,
-    categorySlug,
-    categoryName,
-    wizardProfile,
-  )
-}
-
-function coordsRequiredAndValid(formData, categorySlug, wizardProfile, categoryName, coordsValid) {
-  if (!listingProfileRequiresGeoCoordinates(wizardProfile, categorySlug, categoryName)) {
-    return coordsValid
-  }
-  const lat = formData.latitude
-  const lng = formData.longitude
-  if (lat == null || lng == null || lat === '' || lng === '') return false
-  return coordsValid
-}
-
-/** Step validation: 1 general+specs; 2 location; 3 photos; 4 pricing; 5 preview. */
+/**
+ * Step validation: 1 general+specs; 2 location; 3 photos; 4 pricing; 5 preview.
+ * Stage 200.23 — step Next uses soft minima so partners can reach soft publish;
+ * full quality still gates the primary Publish CTA via publishQualityChecklist.
+ */
 export function computeWizardCanProceed(currentStep, formData, coordsValid, ctx = {}) {
-  const categorySlug = String(ctx.categorySlug || '')
-  const categoryName = String(ctx.categoryName || '')
-  const wizardProfile = ctx.wizardProfile ?? null
+  void coordsValid
+  void ctx
 
   const generalOk =
     Boolean(formData.listingServiceType) &&
     formData.categoryId &&
     formData.title.length >= LISTING_QUALITY_MIN_TITLE &&
-    formData.description.length >= LISTING_QUALITY_MIN_DESCRIPTION &&
-    metadataRequiredForStep1(formData, categorySlug, wizardProfile, categoryName)
+    String(formData.description || '').trim().length >= LISTING_SOFT_MIN_DESCRIPTION
 
-  const locOk =
-    Boolean(formData.district) &&
-    coordsRequiredAndValid(formData, categorySlug, wizardProfile, categoryName, coordsValid)
+  // Soft path: district enough to continue; coords remain in full publish checklist.
+  const locOk = Boolean(String(formData.district || '').trim())
 
-  const photosOk = (formData.images || []).length >= LISTING_QUALITY_MIN_PHOTOS
+  const photosOk = (formData.images || []).length >= LISTING_SOFT_MIN_PHOTOS
   const priceOk = parseFloat(String(formData.basePriceThb).replace(',', '.')) > 0
 
   switch (currentStep) {

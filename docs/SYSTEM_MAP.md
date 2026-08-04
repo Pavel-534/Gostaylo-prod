@@ -1,5 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
+> **Version**: 13.2.3 | **Last Updated**: 2026-08-04 | **Stage 200.23:** Wizard P2 soft publish + AI translate; **200.22** draft cleanup TTL.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -120,7 +121,8 @@
 
 | Path |
 |------|
-| `GET|POST|PATCH /api/v2/partner/listings*` |
+| `GET|POST|PATCH /api/v2/partner/listings*` | Wizard draft-after-category; soft publish (`softPublish` → PENDING + `quality_incomplete`); locales via `mergeDescriptionTranslationsForSave` |
+| `POST /api/v2/partner/listings/generate-description` | `mode: 'generate'\|'translate'` |
 | `GET|PUT /api/v2/partner/bookings*` |
 | `GET /api/v2/partner/calendar` |
 | `GET /api/v2/partner/stats` |
@@ -171,6 +173,7 @@
 | `/api/cron/ical-sync` |
 | `/api/cron/push-sweeper` |
 | `/api/cron/review-reminder` |
+| `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d |
 | `/api/cron/exchange-rates-refresh` |
 | `/api/cron/referral-*` · financial health monitors |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |

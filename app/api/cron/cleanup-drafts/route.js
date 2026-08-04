@@ -1,18 +1,20 @@
 /**
- * Platform cron — draft cleanup
- * 
+ * Platform cron — draft cleanup + janitor (SLA / checkout / invoices / disputes)
+ *
  * PURPOSE:
- * Clean up abandoned drafts older than 30 days.
- * A draft is: status='INACTIVE' AND metadata->is_draft=true
- * 
- * ACTIONS:
- * 1. Find drafts not modified in 30+ days
- * 2. Delete associated images from Storage
- * 3. Delete the listing record
- * 
- * SCHEDULE: Run daily via Vercel Cron or external service
- * 
- * Security: Requires CRON_SECRET header for manual triggers
+ * Clean abandoned listing drafts; also runs booking/invoice/dispute retention jobs.
+ *
+ * Draft policy (Stage 200.22 SSOT — `lib/partner/draft-cleanup-policy.js`):
+ * - Empty wizard orphans (no photos / stub title / short desc): **7 days** (`DRAFT_CLEANUP_EMPTY_DAYS`)
+ * - Contentful drafts: **30 days** (`DRAFT_CLEANUP_DAYS`)
+ * - A draft is: status='INACTIVE' AND metadata.is_draft true|'true'
+ *
+ * ACTIONS (listings):
+ * 1. Find INACTIVE candidates older than empty TTL
+ * 2. Apply tiered TTL; delete Storage images + listing row
+ *
+ * SCHEDULE: Daily via Vercel Cron (`vercel.json`) or external service
+ * Security: Requires CRON_SECRET
  */
 
 import { NextResponse } from 'next/server';
@@ -31,6 +33,12 @@ import {
   LEGACY_INVOICE_EXPIRY_MINUTES,
   resolveInvoicePaymentExpiresAtIso,
 } from '@/lib/booking/payment-window-policy.js';
+import {
+  draftCleanupCandidateCutoffIso,
+  isListingDraftMetadata,
+  resolveDraftCleanupTtlDays,
+  shouldDeleteExpiredDraft,
+} from '@/lib/partner/draft-cleanup-policy.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,8 +47,8 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
-// Draft expiry in days
-const DRAFT_EXPIRY_DAYS = 30;
+const { emptyDays: DRAFT_EMPTY_DAYS, contentfulDays: DRAFT_CONTENTFUL_DAYS } =
+  resolveDraftCleanupTtlDays();
 
 /** Dispute evidence: delete storage objects after dispute is terminal and old (see `processDisputeEvidenceRetention`). */
 const DISPUTE_EVIDENCE_RETENTION_DAYS = 180;
@@ -433,19 +441,15 @@ export async function POST(request) {
   if (denied) return denied;
   try {
     console.log('[CLEANUP] Starting draft cleanup job...');
-    
-    // Calculate cutoff date (30 days ago)
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - DRAFT_EXPIRY_DAYS);
-    const cutoffISO = cutoffDate.toISOString();
-    
-    console.log(`[CLEANUP] Looking for drafts not updated since: ${cutoffISO}`);
-    
-    // 1. Find abandoned drafts
-    // Query: status=INACTIVE AND updated_at < cutoffDate
-    // Then filter by metadata.is_draft = true (client-side)
+
+    const cutoffISO = draftCleanupCandidateCutoffIso();
+    console.log(
+      `[CLEANUP] Candidates: INACTIVE updated before ${cutoffISO} (empty=${DRAFT_EMPTY_DAYS}d, contentful=${DRAFT_CONTENTFUL_DAYS}d)`,
+    );
+
+    // 1. Find abandoned draft candidates (shortest TTL window)
     const listingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,images,metadata,updated_at,owner_id`,
+      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at,owner_id`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -465,12 +469,14 @@ export async function POST(request) {
     
     const allInactive = await listingsRes.json();
     
-    // Filter for actual drafts (metadata.is_draft = true)
-    const expiredDrafts = (allInactive || []).filter(listing => {
-      return listing.metadata?.is_draft === true;
-    });
+    const draftCandidates = (allInactive || []).filter((listing) =>
+      isListingDraftMetadata(listing.metadata),
+    );
+    const expiredDrafts = draftCandidates.filter((listing) => shouldDeleteExpiredDraft(listing));
     
-    console.log(`[CLEANUP] Found ${expiredDrafts.length} expired drafts to clean up`);
+    console.log(
+      `[CLEANUP] Candidates ${draftCandidates.length}; expired to delete ${expiredDrafts.length}`,
+    );
 
     // 2. Process each expired draft (may be zero)
     let deletedCount = 0;
@@ -531,12 +537,15 @@ export async function POST(request) {
           : `Cleaned up ${deletedCount} expired drafts`,
       stats: {
         scanned: allInactive?.length || 0,
+        draftCandidates: draftCandidates.length,
         draftsFound: expiredDrafts.length,
         deleted: deletedCount,
         imagesDeleted: imagesDeletedCount,
         errors: errorCount,
         cutoffDate: cutoffISO,
-        expiryDays: DRAFT_EXPIRY_DAYS,
+        emptyExpiryDays: DRAFT_EMPTY_DAYS,
+        contentfulExpiryDays: DRAFT_CONTENTFUL_DAYS,
+        expiryDays: DRAFT_CONTENTFUL_DAYS,
         bookingSla24h: bookingSla,
         checkoutHoldExpiry,
         unpaidCheckoutNudge,
@@ -571,14 +580,10 @@ export async function GET(request) {
   const denied = assertCronAuthorized(request);
   if (denied) return denied;
   try {
-    // Calculate cutoff date
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - DRAFT_EXPIRY_DAYS);
-    const cutoffISO = cutoffDate.toISOString();
-    
-    // Find drafts that would be cleaned up
+    const cutoffISO = draftCleanupCandidateCutoffIso();
+
     const listingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,images,metadata,updated_at`,
+      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -586,9 +591,10 @@ export async function GET(request) {
         }
       }
     );
-    
+
     const allInactive = await listingsRes.json();
-    const expiredDrafts = (allInactive || []).filter(l => l.metadata?.is_draft === true);
+    const draftCandidates = (allInactive || []).filter((l) => isListingDraftMetadata(l.metadata));
+    const expiredDrafts = draftCandidates.filter((l) => shouldDeleteExpiredDraft(l));
     const bookingSlaCutoffIso = withHoursAgo(PARTNER_RESPONSE_SLA_HOURS);
     const { count: staleBookingCount } = await supabaseAdmin
       .from('bookings')
@@ -620,39 +626,40 @@ export async function GET(request) {
       const refMs = disputeClosedReferenceMs(row);
       return Number.isFinite(refMs) && refMs <= evidenceCutoffMs;
     }).length;
-    
-    // Calculate total storage that would be freed
+
     const totalImages = expiredDrafts.reduce((sum, d) => sum + (d.images?.length || 0), 0);
-    
+
     return NextResponse.json({
       ok: true,
       service: 'Draft Cleanup Cron',
       dryRun: true,
       stats: {
+        draftCandidates: draftCandidates.length,
         expiredDrafts: expiredDrafts.length,
         totalImages: totalImages,
         cutoffDate: cutoffISO,
-        expiryDays: DRAFT_EXPIRY_DAYS,
+        emptyExpiryDays: DRAFT_EMPTY_DAYS,
+        contentfulExpiryDays: DRAFT_CONTENTFUL_DAYS,
+        expiryDays: DRAFT_CONTENTFUL_DAYS,
         staleBookingsByPartnerSla24h: Number(staleBookingCount || 0),
         expiredPendingInvoices: expiredInvoiceCount,
         disputeEvidenceRetentionEligible: disputeEvidenceEligible,
         disputeEvidenceRetentionDays: DISPUTE_EVIDENCE_RETENTION_DAYS,
       },
-      drafts: expiredDrafts.map(d => ({
+      drafts: expiredDrafts.map((d) => ({
         id: d.id,
         title: d.title,
         imagesCount: d.images?.length || 0,
-        lastUpdated: d.updated_at
-      }))
+        lastUpdated: d.updated_at,
+      })),
     });
-    
   } catch (error) {
     void notifySystemAlert(
       `⏰ <b>Cron: cleanup-drafts</b> (GET dry-run)\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
-    )
-    return NextResponse.json({ 
+    );
+    return NextResponse.json({
       error: 'Failed to check drafts',
-      message: error.message 
+      message: error.message,
     }, { status: 500 });
   }
 }

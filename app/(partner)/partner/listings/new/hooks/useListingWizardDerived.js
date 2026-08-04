@@ -9,6 +9,7 @@ import {
   buildListingPublishQualityChecklist,
   listingProfileRequiresGeoCoordinates,
   listingQualityInputFromWizardForm,
+  validateListingSoftPublishQuality,
 } from '@/lib/partner/listing-quality-gates.js'
 import { categorySlugMatchesListingServiceType } from '@/lib/partner/listing-service-type'
 import { resolveCategoryDisplayName } from '@/lib/category-display-name'
@@ -126,6 +127,22 @@ export function useListingWizardDerived(state) {
     [formData, listingCategorySlug, listingCategoryWizardProfile],
   )
 
+  const softPublishQuality = useMemo(
+    () =>
+      validateListingSoftPublishQuality(
+        listingQualityInputFromWizardForm(formData, {
+          categorySlug: listingCategorySlug,
+          categoryName: formData.categoryName || '',
+          wizardProfile: listingCategoryWizardProfile,
+        }),
+      ),
+    [formData, listingCategorySlug, listingCategoryWizardProfile],
+  )
+
+  /** Full checklist OK — primary Publish. Soft OK && !full — secondary soft CTA. */
+  const canFullPublish = Boolean(publishQualityChecklist?.ok)
+  const canSoftPublish = Boolean(softPublishQuality?.ok) && !canFullPublish
+
   const pricingPreview = useMemo(
     () =>
       computeWizardPricingPreview(formData.basePriceThb, pricingPolicy, {
@@ -154,6 +171,9 @@ export function useListingWizardDerived(state) {
     coordsValid,
     canProceed,
     publishQualityChecklist,
+    canFullPublish,
+    canSoftPublish,
+    softPublishQuality,
     pricingPreview,
     progress,
     WIZARD_DISTRICTS,

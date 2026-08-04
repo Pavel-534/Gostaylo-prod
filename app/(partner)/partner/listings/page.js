@@ -184,6 +184,7 @@ export default function PartnerListings() {
   const statusLabels = {
     ACTIVE: t('partnerListings_statusActive'),
     PENDING: t('partnerListings_statusPending'),
+    DRAFT: t('partnerListings_statusDraft'),
     INACTIVE: t('partnerListings_statusDraft'),
     HIDDEN: t('partnerListings_statusHidden'),
     REJECTED: t('partnerListings_statusRejected'),
@@ -201,7 +202,7 @@ export default function PartnerListings() {
   // Get effective status (handle metadata.is_draft, partner_hidden)
   function getStatus(listing) {
     const md = listing.metadata || {}
-    if (md.is_draft === true || md.is_draft === 'true') return 'INACTIVE'
+    if (md.is_draft === true || md.is_draft === 'true') return 'DRAFT'
     if (listing.status === 'INACTIVE' && isPartnerHiddenMetadata(md)) return 'HIDDEN'
     return listing.status || 'INACTIVE'
   }
@@ -227,6 +228,9 @@ export default function PartnerListings() {
   const stats = {
     total: listings.length,
     active: listings.filter(l => l.status === 'ACTIVE').length,
+    drafts: listings.filter(
+      (l) => l.metadata?.is_draft === true || l.metadata?.is_draft === 'true',
+    ).length,
     views: listings.reduce((sum, l) => sum + (l.views || 0), 0),
     bookings: listings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
   }
@@ -371,6 +375,23 @@ export default function PartnerListings() {
         </p>
       </div>
 
+      {stats.drafts > 0 && listFilter !== 'draft' ? (
+        <div className="mx-4 mb-2 flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-800">
+            {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
+          </p>
+          <Button
+            type="button"
+            variant="brand"
+            className="min-h-[44px] w-full shrink-0 sm:w-auto"
+            onClick={() => setListFilter('draft')}
+            data-testid="resume-drafts-banner-btn"
+          >
+            {t('partnerListings_resumeDraftsCta')}
+          </Button>
+        </div>
+      ) : null}
+
       {/* Stats - 2x2 grid on mobile */}
       <div className='grid grid-cols-2 gap-2 p-4'>
         <div className='bg-white rounded-lg p-3 border'>
@@ -423,7 +444,9 @@ export default function PartnerListings() {
           filteredListings.map((listing) => {
             const status = getStatus(listing)
             const statusLabel = statusLabels[status] || statusLabels.INACTIVE
-            const showPublishCta = status === 'INACTIVE' || status === 'REJECTED'
+            const isDraftListing = status === 'DRAFT'
+            const showPublishCta =
+              !isDraftListing && (status === 'INACTIVE' || status === 'REJECTED')
             const publishChecklist = getPublishChecklist(listing)
             const ready = publishChecklist.ok
             const canHideFromSite =
@@ -508,6 +531,20 @@ export default function PartnerListings() {
                             Telegram
                           </Badge>
                         )}
+                        {(listing.metadata?.quality_incomplete === true ||
+                          listing.metadata?.quality_incomplete === 'true' ||
+                          listing.metadata?.soft_publish === true ||
+                          listing.metadata?.soft_publish === 'true') &&
+                        status === 'PENDING' ? (
+                          <span data-testid={`listing-incomplete-badge-${listing.id}`}>
+                            <PartnerListingStatusBadge
+                              tone="draft"
+                              className="text-[10px] px-1.5 py-0 h-5"
+                            >
+                              {t('partnerListings_qualityIncomplete')}
+                            </PartnerListingStatusBadge>
+                          </span>
+                        ) : null}
                       </div>
                       {calendarFreshness.stale ? (
                         <p
@@ -564,6 +601,7 @@ export default function PartnerListings() {
                   listing={listing}
                   t={t}
                   showPublishCta={showPublishCta}
+                  showContinueDraft={isDraftListing}
                   ready={ready}
                   publishingId={publishingId}
                   visibilityBusyId={visibilityBusyId}

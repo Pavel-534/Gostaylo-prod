@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { chipIconForCategory } from '@/components/search/category-chip-icon'
 import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { categorySlugMatchesListingServiceType } from '@/lib/partner/listing-service-type'
+import { getUIText } from '@/lib/translations'
 
 export function PartnerCategoryPickerTwoStep({
   categories = [],
@@ -21,7 +22,9 @@ export function PartnerCategoryPickerTwoStep({
   getCategoryDisplayName,
   onSelectCategoryId,
   disabled = false,
+  t: _t = null,
 }) {
+  void _t
   const [step, setStep] = useState('root')
   const [pickedRootId, setPickedRootId] = useState(null)
 
@@ -87,7 +90,8 @@ export function PartnerCategoryPickerTwoStep({
     setStep('child')
   }
 
-  const backLabel = language === 'ru' ? 'Назад к разделам' : 'Back to verticals'
+  const backLabel = getUIText('partnerWizard_categoryBackToVerticals', language)
+  const chooseTypeLabel = getUIText('partnerWizard_categoryChooseType', language)
 
   if (!listingServiceType) return null
 
@@ -98,8 +102,7 @@ export function PartnerCategoryPickerTwoStep({
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            className="gap-2 -ml-2 text-brand-hover hover:text-brand"
+            className="-ml-2 min-h-[44px] min-w-[44px] gap-2 text-brand-hover hover:text-brand"
             onClick={() => {
               setStep('root')
               setPickedRootId(null)
@@ -158,9 +161,7 @@ export function PartnerCategoryPickerTwoStep({
                   {getCategoryDisplayName(root)}
                 </span>
                 {hasKids ? (
-                  <span className="text-xs font-medium text-slate-500">
-                    {language === 'ru' ? 'Выбрать тип →' : 'Choose type →'}
-                  </span>
+                  <span className="text-xs font-medium text-slate-500">{chooseTypeLabel}</span>
                 ) : null}
               </button>
             )

@@ -189,7 +189,12 @@ export async function POST(request) {
       {
         owner_id: partnerId,
         category_id: categoryId,
-        status: partner.is_verified ? 'PENDING' : 'INACTIVE',
+        status:
+          metadata?.is_draft === true || metadata?.is_draft === 'true'
+            ? 'INACTIVE'
+            : partner.is_verified
+              ? 'PENDING'
+              : 'INACTIVE',
         title,
         description,
         district: district || '',

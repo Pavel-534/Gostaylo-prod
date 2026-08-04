@@ -13,6 +13,7 @@ import { useListingWizardStepUrlSync } from '@/lib/hooks/use-listing-wizard-step
 import {
   readWizardDraft,
   saveWizardDraft,
+  clearWizardDraft,
   isWizardFormDirty,
   wizardCompareKey,
 } from '@/lib/partner/wizard-draft-storage'
@@ -58,6 +59,8 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
   const initialWizardStep = stepFromUrl || initialDraft?.currentStep || 1
   const [currentStep, setCurrentStep] = useListingWizardStepUrlSync(initialWizardStep)
   const [draftRestored, setDraftRestored] = useState(false)
+  /** Stage 200.21 P1a — show Continue vs Create new until user chooses. */
+  const [showResumeDraftBanner, setShowResumeDraftBanner] = useState(false)
   const [loading, setLoading] = useState(false)
   const [serverListing, setServerListing] = useState(null)
   const [listingNotFound, setListingNotFound] = useState(false)
@@ -92,8 +95,9 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
   const [storefrontExchangeRates, setStorefrontExchangeRates] = useState(null)
 
   const fileInputRef = useRef(null)
-  const draftListingIdRef = useRef(null)
-  const ensuringDraftRef = useRef(false)
+  const draftListingIdRef = useRef(initialDraft?.listingId || null)
+  /** In-flight draft create Promise (Stage 200.20) — coalesce category + photo callers. */
+  const ensuringDraftRef = useRef(null)
 
   useEffect(() => {
     async function loadInitialData() {
@@ -176,20 +180,37 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     return isWizardFormDirty(formData)
   }, [isEditMode, formData, editBaseline])
 
-  /** Stage 140.1 — debounced autosave to localStorage (create mode only). */
+  /** Stage 140.1 / 200.21 — debounced autosave to localStorage (create mode only). */
   useEffect(() => {
     if (isEditMode || typeof window === 'undefined') return undefined
     const id = window.setTimeout(() => {
-      saveWizardDraft(formData, currentStep)
+      saveWizardDraft(formData, currentStep, draftListingIdRef.current)
     }, 600)
     return () => window.clearTimeout(id)
   }, [isEditMode, formData, currentStep])
 
-  /** Stage 140.1 — surface a one-time "draft restored" signal to the UI. */
+  /** Stage 140.1 — surface a one-time "draft restored" signal + P1a choice banner. */
   useEffect(() => {
     if (draftRestored) return
-    if (initialDraftRef.current) setDraftRestored(true)
+    if (initialDraftRef.current) {
+      setDraftRestored(true)
+      setShowResumeDraftBanner(true)
+    }
   }, [draftRestored])
+
+  const dismissResumeDraftBanner = useCallback(() => {
+    setShowResumeDraftBanner(false)
+  }, [])
+
+  const startFreshWizard = useCallback(() => {
+    clearWizardDraft()
+    draftListingIdRef.current = null
+    setFormData(getDefaultWizardFormData())
+    setCurrentStep(1)
+    setShowResumeDraftBanner(false)
+    setDraftRestored(false)
+    initialDraftRef.current = null
+  }, [setCurrentStep])
 
   return {
     editId,
@@ -206,6 +227,9 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     setCurrentStep,
     isDirty,
     draftRestored,
+    showResumeDraftBanner,
+    dismissResumeDraftBanner,
+    startFreshWizard,
     loading,
     setLoading,
     serverListing,
