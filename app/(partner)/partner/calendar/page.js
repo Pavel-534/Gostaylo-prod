@@ -32,6 +32,7 @@ import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
 import { CalendarMobileMonthGrid } from '@/components/calendar/CalendarMobileMonthGrid'
+import { CalendarMobileOverview } from '@/components/calendar/CalendarMobileOverview'
 import { CalendarMobileQuickActions } from '@/components/calendar/CalendarMobileQuickActions'
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
@@ -117,9 +118,9 @@ function MasterCalendarContent() {
   const { data: reputationHealthData } = usePartnerReputationHealthQuery(!!partnerId)
   const dominantCategorySlug = reputationHealthData?.dominantCategorySlug ?? null
 
-  // View state — Stage 200.40: mobile «near» agenda (10d) vs real month grid
+  // View state — Stage 200.40/200.41: near agenda · month grid · 3-month overview
   const [viewMode, setViewMode] = useState('normal')
-  const [mobilePane, setMobilePane] = useState('near') // 'near' | 'month'
+  const [mobilePane, setMobilePane] = useState('near') // 'near' | 'month' | 'overview'
   const [daysToShow, setDaysToShow] = useState(30)
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
 
@@ -128,7 +129,7 @@ function MasterCalendarContent() {
       setDaysToShow(30)
       return
     }
-    if (mobilePane === 'month') {
+    if (mobilePane === 'month' || mobilePane === 'overview') {
       setStartDate((prev) => {
         try {
           return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
@@ -149,7 +150,7 @@ function MasterCalendarContent() {
       const d = parseISO(focusDateFromChat)
       if (Number.isNaN(d.getTime())) return
       appliedFocusDateRef.current = true
-      if (isNarrowCalendar && mobilePane === 'month') {
+      if (isNarrowCalendar && (mobilePane === 'month' || mobilePane === 'overview')) {
         setStartDate(format(startOfMonth(d), 'yyyy-MM-dd'))
       } else {
         setStartDate(format(subDays(d, 5), 'yyyy-MM-dd'))
@@ -199,11 +200,16 @@ function MasterCalendarContent() {
   })
 
   const mobileMonthMode = isNarrowCalendar && mobilePane === 'month'
+  const mobileOverviewMode = isNarrowCalendar && mobilePane === 'overview'
+  const mobileMonthNav = mobileMonthMode || mobileOverviewMode
   
   // Calculate end date
   const endDate = useMemo(() => {
     try {
       const start = parseISO(startDate)
+      if (mobileOverviewMode) {
+        return format(endOfMonth(addMonths(startOfMonth(start), 2)), 'yyyy-MM-dd')
+      }
       if (mobileMonthMode) {
         return format(endOfMonth(start), 'yyyy-MM-dd')
       }
@@ -211,19 +217,22 @@ function MasterCalendarContent() {
     } catch {
       return startDate
     }
-  }, [startDate, daysToShow, mobileMonthMode])
+  }, [startDate, daysToShow, mobileMonthMode, mobileOverviewMode])
 
-  // Keep daysToShow in sync for month window (API range length)
+  // Keep daysToShow in sync for month / overview API window length
   useEffect(() => {
-    if (!mobileMonthMode) return
+    if (!mobileMonthNav) return
     try {
       const start = parseISO(startDate)
-      const days = differenceInCalendarDays(endOfMonth(start), startOfMonth(start)) + 1
+      const end = mobileOverviewMode
+        ? endOfMonth(addMonths(startOfMonth(start), 2))
+        : endOfMonth(start)
+      const days = differenceInCalendarDays(end, startOfMonth(start)) + 1
       setDaysToShow(days)
     } catch {
       /* ignore */
     }
-  }, [mobileMonthMode, startDate])
+  }, [mobileMonthNav, mobileOverviewMode, startDate])
   
   // TanStack Query hooks
   const { 
@@ -272,7 +281,7 @@ function MasterCalendarContent() {
   const goToToday = useCallback(() => {
     clearRangeSelection()
     const today = new Date()
-    if (mobileMonthMode) {
+    if (mobileMonthNav) {
       setStartDate(format(startOfMonth(today), 'yyyy-MM-dd'))
     } else {
       setStartDate(format(today, 'yyyy-MM-dd'))
@@ -287,25 +296,25 @@ function MasterCalendarContent() {
         })
       }, 280)
     })
-  }, [isNarrowCalendar, mobileMonthMode, clearRangeSelection])
+  }, [isNarrowCalendar, mobileMonthNav, clearRangeSelection])
   
   const goBack = useCallback(() => {
     clearRangeSelection()
-    if (mobileMonthMode) {
+    if (mobileMonthNav) {
       setStartDate(format(startOfMonth(subMonths(parseISO(startDate), 1)), 'yyyy-MM-dd'))
       return
     }
     setStartDate(format(subDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate, mobileMonthMode, clearRangeSelection])
+  }, [startDate, mobileMonthNav, clearRangeSelection])
   
   const goForward = useCallback(() => {
     clearRangeSelection()
-    if (mobileMonthMode) {
+    if (mobileMonthNav) {
       setStartDate(format(startOfMonth(addMonths(parseISO(startDate), 1)), 'yyyy-MM-dd'))
       return
     }
     setStartDate(format(addDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate, mobileMonthMode, clearRangeSelection])
+  }, [startDate, mobileMonthNav, clearRangeSelection])
 
   const jumpToMonth = useCallback(
     (yyyyMm) => {
@@ -313,6 +322,19 @@ function MasterCalendarContent() {
       clearRangeSelection()
       setMobilePane('month')
       setStartDate(`${yyyyMm}-01`)
+    },
+    [clearRangeSelection],
+  )
+
+  const openMonthFromOverview = useCallback(
+    (yyyyMmDd) => {
+      clearRangeSelection()
+      try {
+        setStartDate(format(startOfMonth(parseISO(yyyyMmDd)), 'yyyy-MM-dd'))
+      } catch {
+        setStartDate(yyyyMmDd)
+      }
+      setMobilePane('month')
     },
     [clearRangeSelection],
   )
@@ -684,7 +706,9 @@ function MasterCalendarContent() {
         viewMode={viewMode}
         summary={summary}
         language={language}
-        dateLabelMode={mobileMonthMode ? 'month' : 'range'}
+        dateLabelMode={
+          mobileOverviewMode ? 'overview' : mobileMonthMode ? 'month' : 'range'
+        }
         onToday={goToToday}
         onBack={goBack}
         onForward={goForward}
@@ -729,11 +753,25 @@ function MasterCalendarContent() {
         />
         <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
           {getUIText(
-            mobilePane === 'month' ? 'partnerCal_monthHint' : 'partnerCal_agendaHint',
+            mobilePane === 'overview'
+              ? 'partnerCal_overviewBanner'
+              : mobilePane === 'month'
+                ? 'partnerCal_monthHint'
+                : 'partnerCal_agendaHint',
             language,
           )}
         </p>
-        {mobilePane === 'month' ? (
+        {mobilePane === 'overview' ? (
+          <CalendarMobileOverview
+            dates={dates}
+            listings={listings}
+            language={language}
+            monthAnchor={startDate}
+            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+            initialListingId={filterListingId || undefined}
+            onOpenMonth={openMonthFromOverview}
+          />
+        ) : mobilePane === 'month' ? (
           <CalendarMobileMonthGrid
             dates={dates}
             listings={listings}

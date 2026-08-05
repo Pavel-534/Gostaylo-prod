@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.20 | **Last Updated**: 2026-08-05 | **Stage 200.40:** partner mobile calendar month grid; **200.39:** geo UX polish; **200.38:** delete country-presets.  
+> **Version**: 13.2.21 | **Last Updated**: 2026-08-05 | **Stage 200.41:** 3-month calendar overview; **200.40:** month grid; **200.39:** geo UX polish.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

@@ -1,6 +1,8 @@
 /**
- * Stage 194.0-B / 200.40 — Mobile calendar quick strip.
- * Primary: Block · iCal. Modes: Near-term agenda · Month grid. Options sheet: prices · iCal sync.
+ * Stage 194.0-B / 200.40 / 200.41 — Mobile calendar quick strip.
+ * Primary: Block · iCal.
+ * Modes: Near-term · Month grid · 3-month overview (heatmap).
+ * Options sheet: prices · iCal sync.
  */
 
 'use client'
@@ -15,6 +17,7 @@ import {
   Loader2,
   CalendarRange,
   CalendarDays,
+  LayoutGrid,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,8 +33,8 @@ import { cn } from '@/lib/utils'
  * @param {{
  *   language?: string
  *   icalHref: string
- *   mobilePane: 'near' | 'month'
- *   onMobilePaneChange: (pane: 'near' | 'month') => void
+ *   mobilePane: 'near' | 'month' | 'overview'
+ *   onMobilePaneChange: (pane: 'near' | 'month' | 'overview') => void
  *   onQuickBlock: () => void
  *   onOpenPrices: () => void
  *   onIcalSyncAll?: () => void
@@ -52,6 +55,12 @@ export function CalendarMobileQuickActions({
 }) {
   const t = (key) => getUIText(key, language)
   const [optionsOpen, setOptionsOpen] = useState(false)
+
+  const modeBtn = (active) =>
+    cn(
+      'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold leading-tight transition-colors sm:text-[11px]',
+      active ? 'bg-brand text-white' : 'bg-white text-slate-600 hover:bg-slate-50',
+    )
 
   return (
     <>
@@ -97,12 +106,7 @@ export function CalendarMobileQuickActions({
             <button
               type="button"
               onClick={() => onMobilePaneChange('near')}
-              className={cn(
-                'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors sm:flex-row sm:gap-1 sm:text-xs',
-                mobilePane === 'near'
-                  ? 'bg-brand text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50',
-              )}
+              className={modeBtn(mobilePane === 'near')}
               data-testid="partner-cal-window-10"
             >
               <CalendarRange className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -111,16 +115,21 @@ export function CalendarMobileQuickActions({
             <button
               type="button"
               onClick={() => onMobilePaneChange('month')}
-              className={cn(
-                'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-l border-slate-200 px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors sm:flex-row sm:gap-1 sm:text-xs',
-                mobilePane === 'month'
-                  ? 'bg-brand text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50',
-              )}
+              className={cn(modeBtn(mobilePane === 'month'), 'border-l border-slate-200')}
               data-testid="partner-cal-window-month"
             >
               <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
               <span className="text-center">{t('partnerCal_windowMonth')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onMobilePaneChange('overview')}
+              className={cn(modeBtn(mobilePane === 'overview'), 'border-l border-slate-200')}
+              data-testid="partner-cal-window-overview"
+              title={t('partnerCal_windowOverviewTitle')}
+            >
+              <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="text-center">{t('partnerCal_windowOverview')}</span>
             </button>
           </div>
 

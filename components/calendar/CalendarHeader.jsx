@@ -111,7 +111,7 @@ export function CalendarHeader({
   viewMode,
   summary,
   language = 'ru',
-  /** 'range' | 'month' — Stage 200.40 mobile month pane */
+  /** 'range' | 'month' | 'overview' — Stage 200.40/200.41 mobile panes */
   dateLabelMode = 'range',
   onToday,
   onBack,
@@ -127,6 +127,20 @@ export function CalendarHeader({
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
   const monthInputValue = String(startDate || '').slice(0, 7)
+
+  const rangeLabel = (() => {
+    try {
+      if (dateLabelMode === 'overview') {
+        return `${format(parseISO(startDate), 'LLL', { locale: dfLocale })} — ${format(parseISO(endDate), 'LLL yyyy', { locale: dfLocale })}`
+      }
+      if (dateLabelMode === 'month') {
+        return format(parseISO(startDate), 'LLLL yyyy', { locale: dfLocale })
+      }
+      return null
+    } catch {
+      return null
+    }
+  })()
 
   return (
     <>
@@ -187,10 +201,10 @@ export function CalendarHeader({
             <Button variant="ghost" size="sm" onClick={onBack} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            {onJumpToMonth && dateLabelMode === 'month' ? (
+            {onJumpToMonth && (dateLabelMode === 'month' || dateLabelMode === 'overview') ? (
               <label className="relative flex min-h-11 min-w-[148px] cursor-pointer items-center justify-center px-2 lg:min-h-9">
                 <span className="pointer-events-none text-center text-sm font-medium capitalize text-slate-700">
-                  {format(parseISO(startDate), 'LLLL yyyy', { locale: dfLocale })}
+                  {rangeLabel}
                 </span>
                 <input
                   type="month"
@@ -201,15 +215,13 @@ export function CalendarHeader({
                 />
               </label>
             ) : (
-              <span className="min-w-[140px] px-3 text-center text-sm font-medium text-slate-700">
-                {dateLabelMode === 'month'
-                  ? format(parseISO(startDate), 'LLLL yyyy', { locale: dfLocale })
-                  : (
-                    <>
-                      {format(parseISO(startDate), 'd MMM', { locale: dfLocale })} —{' '}
-                      {format(parseISO(endDate), 'd MMM yyyy', { locale: dfLocale })}
-                    </>
-                  )}
+              <span className="min-w-[140px] px-3 text-center text-sm font-medium capitalize text-slate-700">
+                {rangeLabel || (
+                  <>
+                    {format(parseISO(startDate), 'd MMM', { locale: dfLocale })} —{' '}
+                    {format(parseISO(endDate), 'd MMM yyyy', { locale: dfLocale })}
+                  </>
+                )}
               </span>
             )}
             <Button variant="ghost" size="sm" onClick={onForward} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">

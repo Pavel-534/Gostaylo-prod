@@ -309,8 +309,6 @@ export async function PATCH(request, context) {
     listingId,
   });
 
-  const geoTouched =
-    body.country != null || body.region != null || body.city != null;
   const priceFieldsTouched =
     body.basePriceThb !== undefined ||
     requestedBaseCurrency != null ||

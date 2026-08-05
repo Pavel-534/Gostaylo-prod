@@ -72,6 +72,9 @@ test.describe('@partner partner mobile smoke (Stage 194.0-D)', () => {
 
     await page.getByTestId('partner-cal-window-month').click()
     await expect(page.getByTestId('partner-cal-mobile-month')).toBeVisible({ timeout: 15_000 })
+
+    await page.getByTestId('partner-cal-window-overview').click()
+    await expect(page.getByTestId('partner-cal-mobile-overview')).toBeVisible({ timeout: 15_000 })
   })
 
   test('More tab opens workspace sidebar drawer', async ({ page, baseURL }) => {

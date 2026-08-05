@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.20 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.40** partner mobile calendar UX (month grid + chrome polish).
+> **Version**: 13.2.21 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.41** partner calendar 3-month overview.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.41 — Partner calendar 3-month overview
+
+- Mobile pane **3 мес.**: occupancy heatmap (free/booked/blocked), no prices; open month (44px) → Month editor.
+- One listing at a time in overview; arrows shift the 3-month window.
 
 ### Stage 200.40 — Partner mobile calendar UX
 

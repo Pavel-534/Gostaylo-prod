@@ -9,11 +9,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   format,
   parseISO,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
   isSameMonth,
   isToday as isDateToday,
 } from 'date-fns'
@@ -25,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
 import { getUIText } from '@/lib/translations'
+import { buildPartnerMonthMatrix } from '@/lib/calendar/partner-calendar-month-matrix.js'
 import {
   resolveBlockedCellClass,
   resolveBookingStatusCellClass,
@@ -43,19 +39,6 @@ const TYPE_ICONS = {
 }
 
 const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
-
-function buildMonthMatrix(anchorDate, weekStartsOn = 1) {
-  const monthStart = startOfMonth(anchorDate)
-  const monthEnd = endOfMonth(anchorDate)
-  const gridStart = startOfWeek(monthStart, { weekStartsOn })
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn })
-  const days = eachDayOfInterval({ start: gridStart, end: gridEnd })
-  const weeks = []
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7))
-  }
-  return { monthStart, monthEnd, weeks }
-}
 
 function cellSurfaceClass(cellData) {
   if (!cellData || cellData.status === 'AVAILABLE') {
@@ -107,7 +90,7 @@ export function CalendarMobileMonthGrid({
   }, [monthAnchor, dates])
 
   const { monthStart, weeks } = useMemo(
-    () => buildMonthMatrix(anchor, weekStartsOn),
+    () => buildPartnerMonthMatrix(anchor, weekStartsOn),
     [anchor],
   )
 
