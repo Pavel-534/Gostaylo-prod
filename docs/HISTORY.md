@@ -246,6 +246,7 @@
 | 200.28 | 2026-08-05 | Wizard quality UX: 2 photos, desc=40, vertical health, Next hints | Done |
 | 200.29 | 2026-08-05 | Wizard: 1 photo + red required-field highlight / scroll on Next | Done |
 | 200.30 | 2026-08-05 | Wizard: map pin → country/region/city + TZ + baseCurrency SSOT | Done |
+| 200.31 | 2026-08-05 | MapPicker: pan/pinch vs pin-lock + Leaflet gesture sync | Done |
 
 ## Пробелы в паспорте
 

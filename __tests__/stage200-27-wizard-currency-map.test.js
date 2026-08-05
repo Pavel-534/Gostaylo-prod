@@ -36,10 +36,11 @@ describe('Stage 200.27 — pricing labels follow baseCurrency (no hardcoded ฿)
 describe('Stage 200.27 — MapPicker height + country center', () => {
   it('StepLocation passes numeric height (not % inside fixed wrapper)', () => {
     const src = read('app/(partner)/partner/listings/new/components/StepLocation.jsx')
-    assert.match(src, /height=\{280\}/)
+    assert.match(src, /height=\{320\}/)
     assert.doesNotMatch(src, /h-\[280px\].*MapPicker|MapPicker[\s\S]*height="100%"/)
     assert.match(src, /defaultTimezoneForCountryCode/)
     assert.match(src, /countryCode=\{formData\.country\}/)
+    assert.match(src, /cooperativeTouch="auto"/)
   })
 
   it('MapPicker has country default centers', () => {

@@ -46,7 +46,6 @@ function StepPricingInner() {
     dayPickerLocale,
     language,
     stepFieldErrors,
-    tr,
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
   const { formatInListingBase } = useStorefrontDisplayFx()

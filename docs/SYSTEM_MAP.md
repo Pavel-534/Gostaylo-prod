@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.10 | **Last Updated**: 2026-08-05 | **Stage 200.30:** wizard pin→geo SSOT; **200.29** field highlight.  
+> **Version**: 13.2.11 | **Last Updated**: 2026-08-05 | **Stage 200.31:** map pan/zoom UX; **200.30** pin→geo SSOT.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

@@ -14,6 +14,7 @@ import { getUIText } from '@/lib/translations'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 import { cn } from '@/lib/utils'
+import { MapGestureSync } from '@/components/listing/MapGestureSync'
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -129,6 +130,7 @@ export function ListingMap({
           style={{ height: '100%', width: '100%' }}
           className="z-0"
         >
+          <MapGestureSync enabled={mapGesturesEnabled} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -281,6 +281,8 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.31 (2026-08-05):** **Map pan/zoom UX** — pin lock ≠ map freeze; `MapGestureSync` for live Leaflet handlers; wizard `cooperativeTouch="auto"`. Tests: `__tests__/stage200-31-map-gestures.test.js`.
+
 **Stage 200.30 (2026-08-05):** **Wizard pin→geo SSOT** — map/geocode updates country→region→city, IANA TZ, `baseCurrency` (ADR-181) via `lib/geo/wizard-geo-from-pin.js`; reverse returns `countryCode`; header UI currency ≠ listing geo. Tests: `__tests__/wizard-geo-from-pin.test.js`.
 
 **Stage 200.29 (2026-08-05):** **Wizard field highlight** — publish photos = 1; red rings on required empty fields; Next when blocked toasts + scrolls to field. Extends 200.28 blockers.

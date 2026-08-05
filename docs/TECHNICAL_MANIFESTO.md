@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.10 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.30** wizard pin→geo SSOT.
+> **Version**: 13.2.11 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.31** map pan/zoom UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.31 — Map pan/zoom UX (wizard + PDP)
+
+- Pin **lock** no longer disables map pan/pinch/wheel — only click-to-place and marker drag.
+- `MapGestureSync` calls Leaflet `enable()`/`disable()` (MapContainer props alone do not update after mount).
+- Wizard `cooperativeTouch="auto"` (coarse pointers only); desktop gets gestures immediately.
+- Tests: `__tests__/stage200-31-map-gestures.test.js`.
 
 ### Stage 200.30 — Wizard pin → country / TZ / asset currency SSOT
 

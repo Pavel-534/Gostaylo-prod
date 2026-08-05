@@ -277,9 +277,9 @@ function StepLocationInner() {
             latitude={formData.latitude}
             longitude={formData.longitude}
             onSelect={handleMapSelect}
-            height={280}
+            height={320}
             countryCode={formData.country}
-            cooperativeTouch
+            cooperativeTouch="auto"
           />
         </div>
       </div>

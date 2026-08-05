@@ -2,6 +2,7 @@
 
 /**
  * MapPicker — точка на карте для объявления (партнёр).
+ * Stage 200.31 — pan/zoom vs pin-lock split + live Leaflet gesture sync.
  * i18n: getUIText + language; приватность: lib/listing-location-privacy.
  */
 
@@ -12,11 +13,12 @@ import { fetchReverseGeocode } from '@/lib/api/geocode-client'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Button } from '@/components/ui/button'
-import { Lock } from 'lucide-react'
+import { Lock, Unlock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { isPrivacyLocationMode } from '@/lib/listing-location-privacy'
 import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
+import { MapGestureSync } from '@/components/listing/MapGestureSync'
 
 const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false })
 const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false })
@@ -53,6 +55,23 @@ function defaultCenterForCountry(countryCode) {
   return (code && COUNTRY_MAP_CENTERS[code]) || PHUKET_CENTER
 }
 
+function useCoarsePointer() {
+  const [coarse, setCoarse] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined
+    const mq = window.matchMedia('(pointer: coarse)')
+    const apply = () => setCoarse(Boolean(mq.matches))
+    apply()
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', apply)
+      return () => mq.removeEventListener('change', apply)
+    }
+    mq.addListener?.(apply)
+    return () => mq.removeListener?.(apply)
+  }, [])
+  return coarse
+}
+
 function MapClickHandler({ onMapClick, enabled }) {
   useMapEvents({
     click(e) {
@@ -62,12 +81,20 @@ function MapClickHandler({ onMapClick, enabled }) {
   return null
 }
 
+/** Follow pin only when coordinates actually change — do not fight user pan/zoom. */
 function MapCenterUpdater({ center, zoom }) {
   const map = useMap()
+  const lastKeyRef = useRef('')
   useEffect(() => {
-    if (center && Array.isArray(center) && center.length >= 2) {
-      map.setView(center, zoom ?? 15)
-    }
+    if (!center || !Array.isArray(center) || center.length < 2) return
+    const lat = Number(center[0])
+    const lng = Number(center[1])
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+    const z = zoom ?? map.getZoom()
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)},${z}`
+    if (lastKeyRef.current === key) return
+    lastKeyRef.current = key
+    map.setView([lat, lng], z)
   }, [center, zoom, map])
   return null
 }
@@ -111,26 +138,46 @@ function normalizeGeocodeForForm(data, privacyMode) {
   }
 }
 
+/**
+ * @param {{
+ *   latitude?: number|null
+ *   longitude?: number|null
+ *   onSelect?: (lat: number, lng: number, geo?: object|null) => void
+ *   height?: number|string
+ *   mapClassName?: string
+ *   fetchAddressOnClick?: boolean
+ *   categoryId?: string|null
+ *   categorySlug?: string|null
+ *   lockable?: boolean
+ *   language?: string
+ *   cooperativeTouch?: boolean | 'auto'
+ *   countryCode?: string|null
+ * }} props
+ */
 export default function MapPicker({
   latitude,
   longitude,
   onSelect,
-  height = 280,
+  height = 320,
   mapClassName = '',
   fetchAddressOnClick = true,
   categoryId = null,
   categorySlug = null,
   lockable = true,
   language = 'ru',
-  /** Mobile scrollport: require tap before map captures touch (Leaflet cooperative gesture). */
-  cooperativeTouch = false,
+  /** Mobile scrollport: require tap before map captures touch. `auto` = coarse pointers only. */
+  cooperativeTouch = 'auto',
   /** ISO country for empty-pin default viewport (wizard). */
   countryCode = null,
 }) {
   const t = (key) => getUIText(key, language)
+  const coarsePointer = useCoarsePointer()
+  const coopEnabled =
+    cooperativeTouch === true || (cooperativeTouch === 'auto' && coarsePointer)
+
   const [mounted, setMounted] = useState(false)
   const [position, setPosition] = useState(null)
-  const [mapGestureActive, setMapGestureActive] = useState(!cooperativeTouch)
+  const [mapGestureActive, setMapGestureActive] = useState(() => !coopEnabled)
   const privacyMode = isPrivacyLocationMode({ categorySlug, categoryId })
 
   const hasInitialPin =
@@ -142,8 +189,8 @@ export default function MapPicker({
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
-    if (!cooperativeTouch) setMapGestureActive(true)
-  }, [cooperativeTouch])
+    if (!coopEnabled) setMapGestureActive(true)
+  }, [coopEnabled])
 
   useEffect(() => {
     if (hasInitialPin) {
@@ -176,11 +223,19 @@ export default function MapPicker({
       }
       onSelect?.(lat, lng, geo)
     },
-    [fetchAddressOnClick, onSelect, privacyMode]
+    [fetchAddressOnClick, onSelect, privacyMode],
   )
 
   const handleMapClick = (lat, lng) => {
     void applySelection(lat, lng)
+  }
+
+  const handleUnlockToggle = () => {
+    setUnlocked((u) => {
+      const next = !u
+      if (next) setMapGestureActive(true)
+      return next
+    })
   }
 
   const mapHeightStyle = typeof height === 'number' ? { height } : { height: height || '100%' }
@@ -201,10 +256,11 @@ export default function MapPicker({
 
   const center = position || defaultCenterForCountry(countryCode)
   const zoom = position ? 15 : 12
-  const markerDraggable = lockable ? unlocked : true
-  const mapClicksEnabled = lockable ? unlocked : true
+  /** Pin edit (click / drag marker) — separate from view pan/zoom. */
+  const pinEditEnabled = lockable ? unlocked : true
   const lockedVisual = lockable && !unlocked && !!position
-  const mapGesturesEnabled = cooperativeTouch ? mapGestureActive : true
+  /** View: pan + pinch + wheel — never gated by pin lock (Airbnb-like). */
+  const viewGesturesEnabled = coopEnabled ? mapGestureActive : true
 
   return (
     <div className="space-y-2">
@@ -212,19 +268,22 @@ export default function MapPicker({
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant={unlocked ? 'default' : 'outline'}
+            variant={unlocked ? 'brand' : 'outline'}
             size="sm"
-            className={unlocked ? 'bg-brand hover:bg-brand-hover' : 'border-slate-300'}
-            onClick={() => setUnlocked((u) => !u)}
+            className={cn(
+              'min-h-[44px] gap-1.5',
+              !unlocked && 'border-slate-300',
+            )}
+            onClick={handleUnlockToggle}
           >
             {unlocked ? (
               <>
-                <Lock className="mr-1.5 h-4 w-4" />
+                <Lock className="h-4 w-4" />
                 {t('mapPicker_lockPosition')}
               </>
             ) : (
               <>
-                <Lock className="mr-1.5 h-4 w-4 text-brand-hover" aria-hidden />
+                <Unlock className="h-4 w-4 text-brand-hover" aria-hidden />
                 {t('mapPicker_editLocation')}
               </>
             )}
@@ -242,12 +301,12 @@ export default function MapPicker({
       <div
         className={cn(
           'relative z-0 isolate w-full overflow-hidden rounded-lg border border-slate-200',
-          cooperativeTouch && !mapGestureActive && 'touch-pan-y',
+          coopEnabled && !mapGestureActive && 'touch-pan-y',
           mapClassName,
         )}
         style={mapHeightStyle}
       >
-        {cooperativeTouch && !mapGestureActive ? (
+        {coopEnabled && !mapGestureActive ? (
           <button
             type="button"
             className="absolute inset-0 z-[500] flex items-center justify-center bg-slate-900/[0.03] px-3"
@@ -263,24 +322,27 @@ export default function MapPicker({
           center={center}
           zoom={zoom}
           className="h-full w-full"
-          scrollWheelZoom={mapGesturesEnabled}
-          dragging={mapGesturesEnabled && mapClicksEnabled}
-          touchZoom={mapGesturesEnabled}
-          doubleClickZoom={mapGesturesEnabled}
+          scrollWheelZoom={viewGesturesEnabled}
+          dragging={viewGesturesEnabled}
+          touchZoom={viewGesturesEnabled}
+          doubleClickZoom={viewGesturesEnabled}
+          // Prefer continuous pinch (Leaflet); buttons remain as fallback.
+          zoomControl
         >
+          <MapGestureSync enabled={viewGesturesEnabled} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapClickHandler onMapClick={handleMapClick} enabled={mapClicksEnabled} />
+          <MapClickHandler onMapClick={handleMapClick} enabled={pinEditEnabled} />
           <MapCenterUpdater center={center} zoom={zoom} />
           {position && (
             <Marker
               position={position}
-              draggable={markerDraggable}
+              draggable={pinEditEnabled}
               eventHandlers={{
                 dragend(e) {
-                  if (!markerDraggable) return
+                  if (!pinEditEnabled) return
                   const { lat, lng } = e.target.getLatLng()
                   void applySelection(lat, lng)
                 },
