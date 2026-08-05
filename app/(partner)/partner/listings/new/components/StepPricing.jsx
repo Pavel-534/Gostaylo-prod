@@ -250,23 +250,21 @@ function StepPricingInner() {
           <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
           <p className="text-sm leading-relaxed text-slate-500">{t('seasonalPricingDesc')}</p>
           <div className="mt-1 space-y-5">
-            <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4">
+            <div className="min-w-0 w-full rounded-xl border border-slate-200 bg-slate-50/90 p-2 sm:p-4">
               <Label className="mb-2 block text-sm font-medium text-slate-800">{t('wizardDateRange')}</Label>
-              <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
-                <div className="inline-flex min-w-full justify-center px-0.5 pb-1 sm:px-0">
-                  <DayPicker
-                    mode="range"
-                    selected={newSeason.dateRange}
-                    onSelect={(range) =>
-                      setNewSeason((s) => ({
-                        ...s,
-                        dateRange: range || { from: null, to: null },
-                      }))
-                    }
-                    locale={dayPickerLocale}
-                    className="rdp-root !p-0 [--rdp-day-width:2.25rem] [--rdp-day-height:2.25rem] [--rdp-day_button-width:2.125rem] [--rdp-day_button-height:2.125rem] sm:[--rdp-day-width:2.75rem] sm:[--rdp-day-height:2.75rem] sm:[--rdp-day_button-width:2.625rem] sm:[--rdp-day_button-height:2.625rem] [&_.rdp-weekday]:text-[0.65rem] sm:[&_.rdp-weekday]:text-xs"
-                  />
-                </div>
+              <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+                <DayPicker
+                  mode="range"
+                  selected={newSeason.dateRange}
+                  onSelect={(range) =>
+                    setNewSeason((s) => ({
+                      ...s,
+                      dateRange: range || { from: null, to: null },
+                    }))
+                  }
+                  locale={dayPickerLocale}
+                  className="rdp-root mx-auto !m-0 !p-0 max-w-full [--rdp-day-width:1.85rem] [--rdp-day-height:1.85rem] [--rdp-day_button-width:1.7rem] [--rdp-day_button-height:1.7rem] [--rdp-nav_button-width:1.75rem] [--rdp-nav_button-height:1.75rem] sm:[--rdp-day-width:2.5rem] sm:[--rdp-day-height:2.5rem] sm:[--rdp-day_button-width:2.35rem] sm:[--rdp-day_button-height:2.35rem] [&_.rdp-month_caption]:max-w-full [&_.rdp-month_caption]:truncate [&_.rdp-weekday]:text-[0.6rem] sm:[&_.rdp-weekday]:text-xs [&_.rdp-day]:text-xs sm:[&_.rdp-day]:text-sm"
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
@@ -299,7 +297,7 @@ function StepPricingInner() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <Label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  {t('pricePerDayShort')} ({currencySymbol})
+                  {tr('pricePerDayShort', { unit: currencySymbol })}
                 </Label>
                 <Input
                   inputMode="numeric"
@@ -312,7 +310,7 @@ function StepPricingInner() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <Label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  {t('pricePerMonthOptional')} ({currencySymbol})
+                  {tr('pricePerMonthOptional', { unit: currencySymbol })}
                 </Label>
                 <Input
                   inputMode="numeric"

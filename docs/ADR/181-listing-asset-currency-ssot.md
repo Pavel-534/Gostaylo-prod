@@ -228,7 +228,7 @@ Wizard / preview **обязаны** показывать три строки (с
 | Task | Detail | Status |
 |------|--------|--------|
 | **5.1 Migration script** | `migrations/stage181_5_ru_listing_base_price_asset_backfill.sql` — RU listings missing `metadata.base_price_asset`: derive RUB from `base_price_thb / rate_to_thb`; sets `base_currency=RUB`; idempotent | ✅ |
-| **5.2 Seasonal** | Seasonal `priceDaily` в asset currency; THB при save в `seasonal_prices` или calc-time | pending |
+| **5.2 Seasonal** | Seasonal `priceDaily` в asset currency; THB при save в `seasonal_prices` + `metadata.price_*_asset` (Stage **200.33**) | ✅ |
 | **5.3 Optional column** | Оценить `listings.base_price_asset_amount` если metadata churn высокий | defer |
 
 **Exit:** Нет RU листингов с пустым `metadata.base_price_asset` после применения миграции. **Caveat:** если legacy `base_price_thb` хранил RUB amount (не THB canon), backfill даст неверный `asset.amount` — отдельная remediation.

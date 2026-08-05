@@ -12,10 +12,11 @@ export function getDefaultWizardFormData() {
     title: '',
     description: '',
     /** Stage GP-1 (Global Pivot 2026-02) — иерархия адреса для глобального агрегатора */
-    country: 'TH',     // ISO 3166-1 alpha-2; default Thailand для backward-compat
-    region: 'TH-PHK',  // ISO 3166-2-like; default Phuket
-    city: 'phuket-city',
+    country: '',
+    region: '',
+    city: '',
     district: '',
+    address: '',
     latitude: null,
     longitude: null,
     basePriceThb: '',

@@ -79,7 +79,6 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     baseCurrencyLocked:
       state.serverListing?.financialLock?.baseCurrencyLocked === true ||
       state.serverListing?.financialLock?.locked === true,
-    hideAirbnbImportBlock: derived.hideAirbnbImportBlock,
     partnerAmenitySlugs: derived.partnerAmenitySlugs,
     amenitiesHintKey: derived.amenitiesHintKey,
     canProceed: derived.canProceed,
@@ -98,6 +97,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     geocodeResults: state.geocodeResults,
     setGeocodeResults: state.setGeocodeResults,
     geocoding: state.geocoding,
+    setGeocoding: state.setGeocoding,
     handleGeocode: actions.handleGeocode,
     selectGeocodeResult: actions.selectGeocodeResult,
     handleMapSelect: actions.handleMapSelect,
@@ -108,7 +108,6 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     handleImageUpload: actions.handleImageUpload,
     removeImage: actions.removeImage,
     reorderImages: actions.reorderImages,
-    applyAirbnbPreview: actions.applyAirbnbPreview,
     WIZARD_DISTRICTS: derived.WIZARD_DISTRICTS,
     refreshAiDescriptionQuota: actions.refreshAiDescriptionQuota,
   }

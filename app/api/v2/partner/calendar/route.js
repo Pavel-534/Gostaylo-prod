@@ -15,6 +15,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { addListingDays } from '@/lib/listing-date'
 import { CalendarService } from '@/lib/services/calendar.service'
 import { promoIsActiveAt } from '@/lib/promo/promo-engine'
+import { mapListingPriceFieldsForApi } from '@/lib/listing/listing-base-price-canon'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,7 +101,7 @@ export async function GET(request) {
       const { data: listingsData, error: listingsErr } = await supabaseAdmin
         .from('listings')
         .select(
-          'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)',
+          'id,title,district,cover_image,base_price_thb,base_currency,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)',
         )
         .eq('owner_id', userId)
       if (listingsErr) throw listingsErr
@@ -140,12 +141,15 @@ export async function GET(request) {
         const cat = Array.isArray(rawCat) ? rawCat[0] : rawCat
         const categorySlug = cat?.slug ? String(cat.slug).toLowerCase() : null
 
+        const priceFields = mapListingPriceFieldsForApi(listing)
         const listingUi = {
           id: listing.id,
           title: listing.title,
           district: listing.district,
           coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
-          basePriceThb: parseFloat(listing.base_price_thb) || 0,
+          basePriceThb: priceFields.basePriceThb,
+          baseCurrency: priceFields.baseCurrency,
+          basePriceAsset: priceFields.basePriceAsset,
           commissionRate: (() => {
             const n = parseFloat(listing.commission_rate)
             return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission

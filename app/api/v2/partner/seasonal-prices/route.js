@@ -14,6 +14,8 @@
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { upsertPartnerSeasonalPrice } from '@/lib/services/calendar/partner-seasonal-price.service.js'
+import { mapSeasonalRowForPartnerUi } from '@/lib/listing/listing-seasonal-price-canon'
+import { revalidateListingPaths } from '@/lib/revalidation'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,11 +91,12 @@ export async function GET(request) {
     })
     
     const prices = await pricesRes.json()
-    
+    const rows = Array.isArray(prices) ? prices.map(mapSeasonalRowForPartnerUi) : []
+
     return NextResponse.json({
       status: 'success',
-      data: Array.isArray(prices) ? prices : [],
-      meta: { partnerId: userId, count: Array.isArray(prices) ? prices.length : 0 }
+      data: rows,
+      meta: { partnerId: userId, count: rows.length },
     })
     
   } catch (error) {
@@ -155,16 +158,23 @@ export async function POST(request) {
           ? 404
           : result.code === 'VALIDATION_ERROR'
             ? 400
-            : 500
-      return NextResponse.json({ status: 'error', error: result.error }, { status })
+            : result.code === 'LISTING_BASE_PRICE_FX_UNAVAILABLE' ||
+                result.code === 'SEASONAL_PRICE_CANON_FAILED'
+              ? 503
+              : 500
+      return NextResponse.json(
+        { status: 'error', error: result.error, code: result.code },
+        { status },
+      )
     }
 
     return NextResponse.json({
       status: 'success',
-      data: result.data,
+      data: mapSeasonalRowForPartnerUi(result.data),
       meta: {
         partnerId: userId,
         conflictsResolved: result.conflictsResolved,
+        metadataPersisted: result.metadataPersisted !== false,
       },
     })
     

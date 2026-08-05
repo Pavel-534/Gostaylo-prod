@@ -77,18 +77,40 @@ describe('resolveWizardGeoFromPin / mergeWizardFormGeoFromPin', () => {
     assert.equal(merged.baseCurrency, 'THB')
   })
 
-  it('maps Phuket pin to TH cascade + Asia/Bangkok + THB', async () => {
-    const { resolveWizardGeoFromPin } = await import('../lib/geo/wizard-geo-from-pin.js')
+  it('does not coerce unknown city to Moscow / regions[0]', async () => {
+    const { resolveWizardGeoFromPin, mergeWizardFormGeoFromPin } = await import(
+      '../lib/geo/wizard-geo-from-pin.js'
+    )
     const r = resolveWizardGeoFromPin({
-      lat: 7.88,
-      lon: 98.39,
-      countryCode: 'th',
-      country: 'Thailand',
-      city: 'Phuket',
+      lat: 64.54,
+      lon: 40.54,
+      countryCode: 'ru',
+      country: 'Russia',
+      city: 'Arkhangelsk',
+      state: 'Arkhangelsk Oblast',
     })
-    assert.equal(r.country, 'TH')
-    assert.equal(r.region, 'TH-PHK')
-    assert.equal(r.timezone, 'Asia/Bangkok')
-    assert.equal(r.baseCurrency, 'THB')
+    assert.ok(r)
+    assert.equal(r.country, 'RU')
+    assert.equal(r.cityMatched, false)
+    assert.equal(r.city, '')
+    assert.notEqual(r.city, 'moscow')
+    assert.equal(r.cityLabel, 'Arkhangelsk')
+
+    const merged = mergeWizardFormGeoFromPin(
+      { country: '', region: '', city: '', metadata: {} },
+      {
+        lat: 64.54,
+        lon: 40.54,
+        geo: {
+          countryCode: 'RU',
+          country: 'Russia',
+          city: 'Arkhangelsk',
+          state: 'Arkhangelsk Oblast',
+        },
+      },
+    )
+    assert.equal(merged.city, '')
+    assert.equal(merged.metadata.geo_city_unmatched, true)
+    assert.equal(merged.metadata.city_label, 'Arkhangelsk')
   })
 })

@@ -39,7 +39,8 @@ import {
   parseCatalogSortFromParams,
   buildPublicSearchParams,
 } from '@/lib/search/listings-page-url'
-import { resolveCatalogSortCenter } from '@/lib/geo/catalog-sort-centers'
+import { bboxCenter } from '@/lib/geo/catalog-sort-centers'
+import { useWhereGeoViewport } from '@/lib/hooks/use-where-geo-viewport'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
@@ -131,6 +132,8 @@ function ListingsContent() {
     urlCommitExtras,
   })
 
+  const whereGeoView = useWhereGeoViewport(debouncedWhere, language)
+
   const selectedCategoryWizardProfile = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') return null
     return effectiveCategoryWizardProfileRaw(selectedCategory, catalogCategories)
@@ -198,13 +201,18 @@ function ListingsContent() {
     return () => clearTimeout(t)
   }, [mapSelectedListingId, isMobile, showMap])
 
-  const handleSearchThisArea = useCallback((b) => {
-    setAppliedBbox(b)
-  }, [])
+  const handleSearchThisArea = useCallback(
+    (b) => {
+      setAppliedBbox(b)
+      commitToUrl({ appliedBbox: b, useDebounced: true })
+    },
+    [commitToUrl],
+  )
 
   const handleClearMapBounds = useCallback(() => {
     setAppliedBbox(null)
-  }, [])
+    commitToUrl({ appliedBbox: null, useDebounced: true })
+  }, [commitToUrl])
 
   const handleListingMarkerClick = useCallback((id) => {
     setMapSelectedListingId(id)
@@ -289,6 +297,7 @@ function ListingsContent() {
     itemsPerPage: ITEMS_PER_PAGE,
     displayCurrency: currency,
     catalogSort,
+    whereSortCenter: whereGeoView.sortCenter,
   })
 
   const catalogScrollKey = useMemo(
@@ -335,10 +344,10 @@ function ListingsContent() {
     }
   }, [allListings, mapSelectedListingId])
 
-  const catalogSortDistanceAvailable = useMemo(
-    () => Boolean(resolveCatalogSortCenter({ where: debouncedWhere, bounds: appliedBbox })),
-    [debouncedWhere, appliedBbox],
-  )
+  const catalogSortDistanceAvailable = useMemo(() => {
+    if (appliedBbox && bboxCenter(appliedBbox)) return true
+    return Boolean(whereGeoView.sortCenter)
+  }, [appliedBbox, whereGeoView.sortCenter])
 
   useEffect(() => {
     catalogSortRef.current = catalogSort
@@ -490,6 +499,8 @@ function ListingsContent() {
       onClearMapBounds: handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
+      mapCenter: whereGeoView.center,
+      mapZoom: whereGeoView.zoom,
       selectionPanMode: isMobile && showMap
         ? CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY
         : CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
@@ -511,6 +522,8 @@ function ListingsContent() {
       handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
+      whereGeoView.center,
+      whereGeoView.zoom,
       isMobile,
       showMap,
     ],
@@ -737,6 +750,8 @@ function ListingsContent() {
             onClearMapBounds={handleClearMapBounds}
             appliedBboxKey={appliedBboxKey}
             mapFitResetKey={mapFitResetKey}
+            mapCenter={whereGeoView.center}
+            mapZoom={whereGeoView.zoom}
           />
         </div>
       </div>

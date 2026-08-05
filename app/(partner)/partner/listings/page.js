@@ -504,6 +504,7 @@ export default function PartnerListings() {
                             <PartnerListingBasePriceDisplay
                               amount={listing.base_price_thb}
                               baseCurrency={listing.base_currency || listing.baseCurrency || 'THB'}
+                              basePriceAsset={listing.basePriceAsset || null}
                               className="items-start"
                             />
                           ) : (

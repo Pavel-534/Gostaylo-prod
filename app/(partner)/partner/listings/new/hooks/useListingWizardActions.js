@@ -8,7 +8,6 @@ import {
   normalizeWizardAmenities,
   filterAmenitiesForPartnerCategory,
 } from '@/lib/listing-wizard-amenities'
-import { mergeAirbnbPreviewWizard } from '@/lib/partner/listing-import-merge'
 import { isTourListingCategory } from '@/lib/listing-category-slug'
 import {
   normalizeCategoryWizardProfileColumn,
@@ -701,47 +700,15 @@ export function useListingWizardActions(state, derived) {
           baseCurrencyLocked,
         }),
       )
-      if (geo?.district) {
-        setGeocodeQuery(geo.displayName || geo.district)
-        setCustomDistricts((prev) =>
-          prev.includes(geo.district) ? prev : [...prev, geo.district],
-        )
+      const dist = geo?.district
+      if (dist) {
+        setGeocodeQuery(geo.displayName || dist)
+        setCustomDistricts((prev) => (prev.includes(dist) ? prev : [...prev, dist]))
+      } else if (geo?.displayName) {
+        setGeocodeQuery(geo.displayName)
       }
     },
     [setFormData, setGeocodeQuery, setCustomDistricts, baseCurrencyLocked],
-  )
-
-  const applyAirbnbPreview = useCallback(
-    (preview) => {
-      setFormData((prev) => {
-        const { nextFormData, customDistrictsToAdd } = mergeAirbnbPreviewWizard(prev, preview)
-        const cat = categories.find((c) => c.id === prev.categoryId)
-        const slug = String(cat?.slug || '').toLowerCase()
-        const merged = {
-          ...nextFormData,
-          metadata: {
-            ...nextFormData.metadata,
-            amenities: filterAmenitiesForPartnerCategory(
-              slug,
-              normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
-            ),
-          },
-        }
-        if (customDistrictsToAdd.length) {
-          Promise.resolve().then(() => {
-            setCustomDistricts((dprev) => {
-              const n = [...dprev]
-              for (const d of customDistrictsToAdd) {
-                if (d && !districts.includes(d) && !n.includes(d)) n.push(d)
-              }
-              return n
-            })
-          })
-        }
-        return merged
-      })
-    },
-    [categories, setFormData, setCustomDistricts, districts],
   )
 
   return {
@@ -763,6 +730,5 @@ export function useListingWizardActions(state, derived) {
     handleGeocode,
     selectGeocodeResult,
     handleMapSelect,
-    applyAirbnbPreview,
   }
 }

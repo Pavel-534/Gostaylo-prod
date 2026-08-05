@@ -74,7 +74,6 @@ export function useListingWizardDerived(state) {
     return isTourListingCategory(listingCategorySlug)
   }, [listingCategoryWizardProfile, listingCategorySlug])
 
-  const hideAirbnbImportBlock = transportWizard || toursWizard
   const partnerAmenitySlugs = useMemo(
     () => amenitySlugsForPartnerCategory(listingCategorySlug),
     [listingCategorySlug],
@@ -182,7 +181,6 @@ export function useListingWizardDerived(state) {
     getCategoryDisplayName,
     transportWizard,
     toursWizard,
-    hideAirbnbImportBlock,
     partnerAmenitySlugs,
     amenitiesHintKey,
     coordsValid,

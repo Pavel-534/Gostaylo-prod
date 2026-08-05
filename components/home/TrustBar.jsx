@@ -8,32 +8,35 @@
 
 import { Home, Star, ShieldCheck } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
-import { resolveWhereTarget } from '@/lib/locations/resolve-where-target'
-import { COUNTRY_PRESETS } from '@/lib/geo/country-presets'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchPublicStats } from '@/lib/api/catalog-public-client'
 
-/** Resolve human-readable location name (localized) for trust label */
-function getLocationDisplayName(locationContext, language) {
-  if (!locationContext || locationContext === 'all') return null
-  const target = resolveWhereTarget(locationContext)
-  if (!target) return null
-  if (target.level === 'country') {
-    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
-    return c ? (c.labels[language] || c.labels.en) : null
-  }
-  if (target.level === 'region') {
-    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
-    const r = c?.regions.find((rr) => rr.code === target.regionCode)
-    return r ? (r.labels[language] || r.labels.en) : null
-  }
-  if (target.level === 'city') {
-    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
-    const r = c?.regions.find((rr) => rr.code === target.regionCode)
-    const ci = r?.cities.find((cc) => cc.code === target.cityCode)
-    return ci ? (ci.labels[language] || ci.labels.en) : null
-  }
-  return null
+/** Resolve human-readable location name via geo_locations (Stage 200.37). */
+function useLocationDisplayName(locationContext, language) {
+  const [name, setName] = useState(null)
+  useEffect(() => {
+    if (!locationContext || locationContext === 'all') {
+      setName(null)
+      return undefined
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/v2/geo/resolve-where?q=${encodeURIComponent(locationContext)}&lang=${encodeURIComponent(language || 'ru')}`,
+          { cache: 'no-store' },
+        )
+        const json = await res.json().catch(() => ({}))
+        if (!cancelled) setName(json?.data?.label || null)
+      } catch {
+        if (!cancelled) setName(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [locationContext, language])
+  return name
 }
 
 // ---------- Animated counter ----------
@@ -143,10 +146,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
   }, [])
 
   // Dynamic listings label: «1200+ объектов в {place}» или «… по всему миру»
-  const placeName = useMemo(
-    () => getLocationDisplayName(locationContext, language),
-    [locationContext, language],
-  )
+  const placeName = useLocationDisplayName(locationContext, language)
 
   if (loadingStats) return <TrustBarSkeleton />
 

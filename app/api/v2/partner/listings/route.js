@@ -24,6 +24,7 @@ import {
   mapListingPriceFieldsForApi,
 } from '@/lib/listing/listing-base-price-canon.js';
 import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
+import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
 
 export async function GET(request) {
   try {
@@ -211,6 +212,23 @@ export async function POST(request) {
       },
       { country, region, city, district, latitude, longitude, metadata },
     );
+
+    const isDraft = metadata?.is_draft === true || metadata?.is_draft === 'true';
+    const geoAssert = await assertListingGeoCodes({
+      countryCode: insertRow.country_code || country,
+      regionCode: insertRow.region_code || region,
+      cityCode: insertRow.city_code || city,
+      latitude: insertRow.latitude,
+      longitude: insertRow.longitude,
+      requireCountry: !isDraft || Boolean(country),
+      requireCoords: !isDraft || latitude != null || longitude != null,
+    });
+    if (!geoAssert.ok) {
+      return NextResponse.json(
+        { success: false, error: geoAssert.error, code: geoAssert.code },
+        { status: 400 },
+      );
+    }
 
     applyListingBaseCurrencyInvariant(insertRow, { requestedCurrency: baseCurrency });
 

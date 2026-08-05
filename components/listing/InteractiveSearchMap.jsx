@@ -136,31 +136,61 @@ function InitialListingBoundsFit({
   listings,
   suppressBoundsUntilRef,
   mapFitResetKey,
+  fallbackCenter,
+  fallbackZoom,
 }) {
   const map = useMap()
-  const didFitRef = useRef(false)
+  const didFitListingsRef = useRef(false)
   const lastResetKeyRef = useRef(mapFitResetKey)
+  const lastListingsSigRef = useRef('')
 
-  useEffect(() => {
-    if (lastResetKeyRef.current !== mapFitResetKey) {
-      lastResetKeyRef.current = mapFitResetKey
-      didFitRef.current = false
+  const applyFallbackCenter = useCallback(() => {
+    if (
+      !Array.isArray(fallbackCenter) ||
+      fallbackCenter.length < 2 ||
+      !Number.isFinite(Number(fallbackCenter[0])) ||
+      !Number.isFinite(Number(fallbackCenter[1]))
+    ) {
+      return false
     }
-  }, [mapFitResetKey])
+    suppressBoundsUntilRef.current = Date.now() + 800
+    map.setView(fallbackCenter, Number(fallbackZoom) || 6)
+    return true
+  }, [fallbackCenter, fallbackZoom, map, suppressBoundsUntilRef])
 
+  // Stage 200.39 — on where/filter change: pan to geo target first (ignore stale pins).
   useEffect(() => {
-    if (!listings?.length || didFitRef.current) return
+    if (lastResetKeyRef.current === mapFitResetKey) return
+    lastResetKeyRef.current = mapFitResetKey
+    didFitListingsRef.current = false
+    lastListingsSigRef.current = ''
+    applyFallbackCenter()
+  }, [mapFitResetKey, applyFallbackCenter])
+
+  // When resolve-where centroid arrives after reset and listings not fitted yet
+  useEffect(() => {
+    if (didFitListingsRef.current) return
+    applyFallbackCenter()
+  }, [fallbackCenter, fallbackZoom, applyFallbackCenter])
+
+  // Fit to fresh listing pins once per result set after reset
+  useEffect(() => {
+    const ids = (listings || []).map((l) => l?.id).filter(Boolean)
+    const sig = ids.slice(0, 40).join(',')
+    if (!sig || sig === lastListingsSigRef.current) return
+
     let bounds = null
-    for (const listing of listings) {
+    for (const listing of listings || []) {
       const b = listingLocationBounds(listing)
       if (!b || !b.isValid()) continue
       bounds = bounds ? bounds.extend(b) : b
     }
-    if (bounds?.isValid()) {
-      suppressBoundsUntilRef.current = Date.now() + 1400
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
-      didFitRef.current = true
-    }
+    if (!bounds?.isValid()) return
+
+    lastListingsSigRef.current = sig
+    didFitListingsRef.current = true
+    suppressBoundsUntilRef.current = Date.now() + 1400
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
   }, [listings, map, suppressBoundsUntilRef, mapFitResetKey])
 
   return null
@@ -386,8 +416,8 @@ export default function InteractiveSearchMap({
   userBookings = [],
   userId = null,
   language = 'ru',
-  center = [7.8804, 98.3923],
-  zoom = 12,
+  center = [20, 100],
+  zoom = 6,
   currency = 'THB',
   exchangeRates = { THB: 1 },
   /** Синхрон с карточками списка: даты для `CardPriceDisplay` во всплывающем окне маркера */
@@ -541,6 +571,8 @@ export default function InteractiveSearchMap({
           listings={fitListings}
           suppressBoundsUntilRef={suppressBoundsUntilRef}
           mapFitResetKey={mapFitResetKey}
+          fallbackCenter={center}
+          fallbackZoom={zoom}
         />
 
         <MapSelectionSync

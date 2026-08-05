@@ -29,6 +29,8 @@ function SearchMapWrapperComponent({
   onClearMapBounds,
   appliedBboxKey = '',
   mapFitResetKey = '',
+  mapCenter,
+  mapZoom,
 }) {
   return (
     <div
@@ -56,6 +58,8 @@ function SearchMapWrapperComponent({
         onClearMapBounds={onClearMapBounds}
         appliedBboxKey={appliedBboxKey}
         mapFitResetKey={mapFitResetKey}
+        mapCenter={mapCenter}
+        mapZoom={mapZoom}
         mapShellClassName="h-full rounded-lg"
       />
     </div>

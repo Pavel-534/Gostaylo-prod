@@ -400,6 +400,11 @@ function AgendaRow({ date, item, onCellClick, rangeRole = null, listItemRef, tod
         <CalendarListingPriceDisplay
           amountThb={price}
           baseCurrency={baseCur}
+          amountAsset={
+            Number(price) === Number(basePrice) && item.listing?.basePriceAsset?.amount != null
+              ? item.listing.basePriceAsset.amount
+              : null
+          }
           className="items-end"
           priceClassName={cn(
             'text-sm font-bold tabular-nums tracking-tight',

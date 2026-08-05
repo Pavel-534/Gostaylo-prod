@@ -34,6 +34,7 @@ import {
   LISTING_CARD_TITLE_ROW_MIN_H,
   LISTING_CARD_TRUST_ROW_MIN_H,
 } from '@/lib/listing/listing-card-layout'
+import { useListingLocationLabel } from '@/lib/hooks/use-listing-location-label'
 
 export function ListingCard({
   listing,
@@ -64,7 +65,7 @@ export function ListingCard({
   const {
     id,
     title = 'Untitled Property',
-    district = 'Phuket',
+    district: districtRaw = '',
     basePriceThb = 0,
     base_price_thb = 0,
     images = [],
@@ -87,7 +88,9 @@ export function ListingCard({
     catalog_flash_urgency = null,
     catalog_flash_social_proof = null,
   } = listing
-  
+
+  const locationLabel = useListingLocationLabel(listing, language)
+  const district = locationLabel || String(districtRaw || '').trim() 
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||

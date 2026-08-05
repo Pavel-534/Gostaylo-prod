@@ -48,6 +48,9 @@ function CatalogSearchMapPanelComponent({
   appliedBboxKey = '',
   mapFitResetKey = '',
   selectionPanMode,
+  /** Stage 200.37 — from geo_locations centroid (default SEA). */
+  mapCenter = [20, 100],
+  mapZoom = 6,
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
 
@@ -110,8 +113,8 @@ function CatalogSearchMapPanelComponent({
           userBookings={userBookings}
           userId={userId}
           language={language}
-          center={[7.8804, 98.3923]}
-          zoom={12}
+          center={mapCenter}
+          zoom={mapZoom}
           currency={currency}
           exchangeRates={exchangeRates}
           initialDates={initialDates}

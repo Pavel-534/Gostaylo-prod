@@ -60,11 +60,33 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
     case 1:
       pushGeneral()
       break
-    case 2:
+    case 2: {
+      if (!String(formData?.country || '').trim()) {
+        blockers.push({ i18nKey: 'wizardBlocker_country', field: 'country' })
+      }
+      const lat = formData?.latitude
+      const lng = formData?.longitude
+      const hasCoords =
+        lat != null &&
+        lng != null &&
+        lat !== '' &&
+        lng !== '' &&
+        Number.isFinite(Number(lat)) &&
+        Number.isFinite(Number(lng))
+      if (!hasCoords) {
+        blockers.push({ i18nKey: 'wizardBlocker_coordinates', field: 'coordinates' })
+      }
+      const hasCity =
+        String(formData?.city || '').trim() ||
+        String(formData?.metadata?.city_label || formData?.metadata?.city || '').trim()
+      if (!hasCity) {
+        blockers.push({ i18nKey: 'wizardBlocker_city', field: 'city' })
+      }
       if (!String(formData?.district || '').trim()) {
         blockers.push({ i18nKey: 'wizardBlocker_district', field: 'district' })
       }
       break
+    }
     case 3:
       if (photos < LISTING_SOFT_MIN_PHOTOS) {
         blockers.push({
@@ -81,6 +103,29 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
       break
     case 5:
       pushGeneral()
+      if (!String(formData?.country || '').trim()) {
+        blockers.push({ i18nKey: 'wizardBlocker_country', field: 'country' })
+      }
+      {
+        const lat = formData?.latitude
+        const lng = formData?.longitude
+        const hasCoords =
+          lat != null &&
+          lng != null &&
+          lat !== '' &&
+          lng !== '' &&
+          Number.isFinite(Number(lat)) &&
+          Number.isFinite(Number(lng))
+        if (!hasCoords) {
+          blockers.push({ i18nKey: 'wizardBlocker_coordinates', field: 'coordinates' })
+        }
+      }
+      if (
+        !String(formData?.city || '').trim() &&
+        !String(formData?.metadata?.city_label || formData?.metadata?.city || '').trim()
+      ) {
+        blockers.push({ i18nKey: 'wizardBlocker_city', field: 'city' })
+      }
       if (!String(formData?.district || '').trim()) {
         blockers.push({ i18nKey: 'wizardBlocker_district', field: 'district' })
       }

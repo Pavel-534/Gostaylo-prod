@@ -1,51 +1,54 @@
 /**
- * GoStayLo - Locations API (City -> District hierarchy)
- * GET /api/v2/locations - Returns unique cities and districts from ACTIVE listings
- * Used for dynamic search filters (Airbnb-style)
+ * GET /api/v2/locations — legacy City → District hierarchy from ACTIVE listings.
+ * Stage 200.37 — no Phuket default; prefer /api/v2/search/locations.
  */
 
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { LISTINGS_PUBLIC_CATALOG_VIEW } from '@/lib/db/listings-public-catalog';
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+import { LISTINGS_PUBLIC_CATALOG_VIEW } from '@/lib/db/listings-public-catalog'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
     const { data: listings, error } = await supabaseAdmin
       .from(LISTINGS_PUBLIC_CATALOG_VIEW)
-      .select('district, metadata')
-      .not('district', 'is', null);
+      .select('district, city_code, region_code, country_code, metadata')
+      .not('district', 'is', null)
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    const districtByCity = new Map(); // city -> Set(districts)
+    const districtByCity = new Map()
     for (const l of listings || []) {
-      const city = l.metadata?.city || 'Phuket'; // Default Phuket for legacy
-      const district = (l.district || '').trim();
-      if (!district) continue;
+      const meta =
+        l.metadata && typeof l.metadata === 'object' && !Array.isArray(l.metadata)
+          ? l.metadata
+          : {}
+      const city =
+        String(meta.city_label || meta.city || '').trim() ||
+        String(l.city_code || '').trim() ||
+        String(l.region_code || '').trim() ||
+        String(l.country_code || '').trim() ||
+        'Other'
+      const district = (l.district || '').trim()
+      if (!district) continue
       if (!districtByCity.has(city)) {
-        districtByCity.set(city, new Set());
+        districtByCity.set(city, new Set())
       }
-      districtByCity.get(city).add(district);
+      districtByCity.get(city).add(district)
     }
 
-    const cities = Array.from(districtByCity.keys()).sort();
-    const locations = cities.map(city => ({
+    const cities = Array.from(districtByCity.keys()).sort()
+    const locations = cities.map((city) => ({
       city,
-      districts: Array.from(districtByCity.get(city)).sort()
-    }));
+      districts: Array.from(districtByCity.get(city)).sort(),
+    }))
 
-    return NextResponse.json({
-      success: true,
-      data: { locations, cities }
-    }, {
-      headers: { 'Cache-Control': 'public, max-age=300' }
-    });
-  } catch (e) {
-    console.error('[LOCATIONS API]', e);
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: { cities, locations } })
+  } catch (err) {
+    console.error('[LOCATIONS API]', err)
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
   }
 }

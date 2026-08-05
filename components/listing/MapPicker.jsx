@@ -29,31 +29,8 @@ if (typeof window !== 'undefined') {
   configureLeafletDefaultIcons(L)
 }
 
-const PHUKET_CENTER = [7.8804, 98.3923]
-
-/** Default map center when pin is empty — country cascade (wizard GP-1). */
-const COUNTRY_MAP_CENTERS = {
-  TH: PHUKET_CENTER,
-  RU: [55.7558, 37.6173],
-  TR: [41.0082, 28.9784],
-  CN: [31.2304, 121.4737],
-  US: [40.7128, -74.006],
-  GB: [51.5074, -0.1278],
-  DE: [52.52, 13.405],
-  AU: [-33.8688, 151.2093],
-  JP: [35.6762, 139.6503],
-  KR: [37.5665, 126.978],
-  SG: [1.3521, 103.8198],
-  IN: [28.6139, 77.209],
-}
-
-function defaultCenterForCountry(countryCode) {
-  const code = String(countryCode || '')
-    .trim()
-    .slice(0, 2)
-    .toUpperCase()
-  return (code && COUNTRY_MAP_CENTERS[code]) || PHUKET_CENTER
-}
+/** Stage 200.36 — world default; wizard passes geo_locations centroid via mapCenter. No Moscow/hub coerce. */
+const WORLD_DEFAULT_CENTER = [20, 100]
 
 function useCoarsePointer() {
   const [coarse, setCoarse] = useState(false)
@@ -108,33 +85,28 @@ function normalizeGeocodeForForm(data, privacyMode) {
   const countryCode = data.countryCode || data.address?.country_code || null
   const state = data.state || data.address?.state || null
   const address = data.address && typeof data.address === 'object' ? data.address : null
-  if (privacyMode) {
-    return {
-      district: district || displayName.split(',')[0]?.trim() || '',
-      city,
-      displayName,
-      country,
-      countryCode: countryCode
-        ? String(countryCode).trim().toUpperCase().slice(0, 2)
-        : null,
-      state,
-      address,
-    }
+  const extras = {
+    regionCode: data.regionCode || null,
+    cityCode: data.cityCode || null,
+    timezone: data.timezone || null,
+    currencyCode: data.currencyCode || null,
+    geoSource: data.geoSource || null,
   }
-  const precise =
-    [district, city].filter(Boolean).join(', ') ||
-    displayName.split(',').slice(0, 3).join(',').trim() ||
-    displayName
+  // Keep district as suburb/neighbourhood only — never join city into district.
+  const districtClean =
+    district || (privacyMode ? displayName.split(',')[0]?.trim() || '' : '')
   return {
-    district: precise,
+    district: districtClean,
     city,
-    displayName,
+    displayName:
+      displayName || [district, city].filter(Boolean).join(', ') || '',
     country,
     countryCode: countryCode
       ? String(countryCode).trim().toUpperCase().slice(0, 2)
       : null,
     state,
     address,
+    ...extras,
   }
 }
 
@@ -169,6 +141,8 @@ export default function MapPicker({
   cooperativeTouch = 'auto',
   /** ISO country for empty-pin default viewport (wizard). */
   countryCode = null,
+  /** Optional [lat,lng] override from geo_locations.centroid (Stage 200.36). */
+  mapCenter = null,
 }) {
   const t = (key) => getUIText(key, language)
   const coarsePointer = useCoarsePointer()
@@ -254,7 +228,10 @@ export default function MapPicker({
     )
   }
 
-  const center = position || defaultCenterForCountry(countryCode)
+  const center =
+    position ||
+    (Array.isArray(mapCenter) && mapCenter.length >= 2 ? mapCenter : null) ||
+    WORLD_DEFAULT_CENTER
   const zoom = position ? 15 : 12
   /** Pin edit (click / drag marker) — separate from view pan/zoom. */
   const pinEditEnabled = lockable ? unlocked : true

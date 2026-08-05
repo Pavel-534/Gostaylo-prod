@@ -281,6 +281,22 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.39 (2026-08-05):** **Geo UX polish** — catalog map re-center on where; bbox URL for Search this area; listing/order labels via seed + `/api/v2/geo/listing-label`; SEO without Phuket defaults; softer legacy Phuket infer.
+
+**Stage 200.38 (2026-08-05):** **Delete country-presets** — removed `lib/geo/country-presets.js`; consumers → GeoService / `LAUNCH_GEO_SEED` (`launch-geo-index`); write snapshot without presets; fiscal currency stays in listing-asset-currency.
+
+**Stage 200.37 (2026-08-05):** **Catalog geo SSOT** — `resolveWhereTarget` / smart where OR / suggest from `geo_locations`+`geo_synonyms`; map viewport via `GET /api/v2/geo/resolve-where` + centroids; TrustBar/SEO/guest location labels without presets/`DISTRICTS_BY_CITY`/`COUNTRY_MAP_CENTERS`. Write snapshot kept.
+
+**Stage 200.36 (2026-08-05):** **Map-first Location** — wizard StepLocation suggest+map+cascade; anti-coerce (no Moscow/`regions[0]`); `GET /api/v2/geocode/suggest`, `GET /api/v2/geo/locations`, `POST /api/v2/partner/geo/provisional`; partner listing geo assert.
+
+**Stage 200.35 (2026-08-05):** **Geo foundation** — ADR-200.35: additive `geo_locations` metadata + `nominatim_cache`; `GeoService` SSOT for Nominatim; static launch seed (Novosibirsk+); presets deferred. Tests: `__tests__/stage200-35-geo-foundation.test.js`.
+
+**Stage 200.34 (2026-08-05):** **Wizard Airbnb import UI removed** — Step 1 no longer shows PartnerListingImportBlock; merge/client helpers deleted. Preview API dormant.
+
+**Stage 200.33 (2026-08-05):** **Seasonal asset→THB** — ADR-181 Wave 5.2: `resolveSeasonalPriceCanon` + upsert converts L1→ledger; `seasonal_prices.metadata` snapshot; partner GET/wizard round-trip. Migration `stage200_33_seasonal_price_asset_metadata.sql`. Tests: `__tests__/listing-seasonal-price-canon.test.js`.
+
+**Stage 200.32 (2026-08-05):** **Partner L1 currency display** — list normalize keeps `baseCurrency`/`basePriceAsset`; card primary = asset RUB/THB; seasonal i18n `{{unit}}`; DayPicker mobile fit; calendar API `base_currency`. Tests: `__tests__/stage200-32-partner-listing-currency-display.test.js`.
+
 **Stage 200.31 (2026-08-05):** **Map pan/zoom UX** — pin lock ≠ map freeze; `MapGestureSync` for live Leaflet handlers; wizard `cooperativeTouch="auto"`. Tests: `__tests__/stage200-31-map-gestures.test.js`.
 
 **Stage 200.30 (2026-08-05):** **Wizard pin→geo SSOT** — map/geocode updates country→region→city, IANA TZ, `baseCurrency` (ADR-181) via `lib/geo/wizard-geo-from-pin.js`; reverse returns `countryCode`; header UI currency ≠ listing geo. Tests: `__tests__/wizard-geo-from-pin.test.js`.

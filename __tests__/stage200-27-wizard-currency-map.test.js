@@ -33,21 +33,21 @@ describe('Stage 200.27 — pricing labels follow baseCurrency (no hardcoded ฿)
   })
 })
 
-describe('Stage 200.27 — MapPicker height + country center', () => {
+describe('Stage 200.27 / 200.38 — MapPicker height + geo viewport', () => {
   it('StepLocation passes numeric height (not % inside fixed wrapper)', () => {
     const src = read('app/(partner)/partner/listings/new/components/StepLocation.jsx')
     assert.match(src, /height=\{320\}/)
     assert.doesNotMatch(src, /h-\[280px\].*MapPicker|MapPicker[\s\S]*height="100%"/)
-    assert.match(src, /defaultTimezoneForCountryCode/)
-    assert.match(src, /countryCode=\{formData\.country\}/)
+    assert.match(src, /countryCode=\{formData\.country \|\| null\}/)
     assert.match(src, /cooperativeTouch="auto"/)
   })
 
-  it('MapPicker has country default centers', () => {
+  it('MapPicker uses world default / mapCenter (no COUNTRY_MAP_CENTERS)', () => {
     const src = read('components/listing/MapPicker.jsx')
-    assert.match(src, /COUNTRY_MAP_CENTERS/)
+    assert.match(src, /WORLD_DEFAULT_CENTER/)
+    assert.doesNotMatch(src, /COUNTRY_MAP_CENTERS/)
     assert.match(src, /countryCode/)
-    assert.match(src, /RU:\s*\[55\.7558/)
+    assert.match(src, /mapCenter/)
   })
 
   it('Russia pin guess returns Europe/Moscow', () => {

@@ -24,6 +24,7 @@ import {
 } from '@/lib/partner/listing-quality-gates.js'
 import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
+import { ensureProvisionalCityCode } from '@/lib/geo/wizard-ensure-provisional'
 
 function showListingModerationToast(t) {
   toast.success(t('partnerEdit_statusPending'), {
@@ -87,6 +88,25 @@ function assertSoftPublishQualityGate(w, t) {
   return false
 }
 
+/** Stage 200.36 — upsert provisional city_code before write when label-only. */
+async function resolveFormDataWithProvisionalCity(formData, setFormData, t) {
+  const result = await ensureProvisionalCityCode(formData)
+  if (!result.ok) {
+    if (result.error === 'city_required') {
+      toast.error(t('wizardBlocker_city'))
+    } else if (result.error === 'country_required') {
+      toast.error(t('wizardBlocker_country'))
+    } else {
+      toast.error(t('wizardGeo_provisionalFailed'))
+    }
+    return null
+  }
+  if (result.formData && result.formData !== formData && typeof setFormData === 'function') {
+    setFormData(result.formData)
+  }
+  return result.formData
+}
+
 /**
  * Partner listing save: draft, publish, patch (dedicated edit route).
  */
@@ -96,6 +116,7 @@ export function useListingSave() {
   const {
     t,
     formData,
+    setFormData,
     isEditMode,
     editId,
     draftListingIdRef,
@@ -120,17 +141,19 @@ export function useListingSave() {
     if (!editId) return
     setPatching(true)
     try {
+      const geoForm = await resolveFormDataWithProvisionalCity(formData, setFormData, t)
+      if (!geoForm) return
       const coverImage = buildCoverUrl()
       const categorySlug = listingCategorySlug
-      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descTranslations = mergeDescriptionTranslationsForSave(geoForm, language)
       const descriptionDb = buildListingDescriptionForDb(
-        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        { ...geoForm, metadata: { ...geoForm.metadata, description_translations: descTranslations } },
         language,
       )
       const metadata = normalizePartnerListingMetadata(
-        { ...formData.metadata, description_translations: descTranslations },
+        { ...geoForm.metadata, description_translations: descTranslations },
         categorySlug,
-        formData.categoryName || '',
+        geoForm.categoryName || '',
         listingCategoryWizardProfile,
       )
       const tourBd =
@@ -139,27 +162,27 @@ export function useListingSave() {
           normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour')
           ? { minBookingDays: 1, maxBookingDays: 730 }
           : {
-              minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
-              maxBookingDays: parseInt(String(formData.maxBookingDays), 10) || 90,
+              minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
+              maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
             }
-      const lat = formData.latitude
-      const lng = formData.longitude
+      const lat = geoForm.latitude
+      const lng = geoForm.longitude
       const payload = {
-        title: formData.title,
+        title: geoForm.title,
         description: descriptionDb,
-        basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-        baseCurrency: formData.baseCurrency || 'THB',
-        categoryId: formData.categoryId,
-        country: formData.country,
-        region: formData.region,
-        city: formData.city,
-        district: formData.district,
+        basePriceThb: parseFloat(String(geoForm.basePriceThb)) || 0,
+        baseCurrency: geoForm.baseCurrency || 'THB',
+        categoryId: geoForm.categoryId,
+        country: geoForm.country,
+        region: geoForm.region,
+        city: geoForm.city,
+        district: geoForm.district,
         latitude: lat === '' || lat == null ? null : parseFloat(String(lat)),
         longitude: lng === '' || lng == null ? null : parseFloat(String(lng)),
-        images: formData.images,
+        images: geoForm.images,
         coverImage,
         metadata,
-        cancellationPolicy: formData.cancellationPolicy || 'moderate',
+        cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
         ...tourBd,
       }
       const res = await fetch(`/api/v2/partner/listings/${editId}`, {
@@ -173,9 +196,9 @@ export function useListingSave() {
         toast.success(t('partnerEdit_listingSaved'), { id: 'partner-listing-save' })
         const prevCoverIdx = Math.min(
           Math.max(0, 0),
-          Math.max(0, (formData.images || []).length - 1),
+          Math.max(0, (geoForm.images || []).length - 1),
         )
-        const mig = await migrateExternalImagesAfterSave(editId, formData.images)
+        const mig = await migrateExternalImagesAfterSave(editId, geoForm.images)
         if (mig?.images?.length) {
           const newCover =
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
@@ -194,6 +217,7 @@ export function useListingSave() {
     buildCoverUrl,
     editId,
     formData,
+    setFormData,
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
@@ -209,15 +233,17 @@ export function useListingSave() {
     if (!editId) return
     setPublishing(true)
     try {
+      const geoForm = await resolveFormDataWithProvisionalCity(formData, setFormData, t)
+      if (!geoForm) return
       const coverImage = buildCoverUrl()
       const categorySlug = listingCategorySlug
-      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descTranslations = mergeDescriptionTranslationsForSave(geoForm, language)
       const descriptionDb = buildListingDescriptionForDb(
-        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        { ...geoForm, metadata: { ...geoForm.metadata, description_translations: descTranslations } },
         language,
       )
       const prevMeta = serverListing?.metadata && typeof serverListing.metadata === 'object' ? serverListing.metadata : {}
-      const formMeta = formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}
+      const formMeta = geoForm.metadata && typeof geoForm.metadata === 'object' ? geoForm.metadata : {}
       const mergedMeta = {
         ...prevMeta,
         ...formMeta,
@@ -233,37 +259,37 @@ export function useListingSave() {
           normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour')
           ? { minBookingDays: 1, maxBookingDays: 730 }
           : {
-              minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
-              maxBookingDays: parseInt(String(formData.maxBookingDays), 10) || 90,
+              minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
+              maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
             }
-      const lat = formData.latitude
-      const lng = formData.longitude
+      const lat = geoForm.latitude
+      const lng = geoForm.longitude
       const res = await fetch(`/api/v2/partner/listings/${editId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          title: formData.title,
+          title: geoForm.title,
           description: descriptionDb,
-          basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-          baseCurrency: formData.baseCurrency || 'THB',
-          country: formData.country,
-          region: formData.region,
-          city: formData.city,
-          district: formData.district,
+          basePriceThb: parseFloat(String(geoForm.basePriceThb)) || 0,
+          baseCurrency: geoForm.baseCurrency || 'THB',
+          country: geoForm.country,
+          region: geoForm.region,
+          city: geoForm.city,
+          district: geoForm.district,
           latitude: lat === '' || lat == null ? null : parseFloat(String(lat)),
           longitude: lng === '' || lng == null ? null : parseFloat(String(lng)),
-          images: formData.images,
+          images: geoForm.images,
           coverImage,
           status: 'PENDING',
           softPublish: soft,
           metadata: normalizePartnerListingMetadata(
             mergedMeta,
             categorySlug,
-            formData.categoryName || '',
+            geoForm.categoryName || '',
             listingCategoryWizardProfile,
           ),
-          cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
           ...tourBd,
         }),
       })
@@ -271,9 +297,9 @@ export function useListingSave() {
       if (result.success) {
         const prevCoverIdx = Math.min(
           Math.max(0, 0),
-          Math.max(0, (formData.images || []).length - 1),
+          Math.max(0, (geoForm.images || []).length - 1),
         )
-        const mig = await migrateExternalImagesAfterSave(editId, formData.images)
+        const mig = await migrateExternalImagesAfterSave(editId, geoForm.images)
         if (mig?.images?.length) {
           const newCover =
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
@@ -304,6 +330,7 @@ export function useListingSave() {
     buildCoverUrl,
     editId,
     formData,
+    setFormData,
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
@@ -433,6 +460,14 @@ export function useListingSave() {
         toast.error(t('pleaseLogIn'))
         return
       }
+      const geoForm =
+        String(formData.country || '').trim() &&
+        (String(formData.city || '').trim() ||
+          String(formData.metadata?.city_label || formData.metadata?.city || '').trim())
+          ? await resolveFormDataWithProvisionalCity(formData, setFormData, t)
+          : formData
+      if (!geoForm) return
+
       const categorySlug = listingCategorySlug
       const tourCat =
         isTourListingCategory(categorySlug) ||
@@ -440,31 +475,31 @@ export function useListingSave() {
       const bookingDaysPayload = tourCat
         ? { minBookingDays: 1, maxBookingDays: 730 }
         : {
-            minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
-            maxBookingDays: parseInt(String(formData.maxBookingDays), 10) || 90,
+            minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
+            maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
           }
-      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descTranslations = mergeDescriptionTranslationsForSave(geoForm, language)
       const descriptionDb = buildListingDescriptionForDb(
-        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        { ...geoForm, metadata: { ...geoForm.metadata, description_translations: descTranslations } },
         language,
       )
       const draftMeta = normalizePartnerListingMetadata(
-        { ...formData.metadata, description_translations: descTranslations, is_draft: true },
+        { ...geoForm.metadata, description_translations: descTranslations, is_draft: true },
         categorySlug,
-        formData.categoryName || '',
+        geoForm.categoryName || '',
         listingCategoryWizardProfile,
       )
 
       if (isEditMode && editId) {
         const payload = {
-          ...formData,
+          ...geoForm,
           ...bookingDaysPayload,
           description: descriptionDb,
-          status: formData.status || 'INACTIVE',
+          status: geoForm.status || 'INACTIVE',
           available: false,
-          basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-          baseCurrency: formData.baseCurrency || 'THB',
-          images: formData.images,
+          basePriceThb: parseFloat(String(geoForm.basePriceThb)) || 0,
+          baseCurrency: geoForm.baseCurrency || 'THB',
+          images: geoForm.images,
           metadata: draftMeta,
         }
         const res = await fetch(`/api/v2/partner/listings/${editId}`, {
@@ -476,9 +511,9 @@ export function useListingSave() {
         const data = await res.json()
         if (data.success) {
           const lid = editId
-          const mig = await migrateExternalImagesAfterSave(lid, formData.images)
+          const mig = await migrateExternalImagesAfterSave(lid, geoForm.images)
           if (mig?.images?.length) {
-            const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
+            const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
           clearWizardDraft()
@@ -489,19 +524,28 @@ export function useListingSave() {
         }
       } else {
         const payload = {
-          ownerId: userId,
-          categoryId: formData.categoryId,
-          title: formData.title || t('draftDefaultTitle'),
+          partnerId: userId,
+          categoryId: geoForm.categoryId,
+          title: geoForm.title || t('draftDefaultTitle'),
           description: descriptionDb,
-          district: formData.district || '',
-          basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-          baseCurrency: formData.baseCurrency || 'THB',
-          images: formData.images || [],
+          country: geoForm.country || undefined,
+          region: geoForm.region || undefined,
+          city: geoForm.city || undefined,
+          district: geoForm.district || '',
+          latitude:
+            geoForm.latitude === '' || geoForm.latitude == null
+              ? null
+              : parseFloat(String(geoForm.latitude)),
+          longitude:
+            geoForm.longitude === '' || geoForm.longitude == null
+              ? null
+              : parseFloat(String(geoForm.longitude)),
+          basePriceThb: Math.max(100, parseFloat(String(geoForm.basePriceThb)) || 100),
+          baseCurrency: geoForm.baseCurrency || 'THB',
+          images: geoForm.images || [],
           metadata: draftMeta,
-          status: 'INACTIVE',
-          available: false,
         }
-        const res = await fetch('/api/v2/listings', {
+        const res = await fetch('/api/v2/partner/listings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -510,9 +554,9 @@ export function useListingSave() {
         const data = await res.json().catch(() => ({}))
         if (data.success) {
           const lid = data.data?.id
-          const mig = await migrateExternalImagesAfterSave(lid, formData.images)
+          const mig = await migrateExternalImagesAfterSave(lid, geoForm.images)
           if (mig?.images?.length) {
-            const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
+            const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
           clearWizardDraft()
@@ -534,6 +578,7 @@ export function useListingSave() {
   }, [
     editId,
     formData,
+    setFormData,
     isEditMode,
     language,
     listingCategorySlug,
@@ -555,6 +600,8 @@ export function useListingSave() {
     if (!assertPublishQualityGate(w, t)) return
     setLoading(true)
     try {
+      const geoForm = await resolveFormDataWithProvisionalCity(formData, setFormData, t)
+      if (!geoForm) return
       const userId = await resolvePartnerUserId()
       if (!userId) {
         toast.error(t('pleaseLogIn'))
@@ -567,30 +614,30 @@ export function useListingSave() {
       const bookingDaysPayload = tourCat
         ? { minBookingDays: 1, maxBookingDays: 730 }
         : {
-            minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
-            maxBookingDays: parseInt(String(formData.maxBookingDays), 10) || 90,
+            minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
+            maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
           }
-      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descTranslations = mergeDescriptionTranslationsForSave(geoForm, language)
       const descriptionDb = buildListingDescriptionForDb(
-        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        { ...geoForm, metadata: { ...geoForm.metadata, description_translations: descTranslations } },
         language,
       )
       const publishMeta = normalizePartnerListingMetadata(
-        { ...formData.metadata, description_translations: descTranslations, is_draft: false },
+        { ...geoForm.metadata, description_translations: descTranslations, is_draft: false },
         categorySlug,
-        formData.categoryName || '',
+        geoForm.categoryName || '',
         listingCategoryWizardProfile,
       )
       const payload = {
-        ...formData,
+        ...geoForm,
         description: descriptionDb,
         ownerId: userId,
         status: 'PENDING',
         available: true,
-        basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-        baseCurrency: formData.baseCurrency || 'THB',
-        commissionRate: Number.isFinite(parseFloat(String(formData.commissionRate)))
-          ? parseFloat(String(formData.commissionRate))
+        basePriceThb: parseFloat(String(geoForm.basePriceThb)) || 0,
+        baseCurrency: geoForm.baseCurrency || 'THB',
+        commissionRate: Number.isFinite(parseFloat(String(geoForm.commissionRate)))
+          ? parseFloat(String(geoForm.commissionRate))
           : partnerCommissionRate,
         ...bookingDaysPayload,
         metadata: publishMeta,
@@ -612,30 +659,36 @@ export function useListingSave() {
           description: payload.description,
           basePriceThb: payload.basePriceThb,
           baseCurrency: payload.baseCurrency,
-          country: formData.country,
-          region: formData.region,
-          city: formData.city,
+          country: geoForm.country,
+          region: geoForm.region,
+          city: geoForm.city,
           district: payload.district,
-          latitude: formData.latitude === '' || formData.latitude == null ? null : parseFloat(String(formData.latitude)),
-          longitude: formData.longitude === '' || formData.longitude == null ? null : parseFloat(String(formData.longitude)),
+          latitude:
+            geoForm.latitude === '' || geoForm.latitude == null
+              ? null
+              : parseFloat(String(geoForm.latitude)),
+          longitude:
+            geoForm.longitude === '' || geoForm.longitude == null
+              ? null
+              : parseFloat(String(geoForm.longitude)),
           images: payload.images,
           coverImage: buildCoverUrl(),
           status: 'PENDING',
           softPublish: false,
           metadata: payload.metadata,
-          cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
           ...bookingDaysPayload,
         }),
       })
       const data = await res.json()
       if (data.success) {
         const listingId = data.data?.id || data.listing?.id || publishListingId
-        const mig = await migrateExternalImagesAfterSave(listingId, formData.images)
+        const mig = await migrateExternalImagesAfterSave(listingId, geoForm.images)
         if (mig?.images?.length) {
-          const cover = mapCoverUrlAfterMigration(formData.images, formData.coverImage, mig.images)
+          const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
           if (cover) await patchPartnerListingCoverImage(listingId, cover)
         }
-        const seasons = formData.seasonalPricing || []
+        const seasons = geoForm.seasonalPricing || []
         if (listingId && seasons.length > 0) {
           for (const s of seasons) {
             try {
@@ -677,6 +730,7 @@ export function useListingSave() {
     draftListingIdRef,
     editId,
     formData,
+    setFormData,
     isEditMode,
     language,
     listingCategorySlug,

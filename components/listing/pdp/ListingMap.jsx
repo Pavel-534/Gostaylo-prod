@@ -1,13 +1,13 @@
 'use client'
 
-import { memo } from 'react'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import nextDynamic from 'next/dynamic'
 import { getUIText, detectLanguage } from '@/lib/translations'
 import { useElementInView } from '@/hooks/use-element-in-view'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { PDP_MAP_FALLBACK_CLASS } from '@/lib/listing/pdp-hero-layout'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 function ListingMapLoadFallback() {
   const [lang, setLang] = useState('ru')
@@ -50,6 +50,11 @@ export const ListingMap = memo(function ListingMap({ listing, language }) {
   const slug = listing?.categorySlug || listing?.category?.slug
   const wizardProfile = listing?.wizardProfile || listing?.category?.wizard_profile
 
+  const locationCaption = useMemo(
+    () => formatListingLocationLineSync(listing, language),
+    [listing, language],
+  )
+
   return (
     <div ref={ref}>
       <h2 className="text-2xl font-medium tracking-tight mb-4">
@@ -73,10 +78,8 @@ export const ListingMap = memo(function ListingMap({ listing, language }) {
       ) : (
         <ListingMapLoadFallback />
       )}
-      {listing.district ? (
-        <p className="text-sm text-slate-600 mt-4">
-          {listing.district}, {listing.city || 'Phuket'}, {getUIText('thailand', language)}
-        </p>
+      {locationCaption ? (
+        <p className="text-sm text-slate-600 mt-4">{locationCaption}</p>
       ) : null}
     </div>
   )

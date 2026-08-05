@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.11 | **Last Updated**: 2026-08-05 | **Stage 200.31:** map pan/zoom UX; **200.30** pin→geo SSOT.  
+> **Version**: 13.2.19 | **Last Updated**: 2026-08-05 | **Stage 200.39:** geo UX polish; **200.38:** delete country-presets; **200.37:** catalog where/map/display → `geo_locations`.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -121,8 +121,13 @@
 
 | Path |
 |------|
-| `GET|POST|PATCH /api/v2/partner/listings*` | Wizard draft-after-category; soft publish (`softPublish` → PENDING + `quality_incomplete`); locales via `mergeDescriptionTranslationsForSave` |
+| `GET|POST|PATCH /api/v2/partner/listings*` | Wizard draft-after-category; soft publish (`softPublish` → PENDING + `quality_incomplete`); locales via `mergeDescriptionTranslationsForSave`; Stage 200.36 geo assert on write |
 | `POST /api/v2/partner/listings/generate-description` | `mode: 'generate'\|'translate'` |
+| `POST /api/v2/partner/geo/provisional` | Upsert provisional city into `geo_locations` (map-first wizard) |
+| `GET /api/v2/geo/locations` | Cascade catalog (`level` / `parent` / `code`) |
+| `GET /api/v2/geo/resolve-where` | Public where → label/centroid/zoom (`geo_locations`) |
+| `GET /api/v2/geo/listing-label` | Listing location display line (codes → labels) |
+| `GET /api/v2/geocode` · `/suggest` · `/reverse` | GeoService (catalog + Nominatim cache) |
 | `GET|PUT /api/v2/partner/bookings*` |
 | `GET /api/v2/partner/calendar` |
 | `GET /api/v2/partner/stats` |

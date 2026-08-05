@@ -14,6 +14,7 @@ function StepCalendarSectionInner() {
 
   const transport = isTransportListingCategory(listingCategorySlug)
   const basePrice = parseFloat(String(formData?.basePriceThb || '').replace(',', '.')) || 0
+  const baseCurrency = String(formData?.baseCurrency || 'THB').toUpperCase()
 
   return (
     <section
@@ -28,7 +29,11 @@ function StepCalendarSectionInner() {
           <CalendarSyncManager listingId={editId} onSync={() => {}} />
         )}
         <AvailabilityCalendar listingId={editId} syncErrors={[]} />
-        <SeasonalPriceManager listingId={editId} basePriceThb={basePrice} />
+        <SeasonalPriceManager
+          listingId={editId}
+          basePriceThb={basePrice}
+          baseCurrency={baseCurrency}
+        />
       </div>
     </section>
   )

@@ -26,8 +26,10 @@ import {
   mapListingPriceFieldsForApi,
   readPartnerFormAssetAmount,
 } from '@/lib/listing/listing-base-price-canon.js';
+import { mapSeasonalRowForPartnerUi } from '@/lib/listing/listing-seasonal-price-canon.js';
 import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
 import { assertListingFinancialEditAllowed, checkListingFinancialLock } from '@/lib/listing/listing-financial-lock.js';
+import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,14 +136,7 @@ export async function GET(request, context) {
       ownerId: listing.owner_id,
       createdAt: listing.created_at,
       updatedAt: listing.updated_at,
-      seasonalPrices: seasonalPrices.map(sp => ({
-        id: sp.id,
-        label: sp.label,
-        startDate: sp.start_date,
-        endDate: sp.end_date,
-        priceDaily: parseFloat(sp.price_daily) || 0,
-        seasonType: sp.season_type,
-      })),
+      seasonalPrices: seasonalPrices.map((sp) => mapSeasonalRowForPartnerUi(sp)),
       financialLock: {
         locked: financialLock.locked === true,
         activeBookingCount: financialLock.activeBookingCount ?? 0,
@@ -277,6 +272,32 @@ export async function PATCH(request, context) {
     existing,
   );
   Object.assign(updateData, geoPatchedData);
+
+  const publishing =
+    body.status === 'PENDING' || body.softPublish === true || body.soft_publish === true;
+  const geoTouched =
+    body.country != null ||
+    body.region != null ||
+    body.city != null ||
+    body.latitude !== undefined ||
+    body.longitude !== undefined;
+  if (publishing || geoTouched) {
+    const geoAssert = await assertListingGeoCodes({
+      countryCode: updateData.country_code ?? existing.country_code,
+      regionCode: updateData.region_code ?? existing.region_code,
+      cityCode: updateData.city_code ?? existing.city_code,
+      latitude: updateData.latitude !== undefined ? updateData.latitude : existing.latitude,
+      longitude: updateData.longitude !== undefined ? updateData.longitude : existing.longitude,
+      requireCountry: publishing || body.country != null,
+      requireCoords: publishing || body.latitude !== undefined || body.longitude !== undefined,
+    });
+    if (!geoAssert.ok) {
+      return NextResponse.json(
+        { success: false, error: geoAssert.error, code: geoAssert.code },
+        { status: 400 },
+      );
+    }
+  }
 
   if (requestedBaseCurrency && !isListingBaseCurrency(requestedBaseCurrency)) {
     return NextResponse.json({ success: false, error: 'Invalid base currency' }, { status: 400 });

@@ -11,7 +11,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ImageIcon, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProxiedImage } from '@/components/proxied-image'
-import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
 import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
 import { getWizardStep1TransportFields } from '@/lib/config/category-form-schema'
 import { useListingWizard } from '../context/ListingWizardContext'
@@ -56,7 +55,6 @@ function StepGeneralInfoInner() {
     setListingServiceType,
     wizardCategoriesForSelect,
     transportWizard,
-    hideAirbnbImportBlock,
     listingCategorySlug,
     listingCategoryWizardProfile,
     resolveListingIdForUpload,
@@ -176,18 +174,9 @@ function StepGeneralInfoInner() {
         ) : null}
       </section>
 
-      {/* Section B — title / description / AI / import */}
+      {/* Section B — title / description / AI */}
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_basics')}</h3>
-        {formData.categoryId && !hideAirbnbImportBlock ? (
-          <PartnerListingImportBlock
-            categoryId={formData.categoryId}
-            variant="wizard"
-            listingId={isEditMode && editId ? editId : undefined}
-            migrateImportedImagesToStorage={!!(isEditMode && editId)}
-            onApplyPreview={w.applyAirbnbPreview}
-          />
-        ) : null}
         <div
           data-wizard-field="title"
           data-wizard-field-error={errTitle ? 'true' : undefined}

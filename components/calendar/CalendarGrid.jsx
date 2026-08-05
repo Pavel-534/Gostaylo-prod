@@ -241,6 +241,12 @@ export function CalendarGrid({
                           <CalendarListingPriceDisplay
                             amountThb={price}
                             baseCurrency={baseCur}
+                            amountAsset={
+                              Number(price) === Number(basePrice) &&
+                              item.listing?.basePriceAsset?.amount != null
+                                ? item.listing.basePriceAsset.amount
+                                : null
+                            }
                             priceClassName={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}
                           />
                           {marketingPromo ? (

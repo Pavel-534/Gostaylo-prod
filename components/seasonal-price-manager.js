@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { getSeasonColor } from '@/lib/price-calculator'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { getCurrencySymbol } from '@/lib/currency'
 import { sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import {
   createSeasonalPrice,
@@ -45,9 +46,22 @@ function seasonUiLabel(seasonType, t) {
   return t(row?.labelKey || 'seasonNormal')
 }
 
-export default function SeasonalPriceManager({ listingId, basePriceThb }) {
+export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurrency = 'THB' }) {
   const { language } = useI18n()
   const t = useCallback((key) => getUIText(key, language), [language])
+  const tr = useCallback(
+    (key, vars) => {
+      let s = getUIText(key, language)
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          s = s.split(`{{${k}}}`).join(String(v))
+        }
+      }
+      return s
+    },
+    [language],
+  )
+  const currencySymbol = getCurrencySymbol(String(baseCurrency || 'THB').toUpperCase())
 
   const dayPickerLocale = { ru, en: enUS, zh: zhCN, th: thDateLocale }[language] || ru
 
@@ -236,7 +250,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                 <span className="block text-slate-700">
                   <strong>{t('seasonalMgr_baseHint')}</strong>{' '}
                   <strong>
-                    {baseFormatted} {t('seasonalMgr_perDay')}
+                    {baseFormatted} {tr('seasonalMgr_perDay', { unit: currencySymbol })}
                   </strong>
                 </span>
               </CardDescription>
@@ -284,11 +298,13 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
 
                         <div className="flex flex-col gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
                           <span className="font-medium text-slate-900">
-                            💰 {price.priceDaily?.toLocaleString(numberLocale)} {t('seasonalMgr_perDay')}
+                            💰 {price.priceDaily?.toLocaleString(numberLocale)}{' '}
+                            {tr('seasonalMgr_perDay', { unit: currencySymbol })}
                           </span>
                           {price.priceMonthly && (
                             <span className="font-medium text-brand-hover">
-                              📦 {price.priceMonthly?.toLocaleString(numberLocale)} {t('seasonalMgr_perMonth')}
+                              📦 {price.priceMonthly?.toLocaleString(numberLocale)}{' '}
+                              {tr('seasonalMgr_perMonth', { unit: currencySymbol })}
                             </span>
                           )}
                         </div>
@@ -423,7 +439,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="priceDaily">{t('seasonalMgr_priceDailyThb')}</Label>
+                <Label htmlFor="priceDaily">{tr('seasonalMgr_priceDailyThb', { unit: currencySymbol })}</Label>
                 <Input
                   id="priceDaily"
                   inputMode="numeric"
@@ -435,12 +451,12 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                   placeholder={Number.isFinite(baseNum) ? String(Math.round(baseNum)) : '10000'}
                 />
                 <p className="text-xs text-slate-500">
-                  {t('seasonalMgr_baseHint')} {baseFormatted} THB
+                  {t('seasonalMgr_baseHint')} {baseFormatted} {currencySymbol}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priceMonthly">{t('seasonalMgr_priceMonthlyThb')}</Label>
+                <Label htmlFor="priceMonthly">{tr('seasonalMgr_priceMonthlyThb', { unit: currencySymbol })}</Label>
                 <Input
                   id="priceMonthly"
                   inputMode="numeric"

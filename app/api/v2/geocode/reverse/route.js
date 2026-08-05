@@ -1,16 +1,13 @@
 /**
- * GoStayLo - Reverse Geocoding API (Nominatim / OpenStreetMap)
- * GET /api/v2/geocode/reverse?lat=7.88&lon=98.39
- * Converts coordinates to address. Free, no API key. Rate limit: 1 req/sec.
+ * Reverse geocoding via GeoService (Stage 200.35) — Nominatim + cache.
+ * GET /api/v2/geocode/reverse?lat=&lon=
  */
 
 import { NextResponse } from 'next/server'
-import { getNominatimUserAgent } from '@/lib/http-client-identity'
 import { rateLimitCheck } from '@/lib/rate-limit'
+import { GeoService } from '@/lib/services/geo/geo.service'
 
 export const dynamic = 'force-dynamic'
-
-const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse'
 
 export async function GET(request) {
   const rl = await rateLimitCheck(request, 'geocode')
@@ -25,61 +22,48 @@ export async function GET(request) {
     if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
       return NextResponse.json(
         { success: false, error: 'Valid lat and lon required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lon: String(lon),
-      format: 'json',
-      addressdetails: '1',
-      'accept-language': 'en',
-    })
-
-    const res = await fetch(`${NOMINATIM_REVERSE}?${params}`, {
-      headers: {
-        'User-Agent': getNominatimUserAgent(),
-        'Accept-Language': 'en',
-      },
-    })
-
-    if (!res.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Reverse geocoding unavailable' },
-        { status: 502 }
-      )
+    const resolved = await GeoService.resolveFromPin(lat, lon)
+    if (!resolved.ok && resolved.degraded) {
+      return NextResponse.json({
+        success: true,
+        degraded: true,
+        data: {
+          displayName: '',
+          district: '',
+          city: '',
+          country: '',
+          countryCode: null,
+          state: null,
+          address: {},
+        },
+      })
     }
-
-    const data = await res.json()
-    const addr = data?.address || {}
-    // Build district: prefer suburb > neighbourhood > city > municipality > state
-    const district = addr.suburb || addr.neighbourhood || addr.city || addr.municipality || addr.state || addr.county || ''
-    const city = addr.city || addr.municipality || addr.state || addr.county || ''
-    const country = addr.country || ''
-    const countryCode = String(addr.country_code || '')
-      .trim()
-      .toUpperCase()
-      .slice(0, 2)
-    const state = addr.state || addr.region || ''
 
     return NextResponse.json({
       success: true,
       data: {
-        displayName: data.display_name || '',
-        district,
-        city,
-        country,
-        countryCode: countryCode || null,
-        state: state || null,
-        address: addr,
+        displayName: resolved.displayName || '',
+        district: resolved.district || '',
+        city: resolved.city_name || '',
+        country: resolved.address?.country || '',
+        countryCode: resolved.country_code || null,
+        state: resolved.address?.state || resolved.region_code || null,
+        address: resolved.address || {},
+        // Stage 200.35 extras (backward-compatible; clients may ignore)
+        regionCode: resolved.region_code || null,
+        cityCode: resolved.city_code || null,
+        timezone: resolved.timezone || null,
+        currencyCode: resolved.currency_code || null,
+        geoSource: resolved.geo_source || null,
       },
     })
   } catch (error) {
     console.error('[REVERSE GEOCODE ERROR]', error)
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    )
+    const status = error?.code === 'GEO_INVALID_COORDS' ? 400 : error?.code === 'NOMINATIM_UNAVAILABLE' ? 502 : 500
+    return NextResponse.json({ success: false, error: error.message }, { status })
   }
 }

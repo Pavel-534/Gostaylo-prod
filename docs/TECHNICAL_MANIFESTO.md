@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.11 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.31** map pan/zoom UX.
+> **Version**: 13.2.19 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.39** geo UX polish (map/bbox/labels/SEO).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,64 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.39 — Geo UX polish (catalog seamlessness)
+
+- Catalog map: on where change pan to geo centroid first, then fit new pins (no stale-viewport stick).
+- «Search this area» / clear bounds → `commitToUrl` bbox params (share/refresh).
+- Listing/order/partner location labels: sync seed + `GET /api/v2/geo/listing-label` enrich; no raw `city_code` on cards.
+- SEO place strings + legacy titlesRu/En: worldwide / `{where}` (no Phuket default).
+- Legacy infer: Phuket force only with district canon (not bbox alone).
+
+### Stage 200.38 — Delete country-presets SSOT
+
+- Removed `lib/geo/country-presets.js`. Sync helpers use `LAUNCH_GEO_SEED` / `lib/geo/launch-geo-index.js`; runtime SSOT = `geo_locations` + GeoService.
+- Write snapshot (`resolve-listing-geo-snapshot`) rewritten without presets; fiscal currency stays in `listing-asset-currency` + `COUNTRY_CURRENCY_TZ`.
+- Suggest alias index / synonyms targets / merge validation / partner location line — no presets.
+- Removed empty `DISTRICTS_BY_CITY`; `COUNTRY_MAP_CENTERS` already gone (200.37).
+
+### Stage 200.37 — Catalog search / map / display → geo_locations SSOT
+
+- `resolveWhereTarget` + `buildSmartWhereOrClause`: synonyms → labels → codes; umbrella via `geo_locations.parent_code` (no `DISTRICTS_BY_CITY`).
+- Suggest: `location-suggest` / alias merge = `geo_locations` + `geo_synonyms` (presets not seeded into suggest index).
+- Catalog map: `useWhereGeoViewport` → `GET /api/v2/geo/resolve-where` centroids; default `[20,100]`; no hardcoded Phuket / `COUNTRY_MAP_CENTERS`.
+- Display/SEO/TrustBar: `geo-display-label` + resolve-where labels; guest cards no invented Phuket.
+- Write path: `resolve-listing-geo-snapshot` pass-through codes (seed fill parents); fiscal/env separate from geo.
+
+### Stage 200.36 — Map-first Location step (anti-coerce)
+
+- Wizard `StepLocation`: address suggest (`/api/v2/geocode/suggest` → GeoService catalog + Nominatim) + MapPicker + cascade from `GET /api/v2/geo/locations`; no `country-presets` as primary; map default `[20,100]` / geo centroids.
+- Anti-coerce: unknown city → empty `city_code` + `city_label` + provisional upsert on save (`POST /api/v2/partner/geo/provisional`); never `regions[0]` / Moscow.
+- Partner listing POST/PATCH: `assertListingGeoCodes` — `country_code` must exist in `geo_locations`; publish requires lat/lng.
+
+### Stage 200.35 — Geo foundation (ADR-200.35)
+
+- Additive `geo_locations` columns: centroid/bbox, timezone, currency_code, country_code, osm_*, is_active, is_auto_imported; level += `neighborhood`.
+- `nominatim_cache` (service_role, RLS, TTL 7d). Geocode routes → **`GeoService`** only (no direct Nominatim).
+- Static launch seed (`lib/geo/launch-markets-seed-data.js` + `scripts/seed-geo-locations.mjs`) — **not** Nominatim bulk (OSM ToS).
+- Rejected from draft TZ: rename label→name / parent_id, listings lat/country NOT NULL (legacy nulls), recreate geo_synonyms FK, delete presets in same PR.
+- Docs: `docs/ADR/200-35-geo-foundation.md`. Tests: `__tests__/stage200-35-geo-foundation.test.js`.
+
+### Stage 200.34 — Wizard: remove Airbnb quick-import UI
+
+- Removed «Быстрый старт: импорт с Airbnb» from Step 1 (`PartnerListingImportBlock` + wizard merge wiring).
+- Apify preview API (`/api/v2/partner/listings/import/airbnb-preview`) left dormant for cleanup; not linked from UI.
+- Location cascade: DB `geo_locations` via wizard APIs (Stage 200.36+); presets removed in 200.38.
+
+### Stage 200.33 — Seasonal prices L1 asset → THB (ADR-181 Wave 5.2)
+
+- Partner enters seasonal `priceDaily` / `priceMonthly` in listing **base_currency**; `upsertPartnerSeasonalPrice` converts mid → `seasonal_prices.price_*` THB ledger.
+- Snapshot in `seasonal_prices.metadata.price_daily_asset` (migration `stage200_33_seasonal_price_asset_metadata.sql`); GET/wizard load returns asset amounts for edit.
+- Calendar/Pricing unchanged (still read THB nights).
+- Tests: `__tests__/listing-seasonal-price-canon.test.js`.
+
+### Stage 200.32 — Partner L1 currency display (ADR-181)
+
+- Partner list normalize kept dropping `baseCurrency` / `basePriceAsset` → UI always labeled ledger THB as primary.
+- Card primary = **asset amount + listing currency** (`metadata.base_price_asset`); secondary ≈ header mid FX from THB ledger only when currencies differ.
+- Wizard seasonal labels: `{{unit}}` (no hardcoded `฿`); DayPicker mobile width fix.
+- Partner calendar API returns `baseCurrency` + `basePriceAsset`.
+- Tests: `__tests__/stage200-32-partner-listing-currency-display.test.js`.
 
 ### Stage 200.31 — Map pan/zoom UX (wizard + PDP)
 

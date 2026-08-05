@@ -19,6 +19,7 @@ import {
   resolveBookingConversationStripUnread,
 } from '@/lib/orders/unified-order-card-model'
 import { formatGuestOrderLocationFromListing } from '@/lib/orders/format-guest-order-location'
+import { useListingLocationLabel } from '@/lib/hooks/use-listing-location-label'
 import { buildCheckInAccessPackModel } from '@/lib/orders/check-in-access-pack'
 import {
   mergeAccessPackWithOfflineCache,
@@ -124,7 +125,9 @@ export function useUnifiedOrderCard({
 
   const title = listing?.title || getUIText('myBookings_listingFallback', language)
   const district = listing?.district
-  const locationLabel = formatGuestOrderLocationFromListing(listing, language)
+  const locationLabelSync = formatGuestOrderLocationFromListing(listing, language)
+  const locationLabelEnriched = useListingLocationLabel(listing, language)
+  const locationLabel = locationLabelEnriched || locationLabelSync
   const checkIn = normalizedOrder.dates.check_in
   const checkOut = normalizedOrder.dates.check_out
   const conversationId = booking?.conversationId || booking?.conversation_id || null

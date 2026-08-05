@@ -247,6 +247,14 @@
 | 200.29 | 2026-08-05 | Wizard: 1 photo + red required-field highlight / scroll on Next | Done |
 | 200.30 | 2026-08-05 | Wizard: map pin → country/region/city + TZ + baseCurrency SSOT | Done |
 | 200.31 | 2026-08-05 | MapPicker: pan/pinch vs pin-lock + Leaflet gesture sync | Done |
+| 200.32 | 2026-08-05 | Partner L1 currency display + seasonal {{unit}} + DayPicker mobile | Done |
+| 200.33 | 2026-08-05 | Seasonal prices: asset currency → THB ledger + metadata snapshot | Done |
+| 200.34 | 2026-08-05 | Wizard: remove broken Airbnb quick-import card | Done |
+| 200.35 | 2026-08-05 | Geo foundation: geo_locations extend + nominatim_cache + GeoService | Done |
+| 200.36 | 2026-08-05 | Wizard map-first Location + anti-coerce + geo suggest/provisional APIs | Done |
+| 200.37 | 2026-08-05 | Catalog search/map/display → geo_locations SSOT (no Phuket exceptionalism) | Done |
+| 200.38 | 2026-08-05 | Delete country-presets.js; launch-geo-index + GeoService only | Done |
+| 200.39 | 2026-08-05 | Geo UX polish: map re-fit, bbox URL, labels, SEO worldwide | Done |
 
 ## Пробелы в паспорте
 
