@@ -19,7 +19,7 @@ import {
   defaultMetadataForListingServiceType,
 } from '@/lib/partner/listing-service-type'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
-import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
+import { mergeWizardFormGeoFromPin } from '@/lib/geo/wizard-geo-from-pin'
 import {
   ensureWizardDraftListing,
   shouldCreateWizardDraftOnCategory,
@@ -62,9 +62,13 @@ export function useListingWizardActions(state, derived) {
     fileInputRef,
     draftListingIdRef,
     ensuringDraftRef,
+    serverListing,
   } = state
 
   const { canProceed, WIZARD_DISTRICTS: districts } = derived
+  const baseCurrencyLocked =
+    serverListing?.financialLock?.baseCurrencyLocked === true ||
+    serverListing?.financialLock?.locked === true
 
   const refreshAiDescriptionQuota = useCallback(async () => {
     try {
@@ -664,40 +668,39 @@ export function useListingWizardActions(state, derived) {
 
   const selectGeocodeResult = useCallback(
     (r) => {
-      const guessed = guessIanaTimezoneFromLatLon(r.lat, r.lon)
-      setFormData((prev) => ({
-        ...prev,
-        latitude: r.lat,
-        longitude: r.lon,
-        metadata: {
-          ...prev.metadata,
-          ...(guessed ? { timezone: guessed } : {}),
-        },
-      }))
+      const addr = r?.address && typeof r.address === 'object' ? r.address : null
+      setFormData((prev) =>
+        mergeWizardFormGeoFromPin(prev, {
+          lat: r.lat,
+          lon: r.lon,
+          baseCurrencyLocked,
+          geo: {
+            displayName: r.displayName,
+            countryCode: addr?.country_code || null,
+            country: addr?.country || null,
+            city: addr?.city || addr?.town || addr?.municipality || null,
+            state: addr?.state || null,
+            district: addr?.suburb || addr?.neighbourhood || null,
+            address: addr,
+          },
+        }),
+      )
       setGeocodeResults([])
       setGeocodeQuery('')
     },
-    [setFormData, setGeocodeResults, setGeocodeQuery],
+    [setFormData, setGeocodeResults, setGeocodeQuery, baseCurrencyLocked],
   )
 
   const handleMapSelect = useCallback(
     (lat, lng, geo) => {
-      const guessed = guessIanaTimezoneFromLatLon(lat, lng)
-      setFormData((prev) => {
-        const next = {
-          ...prev,
-          latitude: lat,
-          longitude: lng,
-          metadata: { ...prev.metadata, ...(guessed ? { timezone: guessed } : {}) },
-        }
-        if (geo?.district) {
-          next.district = geo.district
-        }
-        if (geo?.city) {
-          next.metadata = { ...next.metadata, city: geo.city }
-        }
-        return next
-      })
+      setFormData((prev) =>
+        mergeWizardFormGeoFromPin(prev, {
+          lat,
+          lon: lng,
+          geo,
+          baseCurrencyLocked,
+        }),
+      )
       if (geo?.district) {
         setGeocodeQuery(geo.displayName || geo.district)
         setCustomDistricts((prev) =>
@@ -705,7 +708,7 @@ export function useListingWizardActions(state, derived) {
         )
       }
     },
-    [setFormData, setGeocodeQuery, setCustomDistricts],
+    [setFormData, setGeocodeQuery, setCustomDistricts, baseCurrencyLocked],
   )
 
   const applyAirbnbPreview = useCallback(

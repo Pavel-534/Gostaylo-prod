@@ -243,6 +243,9 @@
 | 200.25 | 2026-08-04 | Admin UX P2: RU menu/dashboard shell + category display names | Done |
 | 200.26 | 2026-08-04 | Moderation content edit (update) + wizard scroll-to-top on step | Done |
 | 200.27 | 2026-08-04 | Wizard: currency symbol SSOT + MapPicker height/country TZ | Done |
+| 200.28 | 2026-08-05 | Wizard quality UX: 2 photos, desc=40, vertical health, Next hints | Done |
+| 200.29 | 2026-08-05 | Wizard: 1 photo + red required-field highlight / scroll on Next | Done |
+| 200.30 | 2026-08-05 | Wizard: map pin → country/region/city + TZ + baseCurrency SSOT | Done |
 
 ## Пробелы в паспорте
 

@@ -57,6 +57,11 @@ export async function GET(request) {
     const district = addr.suburb || addr.neighbourhood || addr.city || addr.municipality || addr.state || addr.county || ''
     const city = addr.city || addr.municipality || addr.state || addr.county || ''
     const country = addr.country || ''
+    const countryCode = String(addr.country_code || '')
+      .trim()
+      .toUpperCase()
+      .slice(0, 2)
+    const state = addr.state || addr.region || ''
 
     return NextResponse.json({
       success: true,
@@ -65,6 +70,8 @@ export async function GET(request) {
         district,
         city,
         country,
+        countryCode: countryCode || null,
+        state: state || null,
         address: addr,
       },
     })

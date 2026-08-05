@@ -281,6 +281,12 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.30 (2026-08-05):** **Wizard pin→geo SSOT** — map/geocode updates country→region→city, IANA TZ, `baseCurrency` (ADR-181) via `lib/geo/wizard-geo-from-pin.js`; reverse returns `countryCode`; header UI currency ≠ listing geo. Tests: `__tests__/wizard-geo-from-pin.test.js`.
+
+**Stage 200.29 (2026-08-05):** **Wizard field highlight** — publish photos = 1; red rings on required empty fields; Next when blocked toasts + scrolls to field. Extends 200.28 blockers.
+
+**Stage 200.28 (2026-08-05):** **Wizard quality UX** — publish min photos (then 2, now 1 via 200.29); description gate = soft 40 (no 120); health score by wizard_profile (transport: features/pickup); Next step blockers UI. Tests: `__tests__/stage200-28-wizard-quality-ux.test.js`.
+
 **Stage 200.27 (2026-08-04):** **Wizard currency + map** — base price labels via `getCurrencySymbol`/`{{unit}}` (no hardcoded ฿); MapPicker px height restore + country centers; country→IANA TZ; RU coords → Europe/Moscow. Test: `__tests__/stage200-27-wizard-currency-map.test.js`.
 
 **Stage 200.26 (2026-08-04):** **Moderation edit + wizard scroll** — PATCH `action: 'update'` for PENDING (title/description/district/`basePriceThb`); moderation «Сохранить правки»; wizard scrolls workspace to top on step change. Test: `__tests__/stage200-26-admin-moderation-edit-wizard-scroll.test.js`.

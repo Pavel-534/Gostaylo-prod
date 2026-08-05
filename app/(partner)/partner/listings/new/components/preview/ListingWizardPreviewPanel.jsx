@@ -9,7 +9,7 @@ import { ListingHealthScoreWidget } from '@/components/partner/listing/ListingHe
  * Desktop/tablet sticky preview column (hidden below sm).
  */
 export function ListingWizardPreviewPanel({ previewStickyTop }) {
-  const { t, formData } = useListingWizard()
+  const { t, formData, listingCategorySlug, listingCategoryWizardProfile } = useListingWizard()
 
   return (
     <div className="hidden sm:block lg:col-span-1">
@@ -17,7 +17,13 @@ export function ListingWizardPreviewPanel({ previewStickyTop }) {
         className="sticky z-10 isolate space-y-3 transition-[top] duration-300 ease-in-out sm:[top:var(--preview-sticky-top)]"
         style={{ '--preview-sticky-top': previewStickyTop }}
       >
-        <ListingHealthScoreWidget formData={formData} t={t} />
+        <ListingHealthScoreWidget
+          formData={formData}
+          t={t}
+          wizardProfile={listingCategoryWizardProfile}
+          categorySlug={listingCategorySlug}
+          categoryName={formData.categoryName || ''}
+        />
         <div>
           <h3 className="mb-3 text-sm font-semibold tracking-tight text-slate-800 sm:text-base">
             {t('livePreview')}

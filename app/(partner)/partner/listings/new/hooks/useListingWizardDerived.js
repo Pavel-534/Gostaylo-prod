@@ -16,6 +16,8 @@ import { resolveCategoryDisplayName } from '@/lib/category-display-name'
 import { WIZARD_DISTRICTS, LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 import {
   computeWizardCanProceed,
+  computeWizardStepBlockers,
+  wizardStepFieldErrorsFromBlockers,
   computeWizardPricingPreview,
 } from './listing-wizard-step-validation'
 
@@ -115,6 +117,21 @@ export function useListingWizardDerived(state) {
     [currentStep, formData, coordsValid, listingCategorySlug, listingCategoryWizardProfile],
   )
 
+  const stepBlockers = useMemo(
+    () =>
+      computeWizardStepBlockers(currentStep, formData, coordsValid, {
+        categorySlug: listingCategorySlug,
+        categoryName: formData.categoryName || '',
+        wizardProfile: listingCategoryWizardProfile,
+      }),
+    [currentStep, formData, coordsValid, listingCategorySlug, listingCategoryWizardProfile],
+  )
+
+  const stepFieldErrors = useMemo(
+    () => wizardStepFieldErrorsFromBlockers(stepBlockers),
+    [stepBlockers],
+  )
+
   const publishQualityChecklist = useMemo(
     () =>
       buildListingPublishQualityChecklist(
@@ -170,6 +187,8 @@ export function useListingWizardDerived(state) {
     amenitiesHintKey,
     coordsValid,
     canProceed,
+    stepBlockers,
+    stepFieldErrors,
     publishQualityChecklist,
     canFullPublish,
     canSoftPublish,

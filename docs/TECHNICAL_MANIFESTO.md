@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.7 | **Last Updated**: 2026-08-04 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.27** wizard currency/map SSOT.
+> **Version**: 13.2.10 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.30** wizard pin→geo SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,27 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.30 — Wizard pin → country / TZ / asset currency SSOT
+
+- Map pin and address geocode update **country → region → city**, IANA timezone, and `baseCurrency` (ADR-181) via `lib/geo/wizard-geo-from-pin.js`.
+- Reverse geocode returns `countryCode` + `address`; MapPicker passes them to the wizard.
+- Header UI language/currency stays independent of listing geo (storefront preference ≠ asset geo).
+- Quiet-hours / fair SLA (`AvailabilityService.resolveListingIanaTimezone`) uses the same **`resolveListingTimeZoneFromMetadata`** as calendar (not env-only fallback).
+- Soft-heal: opening location step with a pin that disagrees with country cascade re-syncs geo.
+- Tests: `__tests__/wizard-geo-from-pin.test.js`.
+
+### Stage 200.29 — Wizard field highlight + 1 photo
+
+- Full publish photos = soft **1** (was briefly 2).
+- Required empty fields: red ring + inline tip; Next click when blocked → toast + scroll to first `data-wizard-field`.
+- Tests: `__tests__/stage200-28-wizard-quality-ux.test.js` (200.29 asserts).
+
+### Stage 200.28 — Wizard quality UX (vertical health + step hints)
+- Listing health score is **profile-aware**: transport → vehicle features + pickup (no «house rules» / stay amenities).
+- Disabled Next shows amber **step blockers** (`computeWizardStepBlockers` + `WizardStepBlockersHint`).
+- Checklist metadata fields use human labels (`fieldVehicleYear`, …); coordinates copy is universal.
+- Tests: `__tests__/stage200-28-wizard-quality-ux.test.js`, updated `__tests__/listing-health-score.test.js`.
 
 ### Stage 200.27 — Wizard currency labels + map viewport
 

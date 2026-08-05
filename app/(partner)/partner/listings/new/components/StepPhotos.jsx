@@ -13,6 +13,7 @@ import {
   WIZARD_STEP_TITLE_CLASS,
 } from './wizard-step-layout'
 import { cn } from '@/lib/utils'
+import { WIZARD_FIELD_ERROR_BOX, wizardFieldHasError } from '../lib/wizard-field-errors'
 
 function StepPhotosInner() {
   const w = useListingWizard()
@@ -26,9 +27,12 @@ function StepPhotosInner() {
     removeImage,
     reorderImages,
     transportWizard,
+    stepFieldErrors,
+    tr,
   } = w
 
   const [fileDragOver, setFileDragOver] = useState(false)
+  const errPhotos = wizardFieldHasError(stepFieldErrors, 'images')
 
   const onFilesDrop = useCallback(
     (fileList) => {
@@ -79,10 +83,14 @@ function StepPhotosInner() {
       <div
         className={cn(
           'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors sm:p-12',
-          fileDragOver
-            ? 'border-brand bg-brand/5'
-            : 'border-slate-300 hover:border-brand',
+          errPhotos
+            ? WIZARD_FIELD_ERROR_BOX
+            : fileDragOver
+              ? 'border-brand bg-brand/5'
+              : 'border-slate-300 hover:border-brand',
         )}
+        data-wizard-field="images"
+        data-wizard-field-error={errPhotos ? 'true' : undefined}
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
         onDragOver={handleZoneDragOver}
@@ -95,13 +103,20 @@ function StepPhotosInner() {
         <ImageIcon
           className={cn(
             'mx-auto mb-4 h-16 w-16',
-            fileDragOver ? 'text-brand' : 'text-slate-400',
+            errPhotos ? 'text-red-500' : fileDragOver ? 'text-brand' : 'text-slate-400',
           )}
         />
         <h3 className="mb-2 text-lg font-medium">
           {fileDragOver ? t('photosDropActive') : t('dragDropImages')}
         </h3>
         <p className="mb-4 text-slate-500">{t('orClickToBrowse')}</p>
+        {errPhotos ? (
+          <p className="mb-3 text-sm font-medium text-red-600">
+            {tr
+              ? tr('wizardBlocker_photos', { min: 1, current: formData.images?.length || 0 })
+              : t('wizardBlocker_photos')}
+          </p>
+        ) : null}
         <Button variant="outline" disabled={uploading} type="button">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('selectFiles')}
         </Button>

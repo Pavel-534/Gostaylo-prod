@@ -19,6 +19,7 @@ import { getCurrencySymbol } from '@/lib/currency'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { cn } from '@/lib/utils'
+import { wizardFieldErrorClass, wizardFieldHasError } from '../lib/wizard-field-errors'
 import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
@@ -44,10 +45,13 @@ function StepPricingInner() {
     setNewSeason,
     dayPickerLocale,
     language,
+    stepFieldErrors,
+    tr,
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
   const { formatInListingBase } = useStorefrontDisplayFx()
   const currencySymbol = getCurrencySymbol(baseCurrency)
+  const errPrice = wizardFieldHasError(stepFieldErrors, 'basePriceThb')
 
   const periodLabel = useMemo(() => {
     if (transportWizard) return t('wizardPriceCalcPeriodBookingDay')
@@ -74,16 +78,29 @@ function StepPricingInner() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <Label className="text-base font-medium text-slate-800">{basePriceLabel}</Label>
+          <div
+            data-wizard-field="basePriceThb"
+            data-wizard-field-error={errPrice ? 'true' : undefined}
+          >
+            <Label
+              className={cn('text-base font-medium text-slate-800', errPrice && 'text-red-700')}
+            >
+              {basePriceLabel}
+            </Label>
             <Input
               inputMode="numeric"
               autoComplete="off"
               placeholder={toursWizard ? t('basePriceTourPlaceholder') : t('basePricePlaceholder')}
               value={formData.basePriceThb}
               onChange={(e) => updateField('basePriceThb', sanitizeThbDigits(e.target.value))}
-              className="mt-2 h-12"
+              className={cn('mt-2 h-12', wizardFieldErrorClass(stepFieldErrors, 'basePriceThb'))}
+              aria-invalid={errPrice || undefined}
             />
+            {errPrice ? (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {tr ? tr('wizardBlocker_price') : t('wizardBlocker_price')}
+              </p>
+            ) : null}
           </div>
           <div>
             <div className="flex items-center gap-2">

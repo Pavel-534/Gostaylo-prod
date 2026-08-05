@@ -1,5 +1,5 @@
 /**
- * Stage 199.2 — Listing Health Score widget (partner wizard).
+ * Stage 199.2 / 200.28 — Listing Health Score widget (partner wizard).
  */
 
 'use client'
@@ -25,11 +25,27 @@ function formatTip(t, tip) {
  * @param {{
  *   formData?: object
  *   t: (key: string, fb?: string) => string
+ *   wizardProfile?: string | null
+ *   categorySlug?: string
+ *   categoryName?: string
  *   className?: string
  * }} props
  */
-export function ListingHealthScoreWidget({ formData, t, className }) {
-  const health = calculateListingHealthScore(listingHealthInputFromWizardForm(formData || {}))
+export function ListingHealthScoreWidget({
+  formData,
+  t,
+  wizardProfile = null,
+  categorySlug = '',
+  categoryName = '',
+  className,
+}) {
+  const health = calculateListingHealthScore(
+    listingHealthInputFromWizardForm(formData || {}, {
+      wizardProfile,
+      categorySlug,
+      categoryName,
+    }),
+  )
   const tone =
     health.score >= 80 ? 'emerald' : health.score >= 50 ? 'amber' : 'slate'
 
@@ -51,6 +67,7 @@ export function ListingHealthScoreWidget({ formData, t, className }) {
     <div
       className={cn('rounded-2xl border p-3.5 sm:p-4', ring, className)}
       data-testid="listing-health-score"
+      data-health-mode={health.mode}
       role="status"
       aria-label={t('listingHealth_title', 'Listing quality')}
     >
@@ -86,7 +103,7 @@ export function ListingHealthScoreWidget({ formData, t, className }) {
               <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
             )}
             <span className={part.ok ? 'text-slate-600' : 'font-medium text-slate-800'}>
-              {t(`listingHealth_part_${part.key}`, part.key)}
+              {t(part.labelKey || `listingHealth_part_${part.key}`, part.key)}
               <span className="ml-1 tabular-nums text-slate-400">+{part.weight}%</span>
             </span>
           </li>

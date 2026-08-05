@@ -83,6 +83,8 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     partnerAmenitySlugs: derived.partnerAmenitySlugs,
     amenitiesHintKey: derived.amenitiesHintKey,
     canProceed: derived.canProceed,
+    stepBlockers: derived.stepBlockers,
+    stepFieldErrors: derived.stepFieldErrors,
     publishQualityChecklist: derived.publishQualityChecklist,
     canFullPublish: derived.canFullPublish,
     canSoftPublish: derived.canSoftPublish,

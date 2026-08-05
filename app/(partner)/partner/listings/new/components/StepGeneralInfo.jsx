@@ -22,6 +22,12 @@ import {
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
 } from './wizard-step-layout'
+import { cn } from '@/lib/utils'
+import {
+  wizardFieldErrorClass,
+  wizardFieldHasError,
+  WIZARD_FIELD_ERROR_BOX,
+} from '../lib/wizard-field-errors'
 
 function pickupInstructionsPlaceholder(listingServiceType, t) {
   switch (listingServiceType) {
@@ -62,6 +68,8 @@ function StepGeneralInfoInner() {
     updateMetadata,
     isEditMode,
     editId,
+    stepFieldErrors,
+    tr,
   } = w
 
   const checkInPhotosRef = useRef(null)
@@ -70,6 +78,11 @@ function StepGeneralInfoInner() {
   const hasCheckInContent =
     String(formData.metadata?.check_in_instructions ?? '').trim().length > 0 ||
     (Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0)
+
+  const errService = wizardFieldHasError(stepFieldErrors, 'listingServiceType')
+  const errCategory = wizardFieldHasError(stepFieldErrors, 'categoryId')
+  const errTitle = wizardFieldHasError(stepFieldErrors, 'title')
+  const errDesc = wizardFieldHasError(stepFieldErrors, 'description')
 
   return (
     <div className={WIZARD_STEP_ROOT_CLASS}>
@@ -81,9 +94,21 @@ function StepGeneralInfoInner() {
       {/* Section A — identity (Airbnb-like: decide what you're listing first) */}
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_identity')}</h3>
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-          <Label className="text-base font-medium">{t('wizardServiceTypeLabel')}</Label>
+        <div
+          className={cn(
+            'space-y-3 rounded-xl border bg-slate-50/60 p-4',
+            errService ? WIZARD_FIELD_ERROR_BOX : 'border-slate-200',
+          )}
+          data-wizard-field="listingServiceType"
+          data-wizard-field-error={errService ? 'true' : undefined}
+        >
+          <Label className={cn('text-base font-medium', errService && 'text-red-700')}>
+            {t('wizardServiceTypeLabel')}
+          </Label>
           <p className="text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
+          {errService ? (
+            <p className="text-xs font-medium text-red-600">{t('wizardBlocker_serviceType')}</p>
+          ) : null}
           <RadioGroup
             value={formData.listingServiceType || ''}
             onValueChange={setListingServiceType}
@@ -100,11 +125,20 @@ function StepGeneralInfoInner() {
             ))}
           </RadioGroup>
         </div>
-        <div>
-          <Label className="text-base font-medium">{t('selectCategory')}</Label>
+        <div
+          data-wizard-field="categoryId"
+          data-wizard-field-error={errCategory ? 'true' : undefined}
+          className={cn(errCategory && cn('rounded-xl p-2', WIZARD_FIELD_ERROR_BOX))}
+        >
+          <Label className={cn('text-base font-medium', errCategory && 'text-red-700')}>
+            {t('selectCategory')}
+          </Label>
           <p className="mt-1 text-xs text-slate-600">
             {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
           </p>
+          {errCategory ? (
+            <p className="mt-1 text-xs font-medium text-red-600">{t('wizardBlocker_category')}</p>
+          ) : null}
           <div className="mt-3">
             <PartnerCategoryPickerTwoStep
               categories={wizardCategoriesForSelect}
@@ -154,23 +188,43 @@ function StepGeneralInfoInner() {
             onApplyPreview={w.applyAirbnbPreview}
           />
         ) : null}
-        <div>
-          <Label className="text-base font-medium text-slate-800">{t('listingTitleLabel')}</Label>
+        <div
+          data-wizard-field="title"
+          data-wizard-field-error={errTitle ? 'true' : undefined}
+        >
+          <Label className={cn('text-base font-medium text-slate-800', errTitle && 'text-red-700')}>
+            {t('listingTitleLabel')}
+          </Label>
           <Input
             type="text"
             placeholder={t('titlePlaceholder')}
             value={formData.title}
             onChange={(e) => updateField('title', e.target.value)}
-            className="mt-2 h-12"
+            className={cn('mt-2 h-12', wizardFieldErrorClass(stepFieldErrors, 'title'))}
             maxLength={100}
+            aria-invalid={errTitle || undefined}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            {formData.title.length}/100 {t('characters')}
-          </p>
+          {errTitle ? (
+            <p className="mt-1 text-xs font-medium text-red-600">
+              {tr('wizardBlocker_title', {
+                min: 3,
+                current: formData.title.length,
+              })}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">
+              {formData.title.length}/100 {t('characters')}
+            </p>
+          )}
         </div>
-        <div>
+        <div
+          data-wizard-field="description"
+          data-wizard-field-error={errDesc ? 'true' : undefined}
+        >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
+            <Label className={cn('text-base font-medium text-slate-800', errDesc && 'text-red-700')}>
+              {t('listingDescriptionLabel')}
+            </Label>
             <TooltipProvider delayDuration={200}>
               <div className="flex flex-wrap items-center gap-2">
                 <Tooltip>
@@ -241,12 +295,22 @@ function StepGeneralInfoInner() {
             placeholder={t('descriptionPlaceholder')}
             value={formData.description}
             onChange={(e) => updateDescription(e.target.value)}
-            className="mt-2 min-h-[120px]"
+            className={cn('mt-2 min-h-[140px]', wizardFieldErrorClass(stepFieldErrors, 'description'))}
             maxLength={2000}
+            aria-invalid={errDesc || undefined}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            {formData.description.length}/2000 {t('characters')}
-          </p>
+          {errDesc ? (
+            <p className="mt-1 text-xs font-medium text-red-600">
+              {tr('wizardBlocker_description', {
+                min: 40,
+                current: String(formData.description || '').trim().length,
+              })}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">
+              {formData.description.length}/2000 {t('characters')}
+            </p>
+          )}
         </div>
       </section>
 

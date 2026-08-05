@@ -77,18 +77,38 @@ function normalizeGeocodeForForm(data, privacyMode) {
   const district = data.district || ''
   const city = data.city || ''
   const displayName = data.displayName || ''
+  const country = data.country || ''
+  const countryCode = data.countryCode || data.address?.country_code || null
+  const state = data.state || data.address?.state || null
+  const address = data.address && typeof data.address === 'object' ? data.address : null
   if (privacyMode) {
     return {
       district: district || displayName.split(',')[0]?.trim() || '',
       city,
       displayName,
+      country,
+      countryCode: countryCode
+        ? String(countryCode).trim().toUpperCase().slice(0, 2)
+        : null,
+      state,
+      address,
     }
   }
   const precise =
     [district, city].filter(Boolean).join(', ') ||
     displayName.split(',').slice(0, 3).join(',').trim() ||
     displayName
-  return { district: precise, city, displayName }
+  return {
+    district: precise,
+    city,
+    displayName,
+    country,
+    countryCode: countryCode
+      ? String(countryCode).trim().toUpperCase().slice(0, 2)
+      : null,
+    state,
+    address,
+  }
 }
 
 export default function MapPicker({

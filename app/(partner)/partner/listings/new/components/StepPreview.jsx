@@ -23,6 +23,7 @@ function StepPreviewInner() {
     formData,
     language,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     partnerCommissionRate,
     transportWizard,
     toursWizard,
@@ -47,7 +48,14 @@ function StepPreviewInner() {
         <p className={WIZARD_STEP_SUBTITLE_CLASS}>{t('listingQuality_previewHint', t('continueFilling'))}</p>
       </div>
 
-      <ListingHealthScoreWidget formData={formData} t={t} className="sm:hidden" />
+      <ListingHealthScoreWidget
+        formData={formData}
+        t={t}
+        wizardProfile={listingCategoryWizardProfile}
+        categorySlug={listingCategorySlug}
+        categoryName={formData.categoryName || ''}
+        className="sm:hidden"
+      />
 
       <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
 

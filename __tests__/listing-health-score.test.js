@@ -1,5 +1,5 @@
 /**
- * Stage 199.2 — listing health score + calendar freshness + host SLA helpers.
+ * Stage 199.2 / 200.28 — listing health score + calendar freshness + host SLA helpers.
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/listing-health-score.test.js
  */
 
@@ -7,11 +7,12 @@ const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
 
 describe('calculateListingHealthScore', () => {
-  it('scores full listing at 100 with empty tips', async () => {
+  it('scores full stay listing at 100 with empty tips', async () => {
     const { calculateListingHealthScore } = await import('../lib/partner/listing-health-score.js')
     const r = calculateListingHealthScore({
-      description: 'x'.repeat(150),
-      images: ['a', 'b', 'c', 'd', 'e'],
+      wizardProfile: 'stay',
+      description: 'x'.repeat(80),
+      images: ['a'],
       metadata: {
         amenities: ['wifi', 'ac', 'pool'],
         check_in_time: '15:00',
@@ -19,44 +20,68 @@ describe('calculateListingHealthScore', () => {
       },
     })
     assert.equal(r.score, 100)
+    assert.equal(r.mode, 'stay')
     assert.equal(r.tips.length, 0)
     assert.ok(r.parts.every((p) => p.ok))
   })
 
-  it('applies photo / description / amenities / rules weights', async () => {
+  it('applies photo / description / amenities / rules weights for stay', async () => {
     const { calculateListingHealthScore } = await import('../lib/partner/listing-health-score.js')
-    const empty = calculateListingHealthScore({})
+    const empty = calculateListingHealthScore({ wizardProfile: 'stay' })
     assert.equal(empty.score, 0)
     assert.equal(empty.tips.length, 4)
 
     const photosOnly = calculateListingHealthScore({
-      images: ['1', '2', '3', '4', '5'],
+      wizardProfile: 'stay',
+      images: ['1'],
     })
     assert.equal(photosOnly.score, 30)
     assert.equal(photosOnly.tips.some((t) => t.key === 'photos'), false)
 
     const withDesc = calculateListingHealthScore({
-      images: ['1', '2', '3', '4', '5'],
-      description: 'y'.repeat(150),
+      wizardProfile: 'stay',
+      images: ['1'],
+      description: 'y'.repeat(80),
     })
     assert.equal(withDesc.score, 50)
 
     const withAmenities = calculateListingHealthScore({
-      images: ['1', '2', '3', '4', '5'],
-      description: 'y'.repeat(150),
+      wizardProfile: 'stay',
+      images: ['1'],
+      description: 'y'.repeat(80),
       metadata: { amenities: ['a', 'b', 'c'] },
     })
     assert.equal(withAmenities.score, 70)
 
     const tipPhotos = empty.tips.find((t) => t.key === 'photos')
-    assert.equal(tipPhotos.tipParams.count, 5)
+    assert.equal(tipPhotos.tipParams.count, 1)
   })
 
-  it('accepts check-in instructions + checkout as rules', async () => {
+  it('transport mode uses vehicle features + pickup (not house rules)', async () => {
     const { calculateListingHealthScore } = await import('../lib/partner/listing-health-score.js')
     const r = calculateListingHealthScore({
-      description: 'z'.repeat(150),
-      images: Array.from({ length: 5 }, (_, i) => String(i)),
+      wizardProfile: 'transport',
+      description: 'z'.repeat(80),
+      images: ['1'],
+      metadata: {
+        amenities: ['a', 'b', 'c'],
+        check_in_instructions: 'Meet at parking lot B near the mall entrance.',
+      },
+    })
+    assert.equal(r.mode, 'transport')
+    assert.equal(r.score, 100)
+    assert.ok(r.parts.some((p) => p.key === 'features'))
+    assert.ok(r.parts.some((p) => p.key === 'pickup'))
+    assert.ok(!r.parts.some((p) => p.key === 'rules'))
+    assert.ok(!r.parts.some((p) => p.key === 'amenities'))
+  })
+
+  it('accepts check-in instructions + checkout as stay rules', async () => {
+    const { calculateListingHealthScore } = await import('../lib/partner/listing-health-score.js')
+    const r = calculateListingHealthScore({
+      wizardProfile: 'stay',
+      description: 'z'.repeat(80),
+      images: ['1'],
       metadata: {
         amenities: ['wifi', 'parking', 'kitchen'],
         check_in_instructions: 'x'.repeat(40),

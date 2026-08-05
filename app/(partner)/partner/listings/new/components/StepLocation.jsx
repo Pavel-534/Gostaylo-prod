@@ -8,8 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
-import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { defaultTimezoneForCountryCode } from '@/lib/geo/listing-timezone-ssot'
+import {
+  mergeWizardFormGeoFromPin,
+  resolveWizardGeoFromPin,
+} from '@/lib/geo/wizard-geo-from-pin'
 import { WIZARD_IANA_TIMEZONES } from '@/lib/geo/wizard-iana-timezones'
 import {
   WIZARD_STEP_ROOT_CLASS,
@@ -23,6 +26,9 @@ import {
   findCity,
   getLabel,
 } from '@/lib/geo/country-presets'
+import { getDefaultListingBaseCurrency } from '@/lib/listing/listing-asset-currency'
+import { cn } from '@/lib/utils'
+import { wizardFieldErrorClass, wizardFieldHasError } from '../lib/wizard-field-errors'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -46,12 +52,17 @@ function StepLocationInner() {
     handleMapSelect,
     coordsValid,
     updateMetadata,
+    stepFieldErrors,
+    tr,
+    baseCurrencyLocked,
+    setFormData,
   } = w
 
   // GP-1 cascade: Country → Region → City → District
   const country = findCountry(formData.country) || COUNTRY_PRESETS[0]
   const region = findRegion(formData.country, formData.region) || country.regions[0]
   const city = findCity(formData.country, formData.region, formData.city) || region.cities[0]
+  const errDistrict = wizardFieldHasError(stepFieldErrors, 'district')
 
   const cityDistricts = (() => {
     const fromPreset = city?.districts || []
@@ -71,6 +82,9 @@ function StepLocationInner() {
     updateField('district', '')
     const tz = defaultTimezoneForCountryCode(c.code)
     if (tz) updateMetadata('timezone', tz)
+    if (!baseCurrencyLocked) {
+      updateField('baseCurrency', getDefaultListingBaseCurrency(c.code))
+    }
   }
 
   const listingTimezone =
@@ -88,6 +102,28 @@ function StepLocationInner() {
     if (next && next !== tz) updateMetadata('timezone', next)
   }, [formData.country, formData.metadata?.timezone, updateMetadata])
 
+  // Soft-heal: pin already set but cascade still default TH (legacy drafts / pre-200.30).
+  useEffect(() => {
+    const lat = formData.latitude
+    const lon = formData.longitude
+    if (lat == null || lon == null) return
+    const resolved = resolveWizardGeoFromPin({ lat, lon })
+    if (!resolved?.matched) return
+    if (String(formData.country || '') === resolved.country) return
+    setFormData((prev) =>
+      mergeWizardFormGeoFromPin(prev, {
+        lat: Number(lat),
+        lon: Number(lon),
+        baseCurrencyLocked,
+      }),
+    )
+  }, [
+    formData.latitude,
+    formData.longitude,
+    formData.country,
+    baseCurrencyLocked,
+    setFormData,
+  ])
   const handleRegionChange = (code) => {
     const r = findRegion(formData.country, code)
     const ci = r?.cities?.[0]
@@ -157,10 +193,18 @@ function StepLocationInner() {
         </div>
       </div>
 
-      <div>
-        <Label className="text-base font-medium">{t('selectDistrict')}</Label>
+      <div
+        data-wizard-field="district"
+        data-wizard-field-error={errDistrict ? 'true' : undefined}
+      >
+        <Label className={cn('text-base font-medium', errDistrict && 'text-red-700')}>
+          {t('selectDistrict')}
+        </Label>
         <Select value={formData.district} onValueChange={(v) => updateField('district', v)}>
-          <SelectTrigger className="mt-2 h-12">
+          <SelectTrigger
+            className={cn('mt-2 h-12', wizardFieldErrorClass(stepFieldErrors, 'district'))}
+            aria-invalid={errDistrict || undefined}
+          >
             <SelectValue placeholder={t('selectDistrictPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
@@ -171,10 +215,16 @@ function StepLocationInner() {
             ))}
           </SelectContent>
         </Select>
-        <p className="mt-1.5 text-xs text-slate-500">
-          {t('districtHintGlobal') ||
-            'Выберите район/окрестность внутри города. Список зависит от выбранного города выше.'}
-        </p>
+        {errDistrict ? (
+          <p className="mt-1.5 text-xs font-medium text-red-600">
+            {tr ? tr('wizardBlocker_district') : t('wizardBlocker_district')}
+          </p>
+        ) : (
+          <p className="mt-1.5 text-xs text-slate-500">
+            {t('districtHintGlobal') ||
+              'Выберите район/окрестность внутри города. Список зависит от выбранного города выше.'}
+          </p>
+        )}
       </div>
       <div>
         <Label className="text-base font-medium">{t('searchAddress')}</Label>
@@ -258,8 +308,16 @@ function StepLocationInner() {
             className="shrink-0"
             disabled={formData.latitude == null || formData.longitude == null}
             onClick={() => {
-              const z = guessIanaTimezoneFromLatLon(formData.latitude, formData.longitude)
-              if (z) updateMetadata('timezone', z)
+              const lat = Number(formData.latitude)
+              const lon = Number(formData.longitude)
+              if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
+              setFormData((prev) =>
+                mergeWizardFormGeoFromPin(prev, {
+                  lat,
+                  lon,
+                  baseCurrencyLocked,
+                }),
+              )
             }}
           >
             {t('wizardTimezoneAutoFromMap')}
