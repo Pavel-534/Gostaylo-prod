@@ -287,6 +287,8 @@
 
 **Stage 200.39 (2026-08-05):** **Geo UX polish** — catalog map re-center on where; bbox URL for Search this area; listing/order labels via seed + `/api/v2/geo/listing-label`; SEO without Phuket defaults; softer legacy Phuket infer.
 
+**Stage 200.43 (2026-08-05):** **Location cascade-first UX** — `StepLocation`: Country→Region→City→District→Address primary; paste-address suggest collapsed; MapPicker last. Geo APIs / anti-coerce unchanged (200.36).
+
 **Stage 200.38 (2026-08-05):** **Delete country-presets** — removed `lib/geo/country-presets.js`; consumers → GeoService / `LAUNCH_GEO_SEED` (`launch-geo-index`); write snapshot without presets; fiscal currency stays in listing-asset-currency.
 
 **Stage 200.37 (2026-08-05):** **Catalog geo SSOT** — `resolveWhereTarget` / smart where OR / suggest from `geo_locations`+`geo_synonyms`; map viewport via `GET /api/v2/geo/resolve-where` + centroids; TrustBar/SEO/guest location labels without presets/`DISTRICTS_BY_CITY`/`COUNTRY_MAP_CENTERS`. Write snapshot kept.

@@ -61,9 +61,14 @@
 - Display/SEO/TrustBar: `geo-display-label` + resolve-where labels; guest cards no invented Phuket.
 - Write path: `resolve-listing-geo-snapshot` pass-through codes (seed fill parents); fiscal/env separate from geo.
 
+### Stage 200.43 — Location step cascade-first UX
+
+- Wizard `StepLocation` layout: **Country → Region → City → District → Address** first; optional paste-address suggest (collapsed); MapPicker last to refine pin.
+- Geo APIs / anti-coerce / provisional city / currency-TZ readonly unchanged (Stage 200.36).
+
 ### Stage 200.36 — Map-first Location step (anti-coerce)
 
-- Wizard `StepLocation`: address suggest (`/api/v2/geocode/suggest` → GeoService catalog + Nominatim) + MapPicker + cascade from `GET /api/v2/geo/locations`; no `country-presets` as primary; map default `[20,100]` / geo centroids.
+- Wizard `StepLocation`: address suggest (`/api/v2/geocode/suggest` → GeoService catalog + Nominatim) + MapPicker + cascade from `GET /api/v2/geo/locations`; no `country-presets` as primary; map default `[20,100]` / geo centroids. **UX order updated in 200.43** (cascade primary).
 - Anti-coerce: unknown city → empty `city_code` + `city_label` + provisional upsert on save (`POST /api/v2/partner/geo/provisional`); never `regions[0]` / Moscow.
 - Partner listing POST/PATCH: `assertListingGeoCodes` — `country_code` must exist in `geo_locations`; publish requires lat/lng.
 

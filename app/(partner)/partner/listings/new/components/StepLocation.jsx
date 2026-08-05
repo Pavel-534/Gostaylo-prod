@@ -1,17 +1,17 @@
 'use client'
 
 /**
- * Stage 200.36 — map-first Location step (anti-coerce; GeoService / geo_locations primary).
+ * Stage 200.36 / 200.43 — Location step: cascade-first UX (Country → Region → City → District → Address).
+ * Address search + map remain accelerators; geo_locations / anti-coerce unchanged.
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Loader2, MapPin, AlertTriangle } from 'lucide-react'
+import { Loader2, MapPin, AlertTriangle, Search } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { LAUNCH_MARKETS } from '@/lib/geo/wizard-geo-from-pin'
 import { COUNTRY_CURRENCY_TZ } from '@/lib/geo/launch-markets-seed-data'
@@ -74,6 +74,7 @@ function StepLocationInner() {
   const [cityManual, setCityManual] = useState(
     () => String(formData.metadata?.city_label || formData.metadata?.city || ''),
   )
+  const [addressSearchOpen, setAddressSearchOpen] = useState(false)
   const debounceRef = useRef(null)
   const [mapCenter, setMapCenter] = useState(null)
 
@@ -103,7 +104,6 @@ function StepLocationInner() {
     return Array.from(set)
   }, [customDistricts, formData.district])
 
-  // Load countries once
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -119,7 +119,6 @@ function StepLocationInner() {
     }
   }, [language])
 
-  // Regions when country changes
   useEffect(() => {
     const cc = formData.country
     if (!cc) {
@@ -142,7 +141,6 @@ function StepLocationInner() {
     }
   }, [formData.country, language, countries])
 
-  // Cities when region changes
   useEffect(() => {
     const rc = formData.region
     if (!rc) {
@@ -213,7 +211,6 @@ function StepLocationInner() {
   const selectGeocodeResult = async (r) => {
     setGeocodeResults([])
     setGeocodeQuery(r.displayName || r.labelRu || r.labelEn || '')
-    // Catalog hit may already carry region/city codes
     handleMapSelect(r.lat, r.lon, {
       displayName: r.displayName,
       countryCode: r.address?.country_code || null,
@@ -226,7 +223,6 @@ function StepLocationInner() {
       cityCode: r.cityCode || null,
       geoSource: r.source || 'suggest',
     })
-    // Enrich with reverse (catalog match + currency/TZ)
     try {
       const rev = await fetch(
         `/api/v2/geocode/reverse?lat=${r.lat}&lon=${r.lon}`,
@@ -323,110 +319,25 @@ function StepLocationInner() {
         </p>
       </div>
 
-      {/* A — Address search (primary) */}
-      <div data-wizard-field="address-search">
-        <Label className="text-base font-medium">{t('searchAddress')}</Label>
-        <p className="mt-1 text-xs text-slate-500">{t('wizardGeo_searchHint')}</p>
-        <div className="relative mt-2">
-          <Input
-            placeholder={t('searchAddressPlaceholder')}
-            value={geocodeQuery}
-            onChange={(e) => onGeocodeQueryChange(e.target.value)}
-            className="h-12 pr-10"
-            autoComplete="off"
-          />
-          {geocoding ? (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
-          ) : (
-            <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          )}
+      {/* A — Primary cascade (what partners expect) */}
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_cascadeTitle')}</h3>
+          <p className="mt-1 text-xs text-slate-500">{t('wizardGeo_cascadeHint')}</p>
         </div>
-        {geocodeResults.length > 0 && (
-          <div className="mt-2 max-h-48 divide-y overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {geocodeResults.map((r, i) => {
-              const levelKey =
-                r.level === 'country'
-                  ? 'wizardGeo_levelCountry'
-                  : r.level === 'region'
-                    ? 'wizardGeo_levelRegion'
-                    : r.level === 'city' || r.level === 'neighborhood'
-                      ? 'wizardGeo_levelCity'
-                      : null
-              const primary = r.labelRu || r.labelEn || r.displayName
-              const secondary =
-                r.labelEn && r.labelRu && r.labelEn !== r.labelRu ? r.labelEn : null
-              return (
-                <button
-                  key={`${r.code || ''}-${r.lat}-${r.lon}-${i}`}
-                  type="button"
-                  className="min-h-[44px] w-full px-3 py-2.5 text-left text-sm hover:bg-slate-50"
-                  onClick={() => selectGeocodeResult(r)}
-                >
-                  <span className="block font-medium text-slate-900">{primary}</span>
-                  <span className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-slate-500">
-                    {levelKey ? <span>{t(levelKey)}</span> : null}
-                    {secondary ? <span>{secondary}</span> : null}
-                    {!levelKey && r.displayName && r.displayName !== primary ? (
-                      <span className="line-clamp-1">{r.displayName}</span>
-                    ) : null}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {geoUnavailable ? (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-950">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="text-sm">{t('wizardGeo_serviceDownTitle')}</AlertTitle>
-          <AlertDescription className="text-xs">{t('wizardGeo_serviceDownBody')}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {/* B — Map */}
-      <div>
-        <Label className="text-base font-medium">
-          {transportWizard ? t('mapLocationTransport') : t('mapLocation')}
-        </Label>
-        <p className="mt-1 text-xs text-slate-500">
-          {transportWizard ? t('clickToPinTransport') : t('clickToPin')}
-        </p>
-        <div
-          className={cn('mt-2', errCoords && 'rounded-2xl ring-2 ring-red-400 ring-offset-2')}
-          data-wizard-field="coordinates"
-          data-wizard-field-error={errCoords ? 'true' : undefined}
-        >
-          <MapPicker
-            categoryId={formData.categoryId}
-            categorySlug={listingCategorySlug}
-            language={language}
-            latitude={formData.latitude}
-            longitude={formData.longitude}
-            onSelect={handleMapSelect}
-            height={320}
-            countryCode={formData.country || null}
-            mapCenter={mapCenter}
-            cooperativeTouch="auto"
-          />
-        </div>
-        {errCoords ? (
-          <p className="mt-1.5 text-xs font-medium text-red-600">{t('wizardBlocker_coordinates')}</p>
-        ) : null}
-        {!coordsValid && !errCoords ? (
-          <p className="mt-1.5 text-sm text-amber-600">{t('invalidCoords')}</p>
-        ) : null}
-      </div>
-
-      {/* C — Confirmation cascade (geo_locations) */}
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-        <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_confirmTitle')}</h3>
 
         {!launchOk ? (
           <Alert className="border-amber-200 bg-amber-50 text-amber-950">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs">{t('wizardGeo_nonLaunchWarning')}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {geoUnavailable ? (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="text-sm">{t('wizardGeo_serviceDownTitle')}</AlertTitle>
+            <AlertDescription className="text-xs">{t('wizardGeo_serviceDownBody')}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -436,7 +347,9 @@ function StepLocationInner() {
               {t('country') || 'Country'}
             </Label>
             <Select value={formData.country || undefined} onValueChange={handleCountryChange}>
-              <SelectTrigger className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'country'))}>
+              <SelectTrigger
+                className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'country'))}
+              >
                 <SelectValue placeholder={t('wizardGeo_selectCountry')} />
               </SelectTrigger>
               <SelectContent>
@@ -476,7 +389,9 @@ function StepLocationInner() {
               onValueChange={handleCitySelect}
               disabled={!formData.region && cities.length === 0}
             >
-              <SelectTrigger className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'city'))}>
+              <SelectTrigger
+                className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'city'))}
+              >
                 <SelectValue placeholder={t('wizardGeo_selectCity')} />
               </SelectTrigger>
               <SelectContent>
@@ -492,15 +407,7 @@ function StepLocationInner() {
         </div>
 
         {cityUnmatched ? (
-          <Alert className="border-slate-200 bg-white">
-            <AlertDescription className="text-xs text-slate-700">
-              {t('wizardGeo_cityUnmatchedHint')}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        {cityUnmatched || !formData.city ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-sm font-medium">{t('wizardGeo_cityManualLabel')}</Label>
             <Input
               className="h-11"
@@ -509,6 +416,7 @@ function StepLocationInner() {
               onBlur={onCityManualBlur}
               placeholder={t('wizardGeo_cityManualPh')}
             />
+            <p className="text-xs text-slate-500">{t('wizardGeo_cityUnmatchedHint')}</p>
           </div>
         ) : null}
 
@@ -551,13 +459,13 @@ function StepLocationInner() {
           <Label className="text-sm font-medium">{t('wizardGeo_addressLabel')}</Label>
           <Input
             className="mt-1.5 h-11"
-            value={formData.address || geocodeQuery || ''}
+            value={formData.address || ''}
             onChange={(e) => updateField('address', e.target.value)}
-            placeholder={t('searchAddressPlaceholder')}
+            placeholder={t('wizardGeo_addressPh')}
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
           <div className="font-medium text-slate-800">{t('wizardGeo_fxReadonlyTitle')}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
             <span>
@@ -569,6 +477,110 @@ function StepLocationInner() {
           </div>
           <p className="mt-1 text-slate-500">{t('wizardGeo_fxReadonlyHint')}</p>
         </div>
+      </div>
+
+      {/* B — Optional address paste (accelerator) */}
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-3 sm:p-4">
+        <button
+          type="button"
+          className="flex min-h-[44px] w-full items-center gap-2 text-left text-sm font-medium text-slate-800"
+          onClick={() => setAddressSearchOpen((v) => !v)}
+          aria-expanded={addressSearchOpen}
+        >
+          <Search className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <span className="flex-1">{t('wizardGeo_pasteAddressToggle')}</span>
+          <span className="text-xs font-normal text-slate-500">
+            {addressSearchOpen ? t('wizardGeo_pasteAddressHide') : t('wizardGeo_pasteAddressShow')}
+          </span>
+        </button>
+
+        {addressSearchOpen ? (
+          <div className="mt-3 space-y-2" data-wizard-field="address-search">
+            <p className="text-xs text-slate-500">{t('wizardGeo_searchHint')}</p>
+            <div className="relative">
+              <Input
+                placeholder={t('searchAddressPlaceholder')}
+                value={geocodeQuery}
+                onChange={(e) => onGeocodeQueryChange(e.target.value)}
+                className="h-12 border-slate-200 bg-white pr-10"
+                autoComplete="off"
+              />
+              {geocoding ? (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
+              ) : (
+                <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              )}
+            </div>
+            {geocodeResults.length > 0 ? (
+              <div className="max-h-48 divide-y overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {geocodeResults.map((r, i) => {
+                  const levelKey =
+                    r.level === 'country'
+                      ? 'wizardGeo_levelCountry'
+                      : r.level === 'region'
+                        ? 'wizardGeo_levelRegion'
+                        : r.level === 'city' || r.level === 'neighborhood'
+                          ? 'wizardGeo_levelCity'
+                          : null
+                  const primary = r.labelRu || r.labelEn || r.displayName
+                  const secondary =
+                    r.labelEn && r.labelRu && r.labelEn !== r.labelRu ? r.labelEn : null
+                  return (
+                    <button
+                      key={`${r.code || ''}-${r.lat}-${r.lon}-${i}`}
+                      type="button"
+                      className="min-h-[44px] w-full px-3 py-2.5 text-left text-sm hover:bg-slate-50"
+                      onClick={() => selectGeocodeResult(r)}
+                    >
+                      <span className="block font-medium text-slate-900">{primary}</span>
+                      <span className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-slate-500">
+                        {levelKey ? <span>{t(levelKey)}</span> : null}
+                        {secondary ? <span>{secondary}</span> : null}
+                        {!levelKey && r.displayName && r.displayName !== primary ? (
+                          <span className="line-clamp-1">{r.displayName}</span>
+                        ) : null}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {/* C — Map (refine pin) */}
+      <div>
+        <Label className="text-base font-medium">
+          {transportWizard ? t('mapLocationTransport') : t('mapLocation')}
+        </Label>
+        <p className="mt-1 text-xs text-slate-500">
+          {transportWizard ? t('clickToPinTransport') : t('wizardGeo_mapHintAfterCascade')}
+        </p>
+        <div
+          className={cn('mt-2', errCoords && 'rounded-2xl ring-2 ring-red-400 ring-offset-2')}
+          data-wizard-field="coordinates"
+          data-wizard-field-error={errCoords ? 'true' : undefined}
+        >
+          <MapPicker
+            categoryId={formData.categoryId}
+            categorySlug={listingCategorySlug}
+            language={language}
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            onSelect={handleMapSelect}
+            height={320}
+            countryCode={formData.country || null}
+            mapCenter={mapCenter}
+            cooperativeTouch="auto"
+          />
+        </div>
+        {errCoords ? (
+          <p className="mt-1.5 text-xs font-medium text-red-600">{t('wizardBlocker_coordinates')}</p>
+        ) : null}
+        {!coordsValid && !errCoords ? (
+          <p className="mt-1.5 text-sm text-amber-600">{t('invalidCoords')}</p>
+        ) : null}
       </div>
     </div>
   )

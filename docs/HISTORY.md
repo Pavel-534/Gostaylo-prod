@@ -257,6 +257,7 @@
 | 200.39 | 2026-08-05 | Geo UX polish: map re-fit, bbox URL, labels, SEO worldwide | Done |
 | 200.40 | 2026-08-05 | Partner mobile calendar: month grid, chrome polish, compact promo | Done |
 | 200.41 | 2026-08-05 | Partner mobile calendar: 3-month occupancy overview (heatmap) | Done |
+| 200.43 | 2026-08-05 | Wizard Location: cascade-first UX (search/map secondary) | Done |
 
 ## Пробелы в паспорте
 
