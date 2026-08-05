@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getUserIdFromSession } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
 import { assertHostPayoutReadyForBooking } from '@/lib/partner/host-payout-booking-gate'
+import { assertBookingPaymentActorAccess } from '@/lib/payment/assert-booking-payment-actor.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,15 +25,12 @@ export async function GET(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
     }
 
-    const sessionUserId = await getUserIdFromSession()
-    if (booking.renter_id) {
-      if (!sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Please log in to view payment data' }, { status: 401 })
-      }
-      if (String(booking.renter_id) !== String(sessionUserId)) {
-        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
-      }
-    }
+    const actor = await assertBookingPaymentActorAccess({
+      booking,
+      loginMessage: 'Please log in to view payment data',
+    })
+    if (!actor.ok) return actor.response
+    const sessionUserId = actor.sessionUserId
 
     if (booking.listing_id) {
       const { data: listingRow } = await supabaseAdmin

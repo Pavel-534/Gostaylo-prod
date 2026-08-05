@@ -4,11 +4,11 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getUserIdFromSession } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { applyCheckoutPromoToBooking } from '@/lib/services/booking/apply-checkout-promo.service.js'
 import { promoErrorJson, PromoErrorCode } from '@/lib/promo/promo-error-codes'
+import { assertBookingPaymentActorAccess } from '@/lib/payment/assert-booking-payment-actor.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,13 +34,12 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
     }
 
-    const sessionUserId = await getUserIdFromSession()
-    if (!sessionUserId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-    if (booking.renter_id && String(booking.renter_id) !== String(sessionUserId)) {
-      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 })
-    }
+    const actor = await assertBookingPaymentActorAccess({
+      booking,
+      loginMessage: 'Unauthorized',
+    })
+    if (!actor.ok) return actor.response
+
     if (!isBookingPayable(booking.status)) {
       return NextResponse.json(
         { success: false, error: 'Booking cannot be repriced', code: 'BOOKING_NOT_PAYABLE' },

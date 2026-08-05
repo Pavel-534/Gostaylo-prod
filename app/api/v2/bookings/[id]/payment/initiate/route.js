@@ -4,7 +4,6 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getUserIdFromSession } from '@/lib/services/session-service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
@@ -12,6 +11,7 @@ import WalletService from '@/lib/services/finance/wallet.service'
 import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
 import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js'
+import { assertBookingPaymentActorAccess } from '@/lib/payment/assert-booking-payment-actor.js'
 import {
   buildFintechSnapshotPayload,
   readFintechSnapshotFromBooking,
@@ -59,15 +59,14 @@ export async function POST(request, { params }) {
     }
     let booking = bookingRow
 
-    const sessionUserId = await getUserIdFromSession()
-    if (booking.renter_id) {
-      if (!sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 })
-      }
-      if (String(booking.renter_id) !== String(sessionUserId)) {
-        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
-      }
+    const actor = await assertBookingPaymentActorAccess({
+      booking,
+      loginMessage: 'Please log in to complete payment',
+    })
+    if (!actor.ok) return actor.response
+    const sessionUserId = actor.sessionUserId
 
+    if (booking.renter_id && sessionUserId) {
       const consent = await ensureProfileLegalConsentForPayment(
         sessionUserId,
         body?.acceptedLegalTerms,

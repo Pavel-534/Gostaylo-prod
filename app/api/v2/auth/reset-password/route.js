@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { createClient } from '@supabase/supabase-js';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
@@ -75,44 +76,49 @@ export async function POST(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Профиль по id из токена (email в JWT должен совпадать без учёта регистра)
-  const { data: row, error: fetchErr } = await supabase
-    .from('profiles')
-    .select('id, email, first_name')
-    .eq('id', userId)
-    .maybeSingle();
-  
-  if (fetchErr || !row) {
-    console.error('[RESET-PASSWORD] Profile fetch:', fetchErr?.message || 'not found');
-    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
-  }
+  try {
+    // Профиль по id из токена (email в JWT должен совпадать без учёта регистра)
+    const { data: row, error: fetchErr } = await supabase
+      .from('profiles')
+      .select('id, email, first_name')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (fetchErr || !row) {
+      console.error('[RESET-PASSWORD] Profile fetch:', fetchErr?.message || 'not found');
+      return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
+    }
 
-  if (String(row.email || '').toLowerCase().trim() !== tokenEmailNorm) {
-    console.error('[RESET-PASSWORD] Email mismatch for user', userId);
-    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
-  }
-  
-  const passwordHash = await bcrypt.hash(password, 10);
-  
-  // Только колонки из схемы profiles (password_reset_at в миграциях нет — иначе PostgREST падает)
-  const { data: user, error } = await supabase
-    .from('profiles')
-    .update({
-      password_hash: passwordHash,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId)
-    .select('id, email, first_name')
-    .single();
-  
-  if (error || !user) {
-    console.error('[RESET-PASSWORD] DB update:', error?.message, error?.details, error?.hint);
-    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_RESET_FAILED, 500);
-  }
+    if (String(row.email || '').toLowerCase().trim() !== tokenEmailNorm) {
+      console.error('[RESET-PASSWORD] Email mismatch for user', userId);
+      return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
+    }
+    
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    // Только колонки из схемы profiles (password_reset_at в миграциях нет — иначе PostgREST падает)
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .update({
+        password_hash: passwordHash,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+      .select('id, email, first_name')
+      .single();
+    
+    if (error || !user) {
+      console.error('[RESET-PASSWORD] DB update:', error?.message, error?.details, error?.hint);
+      return authErrorJson(AuthErrorCode.AUTH_PASSWORD_RESET_FAILED, 500);
+    }
 
-  console.log('[RESET-PASSWORD] Password reset for:', hashPiiForLog(user.email));
+    console.log('[RESET-PASSWORD] Password reset for:', hashPiiForLog(user.email));
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error('[RESET-PASSWORD] Unexpected:', e?.message || e);
+    return authErrorJson(AuthErrorCode.AUTH_INTERNAL, 500);
+  }
 }
 
 export async function GET() {

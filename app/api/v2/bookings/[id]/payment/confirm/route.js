@@ -5,7 +5,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getUserIdFromSession } from '@/lib/services/session-service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { BookingService } from '@/lib/services/booking.service';
 import EscrowService from '@/lib/services/escrow.service';
@@ -13,6 +12,7 @@ import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension
 import PaymentIntentService from '@/lib/services/payment-intent.service';
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
 import { assertClientPaymentConfirmAllowed } from '@/lib/payment/payment-production-guard.js';
+import { assertBookingPaymentActorAccess } from '@/lib/payment/assert-booking-payment-actor.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,18 +59,14 @@ export async function POST(request, { params }) {
 
     const previousStatus = booking.status;
 
-    const sessionUserId = await getUserIdFromSession();
-    if (booking.renter_id) {
-      if (!sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 });
-      }
-      if (booking.renter_id !== sessionUserId) {
-        return NextResponse.json(
-          { success: false, error: 'Access denied. This is not your booking.' },
-          { status: 403 },
-        );
-      }
+    const actor = await assertBookingPaymentActorAccess({
+      booking,
+      loginMessage: 'Please log in to complete payment',
+    });
+    if (!actor.ok) return actor.response;
+    const sessionUserId = actor.sessionUserId;
 
+    if (booking.renter_id && sessionUserId) {
       const consent = await ensureProfileLegalConsentForPayment(
         sessionUserId,
         body?.acceptedLegalTerms,
