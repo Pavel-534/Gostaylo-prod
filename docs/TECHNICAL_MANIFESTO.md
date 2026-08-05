@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.19 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.39** geo UX polish (map/bbox/labels/SEO).
+> **Version**: 13.2.20 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.40** partner mobile calendar UX (month grid + chrome polish).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.40 — Partner mobile calendar UX
+
+- Modes: **Near term** (10-day agenda) vs real **Month grid** (`CalendarMobileMonthGrid`); month nav + jump via `<input type="month">`.
+- Options sheet: `pr-16` clearance for close; Block label wraps (no truncate).
+- Agenda promo: compact badge + detail sheet (no tall box per day).
 
 ### Stage 200.39 — Geo UX polish (catalog seamlessness)
 

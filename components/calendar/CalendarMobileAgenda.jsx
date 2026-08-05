@@ -475,8 +475,8 @@ function AgendaRow({ date, item, onCellClick, rangeRole = null, listItemRef, tod
           {sub ? <p className="mt-0.5 truncate text-xs font-semibold text-slate-800">{sub}</p> : null}
         </div>
 
-        {priceLine ? (
-          <div className="flex min-w-0 max-w-[min(52%,11.5rem)] shrink-0 flex-col items-end justify-center gap-1 pl-1">
+        {priceLine || promoLine ? (
+          <div className="flex min-w-0 max-w-[min(48%,10.5rem)] shrink-0 flex-col items-end justify-center gap-0.5 pl-1">
             {priceLine}
             {promoLine}
           </div>

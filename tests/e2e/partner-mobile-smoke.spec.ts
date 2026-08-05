@@ -56,7 +56,7 @@ test.describe('@partner partner mobile smoke (Stage 194.0-D)', () => {
     expect(box!.width).toBeGreaterThanOrEqual(44)
   })
 
-  test('calendar: Quick Actions + 10-day window active', async ({ page, baseURL }) => {
+  test('calendar: Quick Actions + near-term active; month pane opens grid', async ({ page, baseURL }) => {
     test.skip(!baseURL, 'baseURL')
     await page.goto(`${baseURL}/partner/calendar`, { waitUntil: 'domcontentloaded' })
 
@@ -66,9 +66,12 @@ test.describe('@partner partner mobile smoke (Stage 194.0-D)', () => {
     await expect(page.getByTestId('partner-cal-quick-block')).toBeVisible()
     await expect(page.getByTestId('partner-cal-quick-ical')).toBeVisible()
 
-    const tenDay = page.getByTestId('partner-cal-window-10')
-    await expect(tenDay).toBeVisible()
-    await expect(tenDay).toHaveClass(/bg-brand/)
+    const nearTerm = page.getByTestId('partner-cal-window-10')
+    await expect(nearTerm).toBeVisible()
+    await expect(nearTerm).toHaveClass(/bg-brand/)
+
+    await page.getByTestId('partner-cal-window-month').click()
+    await expect(page.getByTestId('partner-cal-mobile-month')).toBeVisible({ timeout: 15_000 })
   })
 
   test('More tab opens workspace sidebar drawer', async ({ page, baseURL }) => {

@@ -8,7 +8,17 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
-import { format, addDays, subDays, parseISO } from 'date-fns'
+import {
+  format,
+  addDays,
+  subDays,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  addMonths,
+  subMonths,
+  differenceInCalendarDays,
+} from 'date-fns'
 import { Calendar, Loader2, AlertCircle, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -21,6 +31,7 @@ import { usePartnerCalendar, useCreateBlock, useCreateManualBooking, useDeleteBl
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
+import { CalendarMobileMonthGrid } from '@/components/calendar/CalendarMobileMonthGrid'
 import { CalendarMobileQuickActions } from '@/components/calendar/CalendarMobileQuickActions'
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
@@ -106,19 +117,29 @@ function MasterCalendarContent() {
   const { data: reputationHealthData } = usePartnerReputationHealthQuery(!!partnerId)
   const dominantCategorySlug = reputationHealthData?.dominantCategorySlug ?? null
 
-  // View state — Stage 194.0-B: mobile defaults to 10-day window (31 = «month» toggle)
+  // View state — Stage 200.40: mobile «near» agenda (10d) vs real month grid
   const [viewMode, setViewMode] = useState('normal')
+  const [mobilePane, setMobilePane] = useState('near') // 'near' | 'month'
   const [daysToShow, setDaysToShow] = useState(30)
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  const agendaCompact = !isNarrowCalendar ? false : daysToShow <= 10
 
   useEffect(() => {
-    if (isNarrowCalendar) {
-      setDaysToShow((prev) => (prev === 31 ? 31 : 10))
-    } else {
+    if (!isNarrowCalendar) {
       setDaysToShow(30)
+      return
     }
-  }, [isNarrowCalendar])
+    if (mobilePane === 'month') {
+      setStartDate((prev) => {
+        try {
+          return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
+        } catch {
+          return format(startOfMonth(new Date()), 'yyyy-MM-dd')
+        }
+      })
+    } else {
+      setDaysToShow(10)
+    }
+  }, [isNarrowCalendar, mobilePane])
 
   // Переход из чата: ?focusDate=YYYY-MM-DD — показать окно с этой датой в видимой полосе
   useEffect(() => {
@@ -128,11 +149,15 @@ function MasterCalendarContent() {
       const d = parseISO(focusDateFromChat)
       if (Number.isNaN(d.getTime())) return
       appliedFocusDateRef.current = true
-      setStartDate(format(subDays(d, 5), 'yyyy-MM-dd'))
+      if (isNarrowCalendar && mobilePane === 'month') {
+        setStartDate(format(startOfMonth(d), 'yyyy-MM-dd'))
+      } else {
+        setStartDate(format(subDays(d, 5), 'yyyy-MM-dd'))
+      }
     } catch {
       /* ignore */
     }
-  }, [focusDateFromChat])
+  }, [focusDateFromChat, isNarrowCalendar, mobilePane])
   
   // Modal state
   const [actionModal, setActionModal] = useState({
@@ -172,12 +197,33 @@ function MasterCalendarContent() {
     label: '',
     minStay: 1
   })
+
+  const mobileMonthMode = isNarrowCalendar && mobilePane === 'month'
   
   // Calculate end date
-  const endDate = useMemo(() => 
-    format(addDays(parseISO(startDate), daysToShow - 1), 'yyyy-MM-dd'),
-    [startDate, daysToShow]
-  )
+  const endDate = useMemo(() => {
+    try {
+      const start = parseISO(startDate)
+      if (mobileMonthMode) {
+        return format(endOfMonth(start), 'yyyy-MM-dd')
+      }
+      return format(addDays(start, daysToShow - 1), 'yyyy-MM-dd')
+    } catch {
+      return startDate
+    }
+  }, [startDate, daysToShow, mobileMonthMode])
+
+  // Keep daysToShow in sync for month window (API range length)
+  useEffect(() => {
+    if (!mobileMonthMode) return
+    try {
+      const start = parseISO(startDate)
+      const days = differenceInCalendarDays(endOfMonth(start), startOfMonth(start)) + 1
+      setDaysToShow(days)
+    } catch {
+      /* ignore */
+    }
+  }, [mobileMonthMode, startDate])
   
   // TanStack Query hooks
   const { 
@@ -225,7 +271,12 @@ function MasterCalendarContent() {
   // Navigation handlers
   const goToToday = useCallback(() => {
     clearRangeSelection()
-    setStartDate(format(new Date(), 'yyyy-MM-dd'))
+    const today = new Date()
+    if (mobileMonthMode) {
+      setStartDate(format(startOfMonth(today), 'yyyy-MM-dd'))
+    } else {
+      setStartDate(format(today, 'yyyy-MM-dd'))
+    }
     window.requestAnimationFrame(() => {
       setTimeout(() => {
         const el = isNarrowCalendar ? todayAgendaRef.current : todayGridRef.current
@@ -236,17 +287,35 @@ function MasterCalendarContent() {
         })
       }, 280)
     })
-  }, [isNarrowCalendar, clearRangeSelection])
+  }, [isNarrowCalendar, mobileMonthMode, clearRangeSelection])
   
   const goBack = useCallback(() => {
     clearRangeSelection()
+    if (mobileMonthMode) {
+      setStartDate(format(startOfMonth(subMonths(parseISO(startDate), 1)), 'yyyy-MM-dd'))
+      return
+    }
     setStartDate(format(subDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate, clearRangeSelection])
+  }, [startDate, mobileMonthMode, clearRangeSelection])
   
   const goForward = useCallback(() => {
     clearRangeSelection()
+    if (mobileMonthMode) {
+      setStartDate(format(startOfMonth(addMonths(parseISO(startDate), 1)), 'yyyy-MM-dd'))
+      return
+    }
     setStartDate(format(addDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
-  }, [startDate, clearRangeSelection])
+  }, [startDate, mobileMonthMode, clearRangeSelection])
+
+  const jumpToMonth = useCallback(
+    (yyyyMm) => {
+      if (!yyyyMm || !/^\d{4}-\d{2}$/.test(yyyyMm)) return
+      clearRangeSelection()
+      setMobilePane('month')
+      setStartDate(`${yyyyMm}-01`)
+    },
+    [clearRangeSelection],
+  )
 
   const handleIcalSyncAll = useCallback(async () => {
     setIcalSyncing(true)
@@ -615,9 +684,11 @@ function MasterCalendarContent() {
         viewMode={viewMode}
         summary={summary}
         language={language}
+        dateLabelMode={mobileMonthMode ? 'month' : 'range'}
         onToday={goToToday}
         onBack={goBack}
         onForward={goForward}
+        onJumpToMonth={isNarrowCalendar ? jumpToMonth : undefined}
         onViewModeChange={setViewMode}
         onRefresh={refetch}
         onIcalSyncAll={handleIcalSyncAll}
@@ -643,26 +714,48 @@ function MasterCalendarContent() {
         <CalendarMobileQuickActions
           language={language}
           icalHref={icalHref}
-          agendaCompact={agendaCompact}
-          onAgendaCompactChange={(compact) => setDaysToShow(compact ? 10 : 31)}
+          mobilePane={mobilePane}
+          onMobilePaneChange={(pane) => {
+            clearRangeSelection()
+            if (pane === 'near') {
+              setStartDate(format(new Date(), 'yyyy-MM-dd'))
+            }
+            setMobilePane(pane)
+          }}
           onQuickBlock={handleQuickBlock}
           onOpenPrices={() => setPriceModal({ open: true })}
           onIcalSyncAll={handleIcalSyncAll}
           icalSyncing={icalSyncing}
         />
         <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          {getUIText('partnerCal_agendaHint', language)}
+          {getUIText(
+            mobilePane === 'month' ? 'partnerCal_monthHint' : 'partnerCal_agendaHint',
+            language,
+          )}
         </p>
-        <CalendarMobileAgenda
-          dates={dates}
-          listings={listings}
-          onCellClick={handleCellClick}
-          getCellRangeRole={getCellRangeRole}
-          todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
-          initialExpandedListingId={filterListingId || undefined}
-          language={language}
-          forceFullWindow={!agendaCompact}
-        />
+        {mobilePane === 'month' ? (
+          <CalendarMobileMonthGrid
+            dates={dates}
+            listings={listings}
+            onCellClick={handleCellClick}
+            getCellRangeRole={getCellRangeRole}
+            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+            initialExpandedListingId={filterListingId || undefined}
+            language={language}
+            monthAnchor={startDate}
+          />
+        ) : (
+          <CalendarMobileAgenda
+            dates={dates}
+            listings={listings}
+            onCellClick={handleCellClick}
+            getCellRangeRole={getCellRangeRole}
+            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+            initialExpandedListingId={filterListingId || undefined}
+            language={language}
+            forceFullWindow={false}
+          />
+        )}
       </div>
       
       <ActionModals

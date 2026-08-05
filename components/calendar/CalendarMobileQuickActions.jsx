@@ -1,6 +1,6 @@
 /**
- * Stage 194.0-B — Mobile calendar first-run strip.
- * Primary: Block dates · iCal. Secondary (Options): bulk prices · force sync.
+ * Stage 194.0-B / 200.40 — Mobile calendar quick strip.
+ * Primary: Block · iCal. Modes: Near-term agenda · Month grid. Options sheet: prices · iCal sync.
  */
 
 'use client'
@@ -14,6 +14,7 @@ import {
   DollarSign,
   Loader2,
   CalendarRange,
+  CalendarDays,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,8 +30,8 @@ import { cn } from '@/lib/utils'
  * @param {{
  *   language?: string
  *   icalHref: string
- *   agendaCompact: boolean
- *   onAgendaCompactChange: (compact: boolean) => void
+ *   mobilePane: 'near' | 'month'
+ *   onMobilePaneChange: (pane: 'near' | 'month') => void
  *   onQuickBlock: () => void
  *   onOpenPrices: () => void
  *   onIcalSyncAll?: () => void
@@ -41,8 +42,8 @@ import { cn } from '@/lib/utils'
 export function CalendarMobileQuickActions({
   language = 'ru',
   icalHref,
-  agendaCompact,
-  onAgendaCompactChange,
+  mobilePane = 'near',
+  onMobilePaneChange,
   onQuickBlock,
   onOpenPrices,
   onIcalSyncAll,
@@ -65,50 +66,61 @@ export function CalendarMobileQuickActions({
           <Button
             type="button"
             variant="brand"
-            className="min-h-11 w-full justify-center gap-1.5"
+            className="min-h-11 w-full flex-col gap-0.5 py-2 sm:flex-row sm:gap-1.5"
             onClick={onQuickBlock}
             data-testid="partner-cal-quick-block"
           >
             <Lock className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="truncate text-sm">{t('partnerCal_quickBlock')}</span>
+            <span className="max-w-full whitespace-normal text-center text-xs font-semibold leading-tight sm:text-sm">
+              {t('partnerCal_quickBlock')}
+            </span>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="min-h-11 w-full justify-center gap-1.5 border-brand/30 text-brand hover:bg-brand/10"
+            className="min-h-11 w-full flex-col gap-0.5 border-brand/30 py-2 text-brand hover:bg-brand/10 sm:flex-row sm:gap-1.5"
             asChild
           >
             <Link href={icalHref} data-testid="partner-cal-quick-ical">
               <CalendarSync className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="truncate text-sm">{t('partnerCal_quickIcal')}</span>
+              <span className="text-xs font-semibold sm:text-sm">{t('partnerCal_quickIcal')}</span>
             </Link>
           </Button>
         </div>
 
-        <div className="flex gap-2">
-          <div className="flex min-h-11 flex-1 overflow-hidden rounded-xl border border-slate-200">
+        <div className="flex items-stretch gap-2">
+          <div
+            className="flex min-h-11 min-w-0 flex-1 overflow-hidden rounded-xl border border-slate-200"
+            role="group"
+            aria-label={t('partnerCal_viewModeAria')}
+          >
             <button
               type="button"
-              onClick={() => onAgendaCompactChange(true)}
+              onClick={() => onMobilePaneChange('near')}
               className={cn(
-                'flex min-h-11 flex-1 items-center justify-center gap-1 px-2 text-xs font-semibold transition-colors',
-                agendaCompact ? 'bg-brand text-white' : 'bg-white text-slate-600 hover:bg-slate-50',
+                'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors sm:flex-row sm:gap-1 sm:text-xs',
+                mobilePane === 'near'
+                  ? 'bg-brand text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50',
               )}
               data-testid="partner-cal-window-10"
             >
               <CalendarRange className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {t('partnerCal_windowTen')}
+              <span className="text-center">{t('partnerCal_windowNear')}</span>
             </button>
             <button
               type="button"
-              onClick={() => onAgendaCompactChange(false)}
+              onClick={() => onMobilePaneChange('month')}
               className={cn(
-                'flex min-h-11 flex-1 items-center justify-center px-2 text-xs font-semibold transition-colors',
-                !agendaCompact ? 'bg-brand text-white' : 'bg-white text-slate-600 hover:bg-slate-50',
+                'flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-l border-slate-200 px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors sm:flex-row sm:gap-1 sm:text-xs',
+                mobilePane === 'month'
+                  ? 'bg-brand text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50',
               )}
               data-testid="partner-cal-window-month"
             >
-              {t('partnerCal_windowMonth')}
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="text-center">{t('partnerCal_windowMonth')}</span>
             </button>
           </div>
 
@@ -134,7 +146,7 @@ export function CalendarMobileQuickActions({
             'pb-[max(1rem,calc(env(safe-area-inset-bottom)+var(--app-bottom-nav-height,0px)))]',
           )}
         >
-          <SheetHeader className="mb-3 text-left">
+          <SheetHeader className="mb-3 pr-16 text-left">
             <SheetTitle>{t('partnerCal_optionsTitle')}</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-2 pb-2">
@@ -147,7 +159,7 @@ export function CalendarMobileQuickActions({
                 onOpenPrices?.()
               }}
             >
-              <DollarSign className="mr-2 h-4 w-4" aria-hidden />
+              <DollarSign className="mr-2 h-4 w-4 shrink-0" aria-hidden />
               {t('partnerCal_setPrices')}
             </Button>
             {onIcalSyncAll ? (
@@ -164,7 +176,7 @@ export function CalendarMobileQuickActions({
                 {icalSyncing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                 ) : (
-                  <CalendarSync className="mr-2 h-4 w-4" aria-hidden />
+                  <CalendarSync className="mr-2 h-4 w-4 shrink-0" aria-hidden />
                 )}
                 {t('partnerCal_syncAllIcal')}
               </Button>

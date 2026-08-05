@@ -281,6 +281,8 @@
 
 **Stage 192.0 (2026-07-18):** **Creator Pack UX (ambassador presentation)** — plain-language balance triad «Доступно / Холд 14 дней / Выплачено» (`ReferralBalanceBreakdown`); hold hint copy; UTM channel chips Telegram / Instagram Reels / YouTube / VK on `/profile/referral` Link tab (`buildAmbassadorUtmLink`); fintech jargon scrubbed from `profile-app-referral` RU/EN (waterfall → «Детализация выплаты», no Gross/Net/reinvest/ledger_depth). Financial engines / `vercel.json` untouched. Audit: `docs/AUDIT_GROWTH_SUPPLY.md`.
 
+**Stage 200.40 (2026-08-05):** **Partner mobile calendar UX** — Near-term agenda vs real month grid; month jump; options sheet close clearance; compact promo badge + sheet.
+
 **Stage 200.39 (2026-08-05):** **Geo UX polish** — catalog map re-center on where; bbox URL for Search this area; listing/order labels via seed + `/api/v2/geo/listing-label`; SEO without Phuket defaults; softer legacy Phuket infer.
 
 **Stage 200.38 (2026-08-05):** **Delete country-presets** — removed `lib/geo/country-presets.js`; consumers → GeoService / `LAUNCH_GEO_SEED` (`launch-geo-index`); write snapshot without presets; fiscal currency stays in listing-asset-currency.

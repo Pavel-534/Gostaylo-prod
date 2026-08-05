@@ -255,6 +255,7 @@
 | 200.37 | 2026-08-05 | Catalog search/map/display → geo_locations SSOT (no Phuket exceptionalism) | Done |
 | 200.38 | 2026-08-05 | Delete country-presets.js; launch-geo-index + GeoService only | Done |
 | 200.39 | 2026-08-05 | Geo UX polish: map re-fit, bbox URL, labels, SEO worldwide | Done |
+| 200.40 | 2026-08-05 | Partner mobile calendar: month grid, chrome polish, compact promo | Done |
 
 ## Пробелы в паспорте
 

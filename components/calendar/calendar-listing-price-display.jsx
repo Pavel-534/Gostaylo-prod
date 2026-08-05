@@ -62,6 +62,8 @@ export function CalendarListingPriceDisplay({
   amountAsset = null,
   className,
   priceClassName,
+  /** Stage 200.40 — month grid cells: primary only */
+  hideApprox = false,
 }) {
   const { formatListingPrice } = useCalendarListingPriceFormat()
   const { primary, secondary } = formatListingPrice(amountThb, baseCurrency, { amountAsset })
@@ -69,7 +71,7 @@ export function CalendarListingPriceDisplay({
   return (
     <div className={cn('flex flex-col items-center gap-0.5', className)}>
       <span className={priceClassName}>{primary}</span>
-      {secondary ? (
+      {!hideApprox && secondary ? (
         <span className="text-[9px] font-normal text-slate-400 tabular-nums leading-none">≈ {secondary}</span>
       ) : null}
     </div>

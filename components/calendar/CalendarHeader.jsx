@@ -111,9 +111,12 @@ export function CalendarHeader({
   viewMode,
   summary,
   language = 'ru',
+  /** 'range' | 'month' — Stage 200.40 mobile month pane */
+  dateLabelMode = 'range',
   onToday,
   onBack,
   onForward,
+  onJumpToMonth,
   onViewModeChange,
   onRefresh,
   onIcalSyncAll,
@@ -123,6 +126,7 @@ export function CalendarHeader({
   const [legendOpen, setLegendOpen] = useState(false)
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
+  const monthInputValue = String(startDate || '').slice(0, 7)
 
   return (
     <>
@@ -183,10 +187,31 @@ export function CalendarHeader({
             <Button variant="ghost" size="sm" onClick={onBack} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="min-w-[140px] px-3 text-center text-sm font-medium text-slate-700">
-              {format(parseISO(startDate), 'd MMM', { locale: dfLocale })} —{' '}
-              {format(parseISO(endDate), 'd MMM yyyy', { locale: dfLocale })}
-            </span>
+            {onJumpToMonth && dateLabelMode === 'month' ? (
+              <label className="relative flex min-h-11 min-w-[148px] cursor-pointer items-center justify-center px-2 lg:min-h-9">
+                <span className="pointer-events-none text-center text-sm font-medium capitalize text-slate-700">
+                  {format(parseISO(startDate), 'LLLL yyyy', { locale: dfLocale })}
+                </span>
+                <input
+                  type="month"
+                  value={monthInputValue}
+                  onChange={(e) => onJumpToMonth(e.target.value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label={t('partnerCal_jumpMonthAria')}
+                />
+              </label>
+            ) : (
+              <span className="min-w-[140px] px-3 text-center text-sm font-medium text-slate-700">
+                {dateLabelMode === 'month'
+                  ? format(parseISO(startDate), 'LLLL yyyy', { locale: dfLocale })
+                  : (
+                    <>
+                      {format(parseISO(startDate), 'd MMM', { locale: dfLocale })} —{' '}
+                      {format(parseISO(endDate), 'd MMM yyyy', { locale: dfLocale })}
+                    </>
+                  )}
+              </span>
+            )}
             <Button variant="ghost" size="sm" onClick={onForward} className="min-h-11 min-w-11 rounded-none lg:min-h-9 lg:min-w-9">
               <ChevronRight className="h-4 w-4" />
             </Button>
