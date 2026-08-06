@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.25 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.50** wizard mobile layout.
+> **Version**: 13.2.26 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.51** wizard geo cascade (camera vs pin).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,11 +27,19 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 200.51 — Wizard geo cascade: camera follows, pin is intentional
+
+- **SSOT** `lib/geo/wizard-geo-cascade-reset.js` — same path for **create and edit** (`StepLocation` only).
+- Country / region / city change: clear dependents (city/district/address) + **clear listing pin**; never auto-write capital/city centroid as `lat/lng`.
+- UI `mapCenter` flies to country/city centroid separately (viewport only).
+- Partner places pin on map after cascade → `handleMapSelect` / `wizard-geo-from-pin` (anti-coerce).
+- Tests: `__tests__/stage200-51-wizard-geo-cascade-reset.test.js`.
+
 ### Stage 200.50 — Wizard mobile layout (Location / action bar)
 
 - Mobile bottom bar: icon-only Back + Preview (44×44), full **Next** label — no mid-word truncate (`Наз…` / `Посмотре…`).
 - Blockers tip moved into step card (`ListingWizardMobileBlockers`); fixed bar height stays `4.5rem`.
-- Pin↔country conflict Alert: `whitespace-normal` full-width CTAs; inset ring (no `ring-offset` horizontal bleed).
+- Pin↔country conflict: full-width stacked CTAs (incl. dismiss as outline button); icon+text row then actions — no Alert `pl-7` offset that left-shifted buttons.
 
 ### Stage 200.49 — Wizard preview: L1 asset → THB before guest FX
 

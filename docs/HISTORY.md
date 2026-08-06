@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.51 | 2026-08-06 | Wizard geo cascade: camera follows country/city; pin cleared not auto-set | Done |
 | 200.50 | 2026-08-06 | Wizard mobile action bar + pin-conflict overflow layout | Done |
 | 200.49 | 2026-08-06 | Wizard preview L1→THB mid before guest retail FX | Done |
 | 201.03 | 2026-07-31 | Settle lock heartbeat refresh + TTL 1800s; AUDIT_02 closed (`v1.0.1-audit02`) | Done |

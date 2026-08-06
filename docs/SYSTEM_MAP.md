@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.23 | **Last Updated**: 2026-08-06 | **Stage 200.50:** wizard mobile layout; **200.49:** preview L1→THB FX; **200.48** geo e2e.  
+> **Version**: 13.2.24 | **Last Updated**: 2026-08-06 | **Stage 200.51:** cascade camera vs pin SSOT; **200.50** mobile layout; **200.49** preview FX.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

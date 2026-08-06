@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Stage 200.36 / 200.43 / 200.45 / 200.46 — Location: typeahead + pin/country conflict UX.
- * Address search + map remain accelerators; geo merge via handleMapSelect / wizard-geo-from-pin.
+ * Stage 200.36–200.51 — Location cascade + pin: camera follows country/city;
+ * listing pin only via map (anti-coerce). Create and edit share the same handlers/SSOT.
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -23,6 +23,11 @@ import {
   clearWizardFormPin,
   detectPinCountryConflict,
 } from '@/lib/geo/wizard-pin-country-conflict'
+import {
+  applyWizardCountryCascadeReset,
+  applyWizardRegionCascadeReset,
+  applyWizardCityCascadeSelect,
+} from '@/lib/geo/wizard-geo-cascade-reset'
 import { getIsoCountryLabel } from '@/lib/geo/iso-countries-catalog'
 import { getCountryMapViewportCentroid } from '@/lib/geo/country-map-viewport'
 import {
@@ -266,27 +271,17 @@ function StepLocationInner() {
   }
 
   const applyCountrySideEffects = (code, meta = {}) => {
-    updateField('country', code)
-    updateField('region', '')
-    updateField('city', '')
-    updateField('district', '')
-    updateMetadata('city_label', '')
-    updateMetadata('city', '')
-    updateMetadata('geo_city_unmatched', false)
-    updateMetadata('geo_pin_country_conflict_dismissed', false)
-    const nextCurrency =
-      COUNTRY_CURRENCY_TZ[code]?.currency || getDefaultListingBaseCurrency(code)
-    if (!baseCurrencyLocked && nextCurrency) {
-      updateField('baseCurrency', nextCurrency)
-    }
-    updateMetadata(
-      'timezone',
-      resolveListingPlaceTimezone({
-        lat: formData.latitude,
-        lon: formData.longitude,
+    setFormData((prev) =>
+      applyWizardCountryCascadeReset(prev, {
         countryCode: code,
+        baseCurrencyLocked,
+        nextCurrency:
+          COUNTRY_CURRENCY_TZ[code]?.currency || getDefaultListingBaseCurrency(code),
+        timezone: resolveListingPlaceTimezone({ countryCode: code }),
       }),
     )
+    setGeocodeQuery('')
+    setGeocodeResults([])
     if (meta.centroidLat != null && meta.centroidLng != null) {
       setMapCenter([meta.centroidLat, meta.centroidLng])
     } else {
@@ -296,7 +291,7 @@ function StepLocationInner() {
   }
 
   const handleCountrySelect = async (code) => {
-    // Optimistic: currency/TZ/cascade clear immediately (do not wait on ensure-country)
+    // Optimistic: cascade clear + camera (create + edit — same SSOT)
     applyCountrySideEffects(code)
     try {
       const res = await fetch('/api/v2/partner/geo/ensure-country', {
@@ -320,29 +315,23 @@ function StepLocationInner() {
   }
 
   const handleRegionChange = (code) => {
-    updateField('region', code)
-    updateField('city', '')
-    updateField('district', '')
-    updateMetadata('city_label', '')
-    updateMetadata('geo_city_unmatched', false)
     const row = regions.find((r) => r.code === code)
-    if (row?.timezone || row?.centroidLat != null) {
-      updateMetadata(
-        'timezone',
-        resolveListingPlaceTimezone({
-          lat: formData.latitude ?? row?.centroidLat,
-          lon: formData.longitude ?? row?.centroidLng,
-          regionTimezone: row?.timezone,
-          countryCode: formData.country,
-        }),
-      )
-    }
+    setFormData((prev) =>
+      applyWizardRegionCascadeReset(prev, {
+        regionCode: code,
+        regionTimezone: row?.timezone || null,
+        viewportLat: row?.centroidLat,
+        viewportLon: row?.centroidLng,
+      }),
+    )
+    setGeocodeQuery('')
+    setGeocodeResults([])
     if (row?.centroidLat != null && row?.centroidLng != null) {
       setMapCenter([row.centroidLat, row.centroidLng])
     }
   }
 
-  const handleCitySuggestSelect = async (r) => {
+  const handleCitySuggestSelect = (r) => {
     const label = normalizeGeoPlaceName(
       r._normalizedLabel || r.labelRu || r.labelEn || r.address?.city || r.displayName,
     )
@@ -355,55 +344,37 @@ function StepLocationInner() {
       setMapCenter([lat, lon])
     }
 
-    if (!hasValidPin(formData) && Number.isFinite(lat) && Number.isFinite(lon)) {
-      handleMapSelect(lat, lon, {
-        displayName: r.displayName || label,
-        countryCode: formData.country || r.address?.country_code,
-        country: r.address?.country,
-        city: label,
-        state: r.address?.state,
-        district: r.address?.suburb || r.address?.neighbourhood || null,
-        address: r.address || null,
-        regionCode,
+    // Camera follows city; pin cleared — user places marker (anti-coerce, create+edit SSOT)
+    setFormData((prev) =>
+      applyWizardCityCascadeSelect(prev, {
         cityCode,
+        cityLabel: label,
+        regionCode,
+        unmatched: !cityCode,
         cityTimezone: r.timezone || null,
-        geoSource: r.source || 'city_suggest',
-      })
-      return
-    }
-
-    if (regionCode) updateField('region', regionCode)
-    updateField('city', cityCode || '')
-    updateMetadata('city_label', label)
-    updateMetadata('city', label)
-    updateMetadata('geo_city_unmatched', !cityCode)
-    updateField('district', '')
-    if (!hasValidPin(formData)) {
-      updateMetadata(
-        'timezone',
-        resolveListingPlaceTimezone({
-          lat: Number.isFinite(lat) ? lat : null,
-          lon: Number.isFinite(lon) ? lon : null,
-          cityTimezone: r.timezone || null,
-          countryCode: formData.country,
-        }),
-      )
-    }
+        viewportLat: Number.isFinite(lat) ? lat : null,
+        viewportLon: Number.isFinite(lon) ? lon : null,
+        clearPin: true,
+        clearAddress: true,
+      }),
+    )
+    setGeocodeQuery('')
+    setGeocodeResults([])
   }
 
   const handleCityManualSelect = (label) => {
     const normalized = normalizeGeoPlaceName(label)
-    updateField('city', '')
-    updateMetadata('city_label', normalized)
-    updateMetadata('city', normalized)
-    updateMetadata('geo_city_unmatched', true)
-    updateField('district', '')
-    if (!hasValidPin(formData)) {
-      updateMetadata(
-        'timezone',
-        resolveListingPlaceTimezone({ countryCode: formData.country }),
-      )
-    }
+    setFormData((prev) =>
+      applyWizardCityCascadeSelect(prev, {
+        cityCode: '',
+        cityLabel: normalized,
+        unmatched: true,
+        clearPin: true,
+        clearAddress: true,
+      }),
+    )
+    setGeocodeQuery('')
+    setGeocodeResults([])
   }
 
   const handleCityClear = () => {
@@ -490,56 +461,65 @@ function StepLocationInner() {
 
         {pinConflict.conflict &&
         formData.metadata?.geo_pin_country_conflict_dismissed !== true ? (
-          <Alert
+          <div
+            role="alert"
             className={cn(
-              'min-w-0 overflow-hidden border-amber-200 bg-amber-50 text-amber-950',
+              'relative w-full min-w-0 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950',
               errPinConflict && 'border-red-400 ring-2 ring-inset ring-red-400',
             )}
             data-wizard-field="pinCountryConflict"
             data-wizard-field-error={errPinConflict ? 'true' : undefined}
+            data-testid="wizard-pin-country-conflict"
           >
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="text-sm">{t('wizardGeo_pinConflictTitle')}</AlertTitle>
-            <AlertDescription className="min-w-0 space-y-3 text-xs">
-              <p className="break-words">
-                {tr
-                  ? tr('wizardGeo_pinConflictBody', { country: countryDisplayLabel })
-                  : t('wizardGeo_pinConflictBody')}
-              </p>
-              <div className="flex min-w-0 flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="brand"
-                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug"
-                  disabled={pinConflictBusy}
-                  onClick={handlePinConflictKeepCountry}
-                >
-                  {t('wizardGeo_pinConflictKeepCountry')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug"
-                  disabled={pinConflictBusy}
-                  onClick={handlePinConflictUseMap}
-                >
-                  {pinConflictBusy ? (
-                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
-                  ) : null}
-                  {t('wizardGeo_pinConflictUseMap')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug text-slate-600"
-                  disabled={pinConflictBusy}
-                  onClick={handlePinConflictDismiss}
-                >
-                  {t('wizardGeo_pinConflictDismiss')}
-                </Button>
+            <div className="flex gap-2.5">
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <h5 className="text-sm font-semibold leading-snug tracking-tight">
+                  {t('wizardGeo_pinConflictTitle')}
+                </h5>
+                <p className="break-words text-xs leading-relaxed">
+                  {tr
+                    ? tr('wizardGeo_pinConflictBody', { country: countryDisplayLabel })
+                    : t('wizardGeo_pinConflictBody')}
+                </p>
               </div>
-            </AlertDescription>
-          </Alert>
+            </div>
+            <div className="mt-3 flex w-full flex-col gap-2">
+              <Button
+                type="button"
+                variant="brand"
+                className="h-auto min-h-[44px] w-full justify-center whitespace-normal px-3 py-2.5 text-center leading-snug"
+                disabled={pinConflictBusy}
+                onClick={handlePinConflictKeepCountry}
+              >
+                {t('wizardGeo_pinConflictKeepCountry')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto min-h-[44px] w-full justify-center whitespace-normal border-amber-300/80 bg-white px-3 py-2.5 text-center leading-snug text-slate-800 hover:bg-amber-50"
+                disabled={pinConflictBusy}
+                onClick={handlePinConflictUseMap}
+              >
+                {pinConflictBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+                ) : null}
+                {t('wizardGeo_pinConflictUseMap')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto min-h-[44px] w-full justify-center whitespace-normal border-slate-200 bg-white px-3 py-2.5 text-center leading-snug text-slate-700 hover:bg-slate-50"
+                disabled={pinConflictBusy}
+                onClick={handlePinConflictDismiss}
+              >
+                {t('wizardGeo_pinConflictDismiss')}
+              </Button>
+            </div>
+          </div>
         ) : null}
 
         {geoUnavailable ? (
