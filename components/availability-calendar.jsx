@@ -17,6 +17,12 @@ import {
   fetchListingCalendarBlocks,
   postListingCalendarBlock,
 } from '@/lib/api/partner-calendar-client'
+import { cn } from '@/lib/utils'
+import {
+  WIZARD_MOBILE_FLAT_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
   const [loading, setLoading] = useState(true)
@@ -107,8 +113,8 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-8">
+      <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn('py-8', WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS)}>
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-brand" />
           </div>
@@ -118,18 +124,23 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Sync Error Warning */}
       {syncErrors.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="py-4">
+        <Card
+          className={cn(
+            WIZARD_MOBILE_FLAT_CARD_CLASS,
+            'sm:border-amber-200 sm:bg-amber-50',
+          )}
+        >
+          <CardContent className={cn('py-4', WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS)}>
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
               <div>
                 <p className="font-medium text-amber-800">Ошибка синхронизации календаря</p>
-                <p className="text-sm text-amber-700 mt-1">
-                  Последняя синхронизация с внешними календарями завершилась с ошибкой. 
-                  Проверьте настройки iCal.
+                <p className="mt-1 text-sm text-amber-700">
+                  Последняя синхронизация с внешними календарями завершилась с ошибкой. Проверьте
+                  настройки iCal.
                 </p>
               </div>
             </div>
@@ -138,9 +149,9 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       )}
 
       {/* Add New Block */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
+          <CardTitle className="flex items-center gap-2 text-base">
             <Plus className="h-4 w-4" />
             Заблокировать даты
           </CardTitle>
@@ -148,7 +159,7 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
             Заблокируйте даты для личного использования или внешних бронирований
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="space-y-4">
             {/* Date Selection */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -248,14 +259,12 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       </Card>
 
       {/* Manual Blocks List */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
           <CardTitle className="text-base">Ручные блокировки</CardTitle>
-          <CardDescription>
-            Даты, которые вы заблокировали вручную
-          </CardDescription>
+          <CardDescription>Даты, которые вы заблокировали вручную</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {manualBlocks.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-4">
               Нет ручных блокировок
@@ -303,14 +312,12 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
 
       {/* iCal Blocks (read-only) */}
       {icalBlocks.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
             <CardTitle className="text-base">Синхронизировано из iCal</CardTitle>
-            <CardDescription>
-              Автоматически импортировано из внешних календарей
-            </CardDescription>
+            <CardDescription>Автоматически импортировано из внешних календарей</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="space-y-2">
               {icalBlocks.slice(0, 10).map(block => (
                 <div 

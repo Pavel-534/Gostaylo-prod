@@ -3,6 +3,8 @@
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import { WIZARD_MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Скидки за длительность → listing.metadata.discounts: { weekly, monthly } (%).
@@ -26,7 +28,7 @@ export function PartnerListingDurationDiscountFields({
   const monthlyKey = rentalPeriodDays ? 'partnerDurationDiscountMonthlyVehicle' : 'partnerDurationDiscountMonthly'
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+    <div className={cn(WIZARD_MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/80')}>
       <div>
         <Label className="text-sm font-medium text-slate-800">{t(titleKey)}</Label>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">{t(hintKey)}</p>
@@ -40,7 +42,7 @@ export function PartnerListingDurationDiscountFields({
             placeholder={t('partnerDurationDiscountWeeklyPh')}
             value={d.weekly != null && d.weekly !== '' ? String(d.weekly) : ''}
             onChange={(e) => onChangeDiscount('weekly', e.target.value)}
-            className="h-11"
+            className="h-11 w-full"
           />
         </div>
         <div className="space-y-2">
@@ -51,7 +53,7 @@ export function PartnerListingDurationDiscountFields({
             placeholder={t('partnerDurationDiscountMonthlyPh')}
             value={d.monthly != null && d.monthly !== '' ? String(d.monthly) : ''}
             onChange={(e) => onChangeDiscount('monthly', e.target.value)}
-            className="h-11"
+            className="h-11 w-full"
           />
         </div>
       </div>

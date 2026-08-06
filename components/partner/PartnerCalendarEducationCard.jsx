@@ -12,6 +12,10 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { CalendarSync, ArrowRight, CheckCircle2, Link2, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  WIZARD_MOBILE_FLAT_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export function PartnerCalendarEducationCard({
   variant = 'wizard',
@@ -24,10 +28,10 @@ export function PartnerCalendarEducationCard({
 
   if (manualCalendarOnly) {
     return (
-      <Card className={cn('border-slate-200 bg-slate-50/80', className)}>
-        <CardContent className="p-4 sm:p-5 space-y-2">
+      <Card className={cn(WIZARD_MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
+        <CardContent className={cn(WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 sm:p-5')}>
           <h3 className="font-semibold text-slate-900">{tr('partnerCal_eduVehicleTitle')}</h3>
-          <p className="text-sm text-slate-600 leading-relaxed">{tr('partnerCal_eduVehicleBody')}</p>
+          <p className="text-sm leading-relaxed text-slate-600">{tr('partnerCal_eduVehicleBody')}</p>
         </CardContent>
       </Card>
     )
@@ -59,30 +63,32 @@ export function PartnerCalendarEducationCard({
 
   // wizard — shown while creating listing (before listing id exists)
   return (
-    <Card className={cn('border-slate-200 bg-slate-50/80', className)}>
-      <CardContent className="p-4 sm:p-5 space-y-4">
+    <Card className={cn(WIZARD_MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
+      <CardContent className={cn(WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-5')}>
         <div className="flex items-start gap-3">
-          <CalendarSync className="h-6 w-6 text-brand shrink-0 mt-0.5" />
+          <CalendarSync className="mt-0.5 h-6 w-6 shrink-0 text-brand" />
           <div>
             <h3 className="font-semibold text-slate-900">{tr('partnerCal_eduWizardTitle')}</h3>
-            <p className="text-sm text-slate-600 mt-1">{tr('partnerCal_eduWizardIntro')}</p>
+            <p className="mt-1 text-sm text-slate-600">{tr('partnerCal_eduWizardIntro')}</p>
           </div>
         </div>
         <ol className="space-y-3 text-sm text-slate-700">
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand-hover font-semibold text-xs">1</span>
-            <span className="pt-0.5 flex gap-2"><Share2 className="h-4 w-4 text-brand shrink-0 mt-0.5" />{tr('partnerCal_eduStep1')}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand-hover">1</span>
+            <span className="flex gap-2 pt-0.5"><Share2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" />{tr('partnerCal_eduStep1')}</span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand-hover font-semibold text-xs">2</span>
-            <span className="pt-0.5 flex gap-2"><Link2 className="h-4 w-4 text-brand shrink-0 mt-0.5" />{tr('partnerCal_eduStep2')}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand-hover">2</span>
+            <span className="flex gap-2 pt-0.5"><Link2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" />{tr('partnerCal_eduStep2')}</span>
           </li>
           <li className="flex gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand-hover font-semibold text-xs">3</span>
-            <span className="pt-0.5 flex gap-2"><CheckCircle2 className="h-4 w-4 text-slate-600 shrink-0 mt-0.5" />{tr('partnerCal_eduStep3')}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand-hover">3</span>
+            <span className="flex gap-2 pt-0.5"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />{tr('partnerCal_eduStep3')}</span>
           </li>
         </ol>
-        <p className="text-xs text-slate-500 border-t border-slate-200 pt-3">{tr('partnerCal_eduAfterPublish')}</p>
+        <p className="border-t border-slate-200 pt-3 text-xs text-slate-500 max-sm:border-slate-100">
+          {tr('partnerCal_eduAfterPublish')}
+        </p>
       </CardContent>
     </Card>
   )

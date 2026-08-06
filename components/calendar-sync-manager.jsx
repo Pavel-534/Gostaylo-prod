@@ -28,6 +28,13 @@ import {
 } from '@/components/ui/select'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import {
+  WIZARD_MOBILE_FLAT_BRAND_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_NESTED_PANEL_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS,
+  WIZARD_MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { fetchListingCalendarBlocks } from '@/lib/api/partner-calendar-client'
 import {
   fetchIcalExportLink,
@@ -348,8 +355,8 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
   if (loading) {
     return (
-      <Card className="border-2 border-brand/20 shadow-sm">
-        <CardContent className="p-10 flex items-center justify-center">
+      <Card className={WIZARD_MOBILE_FLAT_BRAND_CARD_CLASS}>
+        <CardContent className="flex items-center justify-center p-10 max-sm:px-0">
           <Loader2 className="h-7 w-7 animate-spin text-brand" />
         </CardContent>
       </Card>
@@ -357,35 +364,41 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   }
 
   return (
-    <Card id="partner-calendar-sync" className="overflow-hidden rounded-2xl border border-brand/20 shadow-sm scroll-mt-28">
-      <CardHeader className="pb-2 bg-gradient-to-r from-brand/10 to-white border-b border-brand/20">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+    <Card id="partner-calendar-sync" className={WIZARD_MOBILE_FLAT_BRAND_CARD_CLASS}>
+      <CardHeader
+        className={cn(
+          'pb-2 sm:bg-gradient-to-r sm:from-brand/10 sm:to-white sm:border-b sm:border-brand/20',
+          WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS,
+          'max-sm:pb-3',
+        )}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-brand flex items-center justify-center shrink-0 shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand shadow-sm">
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg sm:text-xl text-slate-900">{tr('partnerCal_mainTitle')}</CardTitle>
-              <CardDescription className="text-sm mt-1">{tr('partnerCal_mainSubtitle')}</CardDescription>
+              <CardTitle className="text-lg text-slate-900 sm:text-xl">{tr('partnerCal_mainTitle')}</CardTitle>
+              <CardDescription className="mt-1 text-sm">{tr('partnerCal_mainSubtitle')}</CardDescription>
             </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 sm:p-0">
+      <CardContent className="p-0">
         <Tabs defaultValue="export" className="w-full">
-          <div className="px-4 pt-4 sm:px-6">
-            <TabsList className="flex w-full flex-col gap-1.5 h-auto p-1.5 bg-slate-100/90 rounded-xl sm:grid sm:grid-cols-2 sm:gap-0">
+          <div className="max-sm:px-0 px-4 pt-4 sm:px-6">
+            <TabsList className="flex h-auto w-full flex-col gap-1.5 rounded-xl bg-slate-100/90 p-1.5 sm:grid sm:grid-cols-2 sm:gap-0">
               <TabsTrigger
                 value="export"
-                className="rounded-lg py-2.5 px-2 text-xs sm:text-sm leading-snug whitespace-normal data-[state=active]:shadow-sm gap-2 justify-center text-center min-h-[2.75rem] sm:min-h-0"
+                className="min-h-[2.75rem] justify-center gap-2 whitespace-normal rounded-lg px-2 py-2.5 text-center text-xs leading-snug data-[state=active]:shadow-sm sm:min-h-0 sm:text-sm"
               >
                 <Share2 className="h-4 w-4 shrink-0" />
                 {tr('partnerCal_tabExport')}
               </TabsTrigger>
               <TabsTrigger
                 value="import"
-                className="rounded-lg py-2.5 px-2 text-xs sm:text-sm leading-snug whitespace-normal data-[state=active]:shadow-sm gap-2 justify-center text-center min-h-[2.75rem] sm:min-h-0"
+                className="min-h-[2.75rem] justify-center gap-2 whitespace-normal rounded-lg px-2 py-2.5 text-center text-xs leading-snug data-[state=active]:shadow-sm sm:min-h-0 sm:text-sm"
               >
                 <Link2 className="h-4 w-4 shrink-0" />
                 {tr('partnerCal_tabImport')}
@@ -393,9 +406,16 @@ export default function CalendarSyncManager({ listingId, onSync }) {
             </TabsList>
           </div>
 
-          <TabsContent value="export" className="mt-0 px-4 pb-4 sm:px-6 sm:pb-6 pt-4 space-y-4">
-            <div className="rounded-xl border border-brand/25 bg-brand/10 p-4 space-y-3">
-              <div className="flex items-start gap-2">
+          <TabsContent
+            value="export"
+            className="mt-0 space-y-4 px-4 pb-4 pt-4 max-sm:px-0 sm:px-6 sm:pb-6"
+          >
+            <div
+              className={cn(
+                WIZARD_MOBILE_FLAT_NESTED_PANEL_CLASS,
+                'sm:border-brand/25 sm:bg-brand/10',
+              )}
+            >              <div className="flex items-start gap-2">
                 <Share2 className="h-5 w-5 text-brand-hover shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium text-slate-900">{tr('partnerCal_exportTitle')}</p>
@@ -432,8 +452,11 @@ export default function CalendarSyncManager({ listingId, onSync }) {
                 </p>
               )}
 
-              <Accordion type="single" collapsible className="border border-brand/20 rounded-lg bg-white/80 px-3">
-                <AccordionItem value="help" className="border-0">
+              <Accordion
+                type="single"
+                collapsible
+                className="rounded-lg bg-white/80 px-3 max-sm:border-0 sm:border sm:border-brand/20"
+              >                <AccordionItem value="help" className="border-0">
                   <AccordionTrigger className="text-sm font-medium text-brand hover:no-underline py-3">
                     <span className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
@@ -455,14 +478,26 @@ export default function CalendarSyncManager({ listingId, onSync }) {
             </div>
           </TabsContent>
 
-          <TabsContent value="import" className="mt-0 px-4 pb-4 sm:px-6 sm:pb-6 pt-4 space-y-4">
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+          <TabsContent
+            value="import"
+            className="mt-0 space-y-4 px-4 pb-4 pt-4 max-sm:px-0 sm:px-6 sm:pb-6"
+          >
+            <div
+              className={cn(
+                WIZARD_MOBILE_FLAT_NESTED_PANEL_CLASS,
+                'sm:border-indigo-200 sm:bg-indigo-50/40',
+              )}
+            >
               <p className="font-medium text-slate-900">{tr('partnerCal_importTitle')}</p>
-              <p className="text-sm text-slate-600 mt-1">{tr('partnerCal_importLead')}</p>
+              <p className="mt-1 text-sm text-slate-600">{tr('partnerCal_importLead')}</p>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-2">
+            <div
+              className={cn(
+                WIZARD_MOBILE_FLAT_NESTED_PANEL_CLASS,
+                'sm:border-slate-200 sm:bg-white sm:shadow-sm',
+              )}
+            >              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                   <Input
                     placeholder={tr('partnerCal_addPlaceholder')}
@@ -495,8 +530,12 @@ export default function CalendarSyncManager({ listingId, onSync }) {
               <p className="text-xs text-slate-500">{tr('partnerCal_findIcal')}</p>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div
+              className={cn(
+                WIZARD_MOBILE_FLAT_NESTED_PANEL_CLASS,
+                'sm:border-slate-200 sm:bg-white sm:shadow-sm',
+              )}
+            >              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="auto-sync" className="text-sm text-slate-700">
                     {tr('partnerCal_autoSync')}
@@ -534,7 +573,7 @@ export default function CalendarSyncManager({ listingId, onSync }) {
                 {syncSettings.sources.map(source => (
                   <div
                     key={source.id}
-                    className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-3 shadow-sm"
+                    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm max-sm:shadow-none"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -584,17 +623,17 @@ export default function CalendarSyncManager({ listingId, onSync }) {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center">
-                <Link2 className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+              <div className={cn(WIZARD_MOBILE_FLAT_EMPTY_CLASS, 'sm:bg-slate-50/80')}>
+                <Link2 className="mx-auto mb-2 h-10 w-10 text-slate-300" />
                 <p className="text-sm font-medium text-slate-700">{tr('partnerCal_emptyImport')}</p>
-                <p className="text-xs text-slate-500 mt-1">{tr('partnerCal_emptyImportHint')}</p>
+                <p className="mt-1 text-xs text-slate-500">{tr('partnerCal_emptyImportHint')}</p>
               </div>
             )}
           </TabsContent>
         </Tabs>
 
         {(blockedDates.length > 0 || syncSettings.last_sync) && (
-          <div className="px-4 pb-6 sm:px-6 border-t border-slate-100 bg-slate-50/50 space-y-3 pt-4">
+          <div className="space-y-3 border-t border-slate-100 bg-slate-50/50 px-4 pb-6 pt-4 max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:px-6">
             {blockedDates.length > 0 && (
               <div className="rounded-lg p-3 border border-amber-200 bg-amber-50/90">
                 <div className="flex items-center gap-2 mb-2">

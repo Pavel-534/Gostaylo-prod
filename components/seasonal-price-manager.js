@@ -25,6 +25,13 @@ import {
   fetchSeasonalPricesByListing,
   replaceSeasonalPrice,
 } from '@/lib/api/partner-seasonal-prices-client'
+import { cn } from '@/lib/utils'
+import {
+  WIZARD_MOBILE_FLAT_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
+  WIZARD_MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import 'react-day-picker/dist/style.css'
 
 const SEASON_TYPE_KEYS = [
@@ -227,8 +234,10 @@ export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurr
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-12 flex items-center justify-center">
+      <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+        <CardContent
+          className={cn('flex items-center justify-center py-12', WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS)}
+        >
           <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </CardContent>
       </Card>
@@ -237,8 +246,8 @@ export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurr
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
+      <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -265,11 +274,11 @@ export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurr
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {seasonalPrices.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
-              <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600 mb-2">{t('seasonalMgr_emptyTitle')}</p>
+            <div className={WIZARD_MOBILE_FLAT_EMPTY_CLASS}>
+              <Calendar className="mx-auto mb-3 h-12 w-12 text-slate-300" />
+              <p className="mb-2 text-slate-600">{t('seasonalMgr_emptyTitle')}</p>
               <p className="text-sm text-slate-500">{t('seasonalMgr_emptyDesc')}</p>
             </div>
           ) : (

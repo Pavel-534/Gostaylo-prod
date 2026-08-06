@@ -6,6 +6,8 @@ import {
   getHostCancellationScenarios,
   getNormalizedWizardCancellationPolicy,
 } from '@/lib/wizard/host-cancellation-preview'
+import { cn } from '@/lib/utils'
+import { WIZARD_MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Host wizard — what guest cancellation means for partner earnings.
@@ -16,9 +18,9 @@ export function PartnerCancellationPolicyPreview({ policy, language = 'ru' }) {
   const scenarios = getHostCancellationScenarios(normalized)
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-4 space-y-3">
+    <div className={cn(WIZARD_MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/90')}>
       <div className="flex items-start gap-3">
-        <ShieldCheck className="h-5 w-5 shrink-0 text-brand mt-0.5" aria-hidden />
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden />
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-semibold text-slate-900">
             {getUIText('wizardCancelPreview_title', language)}
@@ -28,7 +30,7 @@ export function PartnerCancellationPolicyPreview({ policy, language = 'ru' }) {
           </p>
         </div>
       </div>
-      <ul className="space-y-2 border-t border-slate-200/80 pt-3">
+      <ul className="space-y-2 border-t border-slate-200/80 pt-3 max-sm:border-slate-100">
         {scenarios.map((row) => (
           <li
             key={row.timingKey}

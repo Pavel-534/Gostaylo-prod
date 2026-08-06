@@ -117,7 +117,12 @@ function StepPhotosInner() {
               : t('wizardBlocker_photos')}
           </p>
         ) : null}
-        <Button variant="outline" disabled={uploading} type="button">
+        <Button
+          variant="outline"
+          disabled={uploading}
+          type="button"
+          className="min-h-[44px] w-full sm:w-auto"
+        >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('selectFiles')}
         </Button>
       </div>

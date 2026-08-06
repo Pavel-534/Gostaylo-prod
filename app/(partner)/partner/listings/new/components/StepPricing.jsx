@@ -25,6 +25,7 @@ import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
+  WIZARD_MOBILE_FLAT_INSET_CLASS,
 } from './wizard-step-layout'
 
 function StepPricingInner() {
@@ -93,7 +94,7 @@ function StepPricingInner() {
               placeholder={toursWizard ? t('basePriceTourPlaceholder') : t('basePricePlaceholder')}
               value={formData.basePriceThb}
               onChange={(e) => updateField('basePriceThb', sanitizeThbDigits(e.target.value))}
-              className={cn('mt-2 h-12', wizardFieldErrorClass(stepFieldErrors, 'basePriceThb'))}
+              className={cn('mt-2 h-12 w-full', wizardFieldErrorClass(stepFieldErrors, 'basePriceThb'))}
               aria-invalid={errPrice || undefined}
             />
             {errPrice ? (
@@ -128,7 +129,7 @@ function StepPricingInner() {
               disabled={baseCurrencyLocked}
             >
               <SelectTrigger
-                className={cn('mt-2 h-12', baseCurrencyLocked && 'cursor-not-allowed opacity-60')}
+                className={cn('mt-2 h-12 w-full', baseCurrencyLocked && 'cursor-not-allowed opacity-60')}
                 aria-disabled={baseCurrencyLocked}
               >
                 <SelectValue />
@@ -164,7 +165,7 @@ function StepPricingInner() {
             value={formData.cancellationPolicy || 'moderate'}
             onValueChange={(value) => updateField('cancellationPolicy', value)}
           >
-            <SelectTrigger className="h-12 w-full max-w-md">
+            <SelectTrigger className="h-12 w-full sm:max-w-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +206,7 @@ function StepPricingInner() {
                   updateField('minBookingDays', clampIntFromDigits(e.target.value, 1, 365, 1))
                 }
               }}
-              className="mt-2 h-12"
+              className="mt-2 h-12 w-full"
             />
           </div>
           <div>
@@ -231,12 +232,17 @@ function StepPricingInner() {
                   updateField('maxBookingDays', clampIntFromDigits(e.target.value, 1, 730, 90))
                 }
               }}
-              className="mt-2 h-12"
+              className="mt-2 h-12 w-full"
             />
           </div>
         </div>
         {toursWizard ? (
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+          <p
+            className={cn(
+              WIZARD_MOBILE_FLAT_INSET_CLASS,
+              'text-xs leading-relaxed text-slate-600 sm:bg-slate-50',
+            )}
+          >
             {t('partnerTourMinMaxBackendHint')}
           </p>
         ) : null}
@@ -252,7 +258,12 @@ function StepPricingInner() {
           <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
           <p className="text-sm leading-relaxed text-slate-500">{t('seasonalPricingDesc')}</p>
           <div className="mt-1 space-y-5">
-            <div className="min-w-0 w-full rounded-xl border border-slate-200 bg-slate-50/90 p-2 sm:p-4">
+            <div
+              className={cn(
+                WIZARD_MOBILE_FLAT_INSET_CLASS,
+                'min-w-0 w-full sm:bg-slate-50/90',
+              )}
+            >
               <Label className="mb-2 block text-sm font-medium text-slate-800">{t('wizardDateRange')}</Label>
               <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
                 <DayPicker
@@ -270,22 +281,22 @@ function StepPricingInner() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
-                <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('seasonLabel')}</Label>
+              <div className="min-w-0 space-y-1.5">
+                <Label className="block text-xs font-medium text-slate-600">{t('seasonLabel')}</Label>
                 <Input
                   placeholder={t('seasonLabelExamplePlaceholder')}
                   value={newSeason.label}
                   onChange={(e) => setNewSeason((s) => ({ ...s, label: e.target.value }))}
-                  className="h-11"
+                  className="h-11 w-full"
                 />
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
-                <Label className="mb-1.5 block text-xs font-medium text-slate-600">{t('seasonTypeLabel')}</Label>
+              <div className="min-w-0 space-y-1.5">
+                <Label className="block text-xs font-medium text-slate-600">{t('seasonTypeLabel')}</Label>
                 <Select
                   value={newSeason.seasonType}
                   onValueChange={(v) => setNewSeason((s) => ({ ...s, seasonType: v }))}
                 >
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger className="h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,8 +308,8 @@ function StepPricingInner() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
-                <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+              <div className="min-w-0 space-y-1.5">
+                <Label className="block text-xs font-medium text-slate-600">
                   {tr('pricePerDayShort', { unit: currencySymbol })}
                 </Label>
                 <Input
@@ -307,11 +318,11 @@ function StepPricingInner() {
                   placeholder="15000"
                   value={newSeason.priceDaily}
                   onChange={(e) => setNewSeason((s) => ({ ...s, priceDaily: sanitizeThbDigits(e.target.value) }))}
-                  className="h-11"
+                  className="h-11 w-full"
                 />
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:border-0 sm:bg-transparent sm:p-0">
-                <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+              <div className="min-w-0 space-y-1.5">
+                <Label className="block text-xs font-medium text-slate-600">
                   {tr('pricePerMonthOptional', { unit: currencySymbol })}
                 </Label>
                 <Input
@@ -320,7 +331,7 @@ function StepPricingInner() {
                   placeholder="—"
                   value={newSeason.priceMonthly}
                   onChange={(e) => setNewSeason((s) => ({ ...s, priceMonthly: sanitizeThbDigits(e.target.value) }))}
-                  className="h-11"
+                  className="h-11 w-full"
                 />
               </div>
             </div>
@@ -328,7 +339,7 @@ function StepPricingInner() {
               variant="outline"
               size="sm"
               type="button"
-              className="h-10"
+              className="h-11 w-full sm:h-10 sm:w-auto"
               onClick={() => {
                 const from = newSeason.dateRange?.from
                 const to = newSeason.dateRange?.to || newSeason.dateRange?.from

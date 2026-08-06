@@ -12,8 +12,11 @@ import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from './wizard-step-layout'
 import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
+import { cn } from '@/lib/utils'
 
 function StepPreviewInner() {
   const w = useListingWizard()
@@ -82,8 +85,8 @@ function StepPreviewInner() {
         <p className="text-sm text-amber-800">{t('listingQuality_publishBlocked', t('continueFilling'))}</p>
       ) : null}
 
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardContent className="p-4 sm:p-5">
+      <Card className={cn(WIZARD_MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-white')}>
+        <CardContent className={cn(WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-5')}>
           <ListingCard
             listing={{
               id: 'preview',

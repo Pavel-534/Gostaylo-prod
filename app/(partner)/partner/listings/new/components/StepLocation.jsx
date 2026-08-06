@@ -34,6 +34,8 @@ import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
+  WIZARD_MOBILE_FLAT_SECTION_CLASS,
+  WIZARD_MOBILE_FLAT_INSET_CLASS,
 } from './wizard-step-layout'
 import { WizardCountryTypeahead } from './WizardCountryTypeahead'
 import { WizardCityTypeahead } from './WizardCityTypeahead'
@@ -443,7 +445,7 @@ function StepLocationInner() {
         </p>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 min-w-0 overflow-x-hidden">
+      <div className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'min-w-0 overflow-x-hidden')}>
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_cascadeTitle')}</h3>
           <p className="mt-1 text-xs text-slate-500">{t('wizardGeo_cascadeHint')}</p>
@@ -585,7 +587,7 @@ function StepLocationInner() {
               onValueChange={handleRegionChange}
               disabled={!formData.country}
             >
-              <SelectTrigger className="mt-1.5 h-11">
+              <SelectTrigger className="mt-1.5 h-11 w-full">
                 <SelectValue placeholder={t('wizardGeo_selectRegion')} />
               </SelectTrigger>
               <SelectContent>
@@ -638,7 +640,7 @@ function StepLocationInner() {
         <div>
           <Label className="text-sm font-medium">{t('wizardGeo_addressLabel')}</Label>
           <Input
-            className="mt-1.5 h-11"
+            className="mt-1.5 h-11 w-full"
             value={formData.address || ''}
             onChange={(e) => updateField('address', e.target.value)}
             placeholder={t('wizardGeo_addressPh')}
@@ -646,7 +648,10 @@ function StepLocationInner() {
         </div>
 
         <div
-          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600"
+          className={cn(
+            WIZARD_MOBILE_FLAT_INSET_CLASS,
+            'text-xs text-slate-600 sm:bg-slate-50',
+          )}
           data-testid="wizard-geo-fx-strip"
           data-currency={currencyInfo.cur}
           data-timezone={currencyInfo.tz}
@@ -664,7 +669,12 @@ function StepLocationInner() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-3 sm:p-4">
+      <div
+        className={cn(
+          WIZARD_MOBILE_FLAT_INSET_CLASS,
+          'max-sm:space-y-0 sm:border-dashed sm:bg-slate-50/60',
+        )}
+      >
         <button
           type="button"
           className="flex min-h-[44px] w-full items-center gap-2 text-left text-sm font-medium text-slate-800"

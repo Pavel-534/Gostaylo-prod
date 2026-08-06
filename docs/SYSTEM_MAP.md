@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.25 | **Last Updated**: 2026-08-06 | **Stage 200.52:** wizard mobile flat Phase 1; **200.51** cascade camera vs pin.  
+> **Version**: 13.2.27 | **Last Updated**: 2026-08-06 | **Stage 200.52:** wizard mobile flat Phase 2 (steps 2–5).  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
