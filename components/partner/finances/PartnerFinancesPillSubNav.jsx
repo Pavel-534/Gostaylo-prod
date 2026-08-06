@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 
 export const PARTNER_FINANCES_PILL_SUB_NAV_CLASS =
-  'mb-4 flex w-full overflow-x-auto h-auto gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm scrollbar-thin snap-x snap-proximity scroll-pl-2 scroll-pr-2 [-webkit-overflow-scrolling:touch]'
+  'mb-4 flex w-full overflow-x-auto h-auto gap-1.5 p-1.5 max-sm:rounded-none max-sm:border-0 max-sm:shadow-none max-sm:bg-transparent sm:rounded-xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm scrollbar-thin snap-x snap-proximity scroll-pl-2 scroll-pr-2 [-webkit-overflow-scrolling:touch]'
 
 export const PARTNER_FINANCES_PILL_TRIGGER_CLASS =
   'rounded-lg shrink-0 snap-start scroll-mx-2 min-h-[44px] px-3 text-sm'

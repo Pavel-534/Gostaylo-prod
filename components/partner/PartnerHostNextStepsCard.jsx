@@ -11,6 +11,13 @@ import { getUIText } from '@/lib/translations'
 import { getPublicSiteUrl } from '@/lib/site-url'
 import { formatPrice } from '@/lib/currency'
 import { usePartnerOnboardingStatus } from '@/lib/hooks/use-partner-onboarding-status'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function excerptDescription(text, max = 120) {
   const s = String(text || '').replace(/\s+/g, ' ').trim()
@@ -169,10 +176,13 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null, va
 
   return (
     <Card
-      className="border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-brand/5 shadow-sm"
+      className={cn(
+        MOBILE_FLAT_BRAND_CARD_CLASS,
+        'sm:border-emerald-200/80 sm:bg-gradient-to-br sm:from-emerald-50/80 sm:via-white sm:to-brand/5',
+      )}
       data-testid="partner-host-next-steps"
     >
-      <CardHeader className="pb-2">
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -195,10 +205,10 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null, va
           ) : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
         {showModerationBanner ? (
           <div
-            className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950 max-sm:rounded-none max-sm:border-x-0 max-sm:px-0"
             data-testid="partner-host-next-steps-moderation"
           >
             <span className="font-semibold">{t('partnerEdit_statusPending')}</span>
@@ -212,7 +222,10 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null, va
             return (
               <div
                 key={step.id}
-                className="rounded-2xl border border-slate-200 bg-white px-3 py-3 space-y-3"
+                className={cn(
+                  MOBILE_FLAT_NESTED_PANEL_CLASS,
+                  'sm:border-slate-200 sm:bg-white sm:px-3 sm:py-3',
+                )}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
@@ -256,7 +269,10 @@ export function PartnerHostNextStepsCard({ language = 'ru', partnerId = null, va
           return (
             <div
               key={step.id}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+              className={cn(
+                'flex items-center gap-3 max-sm:border-b max-sm:border-slate-100 max-sm:py-2.5',
+                'sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-3 sm:py-2.5',
+              )}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
                 <Icon className="h-4 w-4" aria-hidden />

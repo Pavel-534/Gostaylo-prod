@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Compact reputation summary — opens PartnerSuccessHelpDrawer (Stage 187.0).
+ * Kept as single isolation chip on mobile (Hub Wave 1).
  */
 export function PartnerDashboardReputationChip({ language = 'ru', onOpen, className }) {
   const q = usePartnerReputationHealthQuery(true)

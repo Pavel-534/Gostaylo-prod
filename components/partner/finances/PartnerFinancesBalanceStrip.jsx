@@ -77,7 +77,7 @@ function BalanceCompactStrip({ t, items, loading }) {
   }
 
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm md:hidden">
+    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 md:hidden">
       {parts.map((part, index) => (
         <span key={part.key} className="inline-flex flex-wrap items-center gap-2">
           {index > 0 ? (

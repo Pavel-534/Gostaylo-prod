@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { usePartnerOnboardingStatus } from '@/lib/hooks/use-partner-onboarding-status'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 116.2 — чек-лист после approve партнёра (SSOT API).
@@ -88,8 +94,11 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
   }
 
   return (
-    <Card className="border-brand/20 bg-brand/5 shadow-sm" data-testid="partner-onboarding-checklist">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-brand/5')}
+      data-testid="partner-onboarding-checklist"
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -114,14 +123,17 @@ export function PartnerOnboardingChecklist({ language = 'ru', variant = 'full' }
           ) : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
         {loading ? (
           <p className="text-sm text-slate-500">{t('loading', 'Загрузка…')}</p>
         ) : (
           steps.map((step) => (
             <div
               key={step.id}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+              className={cn(
+                'flex items-center gap-3 max-sm:border-b max-sm:border-slate-100 max-sm:py-2.5',
+                'sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-3 sm:py-2.5',
+              )}
             >
               {step.done ? (
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />

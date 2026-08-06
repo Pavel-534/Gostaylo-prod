@@ -50,6 +50,8 @@ import { BLOCK_DISPLAY_KIND } from '@/lib/calendar/block-source-display.js'
 import { resolvePartnerBookingStayRange } from '@/lib/calendar/partner-calendar-booking-range.js'
 import { applyBulkSeasonalPrices } from '@/lib/partner/partner-calendar-bulk-prices.js'
 import { usePartnerCalendarRangeSelection } from '@/lib/hooks/use-partner-calendar-range.js'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -652,17 +654,27 @@ function MasterCalendarContent() {
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
-      <div className="max-w-[1600px] mx-auto flex gap-2 items-start rounded-xl border border-brand/20 bg-brand/10 px-3 py-2.5 text-xs text-brand">
+      <div
+        className={cn(
+          MOBILE_FLAT_INSET_CLASS,
+          'max-w-[1600px] mx-auto flex gap-2 items-start space-y-0 text-xs text-brand sm:border-brand/20 sm:bg-brand/10 sm:p-2.5 sm:px-3',
+        )}
+      >
         <Sparkles className="h-4 w-4 shrink-0 text-brand mt-0.5" aria-hidden />
         <p className="leading-relaxed">{calendarDominantHint}</p>
       </div>
       {openedFromChat ? (
-        <div className="max-w-[1600px] mx-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        <div
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'max-w-[1600px] mx-auto space-y-0 text-xs text-slate-700 sm:p-2 sm:px-3',
+          )}
+        >
           {getUIText('partnerCal_openedFromChatHint', language)}
         </div>
       ) : null}
       {onboardingBannerOpen ? (
-        <Alert className="max-w-[1600px] mx-auto border-brand/30 bg-brand/10 text-brand [&>svg]:text-brand">
+        <Alert className="max-w-[1600px] mx-auto max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 border-brand/30 bg-brand/10 text-brand [&>svg]:text-brand sm:rounded-xl">
           <Sparkles className="h-4 w-4" aria-hidden />
           <AlertTitle>{getUIText('partnerCal_onboardingWelcomeTitle', language)}</AlertTitle>
           <AlertDescription className="text-brand-hover">
@@ -680,7 +692,12 @@ function MasterCalendarContent() {
         </Alert>
       ) : null}
       {filterListingId ? (
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-3 py-2.5 text-sm text-brand">
+        <div
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 space-y-0 text-sm text-brand sm:border-brand/25 sm:bg-brand/10 sm:p-2.5 sm:px-3',
+          )}
+        >
           <span className="font-medium">{getUIText('partnerCal_singleListingMode', language)}</span>
           <span className="text-brand-hover/80">{getUIText('partnerCal_singleListingHint', language)}</span>
           <Button asChild variant="outline" size="sm" className="h-8 text-xs border-brand/30 ml-auto">
@@ -751,7 +768,12 @@ function MasterCalendarContent() {
           onIcalSyncAll={handleIcalSyncAll}
           icalSyncing={icalSyncing}
         />
-        <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <p
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'space-y-0 text-sm text-slate-700 sm:p-2 sm:px-3',
+          )}
+        >
           {getUIText(
             mobilePane === 'overview'
               ? 'partnerCal_overviewBanner'

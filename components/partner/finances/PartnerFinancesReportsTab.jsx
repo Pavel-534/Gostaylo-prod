@@ -8,6 +8,11 @@ import { PartnerFinancesPdfCard } from '@/components/partner/finances/PartnerFin
 import { PartnerFinancesPayoutHistory } from '@/components/partner/finances/PartnerFinancesPayoutHistory'
 import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
 import { PartnerFinancesReportsSubNav } from '@/components/partner/finances/PartnerFinancesReportsSubNav'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesReportsTab({
   t,
@@ -72,8 +77,8 @@ export function PartnerFinancesReportsTab({
       ) : null}
 
       {activeSubTab === 'help' ? (
-        <Card className="border-sky-200 bg-sky-50/80">
-          <CardContent className="p-6">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-sky-200 sm:bg-sky-50/80')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-sky-700 mt-0.5 shrink-0" aria-hidden />
               <div>

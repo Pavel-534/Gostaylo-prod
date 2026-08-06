@@ -12,6 +12,7 @@ import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { ChevronRight } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { getUIText } from '@/lib/translations'
 import { buildPartnerMonthMatrix } from '@/lib/calendar/partner-calendar-month-matrix.js'
 import {
@@ -94,7 +95,7 @@ export function CalendarMobileOverview({
 
   return (
     <Card
-      className="overflow-hidden border-0 shadow-lg"
+      className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:shadow-lg')}
       data-testid="partner-cal-mobile-overview"
     >
       {listings.length > 1 ? (

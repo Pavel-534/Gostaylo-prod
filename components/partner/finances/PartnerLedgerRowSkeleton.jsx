@@ -1,11 +1,16 @@
 'use client'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export function PartnerLedgerRowSkeleton() {
   return (
     <div
-      className="rounded-2xl border border-slate-200 bg-white p-3 space-y-2 gsl-shimmer"
+      className={cn(
+        'bg-white p-3 space-y-2 gsl-shimmer sm:p-3',
+        'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-100 max-sm:shadow-none max-sm:px-0',
+        'sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-sm',
+      )}
       aria-hidden
     >
       <div className="flex justify-between gap-2">
@@ -20,7 +25,7 @@ export function PartnerLedgerRowSkeleton() {
 
 export function PartnerLedgerLoadMoreSkeleton({ count = 3 }) {
   return (
-    <div className="space-y-3 min-w-0" aria-busy aria-label="Loading">
+    <div className="space-y-0 min-w-0" aria-busy aria-label="Loading">
       {Array.from({ length: count }).map((_, i) => (
         <PartnerLedgerRowSkeleton key={i} />
       ))}

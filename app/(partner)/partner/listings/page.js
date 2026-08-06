@@ -21,6 +21,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { ProxiedImage } from '@/components/proxied-image'
 import {
   buildListingPublishQualityChecklist,
@@ -376,7 +382,7 @@ export default function PartnerListings() {
       </div>
 
       {stats.drafts > 0 && listFilter !== 'draft' ? (
-        <div className="mx-4 mb-2 flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-4 mb-2 flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-800">
             {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
           </p>
@@ -393,30 +399,30 @@ export default function PartnerListings() {
       ) : null}
 
       {/* Stats - 2x2 grid on mobile */}
-      <div className='grid grid-cols-2 gap-2 p-4'>
-        <div className='bg-white rounded-lg p-3 border'>
+      <div className='grid grid-cols-2 gap-2 max-sm:px-0 max-sm:py-2 sm:p-4'>
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
           <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
           <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
         </div>
-        <div className='bg-white rounded-lg p-3 border'>
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
           <div className='text-xl font-bold text-brand'>{stats.active}</div>
           <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
         </div>
-        <div className='bg-white rounded-lg p-3 border'>
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
           <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
           <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
         </div>
-        <div className='bg-white rounded-lg p-3 border'>
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
           <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
           <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
         </div>
       </div>
 
       {/* Listings */}
-      <div className='px-4 pb-4 space-y-3'>
+      <div className='max-sm:px-0 sm:px-4 pb-4 space-y-3'>
         {listings.length === 0 ? (
-          <Card className='border-dashed'>
-            <CardContent className='flex flex-col items-center justify-center py-12'>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col items-center justify-center max-sm:p-0 sm:py-12')}>
               <div className='w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3'>
                 <Plus className='h-6 w-6 text-slate-400' />
               </div>
@@ -435,8 +441,8 @@ export default function PartnerListings() {
             </CardContent>
           </Card>
         ) : filteredListings.length === 0 ? (
-          <Card className='border-dashed'>
-            <CardContent className='py-8 text-center text-sm text-slate-500'>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:p-0 sm:py-8 text-center text-sm text-slate-500')}>
               {t('partnerListings_emptyFilter')}
             </CardContent>
           </Card>
@@ -460,7 +466,7 @@ export default function PartnerListings() {
             return (
               <Card 
                 key={listing.id} 
-                className='overflow-hidden active:bg-slate-50 transition-colors'
+                className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden active:bg-slate-50 transition-colors')}
                 data-testid={`listing-card-${listing.id}`}
               >
                 {/* Clickable card body - navigates to edit */}

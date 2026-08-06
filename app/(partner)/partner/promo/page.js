@@ -21,6 +21,14 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { formatPrice } from '@/lib/currency'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function PartnerPromoPage() {
   const searchParams = useSearchParams()
@@ -236,8 +244,8 @@ export default function PartnerPromoPage() {
 
   if (!partnerId) {
     return (
-      <Card className="max-w-lg border-amber-200 bg-amber-50/80">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-w-lg sm:border-amber-200 sm:bg-amber-50/80')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{t('partnerPromo_authTitle')}</CardTitle>
           <CardDescription>{t('partnerPromo_authBody')}</CardDescription>
         </CardHeader>
@@ -263,14 +271,14 @@ export default function PartnerPromoPage() {
       </div>
 
       {quickFlashCode ? (
-        <Card className="border-orange-200 bg-orange-50/70 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-orange-200 sm:bg-orange-50/70')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
             <CardTitle className="text-base">Flash Sale из Telegram</CardTitle>
             <CardDescription>
               Код <span className="font-mono">{quickFlashCode}</span>. Быстрое действие для продления акции.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <Button
               onClick={handleQuickFlashExtend}
               disabled={extendingFlashCode}
@@ -285,12 +293,12 @@ export default function PartnerPromoPage() {
         </Card>
       ) : null}
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{t('partnerPromo_formTitle')}</CardTitle>
           <CardDescription>{t('partnerPromo_scopeHint')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>{t('partnerPromo_fieldCode')}</Label>
@@ -323,7 +331,7 @@ export default function PartnerPromoPage() {
                 placeholder={form.type === 'PERCENT' ? '10' : '500'}
               />
             </div>
-            <div className="flex items-start gap-3 rounded-lg border border-orange-100 bg-orange-50/60 p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'flex items-start gap-3 sm:border-orange-100 sm:bg-orange-50/60')}>
               <Checkbox
                 id="flash-sale"
                 checked={form.isFlashSale}
@@ -378,7 +386,7 @@ export default function PartnerPromoPage() {
               />
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4 space-y-3">
+            <div className={cn(MOBILE_FLAT_NESTED_PANEL_CLASS, 'sm:border-slate-200 sm:bg-slate-50/80')}>
               <p className="text-sm font-medium text-slate-800">{t('partnerPromo_listingsSection')}</p>
               <p className="text-xs text-slate-600 leading-relaxed">{t('partnerPromo_listingsHelp')}</p>
               {loadingListings ? (
@@ -391,7 +399,7 @@ export default function PartnerPromoPage() {
               ) : (
                 <ul className="max-h-48 space-y-2 overflow-y-auto pr-1">
                   {listings.map((l) => (
-                    <li key={l.id} className="flex items-start gap-3 rounded-md bg-white px-2 py-2 border border-slate-100">
+                    <li key={l.id} className={cn(MOBILE_FLAT_INSET_CLASS, 'flex items-start gap-3 sm:bg-white sm:px-2 sm:py-2')}>
                       <Checkbox
                         id={`listing-${l.id}`}
                         checked={selectedListingIds.has(l.id)}
@@ -414,12 +422,12 @@ export default function PartnerPromoPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">Мои промокоды</CardTitle>
           <CardDescription>Воронка эффективности: созданные брони vs оплаченные/завершенные.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loadingPromos ? (
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -437,7 +445,10 @@ export default function PartnerPromoPage() {
                 return (
                   <div
                     key={promo.id}
-                    className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    className={cn(
+                      MOBILE_FLAT_INSET_CLASS,
+                      'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:bg-white',
+                    )}
                   >
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-bold text-slate-900">{promo.code}</p>

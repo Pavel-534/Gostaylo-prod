@@ -28,6 +28,13 @@ import { toast } from 'sonner'
 import { getTelegramBotUsername, telegramBotStartUrl } from '@/lib/telegram-bot-public'
 import { formatPayoutMethodOptionSuffix } from '@/lib/finance/payout-method-fee'
 import { useI18n } from '@/contexts/i18n-context'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function getChannelIcon(channel) {
   if (channel === 'BANK') return Landmark
@@ -390,14 +397,14 @@ export default function PartnerPayoutProfilesPage() {
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{t('payoutProfiles_newProfileTitle')}</CardTitle>
           <CardDescription>
             {t('payoutProfiles_newProfileDesc')}
           </CardDescription>
         </CardHeader>
-        <CardContent className='space-y-4'>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           {loading ? (
             <div className='py-4 flex items-center justify-center'>
               <Loader2 className='h-5 w-5 animate-spin text-brand' />
@@ -439,11 +446,11 @@ export default function PartnerPayoutProfilesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{t('payoutProfiles_myRequisitesTitle')}</CardTitle>
         </CardHeader>
-        <CardContent className='space-y-3'>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           {profiles.length === 0 ? (
             <p className='text-sm text-slate-500'>{t('payoutProfiles_empty')}</p>
           ) : (
@@ -453,7 +460,10 @@ export default function PartnerPayoutProfilesPage() {
               return (
                 <div
                   key={profile.id}
-                  className='rounded-lg border border-slate-200 p-4 flex flex-col md:flex-row md:items-start justify-between gap-3'
+                  className={cn(
+                    MOBILE_FLAT_INSET_CLASS,
+                    'flex flex-col md:flex-row md:items-start justify-between gap-3',
+                  )}
                 >
                   <div className='flex items-start gap-3 min-w-0'>
                     <div className='h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0'>

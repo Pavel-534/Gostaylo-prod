@@ -26,8 +26,12 @@ export function PartnerLedgerRow({ row, language = 'ru', selected = false, showA
       type="button"
       onClick={() => onOpen?.(row)}
       className={cn(
-        'flex w-full items-start gap-3 rounded-2xl border bg-white p-3 text-left min-h-[44px] transition-colors active:bg-slate-50',
-        selected ? 'border-brand ring-2 ring-brand/25 shadow-md' : 'border-slate-200 shadow-sm hover:shadow-md',
+        'flex w-full items-start gap-3 bg-white p-3 text-left min-h-[44px] transition-colors active:bg-slate-50 sm:p-3',
+        'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-100 max-sm:shadow-none max-sm:px-0',
+        'sm:rounded-2xl sm:border sm:shadow-sm',
+        selected
+          ? 'border-brand ring-2 ring-brand/25 shadow-md max-sm:border-b-brand max-sm:bg-brand/5'
+          : 'sm:border-slate-200 hover:sm:shadow-md',
       )}
       aria-label={getUIText('partnerFinances_ledgerOpenDetails', language)}
     >

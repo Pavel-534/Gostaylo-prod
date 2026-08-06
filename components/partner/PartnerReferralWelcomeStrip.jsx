@@ -6,6 +6,8 @@ import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_BRAND_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 132.2 — honest referral welcome for invited hosts before first completed booking.
@@ -42,7 +44,12 @@ export function PartnerReferralWelcomeStrip() {
   const body = String(t('stage1322_referralWelcomeBody')).replace(/\{name\}/g, ctx.referredBy.displayName)
 
   return (
-    <div className="rounded-xl border border-brand/25 bg-gradient-to-r from-brand/5 via-white to-emerald-50/80 p-4 sm:p-5 shadow-sm">
+    <div
+      className={cn(
+        MOBILE_FLAT_BRAND_CARD_CLASS,
+        'p-0 sm:bg-gradient-to-r sm:from-brand/5 sm:via-white sm:to-emerald-50/80 sm:p-5',
+      )}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-white">

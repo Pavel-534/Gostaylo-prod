@@ -11,6 +11,13 @@ import {
   fetchPartnerSettlementDocumentDownloadUrl,
   fetchPartnerSettlementDocuments,
 } from '@/lib/api/partner-finances-client'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 function fmtWhen(iso, language) {
   if (!iso) return '—'
@@ -77,8 +84,13 @@ export function PartnerFinancesDocuments({ t, language }) {
     s === 'batch' ? t('partnerFinances_docsSourceBatch') : t('partnerFinances_docsSourcePayout')
 
   return (
-    <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+      <CardHeader
+        className={cn(
+          MOBILE_FLAT_CARD_HEADER_CLASS,
+          'flex flex-row items-start justify-between gap-4 space-y-0',
+        )}
+      >
         <div className="min-w-0">
           <CardTitle className="flex items-center gap-2 text-lg">
             <FileText className="h-5 w-5 shrink-0 text-brand-hover" />
@@ -91,7 +103,7 @@ export function PartnerFinancesDocuments({ t, language }) {
           {t('retry')}
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         {loading ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -105,7 +117,7 @@ export function PartnerFinancesDocuments({ t, language }) {
               {rows.map((row) => (
                 <div
                   key={row.id}
-                  className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2 text-sm min-w-0"
+                  className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2 text-sm min-w-0')}
                 >
                   <div className="flex items-start justify-between gap-2 min-w-0">
                     <span className="text-slate-500 text-xs shrink-0">{fmtWhen(row.generatedAt, language)}</span>

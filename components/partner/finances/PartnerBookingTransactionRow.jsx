@@ -25,6 +25,9 @@ function BookingStatusInline({ booking, t, language }) {
   )
 }
 
+const ROW_FLAT_CLASS =
+  'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-100 max-sm:shadow-none max-sm:px-0 sm:rounded-2xl sm:border sm:shadow-sm'
+
 /**
  * Tap-friendly booking transaction card for mobile (< md) — Stage 186.2c.
  */
@@ -100,7 +103,7 @@ export function PartnerBookingTransactionRow({
 
   if (!canOpen) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm text-sm min-w-0">
+      <div className={cn('bg-white p-3 text-sm min-w-0 sm:p-3', ROW_FLAT_CLASS, 'sm:border-slate-200')}>
         {inner}
       </div>
     )
@@ -111,8 +114,11 @@ export function PartnerBookingTransactionRow({
       type="button"
       onClick={() => onOpenSnapshot(booking)}
       className={cn(
-        'flex w-full items-start gap-3 rounded-2xl border bg-white p-3 text-left min-h-[44px] transition-colors active:bg-slate-50',
-        selected ? 'border-brand ring-2 ring-brand/25 shadow-md' : 'border-slate-200 shadow-sm hover:shadow-md',
+        'flex w-full items-start gap-3 bg-white p-3 text-left min-h-[44px] transition-colors active:bg-slate-50 sm:p-3',
+        ROW_FLAT_CLASS,
+        selected
+          ? 'border-brand ring-2 ring-brand/25 shadow-md max-sm:border-b-brand max-sm:bg-brand/5'
+          : 'sm:border-slate-200 hover:sm:shadow-md',
       )}
       aria-label={openLabel}
     >

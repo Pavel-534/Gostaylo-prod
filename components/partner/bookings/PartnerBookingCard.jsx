@@ -48,8 +48,12 @@ export function PartnerBookingCard({
       data-booking-card={booking?.id}
       data-testid={`booking-card-${booking?.id}`}
       className={cn(
-        'rounded-2xl border bg-white transition-shadow',
-        selected ? 'border-brand ring-2 ring-brand/25 shadow-md' : 'border-slate-200 shadow-sm hover:shadow-md',
+        'bg-white transition-shadow',
+        'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-200 max-sm:shadow-none',
+        'sm:rounded-2xl sm:border',
+        selected
+          ? 'max-sm:bg-brand/5 sm:border-brand sm:ring-2 sm:ring-brand/25 sm:shadow-md'
+          : 'sm:border-slate-200 sm:shadow-sm sm:hover:shadow-md',
       )}
     >
       <button

@@ -17,6 +17,7 @@ import { Home, Anchor, Bike, Car, Lock, ChevronDown, Search, Receipt, MessageCir
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
 import { getUIText } from '@/lib/translations'
@@ -332,7 +333,7 @@ export function CalendarMobileAgenda({
     )
   }
 
-  return <Card className="overflow-hidden border-0 shadow-lg">{inner}</Card>
+  return <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:shadow-lg')}>{inner}</Card>
 }
 
 function AgendaRow({ date, item, onCellClick, rangeRole = null, listItemRef, todayScrollMarginClass, language = 'ru' }) {

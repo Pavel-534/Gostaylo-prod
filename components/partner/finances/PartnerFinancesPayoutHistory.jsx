@@ -11,6 +11,14 @@ import {
   PartnerHostMidFxFootnote,
   PartnerHostPayoutAmount,
 } from '@/components/partner/finances/partner-host-amount-display'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPayoutHistory({
   t,
@@ -26,15 +34,15 @@ export function PartnerFinancesPayoutHistory({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className={MOBILE_FLAT_CARD_CLASS}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-lg flex items-center gap-2">
           <ArrowDownToLine className="h-5 w-5 text-slate-600" />
           {t('partnerFinances_payoutHistoryTitle')}
         </CardTitle>
         <CardDescription>{t('partnerFinances_payoutHistoryDesc')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         {payoutsLoading ? (
           <div className="h-24 bg-slate-100 animate-pulse rounded-lg" />
         ) : payoutsError ? (
@@ -45,7 +53,7 @@ export function PartnerFinancesPayoutHistory({
             </Button>
           </div>
         ) : payouts.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
+          <div className={cn(MOBILE_FLAT_EMPTY_CLASS, 'text-sm text-slate-600 sm:bg-slate-50/80 sm:px-4')}>
             <p className="font-medium text-slate-800">{t('partnerFinances_payoutNoRowsTitle')}</p>
             <p className="mt-1 text-slate-500">{t('partnerFinances_payoutNoRows')}</p>
           </div>
@@ -59,7 +67,7 @@ export function PartnerFinancesPayoutHistory({
                 return (
                   <div
                     key={p.id}
-                    className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2 text-sm min-w-0"
+                    className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2 text-sm min-w-0')}
                   >
                     <div className="flex items-start justify-between gap-2 min-w-0">
                       <span className="text-slate-500 text-xs shrink-0">

@@ -13,8 +13,9 @@ import { getUIText } from '@/lib/translations'
 import { CalendarSync, ArrowRight, CheckCircle2, Link2, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  WIZARD_MOBILE_FLAT_CARD_CLASS,
-  WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_BRAND_CARD_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 
 export function PartnerCalendarEducationCard({
@@ -28,8 +29,8 @@ export function PartnerCalendarEducationCard({
 
   if (manualCalendarOnly) {
     return (
-      <Card className={cn(WIZARD_MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
-        <CardContent className={cn(WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 sm:p-5')}>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 sm:p-5')}>
           <h3 className="font-semibold text-slate-900">{tr('partnerCal_eduVehicleTitle')}</h3>
           <p className="text-sm leading-relaxed text-slate-600">{tr('partnerCal_eduVehicleBody')}</p>
         </CardContent>
@@ -39,8 +40,19 @@ export function PartnerCalendarEducationCard({
 
   if (variant === 'calendar-page') {
     return (
-      <Card className={cn('border-brand/25 bg-gradient-to-r from-brand/10 to-white shadow-sm', className)}>
-        <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <Card
+        className={cn(
+          MOBILE_FLAT_BRAND_CARD_CLASS,
+          'sm:bg-gradient-to-r sm:from-brand/10 sm:to-white',
+          className,
+        )}
+      >
+        <CardContent
+          className={cn(
+            MOBILE_FLAT_CARD_CONTENT_CLASS,
+            'flex flex-col gap-4 sm:flex-row sm:items-center sm:p-5',
+          )}
+        >
           <div className="flex gap-3 flex-1">
             <div className="w-11 h-11 rounded-xl bg-brand text-white flex items-center justify-center shrink-0">
               <CalendarSync className="h-5 w-5" />
@@ -63,8 +75,8 @@ export function PartnerCalendarEducationCard({
 
   // wizard — shown while creating listing (before listing id exists)
   return (
-    <Card className={cn(WIZARD_MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
-      <CardContent className={cn(WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-5')}>
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-5')}>
         <div className="flex items-start gap-3">
           <CalendarSync className="mt-0.5 h-6 w-6 shrink-0 text-brand" />
           <div>

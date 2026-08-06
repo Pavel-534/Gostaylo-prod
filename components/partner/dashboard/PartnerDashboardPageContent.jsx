@@ -40,6 +40,13 @@ import {
 import { usePartnerDashboardPage } from '@/hooks/partner/use-partner-dashboard-page'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function PartnerDashboardPageContent() {
   const router = useRouter()
@@ -146,8 +153,13 @@ export default function PartnerDashboardPageContent() {
 
       {/* Today's Summary Banner */}
       {(stats?.today?.checkIns > 0 || stats?.today?.checkOuts > 0) && (
-        <Card className="bg-gradient-to-r from-brand/90 to-brand border-0 text-white">
-          <CardContent className="p-4">
+        <Card
+          className={cn(
+            'bg-gradient-to-r from-brand/90 to-brand border-0 text-white',
+            'max-sm:rounded-none max-sm:shadow-none sm:rounded-2xl',
+          )}
+        >
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
@@ -183,10 +195,18 @@ export default function PartnerDashboardPageContent() {
 
       {isEmptyHost ? (
         <Card
-          className="border-brand/25 bg-gradient-to-br from-brand/5 via-white to-emerald-50/40 shadow-sm"
+          className={cn(
+            MOBILE_FLAT_BRAND_CARD_CLASS,
+            'sm:bg-gradient-to-br sm:from-brand/5 sm:via-white sm:to-emerald-50/40',
+          )}
           data-testid="partner-dashboard-zero-listings"
         >
-          <CardContent className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+          <CardContent
+            className={cn(
+              MOBILE_FLAT_CARD_CONTENT_CLASS,
+              'flex flex-col items-center gap-4 text-center max-sm:py-8 sm:px-6 sm:py-10',
+            )}
+          >
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10">
               <Home className="h-8 w-8 text-brand" aria-hidden />
             </div>
@@ -208,10 +228,10 @@ export default function PartnerDashboardPageContent() {
       ) : (
         <>
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-sm:gap-6">
         {/* Revenue Widget */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-0 sm:hover:shadow-md sm:transition-shadow')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_revenueLabel', language)}</span>
               <DollarSign className="h-4 w-4 text-brand" />
@@ -241,8 +261,8 @@ export default function PartnerDashboardPageContent() {
         </Card>
 
         {/* Occupancy Widget */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-0 sm:hover:shadow-md sm:transition-shadow')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_occupancyLabel', language)}</span>
               <Calendar className="h-4 w-4 text-brand" />
@@ -261,10 +281,11 @@ export default function PartnerDashboardPageContent() {
 
         {/* Pending Actions Widget */}
         <Card className={cn(
-          "border-0 shadow-sm hover:shadow-md transition-shadow",
-          stats?.pending?.count > 0 && "ring-2 ring-amber-400"
+          MOBILE_FLAT_CARD_CLASS,
+          'sm:border-0 sm:hover:shadow-md sm:transition-shadow',
+          stats?.pending?.count > 0 && 'sm:ring-2 sm:ring-amber-400',
         )}>
-          <CardContent className="p-4">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_pendingLabel', language)}</span>
               <Bell className={cn("h-4 w-4", stats?.pending?.count > 0 ? "text-amber-500 animate-pulse" : "text-slate-400")} />
@@ -292,8 +313,8 @@ export default function PartnerDashboardPageContent() {
         </Card>
 
         {/* Bookings Summary Widget */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-0 sm:hover:shadow-md sm:transition-shadow')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">{getUIText('partnerDashboard_bookingsLabel', language)}</span>
               <Users className="h-4 w-4 text-brand" />
@@ -311,8 +332,8 @@ export default function PartnerDashboardPageContent() {
       </div>
 
       {/* Upcoming arrivals */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-0')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-3')}>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -329,7 +350,7 @@ export default function PartnerDashboardPageContent() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {stats?.upcoming?.length > 0 ? (
             <div className="space-y-3">
               {stats.upcoming.map((arrival) => {
@@ -338,7 +359,7 @@ export default function PartnerDashboardPageContent() {
                 return (
                   <div
                     key={arrival.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors max-sm:rounded-none max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0 max-sm:hover:bg-transparent"
                   >
                     <div className="flex-shrink-0 w-10 h-10 bg-brand/15 rounded-lg flex flex-col items-center justify-center">
                       <span className="text-xs font-bold text-brand-hover">
@@ -374,7 +395,7 @@ export default function PartnerDashboardPageContent() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-500">
+            <div className={cn(MOBILE_FLAT_EMPTY_CLASS, 'text-slate-500')}>
               <Calendar className="h-8 w-8 mx-auto mb-2 text-slate-300" />
               <p>{getUIText('partnerDashboard_noArrivals', language)}</p>
             </div>

@@ -12,6 +12,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { fetchAuthMe } from '@/lib/api/auth-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {{ language?: string }} props
@@ -49,8 +54,18 @@ export function PartnerVerifiedBadgePromo({ language = 'ru' }) {
   if (loading || !show) return null
 
   return (
-    <Card className="border border-brand/25 bg-gradient-to-r from-brand/10 via-white to-emerald-50/90 shadow-sm">
-      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card
+      className={cn(
+        MOBILE_FLAT_BRAND_CARD_CLASS,
+        'sm:bg-gradient-to-r sm:from-brand/10 sm:via-white sm:to-emerald-50/90',
+      )}
+    >
+      <CardContent
+        className={cn(
+          MOBILE_FLAT_CARD_CONTENT_CLASS,
+          'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:p-4',
+        )}
+      >
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
             <ShieldCheck className="h-6 w-6" aria-hidden />

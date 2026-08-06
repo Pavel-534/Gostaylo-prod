@@ -16,6 +16,11 @@ import {
   mapLedgerEventType,
   mapLedgerSide,
 } from '@/lib/partner/ledger-display-labels'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { cn } from '@/lib/utils'
 
 export function ledgerRowKey(row) {
@@ -118,20 +123,20 @@ export function PartnerFinancesLedger({
 
   return (
     <>
-      <Card className="min-w-0 overflow-hidden">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg flex items-center gap-2">
             <Clock className="h-5 w-5 text-slate-600 shrink-0" />
             {t('partnerFinances_ledgerTitle')}
           </CardTitle>
           <CardDescription>{t('partnerFinances_ledgerDesc')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {!displayRows.length && !ledgerLoadingMore ? (
             <p className="text-sm text-slate-500 py-2">{t('partnerFinances_ledgerEmpty')}</p>
           ) : (
             <>
-              <div className="md:hidden space-y-3 min-w-0">
+              <div className="md:hidden space-y-0 min-w-0">
                 {displayRows.map((row) => (
                   <PartnerLedgerRow
                     key={ledgerRowKey(row)}

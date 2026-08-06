@@ -2,6 +2,8 @@
 
 **Цель:** единое ощущение продукта (не «набор модулей») без смены бизнес-логики и API.
 
+**Инвентарь страниц (flatten backlog):** [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) — все App Router UI-экраны + статус mobile-flat.
+
 ## SSOT
 
 | Слой | Путь |

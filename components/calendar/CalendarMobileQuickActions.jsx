@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/sheet'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_SECTION_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {{
@@ -65,10 +66,7 @@ export function CalendarMobileQuickActions({
   return (
     <>
       <div
-        className={cn(
-          'space-y-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm',
-          className,
-        )}
+        className={cn(MOBILE_FLAT_SECTION_CLASS, 'space-y-2 sm:bg-white sm:p-3', className)}
         data-testid="partner-cal-mobile-quick-actions"
       >
         <div className="grid grid-cols-2 gap-2">

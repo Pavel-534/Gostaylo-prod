@@ -13,6 +13,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft, Star, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 async function fetchBookingForPartner(bookingId) {
   const res = await fetch(`/api/v2/partner/bookings?limit=500`, {
@@ -119,14 +124,14 @@ export default function PartnerGuestReviewPage() {
   if (!allowed) {
     return (
       <div className="max-w-lg mx-auto py-12 px-4 space-y-4">
-        <Card>
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>Отзыв о госте</CardTitle>
             <CardDescription>
               Оценка гостя доступна после разморозки средств (THAWED) или после завершения проживания (COMPLETED).
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <Button asChild>
               <Link href="/partner/bookings">Назад к бронированиям</Link>
             </Button>
@@ -139,12 +144,12 @@ export default function PartnerGuestReviewPage() {
   if (!booking.canSubmitGuestReview) {
     return (
       <div className="max-w-lg mx-auto py-12 px-4 space-y-4">
-        <Card>
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>Отзыв о госте</CardTitle>
             <CardDescription>Отзыв по этой брони уже оставлен.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <Button asChild>
               <Link href="/partner/bookings">Назад к бронированиям</Link>
             </Button>
@@ -166,14 +171,14 @@ export default function PartnerGuestReviewPage() {
         </Link>
       </Button>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Оцените гостя</CardTitle>
           <CardDescription>
             {listingTitle} · {guestLabel}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label className="mb-3 block">Оценка (обязательно)</Label>

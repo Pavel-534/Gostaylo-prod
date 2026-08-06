@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.29 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.52** wizard mobile flat Phase 2.
+> **Version**: 13.2.32 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203**; **200.53** Partner Hub mobile-flat Wave 1 (complete).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,13 +27,20 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
-### Stage 200.52 — Wizard mobile flat canvas (Phase 1 + 1.5 + 2)
+### Stage 200.53 — Partner Hub mobile-flat (Wave 1) — **accepted**
+
+- Inventory: all **14** Partner Hub routes Finished (2 redirects + 10 visual + 2 wizard from 200.52) — [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).
+- SSOT: `lib/ui/mobile-flat-canvas.js` — canonical **`MOBILE_FLAT_*`** (aliases `WIZARD_MOBILE_FLAT_*`).
+- Surfaces: dashboard, listings, calendar (+ education `calendar-page`, mobile panes), bookings (+ OrdersSummary / rows), reviews, finances (+ tab cards / ledger rows), payout-profiles, promo, settings, guest-review.
+- Rule: nesting ≤1 on `&lt;sm`; `sm+` cards preserved; isolation OK for alerts, map/day cells, sheets; no API/business logic.
+
+### Stage 200.52 — Wizard mobile flat canvas (Phase 1 + 1.5 + 2) — **accepted**
 
 - Design brief: nesting depth ≤1 on `&lt;sm`; Option B clean canvas; section numbers kept.
 - SSOT tokens: `lib/ui/mobile-flat-canvas.js` (re-exported from `wizard-step-layout.js`).
 - **Phase 1:** `ListingWizardPageInner` shell + `StepGeneralInfo`.
 - **Phase 1.5:** step-1 tail — `StepCalendarSection`, `CalendarSyncManager`, `AvailabilityCalendar`, `SeasonalPriceManager`.
-- **Phase 2:** steps 2–5 — `StepLocation`, `StepPricing`, `StepPhotos`, `StepPreview` + wizard helpers (`PartnerListingDurationDiscountFields`, `PartnerCancellationPolicyPreview`, `PartnerCalendarEducationCard` wizard variants). Kept as single isolation: pin-conflict banner, map, earnings calculator, upload zone, moderation/checklist surfaces. `sm+` cards unchanged.
+- **Phase 2:** steps 2–5 — `StepLocation`, `StepPricing`, `StepPhotos`, `StepPreview` + wizard helpers. Kept as single isolation: pin-conflict, map, earnings calculator, upload zone, moderation/checklist. `sm+` cards unchanged.
 
 ### Stage 200.51 — Wizard geo cascade: camera follows, pin is intentional
 

@@ -2,15 +2,23 @@
 
 import { TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesStatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className={MOBILE_FLAT_CARD_CLASS}>
+      <CardHeader
+        className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between sm:pb-2')}
+      >
         <CardTitle className="text-sm font-medium text-slate-600">{title}</CardTitle>
         <Icon className="h-4 w-4 text-slate-400" />
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         {loading ? (
           <div className="h-8 w-24 bg-slate-200 animate-pulse rounded" />
         ) : (

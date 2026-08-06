@@ -49,7 +49,7 @@
 4. `SYSTEM_MAP.md`  
 5. `TECHNICAL_MANIFESTO.md` (или шапку + нужные §)
 
-По теме добавьте: [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md) · [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md) · [`ROADMAP.md`](./ROADMAP.md).
+По теме добавьте: [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md) · [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md) · [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) · [`ROADMAP.md`](./ROADMAP.md).
 
 **Не** давайте папку `archive/` целиком и не путайте stub-файлы в корне `docs/` с живыми доками (stub — 3 строки «Moved: …»).
 
@@ -65,6 +65,7 @@ docs/
   TECHNICAL_MANIFESTO.md    ← code-truth
   HISTORY.md · ROADMAP.md
   PRODUCT_FLOW_MAP.md · FINANCIAL_FLOW_MAP.md
+  PRODUCT_UI_INVENTORY.md   ← инвентарь всех UI-страниц (flatten backlog)
   PRODUCT_UI_SYSTEM.md · SEARCH_FILTERS_QUERY_MAP.md · DATABASE_SCHEMA.md
 
   runbooks/                 ← ops: cron, go-live, smoke, env

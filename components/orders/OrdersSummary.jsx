@@ -4,18 +4,23 @@ import { Card, CardContent } from '@/components/ui/card'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function renderRenterSummary(visibleCount, currencyTotals, language) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
-      <Card className="rounded-2xl">
-        <CardContent className="pt-6">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6 max-sm:gap-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
           <p className="text-sm text-slate-500 mb-1">{getUIText('ordersSummary_renterVisibleCount', language)}</p>
           <p className="text-2xl font-bold text-slate-900">{visibleCount}</p>
         </CardContent>
       </Card>
-      <Card className="rounded-2xl sm:col-span-2">
-        <CardContent className="pt-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:col-span-2')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
           <p className="text-sm text-slate-500 mb-1">{getUIText('ordersSummary_renterTotalsLabel', language)}</p>
           <div className="flex flex-wrap gap-3">
             {currencyTotals.length === 0 ? (
@@ -65,7 +70,13 @@ function PartnerSummaryCompact({ stats, language }) {
   )
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm md:hidden">
+    <div
+      className={cn(
+        'mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm md:hidden',
+        'max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:py-1',
+        'sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-3 sm:py-2.5',
+      )}
+    >
       {parts.map((part, index) => (
         <span key={part.key} className="inline-flex items-center gap-2">
           {index > 0 ? (

@@ -5,6 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPdfCard({
   t,
@@ -18,12 +24,17 @@ export function PartnerFinancesPdfCard({
   onPresetPrev,
 }) {
   return (
-    <Card className="border-slate-200 bg-slate-50/40">
-      <CardHeader className="pb-2">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-slate-50/40')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-base">{t('partnerFinances_pdfSectionTitle')}</CardTitle>
         <CardDescription className="text-xs sm:text-sm">{t('partnerFinances_pdfSectionDesc')}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <CardContent
+        className={cn(
+          MOBILE_FLAT_CARD_CONTENT_CLASS,
+          'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
+        )}
+      >
         <div className="flex flex-wrap gap-4">
           <div className="space-y-1">
             <Label htmlFor="partner-pdf-from" className="text-xs text-slate-600">

@@ -12,6 +12,12 @@ import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
 import { PartnerBookingPayoutPreviewLine } from '@/components/partner/finances/PartnerBookingPayoutPreviewLine'
 import { PartnerBookingTransactionRow } from '@/components/partner/finances/PartnerBookingTransactionRow'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 function BookingStatusCell({ booking, t, language }) {
   const st = resolveBookingStatusBadge(booking, { t })
@@ -66,8 +72,8 @@ export function PartnerFinancesTransactionHistory({
   onOpenSnapshot,
 }) {
   return (
-    <Card ref={transactionSectionRef} className="min-w-0 overflow-hidden">
-      <CardHeader>
+    <Card ref={transactionSectionRef} className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle>{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
         <PartnerHostMidFxFootnote t={t} className="mt-1" />
@@ -83,7 +89,7 @@ export function PartnerFinancesTransactionHistory({
           </div>
         ) : null}
       </CardHeader>
-      <CardContent className="min-w-0">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'min-w-0')}>
         {isLoading ? (
           <div className="space-y-3 md:space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -114,7 +120,7 @@ export function PartnerFinancesTransactionHistory({
           </div>
         ) : (
           <>
-            <div className="md:hidden space-y-3 min-w-0">
+            <div className="md:hidden space-y-0 min-w-0">
               {displayedBookings.map((booking) => {
                 const row = buildTransactionRow(booking, t, getBookingPayoutPreview)
                 return (

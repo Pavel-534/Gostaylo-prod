@@ -17,6 +17,7 @@ import { Home, Anchor, Bike, Car, ChevronDown, Search } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
 import { getUIText } from '@/lib/translations'
@@ -132,7 +133,10 @@ export function CalendarMobileMonthGrid({
   const dateSet = useMemo(() => new Set(dates || []), [dates])
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg" data-testid="partner-cal-mobile-month">
+    <Card
+      className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:shadow-lg')}
+      data-testid="partner-cal-mobile-month"
+    >
       <div className="space-y-3 border-b border-slate-200 bg-slate-50/90 px-3 py-3">
         <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categoryChips.map(({ key, label }) => (

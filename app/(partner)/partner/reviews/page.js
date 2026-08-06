@@ -12,6 +12,12 @@ import { toast } from 'sonner'
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 // Star rating display
 function StarRating({ rating }) {
@@ -112,24 +118,24 @@ export default function PartnerReviewsPage() {
   }
 
   return (
-    <div className='p-6'>
+    <div className='max-sm:p-0 sm:p-6'>
       <div className='mb-6'>
         <h1 className='text-2xl font-bold text-slate-900'>{getUIText('partnerReviewsPageTitle', language)}</h1>
         <p className='text-slate-600 mt-1'>{getUIText('partnerReviewsPageSubtitle', language)}</p>
       </div>
 
       {/* Stats */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-        <Card>
-          <CardContent className='pt-6'>
+      <div className='mb-6 grid grid-cols-1 gap-4 max-sm:gap-6 md:grid-cols-3'>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className='text-center'>
               <p className='text-3xl font-bold text-slate-900'>{stats.total}</p>
               <p className='text-sm text-slate-600'>{getUIText('partnerReviewsStatTotal', language)}</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className='pt-6'>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className='text-center'>
               <div className='flex items-center justify-center gap-2'>
                 <p className='text-3xl font-bold text-amber-500'>{stats.averageRating.toFixed(1)}</p>
@@ -139,8 +145,8 @@ export default function PartnerReviewsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className='pt-6'>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className='text-center'>
               <p className='text-3xl font-bold text-brand'>
                 {reviews.filter(r => !r.partnerReply).length}
@@ -158,18 +164,24 @@ export default function PartnerReviewsPage() {
           {getUIText('partnerReviewsLoading', language)}
         </div>
       ) : reviews.length === 0 ? (
-        <Card>
-          <CardContent className='py-12 text-center'>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
             <Star className='h-12 w-12 text-slate-300 mx-auto mb-4' />
             <p className='text-slate-500'>{getUIText('partnerReviewsEmpty', language)}</p>
             <p className='text-sm text-slate-400 mt-1'>{getUIText('partnerReviewsEmptyHint', language)}</p>
           </CardContent>
         </Card>
       ) : (
-        <div className='space-y-4'>
+        <div className='max-sm:space-y-0 sm:space-y-4'>
           {reviews.map((review) => (
-            <Card key={review.id}>
-              <CardContent className='pt-6'>
+            <Card
+              key={review.id}
+              className={cn(
+                MOBILE_FLAT_CARD_CLASS,
+                'max-sm:border-b max-sm:border-slate-200',
+              )}
+            >
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:pt-6')}>
                 <div className='flex items-start gap-4'>
                   {/* Avatar */}
                   <div className='w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0'>

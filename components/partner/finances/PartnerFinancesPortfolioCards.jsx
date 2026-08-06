@@ -2,6 +2,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
   const cards = [
@@ -36,11 +42,11 @@ export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
     <div className="space-y-2">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {cards.map((card) => (
-          <Card key={card.id}>
-            <CardHeader className="pb-2">
+          <Card key={card.id} className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
               <CardTitle className="text-sm font-medium text-slate-600">{card.title}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <div className={card.className}>
                 {loading ? '—' : <PartnerHostLedgerAmount thb={card.valueThb} />}
               </div>

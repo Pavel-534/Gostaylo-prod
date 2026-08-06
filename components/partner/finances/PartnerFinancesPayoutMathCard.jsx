@@ -6,6 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { PartnerPayoutPreviewFields } from '@/components/partner/finances/PartnerPayoutPreviewFields'
 import { isPartnerWithdrawDisabled } from '@/lib/partner/partner-withdraw-eligibility'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPayoutMathCard({
   t,
@@ -22,8 +28,8 @@ export function PartnerFinancesPayoutMathCard({
   const hasProfile = !!defaultPayoutProfile?.id
 
   return (
-    <Card className="border-brand/20 bg-brand/5 min-w-0 overflow-hidden">
-      <CardHeader>
+    <Card className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'min-w-0 sm:bg-brand/5')}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-lg">{t('partnerFinances_payoutMathTitle')}</CardTitle>
         <CardDescription>
           {defaultPayoutProfile?.method?.name
@@ -31,7 +37,9 @@ export function PartnerFinancesPayoutMathCard({
             : t('partnerFinances_payoutMathDescNoProfile')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 text-sm min-w-0 overflow-x-auto">
+      <CardContent
+        className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm min-w-0 overflow-x-auto')}
+      >
         {hasProfile ? (
           <PartnerPayoutPreviewFields
             t={t}

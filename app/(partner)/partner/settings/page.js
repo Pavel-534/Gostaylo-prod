@@ -16,6 +16,14 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function PartnerSettingsPage() {
   return (
@@ -308,21 +316,21 @@ function PartnerSettingsContent() {
   const isPending = partnerApp?.hasApplication && partnerApp?.status === 'PENDING'
 
   return (
-    <div className="p-4 lg:p-8 space-y-8 max-w-4xl">
+    <div className="max-sm:p-0 sm:p-4 lg:p-8 space-y-8 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
         <p className="text-slate-600 mt-1">Управление профилем и уведомлениями</p>
       </div>
 
-      <Card id="partner-verification-panel" className="border-brand/20 bg-brand/5">
-        <CardHeader>
+      <Card id="partner-verification-panel" className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-brand/5')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5 text-brand" aria-hidden />
             {getUIText('partnerSettingsVerification_title', language)}
           </CardTitle>
           <CardDescription>{getUIText('partnerSettingsVerification_body', language)}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           {loadingPartnerApp ? (
             <div className="flex items-center gap-2 text-slate-600 text-sm py-2">
               <Loader2 className="h-4 w-4 animate-spin text-brand" />
@@ -389,12 +397,12 @@ function PartnerSettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Информация о профиле</CardTitle>
           <CardDescription>Основные данные вашего аккаунта</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <Avatar className="h-24 w-24 border border-slate-200">
               {avatarRaw ? (
@@ -456,17 +464,17 @@ function PartnerSettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-brand" />
             Telegram
           </CardTitle>
           <CardDescription>Статус подключения к Telegram боту</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {telegramLinked ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-green-50 sm:border-green-200')}>
               <div className="flex items-center gap-3">
                 <div className="bg-green-600 rounded-full p-2">
                   <Check className="h-5 w-5 text-white" />
@@ -487,7 +495,7 @@ function PartnerSettingsContent() {
               </p>
             </div>
           ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <div className={MOBILE_FLAT_INSET_CLASS}>
               <div className="flex items-center gap-3">
                 <div className="bg-slate-300 rounded-full p-2">
                   <MessageSquare className="h-5 w-5 text-slate-600" />
@@ -508,15 +516,15 @@ function PartnerSettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-brand" />
             Настройки уведомлений
           </CardTitle>
           <CardDescription>Выберите, какие уведомления вы хотите получать</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
           <div className="space-y-4">
             <h4 className="font-semibold text-slate-900">Каналы уведомлений</h4>
 
@@ -591,12 +599,12 @@ function PartnerSettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{getUIText('partnerSettingsLegalTitle', language)}</CardTitle>
           <CardDescription>{getUIText('partnerSettingsLegalDesc', language)}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 text-sm">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap gap-3 text-sm')}>
           <Link
             href="/legal/partner-terms/"
             target="_blank"

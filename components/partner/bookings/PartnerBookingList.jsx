@@ -42,7 +42,7 @@ export function PartnerBookingList({
           }
         />
       ) : (
-        <div className="space-y-2">
+        <div className="max-sm:space-y-0 sm:space-y-2">
           {bookings.map((booking) => (
             <div key={booking.id}>
               <PartnerBookingCard

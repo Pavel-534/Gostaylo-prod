@@ -10,6 +10,12 @@ import {
 import { getUIText } from '@/lib/translations'
 import { usePartnerDashboardMoney } from '@/hooks/partner/use-partner-dashboard-money'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function MoneyRow({ label, thb, highlight = false }) {
   return (
@@ -29,14 +35,17 @@ function MoneyRow({ label, thb, highlight = false }) {
 
 function PartnerDashboardMoneyCardSkeleton() {
   return (
-    <Card className="border-brand/25 bg-gradient-to-br from-brand/5 to-white" aria-hidden="true">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-brand/5 sm:to-white')}
+      aria-hidden="true"
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <Wallet className="h-5 w-5 text-brand/40" />
           <span className="h-5 w-28 rounded bg-brand/15 animate-pulse" />
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex min-h-[44px] items-center justify-between gap-3">
             <span className="h-4 w-32 rounded bg-slate-200/80 animate-pulse" />
@@ -61,8 +70,8 @@ export function PartnerDashboardMoneyCard({ language = 'ru' }) {
 
   if (isError) {
     return (
-      <Card className="border-slate-200">
-        <CardContent className="p-4">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
           <p className="text-sm text-slate-500">
             {t('partnerDashboard_moneyLoadError', 'Не удалось загрузить балансы')}
           </p>
@@ -72,14 +81,17 @@ export function PartnerDashboardMoneyCard({ language = 'ru' }) {
   }
 
   return (
-    <Card className="border-brand/25 bg-gradient-to-br from-brand/5 to-white" data-testid="partner-dashboard-money-card">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-brand/5 sm:to-white')}
+      data-testid="partner-dashboard-money-card"
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <Wallet className="h-5 w-5 text-brand" aria-hidden />
           {t('partnerDashboard_moneyCardTitle', 'Балансы')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
         <MoneyRow
           label={t('partnerDashboard_moneyAvailable', 'Доступно к выводу')}
           thb={availableThb}

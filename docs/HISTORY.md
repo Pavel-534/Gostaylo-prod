@@ -6,7 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
-| 200.52 | 2026-08-06 | Wizard mobile flat canvas Phase 1–2 (all steps) | Done |
+| 200.53 | 2026-08-06 | Partner Hub mobile-flat Wave 1 (all hub routes) | Done |
+| 200.52 | 2026-08-06 | Wizard mobile flat Phase 1–2 accepted; PRODUCT_UI_INVENTORY | Done |
 | 200.51 | 2026-08-06 | Wizard geo cascade: camera follows country/city; pin cleared not auto-set | Done |
 | 200.50 | 2026-08-06 | Wizard mobile action bar + pin-conflict overflow layout | Done |
 | 200.49 | 2026-08-06 | Wizard preview L1→THB mid before guest retail FX | Done |
