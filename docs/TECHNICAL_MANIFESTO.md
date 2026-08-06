@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.32 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203**; **200.53** Partner Hub mobile-flat Wave 1 (complete).
+> **Version**: 13.2.35 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203**; **200.55** Guest Wave 2B mobile-flat (secondary).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,27 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.55 — Guest Wave 2B mobile-flat (Guest Secondary)
+
+- Paths: `/renter/favorites`, `/renter/dashboard|profile|settings`, `/renter/reviews/new`, `/profile` (+ wallet/status/referral), `/settings`, `/u/[id]`, `/partner-application-success`.
+- Redirects (no visual): `/bookings/[id]`, `/go/[vanity]`, `/renter`.
+- SSOT: `MOBILE_FLAT_*` — nesting ≤1 on `&lt;sm`; `sm+` unchanged; no API/business logic.
+- **Kept isolation:** `ListingCard` on favorites, sticky withdraw, `ReferralMarketingKit` export canvases, ReviewModal, review list tiles on `/u`.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.3.0. Next wave → Chat (`/messages*`).
+
+### Stage 200.54 — Guest Wave 2A mobile-flat (Core Guest Path)
+
+- Paths: `/`, `/listings`, `/listings/[id]`, `/checkout/[bookingId]`, `/my-bookings` (+ `/renter/bookings` redirect).
+- SSOT: `MOBILE_FLAT_*` — nesting ≤1 on `&lt;sm`; `sm+` unchanged.
+- Flattened: home/catalog banners, PDP host/reviews/policies/mobile date card, checkout PaymentMethods/Summary/StateViews, my-bookings login + shared `StorefrontStateView` / `WorkspaceEmptyState`.
+- **Kept isolation:** `listing-card` / rails, sticky booking + pay bars, checkout price summary, escrow alerts, `UnifiedOrderCard`.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).
+
+### Stage 200.53.1 — Partner calendar: month/overview without full-page reload
+
+- Root cause: pane switch changed date range → new React Query key → `isLoading` true → entire page replaced by `LoadingPageShell` (felt like “кнопка не работает”). Not caused by mobile-flat CSS.
+- Fix: `keepPreviousData` in `usePartnerCalendar`; full-page spinner only on `isInitialLoading`; sync `startDate` in pane handler (one fetch); subtle inline refresh while `isFetching`.
 
 ### Stage 200.53 — Partner Hub mobile-flat (Wave 1) — **accepted**
 

@@ -3,6 +3,12 @@
 import { UserPlus, Clock, BadgeCheck } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ReferralEmptyState } from '@/components/referral/ReferralEmptyState'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const STAGE_META = {
   registered: {
@@ -36,12 +42,12 @@ export function ReferralActivitySection({ teamMembers = [], t }) {
   const rows = Array.isArray(teamMembers) ? teamMembers : []
 
   return (
-    <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <CardHeader>
+    <Card className={MOBILE_FLAT_CARD_CLASS}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-xl">{t('stage91_activityTitle')}</CardTitle>
         <CardDescription>{t('stage91_activitySubtitle')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-0">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-0')}>
         {rows.length === 0 ? (
           <ReferralEmptyState
             icon={UserPlus}

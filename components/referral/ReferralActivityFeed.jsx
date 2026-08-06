@@ -10,6 +10,12 @@ import { fetchReferralActivity } from '@/lib/api/referral-public-client'
 import { isUuidLike } from '@/lib/referral/uuid-like'
 import { formatReferralDateTimeDdMmYyyyHm } from '@/lib/referral/format-referral-datetime'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const PAGE_LIMIT = 15
 
@@ -181,15 +187,15 @@ export function ReferralActivityFeed() {
   const showLoadMore = Boolean(nextCursor)
 
   return (
-    <Card className="border border-slate-200 bg-white">
-      <CardHeader className="pb-2">
+    <Card className={MOBILE_FLAT_CARD_CLASS}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <Activity className="h-5 w-5 text-brand-hover" />
           {t('referralFeed_title')}
         </CardTitle>
         <CardDescription>{t('referralFeed_subtitle')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
         {loading ? (
           <div className="flex items-center gap-2 text-slate-600 text-sm py-4">
             <Loader2 className="h-4 w-4 animate-spin" />

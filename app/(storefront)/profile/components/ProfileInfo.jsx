@@ -9,6 +9,13 @@ import { getSiteDisplayName } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { useCurrency } from '@/contexts/currency-context'
 import { getCurrencySymbol } from '@/lib/currency'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const PENDING_KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -48,8 +55,8 @@ export function ProfileInfo({
 
   return (
     <>
-      <Card className="mb-6 overflow-hidden">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6 overflow-hidden')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand/10 sm:h-16 sm:w-16">
               <User className="h-7 w-7 text-brand sm:h-8 sm:w-8" />
@@ -63,7 +70,7 @@ export function ProfileInfo({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge
               className={
@@ -99,8 +106,13 @@ export function ProfileInfo({
       </Card>
 
       {isPartner ? (
-        <Card className="mb-6 border-brand/20 bg-gradient-to-br from-brand/5 to-white">
-          <CardContent className="pt-6">
+        <Card
+          className={cn(
+            MOBILE_FLAT_BRAND_CARD_CLASS,
+            'mb-6 sm:bg-gradient-to-br sm:from-brand/5 sm:to-white',
+          )}
+        >
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className="flex flex-col gap-4 min-[375px]:flex-row min-[375px]:items-center min-[375px]:justify-between">
               <div className="flex min-w-0 items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
@@ -132,8 +144,13 @@ export function ProfileInfo({
       ) : null}
 
       {isRenter ? (
-        <Card className="mb-6 border-2 border-dashed border-brand/30 bg-gradient-to-br from-brand/5 to-white">
-          <CardHeader>
+        <Card
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            'mb-6 sm:border-2 sm:border-dashed sm:border-brand/30 sm:bg-gradient-to-br sm:from-brand/5 sm:to-white',
+          )}
+        >
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="flex items-center gap-2 text-brand-navy">
               <Briefcase className="h-5 w-5 shrink-0 text-brand" />
               <span className="min-w-0">Станьте партнёром {getSiteDisplayName()}</span>
@@ -142,7 +159,7 @@ export function ProfileInfo({
               Сдавайте свою недвижимость и получайте доход. Присоединяйтесь к нашей сети владельцев на Пхукете.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="mb-6 grid grid-cols-3 gap-2 text-center min-[375px]:gap-4">
               <div className="min-w-0">
                 <div className="text-xl font-bold text-brand min-[375px]:text-2xl">0%</div>
@@ -166,8 +183,8 @@ export function ProfileInfo({
       ) : null}
 
       {isPendingPartner ? (
-        <Card className="mb-6 border-amber-200 bg-amber-50">
-          <CardContent className="pt-6">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6 sm:border-amber-200 sm:bg-amber-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className="flex items-start gap-3">
               <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div className="min-w-0 flex-1">
@@ -219,8 +236,8 @@ export function ProfileInfo({
       ) : null}
 
       {isRejectedPartner ? (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="pt-6">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6 sm:border-red-200 sm:bg-red-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className="flex items-start gap-3">
               <Shield className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               <div className="min-w-0 flex-1">

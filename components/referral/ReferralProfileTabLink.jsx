@@ -16,6 +16,11 @@ import {
   formatAmbassadorShareLink,
 } from '@/lib/referral/ambassador-utm-link'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { toast } from 'sonner'
 
 const CHANNEL_LABEL_KEYS = {
@@ -94,25 +99,25 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">{t('stage91_whyShareTitle')}</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card className="rounded-xl border border-brand/20 bg-white shadow-sm">
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-brand/20')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center gap-3 space-y-0 sm:pb-2')}>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white">
                 <Plane className="h-5 w-5" />
               </div>
               <CardTitle className="text-lg">{t('stage91_whyTravelersTitle')}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <CardDescription className="text-slate-700">{t('stage91_whyTravelersBody')}</CardDescription>
             </CardContent>
           </Card>
-          <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-100')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center gap-3 space-y-0 sm:pb-2')}>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
                 <Coins className="h-5 w-5" />
               </div>
               <CardTitle className="text-lg">{t('stage91_whyPartnersTitle')}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <CardDescription className="text-slate-700">{t('stage91_whyPartnersBody')}</CardDescription>
             </CardContent>
           </Card>
@@ -120,12 +125,12 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       </section>
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>{t('stage1143_qrCardTitle')}</CardTitle>
             <CardDescription className="text-slate-600">{t('stage192_creatorPackTitle')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
             <div className="mx-auto w-fit rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-4">
               {cleanInviteLink ? (
                 <QRCodeSVG value={cleanInviteLink} size={180} level="M" includeMargin />
@@ -209,11 +214,16 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border border-slate-800 bg-slate-900 text-white shadow-sm">
-          <CardHeader>
+        <Card
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            'sm:border-slate-800 sm:bg-slate-900 sm:text-white',
+          )}
+        >
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>{t('stage1143_howItWorks')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6 text-sm text-slate-400">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6 text-sm text-slate-400')}>
             <p>{t('stage1143_howStep1')}</p>
             <p>{t('stage1143_howStep2')}</p>
             <p>{t('stage1143_howStep3')}</p>
@@ -270,8 +280,13 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         storiesTeamCtaLine={stories.teamCtaLine || ''}
       />
 
-      <Card className="rounded-xl border border-slate-200 bg-white">
-        <CardContent className="flex items-center gap-2 p-4 text-sm text-slate-600">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent
+          className={cn(
+            MOBILE_FLAT_CARD_CONTENT_CLASS,
+            'flex items-center gap-2 text-sm text-slate-600 sm:p-4',
+          )}
+        >
           <ArrowRight className="h-4 w-4 text-brand" />
           <span>
             {t('stage1143_walletHint')}{' '}

@@ -1,10 +1,17 @@
 'use client'
 
 import { Progress } from '@/components/ui/progress'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 133 — KPI grid, tier progress, L1/L2 split for tab «Команда».
@@ -43,14 +50,14 @@ export function ReferralTeamAnalyticsCard({
         t={t}
       />
 
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-2">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
           <CardTitle className="text-base">{t('stage133_analyticsTitle')}</CardTitle>
           <CardDescription>{t('stage133_analyticsSubtitle')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="grid grid-cols-2 gap-3 min-w-0">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 min-w-0">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'min-w-0 sm:border-slate-100 sm:bg-slate-50/80 sm:px-3 sm:py-2.5 sm:space-y-0')}>
               <p className="text-[10px] uppercase tracking-wide text-slate-500 truncate">
                 {t('stage133_periodEarnings')}
               </p>
@@ -58,7 +65,7 @@ export function ReferralTeamAnalyticsCard({
                 <ReferralLedgerAmount thb={total} className="font-bold" />
               </p>
             </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 min-w-0">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'min-w-0 sm:border-slate-100 sm:bg-slate-50/80 sm:px-3 sm:py-2.5 sm:space-y-0')}>
               <p className="text-[10px] uppercase tracking-wide text-slate-500 truncate">
                 {t('stage133_lifetimeEarnings')}
               </p>
@@ -86,7 +93,7 @@ export function ReferralTeamAnalyticsCard({
           </div>
 
           {retention != null ? (
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 min-w-0">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'min-w-0 sm:border-emerald-100 sm:bg-emerald-50/60 sm:px-3 sm:py-2.5 sm:space-y-0')}>
               <p className="text-[10px] uppercase tracking-wide text-emerald-800/80 truncate">
                 {t('stage133_retentionLabel')}
               </p>
@@ -105,7 +112,7 @@ export function ReferralTeamAnalyticsCard({
           ) : null}
 
           {nextTier ? (
-            <div className="rounded-xl border border-brand/20 bg-brand/5 px-3 py-3 space-y-2">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:border-brand/20 sm:bg-brand/5 sm:px-3 sm:py-3')}>
               <p className="text-sm font-medium text-slate-900">
                 {t('stage133_tierProgressTitle').replace('{tier}', String(nextTier.name || ''))}
               </p>

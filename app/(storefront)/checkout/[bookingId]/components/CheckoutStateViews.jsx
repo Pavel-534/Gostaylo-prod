@@ -14,6 +14,11 @@ import { Button } from '@/components/ui/button'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { getUIText } from '@/lib/translations'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function trackCheckoutEscapeClick(placement, bookingId = null) {
   void trackProductEvent(ProductAnalyticsEvents.CHECKOUT_ESCAPE_CLICK, {
@@ -52,8 +57,8 @@ export function CheckoutAccessDeniedView({ language, bookingId = null }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full">
-        <CardContent className="pt-6 text-center space-y-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 text-center max-sm:py-6 sm:pt-6')}>
           <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_accessDeniedTitle', language)}</h3>
           <p className="text-slate-600 mb-2">{getUIText('checkout_accessDeniedBody', language)}</p>
           <div className="flex flex-col gap-2">
@@ -194,8 +199,8 @@ export function CheckoutPaymentReturnVerifyingView({
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full border-slate-200/80 shadow-sm">
-        <CardContent className="pt-8 pb-8 text-center space-y-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md sm:border-slate-200/80')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 text-center max-sm:py-8 sm:pb-8 sm:pt-8')}>
           <Loader2 className="h-12 w-12 animate-spin text-brand mx-auto" aria-hidden />
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-slate-900">
@@ -266,8 +271,8 @@ export function CheckoutPaymentFailedView({
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <Card className="max-w-md w-full border-slate-200/80 shadow-sm">
-        <CardContent className="pt-8 pb-8 text-center">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md sm:border-slate-200/80')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-center max-sm:py-8 sm:pb-8 sm:pt-8')}>
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 border border-amber-100">
             <CreditCard className="h-8 w-8 text-amber-700" aria-hidden />
           </div>

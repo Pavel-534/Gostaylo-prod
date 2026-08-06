@@ -20,6 +20,8 @@ import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 export function TopListingsGrid({
   language,
@@ -76,7 +78,12 @@ export function TopListingsGrid({
         </div>
 
         {aiGridPending && listingsLoading ? (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'mb-4 flex items-center gap-2 text-sm font-medium text-violet-900 max-sm:shadow-none sm:border-violet-200 sm:bg-violet-50/90 sm:shadow-sm',
+            )}
+          >
             <span aria-hidden className="text-base">
               ✨
             </span>

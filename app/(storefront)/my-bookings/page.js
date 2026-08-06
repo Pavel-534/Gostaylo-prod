@@ -25,6 +25,12 @@ import {
   countBookingsByStatusTab,
 } from '@/lib/booking/my-bookings-tabs'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const SWITCH_SKELETON_DELAY_MS = 120
 
@@ -324,12 +330,12 @@ function MyBookingsContent() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             {getUIText('myBookings_backHome', language)}
           </Link>
-          <Card>
-            <CardHeader>
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle>{getUIText('myBookings_loginTitle', language)}</CardTitle>
               <CardDescription>{getUIText('myBookings_loginDesc', language)}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
               <Button asChild variant="brand" className="min-h-[44px] w-full sm:w-auto">
                 <Link href="/profile?login=true&redirect=%2Fmy-bookings">
                   {getUIText('renterPortal_signInCta', language)}

@@ -5,6 +5,12 @@ import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Target, Zap } from 'lucide-react'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 179.7 — monthly goal: header currency + mid FX (payout parity).
@@ -40,8 +46,13 @@ export function ReferralMonthlyGoalCard({
   }, [current, goal, formatThbAsDisplay])
 
   return (
-    <Card className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-white shadow-sm">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'sm:border-violet-100 sm:bg-gradient-to-br sm:from-violet-50/50 sm:to-white',
+      )}
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-base flex items-center gap-2">
           <Target className="h-4 w-4 text-violet-600" />
           {t('stage73_monthlyGoalTitle')}
@@ -50,7 +61,7 @@ export function ReferralMonthlyGoalCard({
           {t('stage73_monthlyGoalProgress', { currentAmount, goalAmount })}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
         <Progress value={pct} className="h-2.5" />
         <p className="text-xs text-slate-600">
           {t('stage73_monthlyGoalPercentLine', { goalAmount, percent: String(Math.round(pct)) })}

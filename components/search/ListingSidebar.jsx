@@ -23,6 +23,7 @@ import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
 import { useNetworkQuality } from '@/hooks/use-network-quality';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LISTING_CATALOG_GRID_CLASSES } from '@/lib/listing/listing-card-layout'
+import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 function ListingSidebarComponent({
   listings = [],
@@ -75,7 +76,12 @@ function ListingSidebarComponent({
   const renderCatalogSkeleton = () => (
     <>
       {aiSearchPending ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
+        <div
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'mb-4 flex items-center gap-2 text-sm font-medium text-violet-900 max-sm:shadow-none sm:border-violet-200 sm:bg-violet-50/90 sm:shadow-sm',
+          )}
+        >
           <span aria-hidden className="text-base">
             ✨
           </span>
@@ -193,7 +199,12 @@ function ListingSidebarComponent({
 
       {/* Soft Fallback Banner — показываем когда точный поиск дал 0, но есть похожие */}
       {isSoftFallback && (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+        <div
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'mb-5 flex items-start gap-3 sm:border-amber-200 sm:bg-amber-50/80',
+          )}
+        >
           <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
             <p className="text-sm font-semibold text-amber-800">

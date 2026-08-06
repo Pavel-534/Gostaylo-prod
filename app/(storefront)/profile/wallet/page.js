@@ -18,6 +18,12 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { toast } from 'sonner'
 import { useWalletMeQuery, invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
@@ -183,8 +189,8 @@ export default function ProfileWalletPage() {
       />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className={`lg:col-span-2 ${GSL_CARD} gsl-card-hover`}>
-            <CardHeader className="pb-3">
+          <Card className={cn('lg:col-span-2', GSL_CARD, MOBILE_FLAT_CARD_CLASS, 'gsl-card-hover')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-3')}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
@@ -206,8 +212,8 @@ export default function ProfileWalletPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/80">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/80')}>
                 <p className="text-xs text-slate-500 uppercase">{t('stage1321_walletPayoutStatusLabel')}</p>
                 <p className={`text-sm font-medium mt-1 ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>
                   {payoutStatusLabel}
@@ -219,14 +225,14 @@ export default function ProfileWalletPage() {
               ) : null}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={MOBILE_FLAT_INSET_CLASS}>
                   <div className="flex gap-2 items-center">
                     <TrendingUp className="h-4 w-4 text-brand" />
                     <p className="font-medium text-sm">{t('stage1321_walletAnalyticsTitle')}</p>
                   </div>
                   <p className="text-xs text-slate-500 mt-2">{t('stage1321_walletAnalyticsHint')}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={MOBILE_FLAT_INSET_CLASS}>
                   <div className="flex gap-2 items-center">
                     <Clock3 className="h-4 w-4 text-brand" />
                     <p className="font-medium text-sm">{t('stage1321_walletMinPayoutTitle')}</p>
@@ -268,9 +274,11 @@ export default function ProfileWalletPage() {
             </CardContent>
           </Card>
 
-          <Card className={`${GSL_CARD} gsl-card-hover`}>
-            <CardHeader><CardTitle className="text-base">{t('stage1321_walletSummaryTitle')}</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-600 space-y-2">
+          <Card className={cn(GSL_CARD, MOBILE_FLAT_CARD_CLASS, 'gsl-card-hover')}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+              <CardTitle className="text-base">{t('stage1321_walletSummaryTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-sm text-slate-600 space-y-2')}>
               <p>{t('stage1321_walletSummaryLine1')}</p>
               <p>{t('stage1321_walletSummaryLine2')}</p>
             </CardContent>
@@ -279,9 +287,11 @@ export default function ProfileWalletPage() {
 
         <ReferralWithdrawalHistory walletData={walletData} t={t} locale={locale} />
 
-        <Card className={`${GSL_CARD} gsl-card-hover`}>
-          <CardHeader><CardTitle className="text-base">{t('stage1321_walletRecentOpsTitle')}</CardTitle></CardHeader>
-          <CardContent>
+        <Card className={cn(GSL_CARD, MOBILE_FLAT_CARD_CLASS, 'gsl-card-hover')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="text-base">{t('stage1321_walletRecentOpsTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {!recentTransactions.length ? (
               <p className="text-sm text-slate-600">{t('stage1321_walletRecentOpsEmpty')}</p>
             ) : (

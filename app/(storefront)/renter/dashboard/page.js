@@ -6,6 +6,12 @@ import { Home, Calendar, MessageSquare, Heart, User, Settings } from 'lucide-rea
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const ACTIONS = [
   { href: '/my-bookings', icon: Calendar, key: 'bookings' },
@@ -55,14 +61,19 @@ export default function RenterDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {ACTIONS.map(({ href, icon: Icon, key }) => (
           <Link key={href} href={href}>
-            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="pb-2">
+            <Card
+              className={cn(
+                MOBILE_FLAT_CARD_CLASS,
+                'h-full cursor-pointer transition-shadow sm:hover:shadow-md',
+              )}
+            >
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Icon className="h-4 w-4 text-brand" />
                   {getUIText(key, language)}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
                 <Button variant="outline" className="min-h-11 w-full">
                   {getUIText('open', language)}
                 </Button>

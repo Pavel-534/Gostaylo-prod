@@ -35,6 +35,13 @@ import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationM
 import { useRenterProfilePage } from '@/hooks/renter/use-renter-profile-page'
 import { roleUiKey } from '@/lib/renter/profile-completion'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function RenterProfilePageContent() {
   const {
@@ -83,8 +90,8 @@ export default function RenterProfilePageContent() {
   return (
     <div className="space-y-6">
       {/* Header with User Info */}
-      <Card>
-        <CardContent className="pt-6">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar */}
             <Avatar className="w-24 h-24 border border-slate-200">
@@ -153,7 +160,7 @@ export default function RenterProfilePageContent() {
                 : getUIText('profileComplete', language)}
             </p>
             {profileCompletion < 100 && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'mt-4 sm:border-slate-200 sm:bg-slate-50/80')}>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
                   {getUIText('profileCompletionChecklist', language)}
                 </p>
@@ -191,8 +198,13 @@ export default function RenterProfilePageContent() {
       
       {/* Become a Partner Card (Only for non-partners) */}
       {user.role !== 'PARTNER' && (
-        <Card className="border-2 border-brand/25 bg-gradient-to-br from-brand/10 to-white">
-          <CardHeader>
+        <Card
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            'sm:border-2 sm:border-brand/25 sm:bg-gradient-to-br sm:from-brand/10 sm:to-white',
+          )}
+        >
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="flex items-center gap-2 text-brand">
               <Sparkles className="h-6 w-6" />
               {getUIText('startEarning', language)}
@@ -201,10 +213,15 @@ export default function RenterProfilePageContent() {
               {getUIText('listYourProperty', language)}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
             {/* Benefits */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+              <div
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'flex items-center gap-3 space-y-0 sm:rounded-lg sm:border-brand/20 sm:bg-white sm:p-3',
+                )}
+              >
                 <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
                   <TrendingUp className="h-5 w-5 text-brand" />
                 </div>
@@ -214,7 +231,12 @@ export default function RenterProfilePageContent() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+              <div
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'flex items-center gap-3 space-y-0 sm:rounded-lg sm:border-brand/20 sm:bg-white sm:p-3',
+                )}
+              >
                 <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
                   <Shield className="h-5 w-5 text-brand" />
                 </div>
@@ -224,7 +246,12 @@ export default function RenterProfilePageContent() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+              <div
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'flex items-center gap-3 space-y-0 sm:rounded-lg sm:border-brand/20 sm:bg-white sm:p-3',
+                )}
+              >
                 <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
                   <Zap className="h-5 w-5 text-brand" />
                 </div>
@@ -246,13 +273,17 @@ export default function RenterProfilePageContent() {
                 {getUIText('partnerAppStatusLoading', language)}
               </Button>
             ) : applicationStatus ? (
-              <div className={`p-4 rounded-lg border-2 ${
-                applicationStatus.status === 'PENDING'
-                  ? 'bg-amber-50 border-amber-200'
-                  : applicationStatus.status === 'APPROVED'
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-red-50 border-red-200'
-              }`}>
+              <div
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'sm:rounded-lg sm:border-2 sm:p-4',
+                  applicationStatus.status === 'PENDING'
+                    ? 'sm:bg-amber-50 sm:border-amber-200'
+                    : applicationStatus.status === 'APPROVED'
+                      ? 'sm:bg-green-50 sm:border-green-200'
+                      : 'sm:bg-red-50 sm:border-red-200',
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {applicationStatus.status === 'PENDING' && (
@@ -360,16 +391,21 @@ export default function RenterProfilePageContent() {
       )}
       
       {/* Account connections — SSOT on /profile (Stage 189.3) */}
-      <Card id="telegram-connect" className="scroll-mt-24 md:scroll-mt-8">
-        <CardHeader>
+      <Card id="telegram-connect" className={cn(MOBILE_FLAT_CARD_CLASS, 'scroll-mt-24 md:scroll-mt-8')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{getUIText('auth_connections_title', language)}</CardTitle>
           <CardDescription>
             {getUIText('auth_connections_subtitle', language)}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           {telegramLinked ? (
-            <div className="flex items-center gap-3 rounded-lg border border-brand/20 bg-brand/5 p-4">
+            <div
+              className={cn(
+                MOBILE_FLAT_INSET_CLASS,
+                'flex items-center gap-3 space-y-0 sm:rounded-lg sm:border-brand/20 sm:bg-brand/5 sm:p-4',
+              )}
+            >
               <CheckCircle className="h-6 w-6 shrink-0 text-brand" />
               <div className="min-w-0">
                 <p className="font-semibold text-slate-900">{getUIText('renterTelegramConnectedTitle', language)}</p>
@@ -393,11 +429,11 @@ export default function RenterProfilePageContent() {
       </Card>
       
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{getUIText('quickActions', language)}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Button
               asChild

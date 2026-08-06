@@ -11,6 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_SECTION_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
@@ -239,7 +245,7 @@ export default function PublicUserProfileClient({
         />
         {reviews.length > 0 || reviewsBusy ? (
           <div className="mx-auto max-w-4xl px-4 pb-16 -mt-6">
-            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className={cn(MOBILE_FLAT_SECTION_CLASS, 'space-y-3')}>
               <h3 className="text-xl font-semibold text-slate-900">{reviewsTitle}</h3>
               {reviewsBusy ? (
                 <p className="text-sm text-slate-500 flex items-center gap-2">
@@ -247,10 +253,16 @@ export default function PublicUserProfileClient({
                   {t('stage74_3_reviewsLoading')}
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="max-sm:space-y-0 sm:space-y-4">
                   {reviews.map((review) => (
-                    <Card key={review.id} className="border-slate-200">
-                      <CardContent className="p-4">
+                    <Card
+                      key={review.id}
+                      className={cn(
+                        MOBILE_FLAT_CARD_CLASS,
+                        'max-sm:border-b max-sm:border-slate-200 sm:border-slate-200',
+                      )}
+                    >
+                      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:p-4')}>
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                             <User className="h-5 w-5 text-brand" />
@@ -295,8 +307,8 @@ export default function PublicUserProfileClient({
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-3xl space-y-6">
-        <Card className="border-border shadow-sm bg-card overflow-hidden">
-          <CardContent className="p-5 sm:p-7">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:border-border sm:bg-card')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-7')}>
             <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
               <Avatar className="h-28 w-28 shrink-0 border border-border">
                 {profile.avatar ? (
@@ -448,10 +460,16 @@ export default function PublicUserProfileClient({
           ) : reviews.length === 0 ? (
             <p className="text-muted-foreground text-sm">{getUIText('publicProfileNoReviews', language)}</p>
           ) : (
-            <div className="space-y-4">
+            <div className="max-sm:space-y-0 sm:space-y-4">
               {reviews.map((review) => (
-                <Card key={review.id} className="border-border bg-card">
-                  <CardContent className="p-6">
+                <Card
+                  key={review.id}
+                  className={cn(
+                    MOBILE_FLAT_CARD_CLASS,
+                    'max-sm:border-b max-sm:border-slate-200 sm:border-border sm:bg-card',
+                  )}
+                >
+                  <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:p-6')}>
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
                         <User className="h-6 w-6 text-primary" />

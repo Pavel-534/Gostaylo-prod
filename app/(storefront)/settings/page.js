@@ -10,6 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Bell, Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { telegramAccountLinkUrl, getTelegramBotUsername } from '@/lib/telegram-bot-public';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -151,17 +157,22 @@ export default function SettingsPage() {
         </div>
 
         {/* Notification Center Card */}
-        <Card className="shadow-xl border-2">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-lg">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-xl sm:border-2')}>
+          <CardHeader
+            className={cn(
+              MOBILE_FLAT_CARD_HEADER_CLASS,
+              'max-sm:text-slate-900 sm:bg-gradient-to-r sm:from-indigo-600 sm:to-purple-600 sm:text-white sm:rounded-t-lg',
+            )}
+          >
             <CardTitle className="flex items-center gap-2 text-2xl">
               <Bell className="w-6 h-6" />
               Центр уведомлений
             </CardTitle>
-            <CardDescription className="text-indigo-100">
+            <CardDescription className="max-sm:text-slate-600 sm:text-indigo-100">
               Настройте, как вы хотите получать важные обновления
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 md:p-8 space-y-8">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-8 sm:p-6 sm:pt-6 md:p-8')}>
             {/* Email Notifications */}
             <div className="flex items-start justify-between gap-4 p-6 bg-blue-50 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all">
               <div className="flex-1 space-y-2">
@@ -356,8 +367,8 @@ export default function SettingsPage() {
         </Card>
 
         {/* Info Card */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
-          <CardContent className="p-6">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-blue-200 sm:bg-blue-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
             <div className="flex gap-3">
               <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <svg

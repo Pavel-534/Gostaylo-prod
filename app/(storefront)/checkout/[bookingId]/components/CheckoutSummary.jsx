@@ -8,6 +8,12 @@ import { Switch } from '@/components/ui/switch'
 import { getUIText } from '@/lib/translations'
 import { RENTER_CHECKOUT_NO_CANCEL_STATUSES } from '@/lib/config/app-constants'
 import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function canRenterCancelCheckout(status) {
   return !RENTER_CHECKOUT_NO_CANCEL_STATUSES.has(String(status || '').toUpperCase())
@@ -55,11 +61,11 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
 
   return (
     <div>
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{getUIText('checkout_orderTitle', c.language)}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="flex gap-3 items-start">
             {coverSrc ? (
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">

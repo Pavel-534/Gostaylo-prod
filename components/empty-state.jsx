@@ -21,6 +21,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { GSL_BRAND_SHADOW_ICON, GSL_BRAND_SHADOW_RING } from '@/lib/theme/product-ui'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function defaultTitle(language) {
   return language === 'ru'
@@ -156,8 +161,16 @@ export function WorkspaceEmptyState({
   testId = 'workspace-empty-state',
 }) {
   return (
-    <Card className={cn('border-dashed', className)} data-testid={testId}>
-      <CardContent className="flex flex-col items-center justify-center py-12 px-4">
+    <Card
+      className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, 'sm:border-dashed', className)}
+      data-testid={testId}
+    >
+      <CardContent
+        className={cn(
+          MOBILE_FLAT_CARD_CONTENT_CLASS,
+          'flex flex-col items-center justify-center max-sm:py-8 sm:px-4 sm:py-12',
+        )}
+      >
         <Icon className="h-12 w-12 text-slate-300 mb-4" aria-hidden />
         <h3 className="text-lg font-semibold text-slate-900 mb-2 text-center">{title}</h3>
         <p className="text-slate-600 text-center max-w-md text-sm leading-relaxed">{hint}</p>

@@ -6,13 +6,14 @@ import { Clock, CreditCard, KeyRound, MessageCircle, Sparkles } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_BRAND_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { resolveGuestNextStepsStep } from '@/lib/guest/resolve-guest-next-steps'
 
 const TONE_CLASS = {
-  amber: 'border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-white',
-  brand: 'border-brand/20 bg-gradient-to-br from-brand/5 via-white to-white',
-  emerald: 'border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-white',
+  amber: 'sm:border-amber-200/80 sm:bg-gradient-to-br sm:from-amber-50/90 sm:via-white sm:to-white',
+  brand: 'sm:border-brand/20 sm:bg-gradient-to-br sm:from-brand/5 sm:via-white sm:to-white',
+  emerald: 'sm:border-emerald-200/80 sm:bg-gradient-to-br sm:from-emerald-50/80 sm:via-white sm:to-white',
 }
 
 const ICONS = {
@@ -108,9 +109,9 @@ export function GuestBookingNextStepsCard({
   return (
     <div
       className={cn(
-        'rounded-2xl border shadow-sm',
+        MOBILE_FLAT_BRAND_CARD_CLASS,
         TONE_CLASS[step.tone] || TONE_CLASS.brand,
-        compact ? 'p-3' : 'p-4',
+        compact ? 'p-3 max-sm:px-0' : 'p-4 max-sm:px-0',
         className,
       )}
       data-testid="guest-booking-next-steps"

@@ -6,6 +6,12 @@ import { Gift } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
 import { ReferralAmbassadorLevels } from '@/components/referral/ReferralAmbassadorLevels'
 import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
@@ -84,29 +90,29 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
           t={t}
           locale={locale}
         />
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">{t('stage1143_badgesTitle')}</CardTitle>
             <CardDescription>{t('stage1143_badgesSubtitle')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <ReferralBadgesGrid badgesEarned={data?.referralGamification?.badgesEarned} t={t} compact />
           </CardContent>
         </Card>
       </div>
 
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-base">{t('stage1143_publicLevelsCardTitle')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <ReferralAmbassadorLevels levels={ambassadorLevels} directPartnersInvited={directPartnersInvited} t={t} />
         </CardContent>
       </Card>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardContent className="p-6">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'md:col-span-2')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
             <p className="text-xs uppercase tracking-wider text-slate-500">{t('stage1143_earningsTotal')}</p>
             <p className="text-4xl font-black text-brand mt-2 break-words">
               <ReferralLedgerAmount thb={walletTotal} />
@@ -132,8 +138,13 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             ) : null}
           </CardContent>
         </Card>
-        <Card className="rounded-xl border border-brand/20 bg-brand text-white shadow-sm">
-          <CardContent className="p-6 space-y-4">
+        <Card
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            'sm:border-brand/20 sm:bg-brand sm:text-white',
+          )}
+        >
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-6')}>
             <Gift className="h-8 w-8" />
             <p className="text-xl font-bold">{data?.ambassador?.currentTier?.name || 'Ambassador'}</p>
             <Progress value={tierProgress} className="h-2 bg-white/20" />
@@ -150,23 +161,23 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
       </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
             <CardTitle className="text-base">{t('stage91_statsDirectGuests')}</CardTitle>
             <CardDescription>{t('stage91_statsDirectGuestsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <p className="text-2xl font-semibold text-brand break-words">
               <ReferralLedgerAmount thb={l1Monthly} />
             </p>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
             <CardTitle className="text-base">{t('stage91_statsPartnerNetwork')}</CardTitle>
             <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <p className="text-2xl font-semibold text-brand break-words">
               <ReferralLedgerAmount thb={l2Monthly} />
             </p>

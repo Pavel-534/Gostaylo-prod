@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle, Clock, ArrowRight, Home, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { getSiteDisplayName, getSupportTelegramUrl } from '@/lib/site-url'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function PartnerApplicationSuccessPage() {
   const router = useRouter()
@@ -38,8 +43,8 @@ export default function PartnerApplicationSuccessPage() {
         </div>
 
         {/* Info Card */}
-        <Card className='mb-6 border-teal-200'>
-          <CardContent className='pt-6'>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6 sm:border-teal-200')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <div className='flex items-start gap-4 mb-4'>
               <div className='w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0'>
                 <Clock className='h-5 w-5 text-amber-600' />
@@ -67,8 +72,8 @@ export default function PartnerApplicationSuccessPage() {
         </Card>
 
         {/* What's Next */}
-        <Card className='mb-6 bg-slate-50'>
-          <CardContent className='pt-6'>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6 sm:bg-slate-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
             <h3 className='font-semibold text-slate-900 mb-3'>Что дальше?</h3>
             <ul className='space-y-2 text-sm text-slate-600'>
               <li className='flex items-start gap-2'>

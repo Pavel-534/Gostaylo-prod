@@ -5,6 +5,11 @@ import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthl
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /** Stage 132.1 — team analytics only; money history lives on /profile/wallet. */
 export function ReferralProfileTabHistory({ data, t, locale }) {
@@ -19,12 +24,12 @@ export function ReferralProfileTabHistory({ data, t, locale }) {
       />
 
       {Array.isArray(data?.stats?.sparkMonthlyYtdThb) && data.stats.sparkMonthlyYtdThb.length > 1 ? (
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">{t('stage73_statYearlyEarned')}</CardTitle>
             <CardDescription>{t('stage73_referralStatsTzHint')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <ReferralMiniSparkline values={data.stats.sparkMonthlyYtdThb} height={56} />
             <p className="text-2xl font-semibold text-brand mt-4 break-words">
               <ReferralLedgerAmount thb={data?.stats?.yearlyEarnedThb} />

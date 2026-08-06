@@ -13,6 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PrivacyDataRightsCard } from '@/components/renter/PrivacyDataRightsCard'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function RenterSettingsPage() {
   const { language } = useI18n()
@@ -187,12 +194,12 @@ export default function RenterSettingsPage() {
         <p className="text-slate-500 text-sm mt-1">{getUIText('renterSettingsPageDesc', language)}</p>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterSettingsProfileCardTitle', language)}</CardTitle>
           <CardDescription>{getUIText('renterSettingsProfileCardDesc', language)}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <Avatar className="h-24 w-24 border border-slate-200">
               {avatarRaw ? (
@@ -244,14 +251,14 @@ export default function RenterSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterSettingsNotificationsTitle', language)}</CardTitle>
           <CardDescription>
             {getUIText('renterSettingsNotificationsHint', language)}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <Label className="text-sm font-medium">
@@ -275,7 +282,7 @@ export default function RenterSettingsPage() {
             <Switch checked={telegramPref} onCheckedChange={setTelegramPref} />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-4 sm:border-slate-200 sm:bg-slate-50')}>
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">
@@ -309,7 +316,13 @@ export default function RenterSettingsPage() {
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-500 rounded-2xl bg-white border border-slate-200 px-3 py-2">
+            <p
+              className={cn(
+                'text-xs text-slate-500 px-3 py-2',
+                'max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent',
+                'sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white',
+              )}
+            >
               {getUIText('renterSettingsQuietDefaultHint', language)}
             </p>
           </div>

@@ -45,7 +45,7 @@ export function GuestBookingFlowHint({ t, className, bookingMode = 'request' }) 
   return (
     <nav
       className={cn(
-        'flex flex-wrap items-center gap-1 text-xs sm:text-sm text-slate-500 rounded-xl border border-slate-200/80 bg-white/70 px-3 py-2 backdrop-blur-sm',
+        'flex flex-wrap items-center gap-1 text-xs sm:text-sm text-slate-500 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:py-1 max-sm:backdrop-blur-none sm:rounded-xl sm:border sm:border-slate-200/80 sm:bg-white/70 sm:px-3 sm:py-2 sm:backdrop-blur-sm',
         className,
       )}
       aria-label={t('stage115_guestFlowAria')}

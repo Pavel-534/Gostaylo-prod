@@ -9,6 +9,12 @@ import { estimateReferrerIllustrationThb } from '@/lib/referral/referral-earning
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {{
@@ -52,16 +58,21 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
   const avgDisplay = formatThbAsDisplay(avgThb)
 
   return (
-    <Card className="rounded-xl border border-brand/20 bg-gradient-to-br from-white to-brand/10 shadow-sm">
-      <CardHeader>
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'sm:border-brand/20 sm:bg-gradient-to-br sm:from-white sm:to-brand/10',
+      )}
+    >
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-brand shrink-0" aria-hidden />
           <CardTitle className="text-xl">{t('stage91_estimatorTitle')}</CardTitle>
         </div>
         <CardDescription>{t('stage91_estimatorSubtitle')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="rounded-xl border border-brand/25 bg-white/90 p-4 shadow-inner">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:border-brand/25 sm:bg-white/90 sm:shadow-inner')}>
           <p className="text-xs font-medium uppercase tracking-wide text-brand-hover/90">
             {t('stage91_estimatorOwnTripLabel')}
           </p>
@@ -102,7 +113,7 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/80')}>
           <p className="text-xs text-slate-600">{t('stage91_estimatorFriendsBonusLabel')}</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900 break-words">
             <ReferralLedgerAmount thb={est.totalReferrerThb} />

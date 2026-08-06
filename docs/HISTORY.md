@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.55 | 2026-08-06 | Guest Wave 2B mobile-flat: favorites, profile/wallet/settings, `/u`, reviews | Done |
+| 200.54 | 2026-08-06 | Guest Wave 2A mobile-flat: home → listings → PDP → checkout → my-bookings | Done |
+| 200.53.1 | 2026-08-06 | Partner calendar month/overview: keepPreviousData, no full-page spinner | Done |
 | 200.53 | 2026-08-06 | Partner Hub mobile-flat Wave 1 (all hub routes) | Done |
 | 200.52 | 2026-08-06 | Wizard mobile flat Phase 1–2 accepted; PRODUCT_UI_INVENTORY | Done |
 | 200.51 | 2026-08-06 | Wizard geo cascade: camera follows country/city; pin cleared not auto-set | Done |

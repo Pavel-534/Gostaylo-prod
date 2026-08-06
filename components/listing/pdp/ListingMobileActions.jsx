@@ -10,6 +10,11 @@ import { MobileBookingBar, PriceBreakdownBlock } from '@/app/(storefront)/listin
 import { getUIText } from '@/lib/translations'
 import { PDP_BOOKING_DATES_ANCHOR_ATTR } from '@/lib/listing/pdp-hero-layout'
 import { useListingBooking } from '@/components/listing/pdp/ListingBookingProvider'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * PDP mobile: inline date/guest planner (lg:hidden) + fixed bottom **`MobileBookingBar`**.
@@ -108,8 +113,8 @@ export function ListingMobileActions({ chat }) {
     <>
       <div className="lg:hidden scroll-mt-24" {...{ [PDP_BOOKING_DATES_ANCHOR_ATTR]: '' }}>
         <h2 className="text-2xl font-medium tracking-tight mb-4">{tx('selectYourDates')}</h2>
-        <Card className="border-slate-200 bg-slate-50">
-          <CardContent className="p-4 space-y-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-slate-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-4')}>
             <div>
               <Label className="text-sm font-medium mb-2 block">
                 {tx(listingRentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates')}

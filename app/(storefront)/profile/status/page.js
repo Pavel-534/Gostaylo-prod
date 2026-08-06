@@ -10,6 +10,12 @@ import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -133,9 +139,16 @@ export default function ProfileStatusPage() {
               turboMultiplier={turboMultiplier}
             />
           </div>
-          <Card className="md:col-span-4 rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
-            <CardHeader className="pb-2"><CardTitle className="text-base">Прогресс и цель</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-700">
+          <Card
+            className={cn(
+              MOBILE_FLAT_CARD_CLASS,
+              'md:col-span-4 transition-all duration-300 sm:hover:shadow-md',
+            )}
+          >
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
+              <CardTitle className="text-base">Прогресс и цель</CardTitle>
+            </CardHeader>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-sm text-slate-700')}>
               {Array.isArray(data?.referralGamification?.badgesEarned) && data.referralGamification.badgesEarned.length
                 ? `У вас ${data.referralGamification.badgesEarned.length} медалей. Следующий шаг уже в прогрессе.`
                 : 'Медали появятся после первых активностей. Первая цель — 3 активных приглашения.'}
@@ -159,9 +172,11 @@ export default function ProfileStatusPage() {
         {Array.isArray(data?.teamMembers) && data.teamMembers.length > 0 ? (
           <ReferralTeamSection members={data.teamMembers} t={t} language={language} />
         ) : (
-          <Card className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
-            <CardHeader className="pb-2"><CardTitle className="text-base">Ваша команда</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-600">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'transition-all duration-300 sm:hover:shadow-md')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
+              <CardTitle className="text-base">Ваша команда</CardTitle>
+            </CardHeader>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-sm text-slate-600')}>
               Здесь будет список ваших первых героев.
               <div className="mt-2 flex items-center gap-2 text-slate-500">
                 <ArrowRight className="h-4 w-4" />

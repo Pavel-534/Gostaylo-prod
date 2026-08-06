@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const TZ_FALLBACK_OPTIONS = ['Asia/Bangkok', 'UTC', 'Europe/Moscow', 'Europe/London', 'America/New_York']
 
@@ -105,12 +112,12 @@ export function ReferralProfileTabSettings({ data, t }) {
   }
 
   return (
-    <Card className="rounded-xl border border-slate-200 bg-white shadow-sm max-w-xl">
-      <CardHeader>
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-w-xl')}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle>{t('stage1143_settingsTitle')}</CardTitle>
         <CardDescription>{t('stage1143_settingsSubtitle')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
         <div className="space-y-2">
           <Label htmlFor="referral-goal">{t('stage73_goalLabel')}</Label>
           <Input
@@ -140,7 +147,7 @@ export function ReferralProfileTabSettings({ data, t }) {
         <Button variant="brand" disabled={saving} onClick={() => void saveSettings()}>
           {saving ? '…' : t('stage73_saveReportPrefs')}
         </Button>
-        <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2')}>
           <Label>Кампания для реферальной ссылки</Label>
           <Select value={campaignSlug} onValueChange={setCampaignSlug} disabled={campaignLoading}>
             <SelectTrigger>

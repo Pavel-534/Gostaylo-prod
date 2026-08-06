@@ -21,6 +21,11 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pending-ref-client'
 import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
@@ -209,15 +214,20 @@ export function AmbassadorPublicLanding({
         </section>
 
         {!isSelf ? (
-          <Card className="rounded-2xl border-2 border-brand/25 shadow-md hidden sm:block">
-            <CardHeader>
+          <Card
+            className={cn(
+              MOBILE_FLAT_CARD_CLASS,
+              'hidden sm:block sm:border-2 sm:border-brand/25 sm:shadow-md',
+            )}
+          >
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="flex items-center gap-2 text-brand">
                 <UserPlus className="h-5 w-5" />
                 {t('stage1143_joinCtaTitle')}
               </CardTitle>
               <CardDescription>{t('stage1143_joinCtaSubtitle')}</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row flex-wrap gap-2">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col sm:flex-row flex-wrap gap-2')}>
               <Button
                 variant="brand"
                 className="flex-1 sm:flex-none min-h-11"
@@ -238,8 +248,10 @@ export function AmbassadorPublicLanding({
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-xl border border-brand/25 bg-brand/10">
-            <CardContent className="py-4 text-sm text-brand">{t('stage1143_publicSelfHint')}</CardContent>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-brand/25 sm:bg-brand/10')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-4 text-sm text-brand sm:py-4')}>
+              {t('stage1143_publicSelfHint')}
+            </CardContent>
           </Card>
         )}
 
@@ -250,14 +262,14 @@ export function AmbassadorPublicLanding({
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <CardHeader>
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="text-base flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-brand" />
                 {t('stage1143_publicLevelsCardTitle')}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <ReferralAmbassadorLevels
                 levels={landing?.ambassador?.levels}
                 directPartnersInvited={landing?.directPartnersInvited}
@@ -265,15 +277,15 @@ export function AmbassadorPublicLanding({
               />
             </CardContent>
           </Card>
-          <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <CardHeader>
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-amber-600" />
                 {t('stage1143_badgesTitle')}
               </CardTitle>
               <CardDescription>{t('stage1143_badgesSubtitle')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <ReferralBadgesGrid badgesEarned={landing?.publicGamification?.badgesEarned} t={t} compact />
             </CardContent>
           </Card>

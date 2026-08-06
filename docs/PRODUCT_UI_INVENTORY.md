@@ -1,7 +1,7 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.1.0 | **Updated**: 2026-08-06 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
-> **Purpose:** SSOT-инвентаризация UI-страниц перед волнами **mobile-flat** / product UI unification (после Stage **200.52**).  
+> **Version**: 1.3.0 | **Updated**: 2026-08-06 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
 
@@ -13,6 +13,8 @@
 |--------|----------|
 | `[x] Finished (Wizard 200.52)` | Mobile-flat на listing wizard create/edit |
 | `[x] Finished (Hub Wave 1 / 200.53)` | Partner Hub page mobile-flat (nesting ≤1 on `&lt;sm`) |
+| `[x] Finished (Guest Wave 2A / 200.54)` | Core guest path: home → catalog → PDP → checkout → my-bookings |
+| `[x] Finished (Guest Wave 2B / 200.55)` | Secondary guest: favorites, profile/wallet/settings, public `/u`, reviews |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -26,6 +28,23 @@
 - Shell `WORKSPACE_SCROLL` уже даёт `p-4` — на страницах не дублировать лишний gutter на `&lt;sm`.
 - Isolation OK (1 уровень): alerts/banners (KYC, pin-conflict, amber), map, earnings math, interactive list separators (`border-b`), sheets/dialogs.
 
+**Уточнения ТЗ (Wave 2A — Core Guest Path):**
+
+- Канон путей: **`/`**, **`/listings`** (нет `/search`), **`/listings/[id]`**, **`/checkout/[bookingId]`** (нет `/book`), **`/my-bookings`**.
+- **`/renter/bookings`** — redirect → `/my-bookings` (не visual polish).
+- **Не flatten** shared tile chrome: `listing-card.jsx`, `RecommendationRailCard`, map rail cards, **`UnifiedOrderCard`** (order tile isolation + partner reuse).
+- Isolation OK: listing tiles, sticky booking bar (PDP), sticky pay bar + price summary (checkout), search chrome, sheets, escrow/timer alerts.
+
+**Уточнения ТЗ (Wave 2B — Guest Secondary):**
+
+- Избранное: канон **`/renter/favorites`** (отдельного `/favorites` нет).
+- Кошелёк: **`/profile/wallet`** (не `/renter/wallet`).
+- Профиль: **`/renter/profile`**, **`/profile`**, **`/profile/status`**, **`/profile/referral`**, **`/renter/settings`**, **`/settings`**.
+- Публичный профиль партнёра/гостя: **`/u/[id]`**; отзыв гостя: **`/renter/reviews/new`**.
+- Не flatten listing tiles в favorites grid.
+- Isolation OK: sticky withdraw (wallet), referral marketing export canvases, ReviewModal, status/alert messaging shells as single nested level.
+- Redirect-only (не visual): **`/bookings/[id]`** → checkout, **`/go/[vanity]`** → `/u/[id]`, **`/renter`** → dashboard.
+
 ---
 
 ## Сводка
@@ -33,19 +52,20 @@
 | Домен | Страниц | Finished | Pending |
 |-------|--------:|---------:|--------:|
 | Partner Hub | 14 | **14** | 0 |
-| Storefront / Renter (+ Chat) | 29 | 0 | 29 |
+| Storefront / Renter (+ Chat) | 29 | **21** | 8 |
 | Auth & System (+ Marketing, demo) | 21 | 0 | 21 |
 | Admin Panel | 52 | 0 | 52 |
-| **Итого** | **116** | **14** | **102** |
+| **Итого** | **116** | **35** | **81** |
 
-**Wave 1 (Stage 200.53):** Partner Hub closed. Next → Storefront critical path (Wave 2).
+**Wave 1 (200.53):** Partner Hub closed. **Wave 2A (200.54):** Core guest path closed. **Wave 2B (200.55):** Guest secondary closed. Next → **Chat** (`/messages*`) or Auth.
 
 ---
 
 ## Рекомендуемый порядок волн (Architect notes)
 
 1. **Partner Hub** — **Done (200.53)**.
-2. **Storefront critical path** — `/` → `/listings` → PDP → checkout → `/my-bookings` / renter dashboard (Airbnb-style: guest journey first).
+2. **Storefront critical path (Wave 2A)** — **Done (200.54)** — `/` → `/listings` → PDP → checkout → `/my-bookings`.
+2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — shared shell; один раз для renter + partner.
 4. **Auth & marketing/legal** — проще, но влияют на first impression и compliance.
 5. **Admin** — densest surface; flatten постепенно (tables → card stack `&lt;md` per Stage 176.2), не блокировать guest/partner.
@@ -92,37 +112,37 @@
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/` | `app/(storefront)/page.js` | Home / discovery |
-| [ ] | `/listings` | `…/listings/page.js` | Search / catalog |
-| [ ] | `/listings/[id]` | `…/listings/[id]/page.js` | PDP |
-| [ ] | `/checkout/[bookingId]` | `…/checkout/[bookingId]/page.js` | Checkout / pay |
-| [ ] | `/bookings/[id]` | `…/bookings/[id]/page.js` | Booking detail (guest) |
-| [ ] | `/my-bookings` | `…/my-bookings/page.js` | Orders list (canonical guest?) |
-| [ ] | `/partner-application-success` | `…/partner-application-success/page.js` | Post-apply success |
-| [ ] | `/go/[vanity]` | `…/go/[vanity]/page.js` | Referral / vanity landing |
-| [ ] | `/u/[id]` | `…/u/[id]/page.js` | Public profile |
+| [x] | `/` | `app/(storefront)/page.js` | **Guest Wave 2A / 200.54** (banners; listing tiles kept) |
+| [x] | `/listings` | `…/listings/page.js` | **Guest Wave 2A / 200.54** (sidebar banners; ListingCard kept) |
+| [x] | `/listings/[id]` | `…/listings/[id]/page.js` | **Guest Wave 2A / 200.54** (policies/host/reviews; sticky book bar kept) |
+| [x] | `/checkout/[bookingId]` | `…/checkout/[bookingId]/page.js` | **Guest Wave 2A / 200.54** (methods/summary shells; sticky pay + price isolation) |
+| [x] | `/bookings/[id]` | `…/bookings/[id]/page.js` | **redirect** → `/checkout/[id]` (Wave 2B) |
+| [x] | `/my-bookings` | `…/my-bookings/page.js` | **Guest Wave 2A / 200.54** (login/empty; UnifiedOrderCard kept) |
+| [x] | `/partner-application-success` | `…/partner-application-success/page.js` | **Guest Wave 2B / 200.55** |
+| [x] | `/go/[vanity]` | `…/go/[vanity]/page.js` | **redirect** → `/u/[id]` (Wave 2B) |
+| [x] | `/u/[id]` | `…/u/[id]/page.js` | **Guest Wave 2B / 200.55** (public + ambassador; review tiles isolation) |
 
 ### 2.2 Renter cabinet
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/renter` | `…/renter/page.js` | Redirect → dashboard |
-| [ ] | `/renter/dashboard` | `…/renter/dashboard/page.js` | Renter home |
-| [ ] | `/renter/bookings` | `…/renter/bookings/page.js` | Likely overlap with `/my-bookings` |
-| [ ] | `/renter/favorites` | `…/renter/favorites/page.js` | Favorites |
-| [ ] | `/renter/reviews/new` | `…/renter/reviews/new/page.js` | Leave review |
-| [ ] | `/renter/profile` | `…/renter/profile/page.js` | Profile |
-| [ ] | `/renter/settings` | `…/renter/settings/page.jsx` | Settings |
+| [x] | `/renter` | `…/renter/page.js` | **redirect** → `/renter/dashboard` (Wave 2B) |
+| [x] | `/renter/dashboard` | `…/renter/dashboard/page.js` | **Guest Wave 2B / 200.55** |
+| [x] | `/renter/bookings` | `…/renter/bookings/page.js` | **redirect** → `/my-bookings` (Wave 2A) |
+| [x] | `/renter/favorites` | `…/renter/favorites/page.js` | **Guest Wave 2B / 200.55** (ListingCard kept) |
+| [x] | `/renter/reviews/new` | `…/renter/reviews/new/page.js` | **Guest Wave 2B / 200.55** (gate Cards; ReviewModal kept) |
+| [x] | `/renter/profile` | `…/renter/profile/page.js` | **Guest Wave 2B / 200.55** |
+| [x] | `/renter/settings` | `…/renter/settings/page.jsx` | **Guest Wave 2B / 200.55** |
 
 ### 2.3 Profile / wallet / settings (storefront)
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/profile` | `…/profile/page.js` | Profile hub |
-| [ ] | `/profile/wallet` | `…/profile/wallet/page.js` | Wallet |
-| [ ] | `/profile/status` | `…/profile/status/page.js` | Status / tiers |
-| [ ] | `/profile/referral` | `…/profile/referral/page.js` | Guest referral |
-| [ ] | `/settings` | `…/settings/page.js` | Account settings |
+| [x] | `/profile` | `…/profile/page.js` | **Guest Wave 2B / 200.55** |
+| [x] | `/profile/wallet` | `…/profile/wallet/page.js` | **Guest Wave 2B / 200.55** (sticky withdraw isolation) |
+| [x] | `/profile/status` | `…/profile/status/page.js` | **Guest Wave 2B / 200.55** |
+| [x] | `/profile/referral` | `…/profile/referral/page.js` | **Guest Wave 2B / 200.55** (MarketingKit export canvas kept) |
+| [x] | `/settings` | `…/settings/page.js` | **Guest Wave 2B / 200.55** |
 
 ### 2.4 Legacy / role routers (storefront)
 

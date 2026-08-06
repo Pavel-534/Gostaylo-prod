@@ -11,6 +11,11 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Star, ShieldCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { getUIText, getListingText } from '@/lib/translations'
@@ -108,8 +113,8 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
           <Separator className="my-8" />
           <div>
             <h2 className="text-2xl font-medium tracking-tight mb-4">{getUIText('meetYourHost', language)}</h2>
-            <Card className="border-slate-200">
-              <CardContent className="p-6">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200')}>
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
                 <Link
                   href={listing.owner?.id ? `/u/${listing.owner.id}` : '#'}
                   className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand ${

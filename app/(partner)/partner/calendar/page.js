@@ -131,17 +131,10 @@ function MasterCalendarContent() {
       setDaysToShow(30)
       return
     }
-    if (mobilePane === 'month' || mobilePane === 'overview') {
-      setStartDate((prev) => {
-        try {
-          return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
-        } catch {
-          return format(startOfMonth(new Date()), 'yyyy-MM-dd')
-        }
-      })
-    } else {
+    if (mobilePane === 'near') {
       setDaysToShow(10)
     }
+    // month / overview: daysToShow derived from startDate via the effect below.
   }, [isNarrowCalendar, mobilePane])
 
   // Переход из чата: ?focusDate=YYYY-MM-DD — показать окно с этой датой в видимой полосе
@@ -240,7 +233,8 @@ function MasterCalendarContent() {
   const { 
     data: calendarData, 
     meta: calendarMeta,
-    isLoading, 
+    isFetching,
+    isInitialLoading,
     isError, 
     error,
     refetch 
@@ -261,7 +255,7 @@ function MasterCalendarContent() {
 
   useEffect(() => {
     if (!showOnboarding || onboardingToastShownRef.current || authLoading || !partnerId) return
-    if (isLoading) return
+    if (isInitialLoading) return
     onboardingToastShownRef.current = true
     toast.success(getUIText('partnerCal_onboardingWelcomeTitle', language), {
       description: getUIText('partnerCal_onboardingWelcomeBody', language),
@@ -272,7 +266,7 @@ function MasterCalendarContent() {
       url.searchParams.delete('onboarding')
       window.history.replaceState({}, '', `${url.pathname}${url.search}`)
     }
-  }, [showOnboarding, authLoading, partnerId, isLoading, language])
+  }, [showOnboarding, authLoading, partnerId, isInitialLoading, language])
 
   const calendarDominantHint = useMemo(() => {
     const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
@@ -598,8 +592,8 @@ function MasterCalendarContent() {
     }
   }
   
-  // Loading state
-  if (authLoading || (isLoading && partnerId)) {
+  // Loading state — only first paint; range switches keep previous data (keepPreviousData).
+  if (authLoading || (isInitialLoading && partnerId)) {
     return <LoadingPageShell variant="inline" label={getUIText('partnerCal_pageLoading', language)} />
   }
   
@@ -758,8 +752,18 @@ function MasterCalendarContent() {
           mobilePane={mobilePane}
           onMobilePaneChange={(pane) => {
             clearRangeSelection()
+            // Align startDate in the same turn as pane change — avoids double fetch
+            // (effect-only startOfMonth used to change the query key twice).
             if (pane === 'near') {
               setStartDate(format(new Date(), 'yyyy-MM-dd'))
+            } else if (pane === 'month' || pane === 'overview') {
+              setStartDate((prev) => {
+                try {
+                  return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
+                } catch {
+                  return format(startOfMonth(new Date()), 'yyyy-MM-dd')
+                }
+              })
             }
             setMobilePane(pane)
           }}
@@ -768,6 +772,17 @@ function MasterCalendarContent() {
           onIcalSyncAll={handleIcalSyncAll}
           icalSyncing={icalSyncing}
         />
+        {isFetching && !isInitialLoading ? (
+          <div
+            className="flex items-center gap-2 text-xs text-slate-500"
+            role="status"
+            aria-live="polite"
+            data-testid="partner-cal-range-refreshing"
+          >
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" aria-hidden />
+            <span>{getUIText('partnerCal_pageLoading', language)}</span>
+          </div>
+        ) : null}
         <p
           className={cn(
             MOBILE_FLAT_INSET_CLASS,

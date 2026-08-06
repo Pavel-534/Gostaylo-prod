@@ -20,6 +20,12 @@ import { useReviewSubmission } from '@/hooks/use-review-submission'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { shouldAllowReviewByLifecycle } from '@/lib/orders/order-timeline'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const DF_LOCALE = { ru, en: enUS, zh: zhCN, th }
 
@@ -99,12 +105,12 @@ function NewReviewContent() {
 
   if (!bookingId) {
     return (
-      <Card className="max-w-lg mx-auto mt-8">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-w-lg mx-auto mt-8')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterReviewFlow_title', language)}</CardTitle>
           <CardDescription>{getUIText('renterReviewFlow_noLinkDesc', language)}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <Button asChild variant="outline">
             <Link href="/messages/">{getUIText('renterReviewFlow_toMessages', language)}</Link>
           </Button>
@@ -123,11 +129,11 @@ function NewReviewContent() {
 
   if (!me) {
     return (
-      <Card className="max-w-lg mx-auto mt-8">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-w-lg mx-auto mt-8')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterReviewFlow_needLogin', language)}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           <Button asChild variant="brand" className="min-h-11">
             <Link href={`/profile?login=true&redirect=${encodeURIComponent(`/renter/reviews/new?bookingId=${bookingId}`)}`}>
               {getUIText('renterReviewFlow_signIn', language)}
@@ -140,11 +146,11 @@ function NewReviewContent() {
 
   if (!booking || !listingId) {
     return (
-      <Card className="max-w-lg mx-auto mt-8">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-w-lg mx-auto mt-8')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterReviewFlow_notFound', language)}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <Button asChild variant="outline">
             <Link href="/my-bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
@@ -155,12 +161,17 @@ function NewReviewContent() {
 
   if (booking.renter_id && me?.id && booking.renter_id !== me.id) {
     return (
-      <Card className="max-w-lg mx-auto mt-8 border-red-200 bg-red-50/40">
-        <CardHeader>
+      <Card
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'max-w-lg mx-auto mt-8 sm:border-red-200 sm:bg-red-50/40',
+        )}
+      >
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterReviewFlow_noAccess', language)}</CardTitle>
           <CardDescription>{getUIText('renterReviewFlow_noAccessDesc', language)}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <Button asChild variant="outline">
             <Link href="/my-bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
@@ -173,14 +184,19 @@ function NewReviewContent() {
   const canReview = shouldAllowReviewByLifecycle(status, booking.check_out)
   if (!canReview) {
     return (
-      <Card className="max-w-lg mx-auto mt-8 border-amber-200 bg-amber-50/50">
-        <CardHeader>
+      <Card
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'max-w-lg mx-auto mt-8 sm:border-amber-200 sm:bg-amber-50/50',
+        )}
+      >
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('renterReviewFlow_notYet', language)}</CardTitle>
           <CardDescription>
             {getUIText('renterReviewFlow_notYetDesc', language)} {status || '—'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <Button asChild variant="outline">
             <Link href="/messages/">{getUIText('renterReviewFlow_toDialog', language)}</Link>
           </Button>
@@ -198,8 +214,8 @@ function NewReviewContent() {
         </Link>
       </Button>
 
-      <Card className="mb-4 border-brand/20 bg-brand/5">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-4 sm:border-brand/20 sm:bg-brand/5')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
           <CardTitle className="text-base">{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>
           <CardDescription>
             {title}

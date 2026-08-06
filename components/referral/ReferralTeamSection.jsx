@@ -14,6 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { postChatConversationFromProfile } from '@/lib/chat/conversation-api-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export function ReferralTeamSection({
   members = [],
@@ -65,15 +71,20 @@ export function ReferralTeamSection({
   }
 
   return (
-    <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'sm:shadow-[0_4px_12px_rgba(0,102,102,0.04)]',
+      )}
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <Users className="h-5 w-5 text-brand-hover" />
           {t('referralStage726_teamTitle')}
         </CardTitle>
         <CardDescription>{t('referralStage726_teamDesc')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         {!members.length ? (
           <ReferralEmptyState
             icon={UserPlus}

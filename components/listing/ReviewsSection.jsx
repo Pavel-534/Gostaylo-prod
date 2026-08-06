@@ -16,6 +16,10 @@ import {
   getReviewCriteriaRows,
 } from '@/lib/config/review-criteria-labels'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function formatReviewDate(iso, language) {
   if (!iso) return null
@@ -130,14 +134,20 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
 
           {/* Individual Reviews */}
           {reviewsArray.length > 0 && (
-            <div className="space-y-4 mt-6">
+            <div className="mt-6 max-sm:space-y-0 sm:space-y-4">
               {visibleReviews.map((review) => {
                 const stayDate =
                   formatReviewDate(review.bookingDates?.checkIn, language) ||
                   formatReviewDate(review.createdAt, language)
                 return (
-                  <Card key={review.id} className="border-slate-200">
-                    <CardContent className="p-6">
+                  <Card
+                    key={review.id}
+                    className={cn(
+                      MOBILE_FLAT_CARD_CLASS,
+                      'max-sm:border-b max-sm:border-slate-200 sm:border-slate-200',
+                    )}
+                  >
+                    <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:p-6')}>
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0">
                           <User className="h-6 w-6 text-brand" />

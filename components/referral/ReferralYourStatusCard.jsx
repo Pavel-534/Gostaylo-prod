@@ -10,6 +10,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Loader2, Medal, Smartphone } from 'lucide-react'
 import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
@@ -116,8 +121,13 @@ export function ReferralYourStatusCard({
         </div>
       </div>
 
-      <Card className="border-2 border-brand/25 bg-gradient-to-br from-brand/10 to-white">
-        <CardHeader className="pb-2">
+      <Card
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'sm:border-2 sm:border-brand/25 sm:bg-gradient-to-br sm:from-brand/10 sm:to-white',
+        )}
+      >
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-1">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -146,7 +156,7 @@ export function ReferralYourStatusCard({
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="space-y-2">
             <p className="text-xs text-slate-500">{t('stage73_ambassadorProgressCaption')}</p>
             <Progress value={Number(amb.tierProgressPercent || 0)} className="h-2" />

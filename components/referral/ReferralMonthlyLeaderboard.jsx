@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Trophy } from 'lucide-react'
 import { fetchReferralLeaderboard } from '@/lib/api/referral-public-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {{
@@ -54,8 +60,13 @@ export function ReferralMonthlyLeaderboard({ t, formatAmountLine, locale }) {
       : (amountThb) => String(Number(amountThb) || 0)
 
   return (
-    <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">
-      <CardHeader className="pb-2">
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'sm:shadow-[0_4px_12px_rgba(0,102,102,0.04)]',
+      )}
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-base flex items-center gap-2">
           <Trophy className="h-4 w-4 text-brand-hover shrink-0" />
           {t('stage74_leaderboardTitle')}
@@ -68,7 +79,7 @@ export function ReferralMonthlyLeaderboard({ t, formatAmountLine, locale }) {
           {period ? <span className="block tabular-nums">{period}</span> : null}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-600 py-4 justify-center">
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -10,6 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { GSL_BRAND_SHADOW_ICON, GSL_BRAND_SHADOW_RING, GSL_CARD } from '@/lib/theme/product-ui'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const ICONS = {
   empty: Search,
@@ -121,8 +125,13 @@ export function StorefrontStateView({
       data-variant={variant}
       role="status"
     >
-      <Card className={cn(GSL_CARD, 'w-full max-w-md')}>
-        <CardContent className="flex flex-col items-center px-6 py-8 text-center sm:px-8">
+      <Card className={cn(GSL_CARD, MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md')}>
+        <CardContent
+          className={cn(
+            MOBILE_FLAT_CARD_CONTENT_CLASS,
+            'flex flex-col items-center text-center max-sm:py-6 sm:px-8 sm:py-8 sm:pt-8',
+          )}
+        >
           <div className="relative mb-5 flex h-16 w-16 items-center justify-center" aria-hidden>
             <div className={cn('absolute inset-0 rounded-full bg-white', GSL_BRAND_SHADOW_RING)} />
             <div

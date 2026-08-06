@@ -6,6 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function formatWhen(iso, locale) {
   if (!iso) return '—'
@@ -64,15 +70,15 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
   }
 
   return (
-    <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <CardHeader className="pb-2">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-xl')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-base flex items-center gap-2">
           <History className="h-4 w-4 text-brand" />
           {t('stage1145_withdrawHistoryTitle')}
         </CardTitle>
         <CardDescription>{t('stage1145_withdrawHistorySubtitle')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         {withdrawalRows.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500 space-y-3">
             <p>{t('stage1146_withdrawHistoryEmpty')}</p>

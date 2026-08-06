@@ -14,11 +14,23 @@ import { QRCodeSVG } from 'qrcode.react'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { cn } from '@/lib/utils'
 import { RU_PAYMENT_METHODS, INTL_PAYMENT_METHODS } from '@/lib/payment/checkout-method-groups.js'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function PaymentMethodOptionRow({ opt }) {
   const Icon = opt.icon
   return (
-    <div className="flex items-center space-x-3 rounded-lg border border-slate-200/80 bg-white p-3 transition-colors hover:bg-slate-50 cursor-pointer">
+    <div
+      className={cn(
+        'flex cursor-pointer items-center space-x-3 transition-colors',
+        'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0 max-sm:py-3 max-sm:hover:bg-transparent',
+        'sm:rounded-lg sm:border sm:border-slate-200/80 sm:bg-white sm:p-3 sm:hover:bg-slate-50',
+      )}
+    >
       <RadioGroupItem value={opt.value} id={opt.id} />
       <Label htmlFor={opt.id} className="flex flex-1 cursor-pointer items-center gap-3">
         <Icon className={cn('h-5 w-5 shrink-0', opt.iconClassName)} />
@@ -42,8 +54,9 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
 
   return (
     <div className="md:col-span-2 space-y-6">
-      <Card>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader
+          className={MOBILE_FLAT_CARD_HEADER_CLASS}
           data-testid={
             p.paymentIntent?.id ? `checkout-payment-intent-${p.paymentIntent.id}` : undefined
           }
@@ -57,11 +70,14 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
             </p>
           )}
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <RadioGroup value={p.paymentMethod} onValueChange={p.setPaymentMethod} className="space-y-4">
             {ruOptions.length > 0 ? (
               <section
-                className="rounded-2xl border border-sky-200/90 bg-gradient-to-br from-sky-50/90 to-white p-4 space-y-3"
+                className={cn(
+                  MOBILE_FLAT_NESTED_PANEL_CLASS,
+                  'sm:border-sky-200/90 sm:bg-gradient-to-br sm:from-sky-50/90 sm:to-white',
+                )}
                 data-testid="checkout-payment-group-ru"
               >
                 <div className="space-y-1">
@@ -72,7 +88,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
                     {getUIText('checkout_paymentGroupRuHint', c.language)}
                   </p>
                 </div>
-                <div className="space-y-2">
+                <div className="max-sm:space-y-0 sm:space-y-2">
                   {ruOptions.map((opt) => (
                     <PaymentMethodOptionRow key={opt.value} opt={opt} />
                   ))}
@@ -82,13 +98,16 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
 
             {intlOptions.length > 0 ? (
               <section
-                className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3"
+                className={cn(
+                  MOBILE_FLAT_NESTED_PANEL_CLASS,
+                  'sm:border-slate-200 sm:bg-slate-50/50',
+                )}
                 data-testid="checkout-payment-group-intl"
               >
                 <h3 className="text-sm font-semibold tracking-tight text-slate-900">
                   {getUIText('checkout_paymentGroupIntlTitle', c.language)}
                 </h3>
-                <div className="space-y-2">
+                <div className="max-sm:space-y-0 sm:space-y-2">
                   {intlOptions.map((opt) => (
                     <PaymentMethodOptionRow key={opt.value} opt={opt} />
                   ))}
@@ -99,11 +118,11 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-base">{getUIText('checkout_promoTitle', c.language)}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="flex gap-2">
             <Input
               placeholder={getUIText('checkout_promoPlaceholder', c.language)}

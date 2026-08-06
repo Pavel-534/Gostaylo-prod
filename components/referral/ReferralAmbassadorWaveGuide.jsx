@@ -2,6 +2,12 @@
 
 import { BookOpen, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 143.1 — краткая инструкция для первой волны амбассадоров (in-app).
@@ -17,17 +23,17 @@ export function ReferralAmbassadorWaveGuide({ t }) {
 
   return (
     <Card
-      className="rounded-2xl border border-brand/20 bg-brand/5 shadow-sm"
+      className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-brand/20 sm:bg-brand/5')}
       data-testid="ambassador-first-wave-guide"
     >
-      <CardHeader className="pb-2">
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-brand" aria-hidden />
           {t('stage1431_ambassadorGuideTitle')}
         </CardTitle>
         <CardDescription>{t('stage1431_ambassadorGuideIntro')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
         <ol className="space-y-2.5">
           {steps.map((step, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700 leading-relaxed">

@@ -4,6 +4,12 @@ import { Plane, Building2, Settings, LogOut, MessageSquare, CheckCircle, Loader2
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export function ProfilePreferences({
   user,
@@ -15,11 +21,11 @@ export function ProfilePreferences({
   partnerNavLanguage = 'ru',
 }) {
   return (
-    <Card className="mb-6">
-      <CardHeader>
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-6')}>
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-base">Быстрые действия</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
         <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/my-bookings')}>
           <Plane className="h-4 w-4 mr-2 text-slate-500" />
           Мои бронирования
