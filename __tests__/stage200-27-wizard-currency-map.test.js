@@ -50,8 +50,10 @@ describe('Stage 200.27 / 200.38 — MapPicker height + geo viewport', () => {
     assert.match(src, /mapCenter/)
   })
 
-  it('Russia pin guess returns Europe/Moscow', () => {
+  it('Russia / Thailand pin guesses use offline IANA lookup', () => {
     const { guessIanaTimezoneFromLatLon } = require('../lib/geo/listing-timezone-guess.js')
     assert.equal(guessIanaTimezoneFromLatLon(55.75, 37.62), 'Europe/Moscow')
+    assert.equal(guessIanaTimezoneFromLatLon(55.03, 82.92), 'Asia/Novosibirsk')
+    assert.equal(guessIanaTimezoneFromLatLon(13.7563, 100.5018), 'Asia/Bangkok')
   })
 })

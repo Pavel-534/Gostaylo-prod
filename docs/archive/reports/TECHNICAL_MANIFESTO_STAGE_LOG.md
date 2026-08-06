@@ -287,6 +287,16 @@
 
 **Stage 200.39 (2026-08-05):** **Geo UX polish** — catalog map re-center on where; bbox URL for Search this area; listing/order labels via seed + `/api/v2/geo/listing-label`; SEO without Phuket defaults; softer legacy Phuket infer.
 
+**Stage 200.46 (2026-08-06):** **Pin↔country conflict** — detect + banner CTAs + Next blocker; city typeahead blur/Enter commit; `geo_pin_country` on merge. Tests: `__tests__/stage200-46-pin-country-conflict.test.js`.
+
+**Stage 200.47 (2026-08-06):** **Non-launch currency + provisional** — `COUNTRY_LISTING_BASE_CURRENCY` majors + USD fallback; L1 allowlist expand; provisional centroid/TZ/labels; ISO country display labels; resolve-where already includes `is_auto_imported`. Tests: `__tests__/stage200-47-non-launch-currency-provisional.test.js`.
+
+**Stage 200.48 (2026-08-06):** **Wizard geo e2e** — Playwright `wizard-geo-location`: DE save path, TH/RU FX regression, mobile typeahead. Wiring: `__tests__/stage200-48-wizard-geo-e2e-wiring.test.js`.
+
+**Stage 200.45 (2026-08-05):** **Country/city typeahead** — ISO catalog + `ensure-country`; city suggest scoped by country; provisional label normalize; optional region hubs. Tests: `__tests__/stage200-45-wizard-geo-typeahead.test.js`.
+
+**Stage 200.44 (2026-08-05):** **Place TZ + country currency** — wizard write: pin→`tz-lookup` IANA, then city/region catalog TZ, then country; currency always from country (ADR-181). `resolveListingPlaceTimezone`; StepLocation FX strip sync. Tests: `__tests__/stage200-44-listing-place-timezone.test.js`.
+
 **Stage 200.43 (2026-08-05):** **Location cascade-first UX** — `StepLocation`: Country→Region→City→District→Address primary; paste-address suggest collapsed; MapPicker last. Geo APIs / anti-coerce unchanged (200.36).
 
 **Stage 200.38 (2026-08-05):** **Delete country-presets** — removed `lib/geo/country-presets.js`; consumers → GeoService / `LAUNCH_GEO_SEED` (`launch-geo-index`); write snapshot without presets; fiscal currency stays in listing-asset-currency.

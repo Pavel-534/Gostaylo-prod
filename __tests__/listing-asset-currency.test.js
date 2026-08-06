@@ -7,11 +7,11 @@ const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
 
 describe('listing-asset-currency (ADR-181.2)', () => {
-  it('getDefaultListingBaseCurrency maps RU→RUB, TH→THB', async () => {
+  it('getDefaultListingBaseCurrency maps RU→RUB, TH→THB, unknown→USD', async () => {
     const { getDefaultListingBaseCurrency } = await import('@/lib/listing/listing-asset-currency.js')
     assert.equal(getDefaultListingBaseCurrency('RU'), 'RUB')
     assert.equal(getDefaultListingBaseCurrency('TH'), 'THB')
-    assert.equal(getDefaultListingBaseCurrency('XX'), 'THB')
+    assert.equal(getDefaultListingBaseCurrency('XX'), 'USD')
   })
 
   it('isRussiaListingGeo detects country, region, and city preset', async () => {

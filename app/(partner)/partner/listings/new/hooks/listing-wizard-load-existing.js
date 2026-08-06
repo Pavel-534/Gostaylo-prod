@@ -71,6 +71,27 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
       categoryName: c?.name || '',
       title: listing.title || '',
       description: pickPartnerFormDescription(language, listingDesc, rawMeta),
+      country:
+        listing.countryCode ||
+        listing.country_code ||
+        listing.country ||
+        rawMeta.country_code ||
+        rawMeta.countryCode ||
+        '',
+      region:
+        listing.regionCode ||
+        listing.region_code ||
+        listing.region ||
+        rawMeta.region_code ||
+        rawMeta.regionCode ||
+        '',
+      city:
+        listing.cityCode ||
+        listing.city_code ||
+        listing.city ||
+        rawMeta.city_code ||
+        rawMeta.cityCode ||
+        '',
       district: listing.district || '',
       latitude: listing.latitude ?? null,
       longitude: listing.longitude ?? null,

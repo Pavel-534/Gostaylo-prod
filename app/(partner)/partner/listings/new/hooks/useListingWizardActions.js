@@ -681,6 +681,9 @@ export function useListingWizardActions(state, derived) {
             state: addr?.state || null,
             district: addr?.suburb || addr?.neighbourhood || null,
             address: addr,
+            regionCode: r.regionCode || null,
+            cityCode: r.cityCode || null,
+            cityTimezone: r.timezone || null,
           },
         }),
       )

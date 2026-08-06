@@ -1,25 +1,37 @@
 'use client'
 
 /**
- * Stage 200.36 / 200.43 — Location step: cascade-first UX (Country → Region → City → District → Address).
- * Address search + map remain accelerators; geo_locations / anti-coerce unchanged.
+ * Stage 200.36 / 200.43 / 200.45 / 200.46 — Location: typeahead + pin/country conflict UX.
+ * Address search + map remain accelerators; geo merge via handleMapSelect / wizard-geo-from-pin.
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Loader2, MapPin, AlertTriangle, Search } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { LAUNCH_MARKETS } from '@/lib/geo/wizard-geo-from-pin'
 import { COUNTRY_CURRENCY_TZ } from '@/lib/geo/launch-markets-seed-data'
+import { resolveListingPlaceTimezone } from '@/lib/geo/listing-timezone-guess'
+import { getDefaultListingBaseCurrency } from '@/lib/listing/listing-asset-currency'
+import { normalizeGeoPlaceName } from '@/lib/geo/normalize-geo-place-name'
+import {
+  clearWizardFormPin,
+  detectPinCountryConflict,
+} from '@/lib/geo/wizard-pin-country-conflict'
+import { getIsoCountryLabel } from '@/lib/geo/iso-countries-catalog'
+import { getCountryMapViewportCentroid } from '@/lib/geo/country-map-viewport'
 import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
 } from './wizard-step-layout'
+import { WizardCountryTypeahead } from './WizardCountryTypeahead'
+import { WizardCityTypeahead } from './WizardCityTypeahead'
 import { cn } from '@/lib/utils'
 import { wizardFieldErrorClass, wizardFieldHasError } from '../lib/wizard-field-errors'
 import { getCurrencySymbol } from '@/lib/currency'
@@ -37,11 +49,18 @@ async function fetchGeoNodes({ level, parent, lang }) {
   return Array.isArray(json.data) ? json.data : []
 }
 
+function hasValidPin(formData) {
+  const lat = Number(formData?.latitude)
+  const lon = Number(formData?.longitude)
+  return Number.isFinite(lat) && Number.isFinite(lon)
+}
+
 function StepLocationInner() {
   const w = useListingWizard()
   const {
     t,
     formData,
+    setFormData,
     updateField,
     customDistricts,
     setCustomDistricts,
@@ -66,36 +85,69 @@ function StepLocationInner() {
   const errCountry = wizardFieldHasError(stepFieldErrors, 'country')
   const errCoords = wizardFieldHasError(stepFieldErrors, 'coordinates')
   const errCity = wizardFieldHasError(stepFieldErrors, 'city')
+  const errPinConflict = wizardFieldHasError(stepFieldErrors, 'pinCountryConflict')
 
-  const [countries, setCountries] = useState([])
   const [regions, setRegions] = useState([])
-  const [cities, setCities] = useState([])
   const [geoUnavailable, setGeoUnavailable] = useState(false)
-  const [cityManual, setCityManual] = useState(
-    () => String(formData.metadata?.city_label || formData.metadata?.city || ''),
-  )
   const [addressSearchOpen, setAddressSearchOpen] = useState(false)
+  const [pinConflictBusy, setPinConflictBusy] = useState(false)
   const debounceRef = useRef(null)
   const [mapCenter, setMapCenter] = useState(null)
 
+  const cityLabel = String(formData.metadata?.city_label || formData.metadata?.city || '')
   const cityUnmatched =
     formData.metadata?.geo_city_unmatched === true ||
-    (!formData.city && Boolean(String(formData.metadata?.city_label || '').trim()))
+    (!formData.city && Boolean(cityLabel.trim()))
 
   const launchOk = !formData.country || LAUNCH_MARKETS.has(String(formData.country).toUpperCase())
 
+  const pinConflict = useMemo(
+    () =>
+      detectPinCountryConflict({
+        country: formData.country,
+        lat: formData.latitude,
+        lon: formData.longitude,
+        pinCountryCode: formData.metadata?.geo_pin_country,
+        dismissed: formData.metadata?.geo_pin_country_conflict_dismissed === true,
+      }),
+    [
+      formData.country,
+      formData.latitude,
+      formData.longitude,
+      formData.metadata?.geo_pin_country,
+      formData.metadata?.geo_pin_country_conflict_dismissed,
+    ],
+  )
+
+  const countryDisplayLabel = useMemo(
+    () => getIsoCountryLabel(formData.country, language) || formData.country || '',
+    [formData.country, language],
+  )
+
   const currencyInfo = useMemo(() => {
     const iso = String(formData.country || '').toUpperCase()
-    const cur =
-      formData.baseCurrency ||
-      COUNTRY_CURRENCY_TZ[iso]?.currency ||
-      'THB'
+    const countryCur =
+      COUNTRY_CURRENCY_TZ[iso]?.currency || getDefaultListingBaseCurrency(iso) || 'USD'
+    const cur = baseCurrencyLocked
+      ? String(formData.baseCurrency || countryCur).toUpperCase()
+      : countryCur
     const tz =
-      formData.metadata?.timezone ||
-      COUNTRY_CURRENCY_TZ[iso]?.timezone ||
-      '—'
+      resolveListingPlaceTimezone({
+        lat: formData.latitude,
+        lon: formData.longitude,
+        cityTimezone: null,
+        countryCode: iso,
+        explicitTimezone: formData.metadata?.timezone,
+      }) || '—'
     return { cur, tz, symbol: getCurrencySymbol(cur) }
-  }, [formData.country, formData.baseCurrency, formData.metadata?.timezone])
+  }, [
+    formData.country,
+    formData.baseCurrency,
+    formData.metadata?.timezone,
+    formData.latitude,
+    formData.longitude,
+    baseCurrencyLocked,
+  ])
 
   const districtOptions = useMemo(() => {
     const set = new Set(
@@ -104,21 +156,7 @@ function StepLocationInner() {
     return Array.from(set)
   }, [customDistricts, formData.district])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const rows = await fetchGeoNodes({ level: 'country', lang: language })
-        if (!cancelled) setCountries(rows)
-      } catch {
-        if (!cancelled) setGeoUnavailable(true)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [language])
-
+  // Regions when country changes (optional hub cascade)
   useEffect(() => {
     const cc = formData.country
     if (!cc) {
@@ -130,44 +168,12 @@ function StepLocationInner() {
       const rows = await fetchGeoNodes({ parent: cc, lang: language })
       if (!cancelled) {
         setRegions(rows.filter((r) => r.level === 'region' || !r.level))
-        const cRow = countries.find((c) => c.code === cc)
-        if (cRow?.centroidLat != null && cRow?.centroidLng != null) {
-          setMapCenter([cRow.centroidLat, cRow.centroidLng])
-        }
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [formData.country, language, countries])
-
-  useEffect(() => {
-    const rc = formData.region
-    if (!rc) {
-      setCities([])
-      return undefined
-    }
-    let cancelled = false
-    ;(async () => {
-      const rows = await fetchGeoNodes({ parent: rc, lang: language })
-      if (!cancelled) {
-        setCities(rows.filter((r) => r.level === 'city' || r.level === 'neighborhood'))
-        const rRow = regions.find((r) => r.code === rc)
-        if (rRow?.centroidLat != null && rRow?.centroidLng != null) {
-          setMapCenter([rRow.centroidLat, rRow.centroidLng])
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [formData.region, language, regions])
-
-  useEffect(() => {
-    const label = String(formData.metadata?.city_label || formData.metadata?.city || '')
-    if (label && label !== cityManual) setCityManual(label)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from pin/metadata only
-  }, [formData.metadata?.city_label, formData.metadata?.city])
+  }, [formData.country, language])
 
   const runGeocodeSearch = useCallback(
     async (q) => {
@@ -221,6 +227,7 @@ function StepLocationInner() {
       address: r.address || null,
       regionCode: r.regionCode || null,
       cityCode: r.cityCode || null,
+      cityTimezone: r.timezone || null,
       geoSource: r.source || 'suggest',
     })
     try {
@@ -258,54 +265,200 @@ function StepLocationInner() {
     }
   }
 
-  const handleCountryChange = (code) => {
+  const applyCountrySideEffects = (code, meta = {}) => {
     updateField('country', code)
     updateField('region', '')
     updateField('city', '')
     updateField('district', '')
-    setCityManual('')
     updateMetadata('city_label', '')
+    updateMetadata('city', '')
     updateMetadata('geo_city_unmatched', false)
-    const ct = COUNTRY_CURRENCY_TZ[code]
-    if (ct?.timezone) updateMetadata('timezone', ct.timezone)
-    if (!baseCurrencyLocked && ct?.currency) updateField('baseCurrency', ct.currency)
+    updateMetadata('geo_pin_country_conflict_dismissed', false)
+    const nextCurrency =
+      COUNTRY_CURRENCY_TZ[code]?.currency || getDefaultListingBaseCurrency(code)
+    if (!baseCurrencyLocked && nextCurrency) {
+      updateField('baseCurrency', nextCurrency)
+    }
+    updateMetadata(
+      'timezone',
+      resolveListingPlaceTimezone({
+        lat: formData.latitude,
+        lon: formData.longitude,
+        countryCode: code,
+      }),
+    )
+    if (meta.centroidLat != null && meta.centroidLng != null) {
+      setMapCenter([meta.centroidLat, meta.centroidLng])
+    } else {
+      const fallback = getCountryMapViewportCentroid(code)
+      if (fallback) setMapCenter(fallback)
+    }
+  }
+
+  const handleCountrySelect = async (code) => {
+    // Optimistic: currency/TZ/cascade clear immediately (do not wait on ensure-country)
+    applyCountrySideEffects(code)
+    try {
+      const res = await fetch('/api/v2/partner/geo/ensure-country', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ country_code: code }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        setGeoUnavailable(true)
+      } else {
+        setGeoUnavailable(false)
+        if (json.data?.centroidLat != null && json.data?.centroidLng != null) {
+          setMapCenter([json.data.centroidLat, json.data.centroidLng])
+        }
+      }
+    } catch {
+      setGeoUnavailable(true)
+    }
   }
 
   const handleRegionChange = (code) => {
     updateField('region', code)
     updateField('city', '')
     updateField('district', '')
-    setCityManual('')
+    updateMetadata('city_label', '')
     updateMetadata('geo_city_unmatched', false)
-  }
-
-  const handleCitySelect = (code) => {
-    if (code === '__manual__') {
-      updateField('city', '')
-      updateMetadata('geo_city_unmatched', true)
-      return
+    const row = regions.find((r) => r.code === code)
+    if (row?.timezone || row?.centroidLat != null) {
+      updateMetadata(
+        'timezone',
+        resolveListingPlaceTimezone({
+          lat: formData.latitude ?? row?.centroidLat,
+          lon: formData.longitude ?? row?.centroidLng,
+          regionTimezone: row?.timezone,
+          countryCode: formData.country,
+        }),
+      )
     }
-    updateField('city', code)
-    const row = cities.find((c) => c.code === code)
-    if (row?.label) {
-      setCityManual(row.label)
-      updateMetadata('city_label', row.label)
-      updateMetadata('city', row.label)
-    }
-    updateMetadata('geo_city_unmatched', false)
-    updateField('district', '')
     if (row?.centroidLat != null && row?.centroidLng != null) {
       setMapCenter([row.centroidLat, row.centroidLng])
     }
   }
 
-  const onCityManualBlur = () => {
-    const label = String(cityManual || '').trim()
+  const handleCitySuggestSelect = async (r) => {
+    const label = normalizeGeoPlaceName(
+      r._normalizedLabel || r.labelRu || r.labelEn || r.address?.city || r.displayName,
+    )
+    const lat = Number(r.lat)
+    const lon = Number(r.lon)
+    const cityCode = r.cityCode || (r.level === 'city' || r.level === 'neighborhood' ? r.code : null)
+    const regionCode = r.regionCode || null
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      setMapCenter([lat, lon])
+    }
+
+    if (!hasValidPin(formData) && Number.isFinite(lat) && Number.isFinite(lon)) {
+      handleMapSelect(lat, lon, {
+        displayName: r.displayName || label,
+        countryCode: formData.country || r.address?.country_code,
+        country: r.address?.country,
+        city: label,
+        state: r.address?.state,
+        district: r.address?.suburb || r.address?.neighbourhood || null,
+        address: r.address || null,
+        regionCode,
+        cityCode,
+        cityTimezone: r.timezone || null,
+        geoSource: r.source || 'city_suggest',
+      })
+      return
+    }
+
+    if (regionCode) updateField('region', regionCode)
+    updateField('city', cityCode || '')
     updateMetadata('city_label', label)
     updateMetadata('city', label)
-    if (label && !formData.city) {
-      updateMetadata('geo_city_unmatched', true)
+    updateMetadata('geo_city_unmatched', !cityCode)
+    updateField('district', '')
+    if (!hasValidPin(formData)) {
+      updateMetadata(
+        'timezone',
+        resolveListingPlaceTimezone({
+          lat: Number.isFinite(lat) ? lat : null,
+          lon: Number.isFinite(lon) ? lon : null,
+          cityTimezone: r.timezone || null,
+          countryCode: formData.country,
+        }),
+      )
     }
+  }
+
+  const handleCityManualSelect = (label) => {
+    const normalized = normalizeGeoPlaceName(label)
+    updateField('city', '')
+    updateMetadata('city_label', normalized)
+    updateMetadata('city', normalized)
+    updateMetadata('geo_city_unmatched', true)
+    updateField('district', '')
+    if (!hasValidPin(formData)) {
+      updateMetadata(
+        'timezone',
+        resolveListingPlaceTimezone({ countryCode: formData.country }),
+      )
+    }
+  }
+
+  const handleCityClear = () => {
+    updateField('city', '')
+    updateMetadata('city_label', '')
+    updateMetadata('city', '')
+    updateMetadata('geo_city_unmatched', false)
+  }
+
+  const handlePinConflictKeepCountry = () => {
+    const tz = resolveListingPlaceTimezone({ countryCode: formData.country })
+    setFormData((prev) => clearWizardFormPin(prev, { timezone: tz }))
+  }
+
+  const handlePinConflictUseMap = async () => {
+    if (!hasValidPin(formData)) return
+    setPinConflictBusy(true)
+    try {
+      const lat = Number(formData.latitude)
+      const lon = Number(formData.longitude)
+      const rev = await fetch(`/api/v2/geocode/reverse?lat=${lat}&lon=${lon}`, {
+        cache: 'no-store',
+      })
+      const json = await rev.json().catch(() => ({}))
+      if (json.success && json.data) {
+        handleMapSelect(lat, lon, {
+          displayName: json.data.displayName,
+          district: json.data.district,
+          city: json.data.city,
+          country: json.data.country,
+          countryCode: json.data.countryCode,
+          state: json.data.state,
+          address: json.data.address,
+          regionCode: json.data.regionCode || null,
+          cityCode: json.data.cityCode || null,
+          timezone: json.data.timezone,
+          currencyCode: json.data.currencyCode,
+          geoSource: json.data.geoSource || 'pin_conflict_resolve',
+        })
+      } else {
+        handleMapSelect(lat, lon, {
+          countryCode: formData.metadata?.geo_pin_country || null,
+          geoSource: 'pin_conflict_resolve',
+        })
+      }
+      updateMetadata('geo_pin_country_conflict_dismissed', false)
+    } catch {
+      setGeoUnavailable(true)
+    } finally {
+      setPinConflictBusy(false)
+    }
+  }
+
+  const handlePinConflictDismiss = () => {
+    updateMetadata('geo_pin_country_conflict_dismissed', true)
   }
 
   return (
@@ -319,7 +472,6 @@ function StepLocationInner() {
         </p>
       </div>
 
-      {/* A — Primary cascade (what partners expect) */}
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_cascadeTitle')}</h3>
@@ -327,9 +479,66 @@ function StepLocationInner() {
         </div>
 
         {!launchOk ? (
-          <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+          <Alert
+            className="border-amber-200 bg-amber-50 text-amber-950"
+            data-testid="wizard-geo-non-launch-banner"
+          >
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-xs">{t('wizardGeo_nonLaunchWarning')}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {pinConflict.conflict &&
+        formData.metadata?.geo_pin_country_conflict_dismissed !== true ? (
+          <Alert
+            className={cn(
+              'border-amber-200 bg-amber-50 text-amber-950',
+              errPinConflict && 'ring-2 ring-red-400 ring-offset-2',
+            )}
+            data-wizard-field="pinCountryConflict"
+            data-wizard-field-error={errPinConflict ? 'true' : undefined}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="text-sm">{t('wizardGeo_pinConflictTitle')}</AlertTitle>
+            <AlertDescription className="space-y-3 text-xs">
+              <p>
+                {tr
+                  ? tr('wizardGeo_pinConflictBody', { country: countryDisplayLabel })
+                  : t('wizardGeo_pinConflictBody')}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Button
+                  type="button"
+                  variant="brand"
+                  className="min-h-[44px]"
+                  disabled={pinConflictBusy}
+                  onClick={handlePinConflictKeepCountry}
+                >
+                  {t('wizardGeo_pinConflictKeepCountry')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-[44px]"
+                  disabled={pinConflictBusy}
+                  onClick={handlePinConflictUseMap}
+                >
+                  {pinConflictBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {t('wizardGeo_pinConflictUseMap')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-[44px] text-slate-600"
+                  disabled={pinConflictBusy}
+                  onClick={handlePinConflictDismiss}
+                >
+                  {t('wizardGeo_pinConflictDismiss')}
+                </Button>
+              </div>
+            </AlertDescription>
           </Alert>
         ) : null}
 
@@ -341,28 +550,56 @@ function StepLocationInner() {
           </Alert>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div data-wizard-field="country" data-wizard-field-error={errCountry ? 'true' : undefined}>
             <Label className={cn('text-sm font-medium', errCountry && 'text-red-700')}>
               {t('country') || 'Country'}
             </Label>
-            <Select value={formData.country || undefined} onValueChange={handleCountryChange}>
-              <SelectTrigger
-                className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'country'))}
-              >
-                <SelectValue placeholder={t('wizardGeo_selectCountry')} />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="mt-1.5">
+              <WizardCountryTypeahead
+                value={formData.country || ''}
+                language={language}
+                hasError={errCountry}
+                placeholder={t('wizardGeo_countryTypeaheadPh')}
+                onSelect={handleCountrySelect}
+              />
+            </div>
           </div>
+
+          <div data-wizard-field="city" data-wizard-field-error={errCity ? 'true' : undefined}>
+            <Label className={cn('text-sm font-medium', errCity && 'text-red-700')}>
+              {t('city') || 'City'}
+            </Label>
+            <div className="mt-1.5">
+              <WizardCityTypeahead
+                countryCode={formData.country || ''}
+                valueLabel={cityLabel}
+                disabled={!formData.country}
+                hasError={errCity}
+                placeholder={
+                  formData.country
+                    ? t('wizardGeo_cityTypeaheadPh')
+                    : t('wizardGeo_cityNeedsCountry')
+                }
+                manualOptionLabel={t('wizardGeo_cityManualOption')}
+                t={t}
+                onSelectResult={handleCitySuggestSelect}
+                onSelectManual={handleCityManualSelect}
+                onClear={handleCityClear}
+              />
+            </div>
+            {cityUnmatched ? (
+              <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_cityUnmatchedHint')}</p>
+            ) : formData.country && !formData.city ? (
+              <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_cityBlurManualHint')}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {regions.length > 0 ? (
           <div>
             <Label className="text-sm font-medium">{t('region') || 'Region'}</Label>
+            <p className="mt-0.5 text-xs text-slate-500">{t('wizardGeo_regionOptionalHint')}</p>
             <Select
               value={formData.region || undefined}
               onValueChange={handleRegionChange}
@@ -380,44 +617,6 @@ function StepLocationInner() {
               </SelectContent>
             </Select>
           </div>
-          <div data-wizard-field="city" data-wizard-field-error={errCity ? 'true' : undefined}>
-            <Label className={cn('text-sm font-medium', errCity && 'text-red-700')}>
-              {t('city') || 'City'}
-            </Label>
-            <Select
-              value={formData.city || (cityUnmatched ? '__manual__' : undefined)}
-              onValueChange={handleCitySelect}
-              disabled={!formData.region && cities.length === 0}
-            >
-              <SelectTrigger
-                className={cn('mt-1.5 h-11', wizardFieldErrorClass(stepFieldErrors, 'city'))}
-              >
-                <SelectValue placeholder={t('wizardGeo_selectCity')} />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((ci) => (
-                  <SelectItem key={ci.code} value={ci.code}>
-                    {ci.label}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__manual__">{t('wizardGeo_cityManualOption')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {cityUnmatched ? (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">{t('wizardGeo_cityManualLabel')}</Label>
-            <Input
-              className="h-11"
-              value={cityManual}
-              onChange={(e) => setCityManual(e.target.value)}
-              onBlur={onCityManualBlur}
-              placeholder={t('wizardGeo_cityManualPh')}
-            />
-            <p className="text-xs text-slate-500">{t('wizardGeo_cityUnmatchedHint')}</p>
-          </div>
         ) : null}
 
         <div
@@ -428,7 +627,8 @@ function StepLocationInner() {
             {t('selectDistrict')}
           </Label>
           <Input
-            className={cn('mt-2 h-12', wizardFieldErrorClass(stepFieldErrors, 'district'))}
+            data-testid="wizard-district-input"
+            className={cn('mt-2 h-12 min-h-[44px]', wizardFieldErrorClass(stepFieldErrors, 'district'))}
             list="wizard-district-suggestions"
             value={formData.district || ''}
             onChange={(e) => {
@@ -465,13 +665,18 @@ function StepLocationInner() {
           />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+        <div
+          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600"
+          data-testid="wizard-geo-fx-strip"
+          data-currency={currencyInfo.cur}
+          data-timezone={currencyInfo.tz}
+        >
           <div className="font-medium text-slate-800">{t('wizardGeo_fxReadonlyTitle')}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <span>
+            <span data-testid="wizard-geo-fx-currency">
               {t('wizardGeo_currency')}: {currencyInfo.symbol} ({currencyInfo.cur})
             </span>
-            <span>
+            <span data-testid="wizard-geo-fx-timezone">
               {t('wizardListingTimezone')}: {currencyInfo.tz}
             </span>
           </div>
@@ -479,7 +684,6 @@ function StepLocationInner() {
         </div>
       </div>
 
-      {/* B — Optional address paste (accelerator) */}
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-3 sm:p-4">
         <button
           type="button"
@@ -549,7 +753,6 @@ function StepLocationInner() {
         ) : null}
       </div>
 
-      {/* C — Map (refine pin) */}
       <div>
         <Label className="text-base font-medium">
           {transportWizard ? t('mapLocationTransport') : t('mapLocation')}

@@ -123,7 +123,8 @@
 |------|
 | `GET|POST|PATCH /api/v2/partner/listings*` | Wizard draft-after-category; soft publish (`softPublish` → PENDING + `quality_incomplete`); locales via `mergeDescriptionTranslationsForSave`; Stage 200.36 geo assert on write |
 | `POST /api/v2/partner/listings/generate-description` | `mode: 'generate'\|'translate'` |
-| `POST /api/v2/partner/geo/provisional` | Upsert provisional city into `geo_locations` (map-first wizard) |
+| `POST /api/v2/partner/geo/provisional` | Upsert provisional city into `geo_locations`; name normalize + centroid/TZ backfill (Stage 200.45/200.47) |
+| `POST /api/v2/partner/geo/ensure-country` | Upsert ISO country row for wizard typeahead / FK (Stage 200.45) |
 | `GET /api/v2/geo/locations` | Cascade catalog (`level` / `parent` / `code`) |
 | `GET /api/v2/geo/resolve-where` | Public where → label/centroid/zoom (`geo_locations`) |
 | `GET /api/v2/geo/listing-label` | Listing location display line (codes → labels) |

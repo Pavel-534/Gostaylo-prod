@@ -258,6 +258,11 @@
 | 200.40 | 2026-08-05 | Partner mobile calendar: month grid, chrome polish, compact promo | Done |
 | 200.41 | 2026-08-05 | Partner mobile calendar: 3-month occupancy overview (heatmap) | Done |
 | 200.43 | 2026-08-05 | Wizard Location: cascade-first UX (search/map secondary) | Done |
+| 200.44 | 2026-08-05 | Wizard place TZ (tz-lookup pin) + country currency sync | Done |
+| 200.45 | 2026-08-05 | Wizard country/city typeahead + provisional name normalize | Done |
+| 200.46 | 2026-08-06 | Wizard pin↔country conflict UX + city blur/Enter commit | Done |
+| 200.47 | 2026-08-06 | Non-launch currency map (USD fallback) + provisional visibility | Done |
+| 200.48 | 2026-08-06 | Wizard Location geo e2e (DE + TH/RU + mobile typeahead) | Done |
 
 ## Пробелы в паспорте
 

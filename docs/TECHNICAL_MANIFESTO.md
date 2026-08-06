@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.21 | **Last Updated**: 2026-08-05 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.41** partner calendar 3-month overview.
+> **Version**: 13.2.23 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.48** wizard geo e2e.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -61,10 +61,54 @@
 - Display/SEO/TrustBar: `geo-display-label` + resolve-where labels; guest cards no invented Phuket.
 - Write path: `resolve-listing-geo-snapshot` pass-through codes (seed fill parents); fiscal/env separate from geo.
 
+### Stage 200.48 — Wizard Location geo e2e (plan Stage 6)
+
+- Playwright project `wizard-geo-location` → `tests/e2e/wizard-geo-location.spec.ts` (partner auth).
+- DE: create `[E2E_TEST_DATA]` draft → Location typeahead country/city/district + map pin → assert EUR + save fields.
+- TH/RU FX strip regression; mobile typeahead touch ≥44px (JP→JPY).
+- UI hooks: `wizard-country-typeahead`, `wizard-city-typeahead`, `wizard-geo-fx-strip`, `wizard-district-input`.
+- Optimistic country select (no wait on `ensure-country`); `getCountryMapViewportCentroid` for non-seed map re-center.
+- GET `/api/v2/partner/listings/[id]` + wizard load include `country/region/city` codes (round-trip FX).
+- Wiring unit: `__tests__/stage200-48-wizard-geo-e2e-wiring.test.js`. Run: `npx playwright test --project=wizard-geo-location`.
+
+### Stage 200.47 — Non-launch L1 currency + provisional visibility
+
+- **Currency map:** `COUNTRY_LISTING_BASE_CURRENCY` (DE→EUR, GB→GBP, CN→CNY, JP→JPY, …); unknown ISO → **USD** (was THB). Allowlist `LISTING_BASE_CURRENCIES` expanded for those L1 codes (ledger still THB mid).
+- Mirrors: `COUNTRY_CURRENCY_TZ`, `COUNTRY_TZ_MAP` defaults; `GeoService.getCurrencyAndTimezone` uses map + USD.
+- **Provisional:** `upsertProvisionalLocation` always writes centroid when lat/lng; TZ via `resolveListingPlaceTimezone`; reuse path backfills centroid/TZ. Labels normalized en+ru.
+- **Display:** `geo-display-label` uses `getIsoCountryLabel` when launch seed missing (no Phuket invent).
+- **Part C audit:** `resolve-where` / locations read filter `is_active` only — **do not** exclude `is_auto_imported` (provisional cities already searchable by code/label). Soft non-launch banner unchanged.
+- Tests: `__tests__/stage200-47-non-launch-currency-provisional.test.js`.
+
+### Stage 200.46 — Pin ↔ country conflict + city blur commit
+
+- Detect: `lib/geo/wizard-pin-country-conflict.js` (`detectPinCountryConflict`, `clearWizardFormPin`); policy `warn_block_next`.
+- `StepLocation`: amber banner + 3 CTAs (keep country/clear pin, update from map, dismiss); Next blocked via `wizardBlocker_pinCountryConflict`.
+- `WizardCityTypeahead`: blur / Enter commits manual city (or exact suggest match); empty blur clears via `onClear`.
+- Pin merge stores `metadata.geo_pin_country`; paste/suggest pass `regionCode` / `cityCode` into `mergeWizardFormGeoFromPin`.
+- Tests: `__tests__/stage200-46-pin-country-conflict.test.js`.
+
+### Stage 200.45 — Wizard country/city typeahead (ISO + suggest)
+
+- Country: ISO-3166 typeahead (`i18n-iso-countries` + DB country rows) via `WizardCountryTypeahead`; select calls `POST /api/v2/partner/geo/ensure-country` so `assertListingGeoCodes` FK passes for non-seed markets.
+- City: `WizardCityTypeahead` → `GET /api/v2/geocode/suggest?country=XX`; manual label → provisional on save; `normalizeGeoPlaceName` / `normalizeGeoPlaceKey` reduce duplicates.
+- Soft non-launch banner kept; optional region Select only when catalog children exist.
+- Place TZ / country currency (200.44) + `mergeWizardFormGeoFromPin` unchanged as write SSOT.
+- Tests: `__tests__/stage200-45-wizard-geo-typeahead.test.js`.
+
+### Stage 200.44 — Listing place timezone + country currency (wizard write)
+
+- **Currency** remains **country-scoped** (ADR-181 / `getDefaultListingBaseCurrency`).
+- **IANA TZ** write path: **pin lat/lon** (offline `tz-lookup` via `guessIanaTimezoneFromLatLon`) → catalog city/region TZ → country default. Country-row TZ from reverse must not override a pin.
+- SSOT helpers: `lib/geo/listing-timezone-guess.js` (`resolveListingPlaceTimezone`), wired in `wizard-geo-from-pin.js` + `StepLocation` country/city handlers and FX strip.
+- Chose `tz-lookup` over `geo-tz` v8 (mis-maps Thailand hubs to `Asia/Jakarta`).
+- Runtime read SSOT unchanged: `listings.metadata.timezone` → `resolveListingTimeZoneFromMetadata` (calendar / bookings).
+- Tests: `__tests__/stage200-44-listing-place-timezone.test.js`.
+
 ### Stage 200.43 — Location step cascade-first UX
 
 - Wizard `StepLocation` layout: **Country → Region → City → District → Address** first; optional paste-address suggest (collapsed); MapPicker last to refine pin.
-- Geo APIs / anti-coerce / provisional city / currency-TZ readonly unchanged (Stage 200.36).
+- Geo APIs / anti-coerce / provisional city / currency-TZ readonly unchanged (Stage 200.36). **TZ/currency write priority updated in 200.44.**
 
 ### Stage 200.36 — Map-first Location step (anti-coerce)
 

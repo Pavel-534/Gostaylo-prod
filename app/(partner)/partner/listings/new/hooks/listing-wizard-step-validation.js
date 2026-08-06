@@ -9,6 +9,7 @@ import {
   LISTING_QUALITY_MIN_TITLE,
   validateListingPublishQuality,
 } from '@/lib/partner/listing-quality-gates.js'
+import { detectPinCountryConflict } from '@/lib/geo/wizard-pin-country-conflict'
 
 /**
  * Step validation: 1 general+specs; 2 location; 3 photos; 4 pricing; 5 preview.
@@ -84,6 +85,20 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
       }
       if (!String(formData?.district || '').trim()) {
         blockers.push({ i18nKey: 'wizardBlocker_district', field: 'district' })
+      }
+      // Stage 200.46 — pin vs country conflict blocks Next until resolved/dismissed
+      const conflict = detectPinCountryConflict({
+        country: formData?.country,
+        lat: formData?.latitude,
+        lon: formData?.longitude,
+        pinCountryCode: formData?.metadata?.geo_pin_country,
+        dismissed: formData?.metadata?.geo_pin_country_conflict_dismissed === true,
+      })
+      if (conflict.blocked) {
+        blockers.push({
+          i18nKey: 'wizardBlocker_pinCountryConflict',
+          field: 'pinCountryConflict',
+        })
       }
       break
     }

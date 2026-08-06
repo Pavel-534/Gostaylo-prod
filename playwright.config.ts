@@ -56,6 +56,8 @@ const productionSmokeProjects =
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
  * Guest golden path: `tests/e2e/guest-inquiry-golden-path.spec.ts` — проект `guest-inquiry-golden-path`.
+ * Partner calendar: `tests/e2e/partner-calendar-flow.spec.ts` — проект `partner-calendar-flow`.
+ * Wizard geo Location (200.48): `tests/e2e/wizard-geo-location.spec.ts` — проект `wizard-geo-location`.
  * CRO funnel smoke (191.1): `tests/e2e/cro-funnel-smoke.spec.ts` — проект `cro-funnel-smoke` (presentation-only).
  * Chat invoice golden path: `tests/e2e/chat-invoice-payment-golden-path.spec.ts` — проект `chat-invoice-payment-golden-path`.
  * Stage 133 referral dashboard visual: `tests/e2e/referral-dashboard-visual.spec.js` — проект `referral-dashboard-visual` (fixture + snapshots).
@@ -106,6 +108,17 @@ export default defineConfig({
       testDir: './tests/e2e',
       testMatch: '**/partner-calendar-flow.spec.ts',
       timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.partner,
+      },
+    },
+    {
+      name: 'wizard-geo-location',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/wizard-geo-location.spec.ts',
+      timeout: 240_000,
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH.partner,
