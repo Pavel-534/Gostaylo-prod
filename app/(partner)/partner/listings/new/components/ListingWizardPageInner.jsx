@@ -14,6 +14,7 @@ import { StepCalendarSection } from './StepCalendarSection'
 import { ListingWizardChrome } from './chrome/ListingWizardChrome'
 import { ListingWizardStepFooter } from './chrome/ListingWizardStepFooter'
 import { ListingWizardMobileActionBar } from './chrome/ListingWizardMobileActionBar'
+import { ListingWizardMobileBlockers } from './chrome/ListingWizardMobileBlockers'
 import { ListingWizardPreviewPanel } from './preview/ListingWizardPreviewPanel'
 import { WizardResumeDraftBanner } from './chrome/WizardResumeDraftBanner'
 import {
@@ -169,8 +170,9 @@ export function ListingWizardPageInner() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card className="rounded-2xl border-slate-200/90 bg-white shadow-sm">
-              <CardContent className="p-4 sm:p-8">
-                <div className="relative z-0">{stepContent}</div>
+              <CardContent className="min-w-0 overflow-x-hidden p-4 sm:p-8">
+                <div className="relative z-0 min-w-0">{stepContent}</div>
+                <ListingWizardMobileBlockers />
                 <Separator className="my-8 hidden sm:block" />
                 <ListingWizardStepFooter />
               </CardContent>

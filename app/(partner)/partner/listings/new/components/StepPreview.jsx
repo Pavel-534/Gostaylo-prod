@@ -91,8 +91,8 @@ function StepPreviewInner() {
               district: formData.district || t('previewDistrictPlaceholder'),
               categorySlug: listingCategorySlug,
               category: { slug: listingCategorySlug },
-              basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
-              base_price_thb: parseFloat(String(formData.basePriceThb)) || 0,
+              basePriceThb: Number(pricingPreview?.base) || 0,
+              base_price_thb: Number(pricingPreview?.base) || 0,
               guestDisplayPriceThb:
                 pricingPreview?.storefrontGuestDisplayThb ??
                 pricingPreview?.sitePriceSameCurrency ??

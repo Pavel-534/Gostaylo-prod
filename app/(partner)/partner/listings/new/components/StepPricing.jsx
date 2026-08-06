@@ -16,6 +16,7 @@ import { PartnerCancellationPolicyPreview } from '@/components/partner/wizard/Pa
 import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/WizardPartnerEarningsCalculator'
 import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 import { getCurrencySymbol } from '@/lib/currency'
+import { LISTING_BASE_CURRENCIES } from '@/lib/finance/currency-codes'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { cn } from '@/lib/utils'
@@ -133,10 +134,11 @@ function StepPricingInner() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="THB">THB (Thai Baht)</SelectItem>
-                <SelectItem value="RUB">RUB (Russian Ruble)</SelectItem>
-                <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                {LISTING_BASE_CURRENCIES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {code} ({getCurrencySymbol(code)})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {baseCurrencyLocked ? (

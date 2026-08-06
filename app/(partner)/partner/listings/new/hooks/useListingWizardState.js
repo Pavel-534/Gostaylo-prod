@@ -91,8 +91,9 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
   const [formData, setFormData] = useState(() => initialDraft?.formData || getDefaultWizardFormData())
   /** Stage 140.2 — server baseline signature for edit-mode dirty detection. */
   const [editBaseline, setEditBaseline] = useState(null)
-  /** Stage 110.4 — retail FX rateMap (как на витрине) для preview в baseCurrency листинга. */
+  /** Stage 110.4 / 200.49 — retail for guest header FX; mid for L1 asset → THB preview canon. */
   const [storefrontExchangeRates, setStorefrontExchangeRates] = useState(null)
+  const [midExchangeRates, setMidExchangeRates] = useState(null)
 
   const fileInputRef = useRef(null)
   const draftListingIdRef = useRef(initialDraft?.listingId || null)
@@ -113,6 +114,9 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
         fetchExchangeRates({ retail: true })
           .then(setStorefrontExchangeRates)
           .catch(() => setStorefrontExchangeRates({ THB: 1 }))
+        fetchExchangeRates({ retail: false })
+          .then(setMidExchangeRates)
+          .catch(() => setMidExchangeRates({ THB: 1 }))
 
         let userId = localStorage.getItem('gostaylo_user_id')
         if (!userId) {
@@ -265,6 +269,7 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     formData,
     setFormData,
     storefrontExchangeRates,
+    midExchangeRates,
     fileInputRef,
     draftListingIdRef,
     ensuringDraftRef,

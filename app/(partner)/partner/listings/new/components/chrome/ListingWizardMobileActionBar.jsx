@@ -22,8 +22,8 @@ export function ListingWizardMobileActionBar() {
         aria-label={t('wizardMobileNavAria')}
         data-testid="listing-wizard-mobile-action-bar"
       >
-        <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 safe-area-pb">
-          <ListingWizardStepActions onOpenPreview={() => setPreviewOpen(true)} />
+        <div className="mx-auto flex w-full max-w-7xl min-w-0 items-center gap-2 px-4 py-3 safe-area-pb">
+          <ListingWizardStepActions onOpenPreview={() => setPreviewOpen(true)} showBlockersHint={false} />
         </div>
       </div>
 

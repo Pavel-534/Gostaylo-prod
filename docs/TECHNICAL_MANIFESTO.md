@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.23 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.48** wizard geo e2e.
+> **Version**: 13.2.25 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.50** wizard mobile layout.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,20 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.50 — Wizard mobile layout (Location / action bar)
+
+- Mobile bottom bar: icon-only Back + Preview (44×44), full **Next** label — no mid-word truncate (`Наз…` / `Посмотре…`).
+- Blockers tip moved into step card (`ListingWizardMobileBlockers`); fixed bar height stays `4.5rem`.
+- Pin↔country conflict Alert: `whitespace-normal` full-width CTAs; inset ring (no `ring-offset` horizontal bleed).
+
+### Stage 200.49 — Wizard preview: L1 asset → THB before guest FX
+
+- Bug: form `basePriceThb` holds L1 asset (EUR/RUB/USD/…); preview treated it as THB → header RUB e.g. ₽4.4k for €1500 or ₽12.4k for ₽4200 (`asset × retail as if THB`).
+- Partner list L1 (asset) was already correct; DB `base_price_thb` canon OK — only guest **preview** path was wrong for **all** non-THB L1.
+- Fix: `computeWizardStorefrontPricePreview` converts asset→THB via **mid** rateMap, then guest fee; card uses that THB + **retail** header FX.
+- Wizard loads mid + retail (`useListingWizardState`); StepPricing Select = full `LISTING_BASE_CURRENCIES`; load prefers `base_price_asset.currency`.
+- Test: `__tests__/wizard-storefront-price-preview.test.js` (EUR + RUB + USD).
 
 ### Stage 200.41 — Partner calendar 3-month overview
 

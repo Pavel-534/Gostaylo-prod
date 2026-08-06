@@ -176,15 +176,23 @@ export function wizardStepFieldErrorsFromBlockers(blockers) {
 }
 
 /**
- * Витрина: guest fee в THB + retail FX в `listingBaseCurrency` (если ≠ THB и есть rateMap).
- * @param {number | string} basePriceThb
+ * Витрина preview: L1 asset → THB (mid) → guest fee; optional retail map for listing-currency strip.
+ * Stage 200.49 — form field `basePriceThb` holds asset amount in `listingBaseCurrency`.
+ * @param {number | string} assetAmount
  * @param {object} pricingPolicy
- * @param {{ listingBaseCurrency?: string, exchangeRates?: Record<string, number> | null }} [ctx]
+ * @param {{
+ *   listingBaseCurrency?: string,
+ *   exchangeRates?: Record<string, number> | null,
+ *   midExchangeRates?: Record<string, number> | null,
+ *   retailExchangeRates?: Record<string, number> | null,
+ * }} [ctx]
  */
-export function computeWizardPricingPreview(basePriceThb, pricingPolicy, ctx = {}) {
-  return computeWizardStorefrontPricePreview(basePriceThb, pricingPolicy, {
+export function computeWizardPricingPreview(assetAmount, pricingPolicy, ctx = {}) {
+  return computeWizardStorefrontPricePreview(assetAmount, pricingPolicy, {
     listingBaseCurrency: ctx.listingBaseCurrency,
     exchangeRates: ctx.exchangeRates,
+    midExchangeRates: ctx.midExchangeRates,
+    retailExchangeRates: ctx.retailExchangeRates,
   })
 }
 

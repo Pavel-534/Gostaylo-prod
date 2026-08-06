@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.50 | 2026-08-06 | Wizard mobile action bar + pin-conflict overflow layout | Done |
+| 200.49 | 2026-08-06 | Wizard preview L1→THB mid before guest retail FX | Done |
 | 201.03 | 2026-07-31 | Settle lock heartbeat refresh + TTL 1800s; AUDIT_02 closed (`v1.0.1-audit02`) | Done |
 | 201.02 | 2026-07-31 | Concierge settle single-flight (metadata CAS) | Done |
 | 201.01 | 2026-07-31 | Atomic held referral balance RPC | Done |

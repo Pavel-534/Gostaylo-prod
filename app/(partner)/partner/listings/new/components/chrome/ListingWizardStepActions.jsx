@@ -12,8 +12,10 @@ import { scrollWizardFieldIntoView } from '../../lib/wizard-field-errors'
 
 /**
  * SSOT step navigation buttons — shared by card footer (desktop) and mobile action bar.
+ * Mobile: icon-only Back/Preview + full primary label (no mid-word truncate). Blockers live
+ * in the step card on mobile (`ListingWizardMobileBlockers`) so the fixed bar height stays stable.
  */
-export function ListingWizardStepActions({ onOpenPreview = null }) {
+export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHint = true }) {
   const {
     t,
     tr,
@@ -36,7 +38,8 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
   const lastStepBusy = isEditRoute ? loading || patching || publishing : loading
   const isMobileLayout = Boolean(onOpenPreview)
   const isLastStep = currentStep >= LISTING_WIZARD_STEP_COUNT
-  const showStepHints = !isLastStep && !canProceed && (stepBlockers?.length ?? 0) > 0
+  const showStepHints =
+    showBlockersHint && !isLastStep && !canProceed && (stepBlockers?.length ?? 0) > 0
 
   const lastStepLabel = (() => {
     if (isEditMode) {
@@ -66,12 +69,14 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
       disabled={currentStep === 1}
       className={cn(
         'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
-        isMobileLayout && 'flex-1 min-w-0',
+        isMobileLayout ? 'w-11 shrink-0 px-0' : undefined,
       )}
       type="button"
+      aria-label={t('back')}
+      title={t('back')}
     >
       <ArrowLeft className="h-4 w-4 shrink-0" />
-      <span className={isMobileLayout ? 'truncate' : undefined}>{t('back')}</span>
+      {isMobileLayout ? null : <span>{t('back')}</span>}
     </Button>
   )
 
@@ -83,7 +88,7 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         variant="outline"
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
-          isMobileLayout && 'flex-1 min-w-0',
+          isMobileLayout && 'min-w-0 flex-1 px-2 text-xs',
         )}
         type="button"
         data-testid="wizard-soft-publish-btn"
@@ -106,14 +111,14 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         variant="brand"
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
-          isMobileLayout && 'flex-1 min-w-0',
+          isMobileLayout && 'min-w-0 flex-1',
           !canProceed && 'opacity-90',
         )}
         type="button"
         aria-disabled={!canProceed}
         data-testid="wizard-next-btn"
       >
-        <span className={isMobileLayout ? 'truncate' : undefined}>{t('next')}</span>
+        <span>{t('next')}</span>
         <ArrowRight className="h-4 w-4 shrink-0" />
       </Button>
     ) : (
@@ -123,7 +128,7 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
         variant="brand"
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
-          isMobileLayout && 'flex-1 min-w-0',
+          isMobileLayout && 'min-w-0 flex-1 px-2 text-xs sm:text-sm',
         )}
         type="button"
         data-testid="wizard-full-publish-btn"
@@ -138,12 +143,12 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
     )
 
   const hints = showStepHints ? (
-    <WizardStepBlockersHint blockers={stepBlockers} t={t} tr={tr} className="w-full" />
+    <WizardStepBlockersHint blockers={stepBlockers} t={t} tr={tr} className="w-full min-w-0" />
   ) : null
 
   if (!onOpenPreview) {
     return (
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full min-w-0 flex-col gap-2">
         {hints}
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           {backButton}
@@ -157,23 +162,21 @@ export function ListingWizardStepActions({ onOpenPreview = null }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-2">
-      {hints}
-      <div className="flex w-full items-center gap-2">
-        {backButton}
-        <Button
-          variant="outline"
-          onClick={onOpenPreview}
-          className="min-h-[44px] min-w-[44px] shrink-0 gap-1.5 rounded-xl px-2.5"
-          type="button"
-          aria-label={t('wizardViewPreview')}
-        >
-          <Eye className="h-4 w-4 shrink-0" />
-          <span className="max-w-[4.5rem] truncate text-xs font-medium">{t('wizardViewPreview')}</span>
-        </Button>
-        {softPublishButton}
-        {primaryButton}
-      </div>
+    <div className="flex w-full min-w-0 items-center gap-2">
+      {backButton}
+      <Button
+        variant="outline"
+        onClick={onOpenPreview}
+        className="h-11 w-11 shrink-0 rounded-xl px-0"
+        type="button"
+        aria-label={t('wizardViewPreview')}
+        title={t('wizardViewPreview')}
+        data-testid="wizard-mobile-preview-btn"
+      >
+        <Eye className="h-4 w-4 shrink-0" />
+      </Button>
+      {softPublishButton}
+      {primaryButton}
     </div>
   )
 }

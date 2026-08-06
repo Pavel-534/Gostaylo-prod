@@ -106,7 +106,12 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
           ),
         ) || '',
       baseCurrency:
-        listing.baseCurrency || listing.base_currency || listing.metadata?.base_currency || 'THB',
+        listing.baseCurrency ||
+        listing.base_currency ||
+        listing.basePriceAsset?.currency ||
+        listing.metadata?.base_price_asset?.currency ||
+        listing.metadata?.base_currency ||
+        'THB',
       commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,
       minBookingDays: tourCat
         ? 1

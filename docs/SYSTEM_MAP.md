@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.21 | **Last Updated**: 2026-08-05 | **Stage 200.41:** 3-month calendar overview; **200.40:** month grid; **200.39:** geo UX polish.  
+> **Version**: 13.2.23 | **Last Updated**: 2026-08-06 | **Stage 200.50:** wizard mobile layout; **200.49:** preview L1→THB FX; **200.48** geo e2e.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -49,7 +49,7 @@
 | Таблица | Назначение |
 |---------|------------|
 | `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral |
-| `listings` | Объявления; `base_price_thb` THB-канон; `metadata` JSONB; статус модерации |
+| `listings` | Объявления; `base_price_thb` THB-канон (L1 asset→THB mid); wizard form `basePriceThb` = asset in `baseCurrency` (preview: mid→THB→guest fee→retail header FX, Stage 200.49); `metadata` JSONB; статус модерации |
 | `categories` | Вертикали: `slug`, `wizard_profile`, i18n, visibility flags |
 | `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки |
 | `conversations` | Чаты; deal SSOT через `booking_id` |

@@ -472,7 +472,7 @@ function StepLocationInner() {
         </p>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 min-w-0 overflow-x-hidden">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_cascadeTitle')}</h3>
           <p className="mt-1 text-xs text-slate-500">{t('wizardGeo_cascadeHint')}</p>
@@ -492,25 +492,25 @@ function StepLocationInner() {
         formData.metadata?.geo_pin_country_conflict_dismissed !== true ? (
           <Alert
             className={cn(
-              'border-amber-200 bg-amber-50 text-amber-950',
-              errPinConflict && 'ring-2 ring-red-400 ring-offset-2',
+              'min-w-0 overflow-hidden border-amber-200 bg-amber-50 text-amber-950',
+              errPinConflict && 'border-red-400 ring-2 ring-inset ring-red-400',
             )}
             data-wizard-field="pinCountryConflict"
             data-wizard-field-error={errPinConflict ? 'true' : undefined}
           >
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-sm">{t('wizardGeo_pinConflictTitle')}</AlertTitle>
-            <AlertDescription className="space-y-3 text-xs">
-              <p>
+            <AlertDescription className="min-w-0 space-y-3 text-xs">
+              <p className="break-words">
                 {tr
                   ? tr('wizardGeo_pinConflictBody', { country: countryDisplayLabel })
                   : t('wizardGeo_pinConflictBody')}
               </p>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="flex min-w-0 flex-col gap-2">
                 <Button
                   type="button"
                   variant="brand"
-                  className="min-h-[44px]"
+                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug"
                   disabled={pinConflictBusy}
                   onClick={handlePinConflictKeepCountry}
                 >
@@ -519,19 +519,19 @@ function StepLocationInner() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-h-[44px]"
+                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug"
                   disabled={pinConflictBusy}
                   onClick={handlePinConflictUseMap}
                 >
                   {pinConflictBusy ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
                   ) : null}
                   {t('wizardGeo_pinConflictUseMap')}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  className="min-h-[44px] text-slate-600"
+                  className="h-auto min-h-[44px] w-full whitespace-normal px-3 py-2 text-center leading-snug text-slate-600"
                   disabled={pinConflictBusy}
                   onClick={handlePinConflictDismiss}
                 >

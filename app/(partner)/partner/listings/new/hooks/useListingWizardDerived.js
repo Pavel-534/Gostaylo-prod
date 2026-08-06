@@ -164,8 +164,16 @@ export function useListingWizardDerived(state) {
       computeWizardPricingPreview(formData.basePriceThb, pricingPolicy, {
         listingBaseCurrency: formData.baseCurrency,
         exchangeRates: state.storefrontExchangeRates,
+        midExchangeRates: state.midExchangeRates,
+        retailExchangeRates: state.storefrontExchangeRates,
       }),
-    [formData.basePriceThb, formData.baseCurrency, pricingPolicy, state.storefrontExchangeRates],
+    [
+      formData.basePriceThb,
+      formData.baseCurrency,
+      pricingPolicy,
+      state.storefrontExchangeRates,
+      state.midExchangeRates,
+    ],
   )
 
   const progress = useMemo(
