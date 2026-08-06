@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.26 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.51** wizard geo cascade (camera vs pin).
+> **Version**: 13.2.27 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203** + ADR-203 Phase 1 shadow; **Stage 200.52** wizard mobile flat canvas Phase 1.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.52 — Wizard mobile flat canvas (Phase 1)
+
+- Design brief: nesting depth ≤1 on `&lt;sm`; Option B clean canvas; section numbers kept; Phase 1 → screens → Phase 2.
+- SSOT tokens: `wizard-step-layout.js` (`WIZARD_MOBILE_FLAT_*`).
+- Phase 1 files: `ListingWizardPageInner` shell + `StepGeneralInfo` (no outer/inner card chrome on mobile; desktop `sm+` unchanged).
+- Phase 2 (later): Location / Pricing / Photos same tokens.
 
 ### Stage 200.51 — Wizard geo cascade: camera follows, pin is intentional
 

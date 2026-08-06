@@ -23,6 +23,10 @@ import {
   WIZARD_MOBILE_CONTENT_PB_CLASS,
   formatWizardStepMarkerLabel,
 } from './chrome/listing-wizard-layout'
+import {
+  WIZARD_MOBILE_FLAT_SHELL_CARD_CLASS,
+  WIZARD_MOBILE_FLAT_SHELL_CONTENT_CLASS,
+} from './wizard-step-layout'
 import { PartnerReferralWizardBanner } from '@/components/partner/PartnerReferralWizardBanner'
 import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 import { useWorkspaceScrollTrigger, findWorkspaceScrollRoot } from '@/lib/hooks/use-workspace-scroll-trigger'
@@ -169,8 +173,8 @@ export function ListingWizardPageInner() {
         ) : null}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Card className="rounded-2xl border-slate-200/90 bg-white shadow-sm">
-              <CardContent className="min-w-0 overflow-x-hidden p-4 sm:p-8">
+            <Card className={WIZARD_MOBILE_FLAT_SHELL_CARD_CLASS}>
+              <CardContent className={WIZARD_MOBILE_FLAT_SHELL_CONTENT_CLASS}>
                 <div className="relative z-0 min-w-0">{stepContent}</div>
                 <ListingWizardMobileBlockers />
                 <Separator className="my-8 hidden sm:block" />

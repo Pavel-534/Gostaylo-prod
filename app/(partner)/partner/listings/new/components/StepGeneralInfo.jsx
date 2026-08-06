@@ -1,7 +1,6 @@
 'use client'
 
 import { memo, useRef, useState } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +19,9 @@ import {
   WIZARD_STEP_ROOT_CLASS,
   WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
+  WIZARD_MOBILE_FLAT_SECTION_CLASS,
+  WIZARD_MOBILE_FLAT_INSET_CLASS,
+  WIZARD_MOBILE_FLAT_CARD_CLASS,
 } from './wizard-step-layout'
 import { cn } from '@/lib/utils'
 import {
@@ -90,12 +92,13 @@ function StepGeneralInfoInner() {
       </div>
 
       {/* Section A — identity (Airbnb-like: decide what you're listing first) */}
-      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS}>
         <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_identity')}</h3>
         <div
           className={cn(
-            'space-y-3 rounded-xl border bg-slate-50/60 p-4',
-            errService ? WIZARD_FIELD_ERROR_BOX : 'border-slate-200',
+            WIZARD_MOBILE_FLAT_INSET_CLASS,
+            errService && WIZARD_FIELD_ERROR_BOX,
+            errService && 'max-sm:rounded-xl max-sm:border max-sm:p-3',
           )}
           data-wizard-field="listingServiceType"
           data-wizard-field-error={errService ? 'true' : undefined}
@@ -110,15 +113,17 @@ function StepGeneralInfoInner() {
           <RadioGroup
             value={formData.listingServiceType || ''}
             onValueChange={setListingServiceType}
-            className="grid gap-2 sm:grid-cols-2"
+            className="grid w-full gap-2 sm:grid-cols-2"
           >
             {(['stay', 'transport', 'service', 'tour']).map((value) => (
               <label
                 key={value}
-                className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm hover:border-brand/40"
+                className="flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm hover:border-brand/40"
               >
                 <RadioGroupItem value={value} id={`svc-${value}`} />
-                <span className="font-medium text-slate-800">{t(`wizardServiceType_${value}`)}</span>
+                <span className="min-w-0 flex-1 font-medium text-slate-800">
+                  {t(`wizardServiceType_${value}`)}
+                </span>
               </label>
             ))}
           </RadioGroup>
@@ -137,7 +142,7 @@ function StepGeneralInfoInner() {
           {errCategory ? (
             <p className="mt-1 text-xs font-medium text-red-600">{t('wizardBlocker_category')}</p>
           ) : null}
-          <div className="mt-3">
+          <div className="mt-3 w-full min-w-0">
             <PartnerCategoryPickerTwoStep
               categories={wizardCategoriesForSelect}
               listingServiceType={formData.listingServiceType}
@@ -158,7 +163,7 @@ function StepGeneralInfoInner() {
             )
             if (!transportFields.length) return null
             return (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4 space-y-3">
+              <div className={cn(WIZARD_MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/40')}>
                 <p className="text-sm leading-relaxed text-slate-600">{t('wizardSpecsVehicleSearchHint')}</p>
                 <WizardSchemaFields
                   fields={transportFields}
@@ -175,7 +180,7 @@ function StepGeneralInfoInner() {
       </section>
 
       {/* Section B — title / description / AI */}
-      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS}>
         <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_basics')}</h3>
         <div
           data-wizard-field="title"
@@ -306,7 +311,7 @@ function StepGeneralInfoInner() {
       {/* Section C — check-in / handoff (collapsed by default unless already filled) */}
       {formData.listingServiceType ? (
         <details
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm open:pb-5 sm:p-5"
+          className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'open:max-sm:pb-0 open:sm:pb-5')}
           defaultOpen={hasCheckInContent}
         >
           <summary className="flex min-h-[44px] cursor-pointer list-none items-center text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
@@ -412,9 +417,9 @@ function StepGeneralInfoInner() {
       ) : null}
 
       {formData.categoryId ? (
-        <Card className="rounded-2xl border-slate-200/80 p-4 sm:p-5">
+        <div className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
           <WizardSpecsSection />
-        </Card>
+        </div>
       ) : null}
     </div>
   )
