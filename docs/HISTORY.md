@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.53.2 | 2026-08-07 | Partner calendar perf: parallel builds, seasonal range filter, month skeleton/prefetch | Done |
 | 200.55 | 2026-08-06 | Guest Wave 2B mobile-flat: favorites, profile/wallet/settings, `/u`, reviews | Done |
 | 200.54 | 2026-08-06 | Guest Wave 2A mobile-flat: home → listings → PDP → checkout → my-bookings | Done |
 | 200.53.1 | 2026-08-06 | Partner calendar month/overview: keepPreviousData, no full-page spinner | Done |

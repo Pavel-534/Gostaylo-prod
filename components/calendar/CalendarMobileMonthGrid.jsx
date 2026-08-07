@@ -64,6 +64,8 @@ export function CalendarMobileMonthGrid({
   language = 'ru',
   /** YYYY-MM-dd — month being viewed (start of month preferred) */
   monthAnchor,
+  /** True while a wider range is loading — skeleton days outside cached `dates`. */
+  rangePending = false,
 }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
@@ -251,6 +253,7 @@ export function CalendarMobileMonthGrid({
                         : null
                       const today = isDateToday(day)
                       const rangeRole = getCellRangeRole?.(id, dateStr) ?? null
+                      const pendingCell = inMonth && !inFetched && rangePending
                       const interactive = inMonth && inFetched
                       const price =
                         cellData?.status === 'AVAILABLE'
@@ -274,7 +277,8 @@ export function CalendarMobileMonthGrid({
                           className={cn(
                             'relative flex min-h-[48px] flex-col items-stretch rounded-lg border p-0.5 text-left transition-colors touch-manipulation',
                             !inMonth && 'border-transparent bg-transparent opacity-35',
-                            inMonth && !inFetched && 'border-slate-100 bg-slate-50 opacity-60',
+                            pendingCell && 'border-slate-100 bg-slate-50',
+                            inMonth && !inFetched && !rangePending && 'border-slate-100 bg-slate-50 opacity-60',
                             interactive && 'border-slate-200',
                             interactive && cellSurfaceClass(cellData),
                             today && interactive && 'ring-2 ring-brand ring-offset-1',
@@ -287,12 +291,14 @@ export function CalendarMobileMonthGrid({
                               ? format(day, 'd MMMM yyyy', { locale: dfLocale })
                               : undefined
                           }
+                          aria-busy={pendingCell || undefined}
                           aria-current={today ? 'date' : undefined}
                         >
                           <span
                             className={cn(
                               'text-[11px] font-bold leading-none',
                               today && interactive && 'text-brand-hover',
+                              pendingCell && 'text-slate-400',
                               interactive &&
                                 (cellData?.status === 'BOOKED' || cellData?.status === 'BLOCKED') &&
                                 'text-inherit',
@@ -304,6 +310,12 @@ export function CalendarMobileMonthGrid({
                           >
                             {format(day, 'd')}
                           </span>
+                          {pendingCell ? (
+                            <span
+                              className="mt-auto h-2 w-full max-w-[2.25rem] rounded gsl-shimmer"
+                              aria-hidden
+                            />
+                          ) : null}
                           {interactive && price != null ? (
                             <span className="mt-auto truncate text-[8px] font-semibold tabular-nums leading-tight opacity-90">
                               <CalendarListingPriceDisplay

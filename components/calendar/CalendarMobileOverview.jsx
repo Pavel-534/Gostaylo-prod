@@ -46,6 +46,8 @@ export function CalendarMobileOverview({
   initialListingId = null,
   /** Open Month pane for this month (YYYY-MM-dd = 1st preferred) */
   onOpenMonth,
+  /** True while a wider range is loading — skeleton days outside cached `dates`. */
+  rangePending = false,
 }) {
   const t = (key) => getUIText(key, language)
   const dfLocale = DATE_FNS_LOCALE[language] || ru
@@ -185,6 +187,7 @@ export function CalendarMobileOverview({
                     : null
                   const today = isDateToday(day)
                   const fetched = dateSet.has(dateStr)
+                  const pendingCell = inMonth && !fetched && rangePending
 
                   return (
                     <div
@@ -192,12 +195,14 @@ export function CalendarMobileOverview({
                       className={cn(
                         'flex aspect-square max-h-9 items-center justify-center rounded-md text-[9px] font-semibold tabular-nums',
                         !inMonth && 'opacity-0',
-                        inMonth && !fetched && 'bg-slate-50 text-slate-300',
+                        pendingCell && 'gsl-shimmer text-transparent',
+                        inMonth && !fetched && !rangePending && 'bg-slate-50 text-slate-300',
                         inMonth && fetched && heatClass(cellData),
                         today && inMonth && 'ring-2 ring-brand ring-offset-1',
                         cellData?.status === 'BOOKED' && 'text-inherit',
-                        cellData?.status === 'AVAILABLE' && 'text-slate-700',
+                        cellData?.status === 'AVAILABLE' && !pendingCell && 'text-slate-700',
                       )}
+                      aria-busy={pendingCell || undefined}
                     >
                       {inMonth ? format(day, 'd') : ''}
                     </div>

@@ -1,8 +1,11 @@
 /**
- * GoStayLo - Partner Calendar API (v2)
+ * Partner Calendar API (v2)
  *
  * SSOT: availability + nightly pricing come from `CalendarService.getCalendarForDateRange`
  * (same `buildCalendar` as guest/public flows). No duplicated night/promo logic here.
+ *
+ * Stage 200.53.2 — parallel listing builds (bounded concurrency) + pass listingRow to skip
+ * duplicate listing/category fetches. Still one CalendarService build per listing (bulk SoT later).
  */
 
 import { NextResponse } from 'next/server'
@@ -16,8 +19,14 @@ import { addListingDays } from '@/lib/listing-date'
 import { CalendarService } from '@/lib/services/calendar.service'
 import { promoIsActiveAt } from '@/lib/promo/promo-engine'
 import { mapListingPriceFieldsForApi } from '@/lib/listing/listing-base-price-canon'
+import { runWithConcurrency } from '@/lib/partner/run-with-concurrency.js'
 
 export const dynamic = 'force-dynamic'
+/** Partner calendar can span many listings × month/90d — avoid platform kill mid-build. */
+export const maxDuration = 60
+
+/** Cap parallel CalendarService builds (DB-friendly; ~N/5 of serial wall time). */
+const PARTNER_CALENDAR_BUILD_CONCURRENCY = 5
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/
 
@@ -101,7 +110,7 @@ export async function GET(request) {
       const { data: listingsData, error: listingsErr } = await supabaseAdmin
         .from('listings')
         .select(
-          'id,title,district,cover_image,base_price_thb,base_currency,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)',
+          'id,title,district,cover_image,base_price_thb,base_currency,commission_rate,status,category_id,owner_id,metadata,min_booking_days,max_booking_days,max_capacity,categories(id,name,slug,icon)',
         )
         .eq('owner_id', userId)
       if (listingsErr) throw listingsErr
@@ -133,59 +142,84 @@ export async function GET(request) {
       const promoRows = await loadActivePromoRows()
       const defaultListingCommission = await resolveDefaultCommissionPercent()
 
+      const buildResults = await runWithConcurrency({
+        items: listings,
+        concurrency: PARTNER_CALENDAR_BUILD_CONCURRENCY,
+        worker: async (listing) => {
+          const rawCat = listing.categories
+          const cat = Array.isArray(rawCat) ? rawCat[0] : rawCat
+          const categorySlug = cat?.slug ? String(cat.slug).toLowerCase() : null
+
+          const priceFields = mapListingPriceFieldsForApi(listing)
+          const listingUi = {
+            id: listing.id,
+            title: listing.title,
+            district: listing.district,
+            coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
+            basePriceThb: priceFields.basePriceThb,
+            baseCurrency: priceFields.baseCurrency,
+            basePriceAsset: priceFields.basePriceAsset,
+            commissionRate: (() => {
+              const n = parseFloat(listing.commission_rate)
+              return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission
+            })(),
+            categoryId: listing.category_id ?? null,
+            category: cat
+              ? {
+                  id: cat.id,
+                  name: cat.name,
+                  slug: cat.slug,
+                  icon: cat.icon ?? null,
+                }
+              : null,
+            categorySlug,
+            type: mapCategorySlugToListingType(categorySlug || undefined),
+          }
+
+          const cal = await CalendarService.getCalendarForDateRange(String(listing.id), startDate, endDate, {
+            marketingPromoRows: promoRows,
+            listingRow: listing,
+            listingCategorySlugOverride: categorySlug || undefined,
+          })
+
+          if (!cal.success) {
+            const err = new Error(cal.error || 'Calendar build failed')
+            err.code = cal.code || 'CALENDAR_BUILD'
+            err.httpStatus = 400
+            throw err
+          }
+
+          const hasSeasonal = Array.isArray(cal.data?.calendar)
+            ? cal.data.calendar.some(
+                (d) => d.season && String(d.season).trim() && String(d.season).trim() !== 'Base',
+              )
+            : false
+
+          return {
+            row: CalendarService.mapPartnerCalendarGridRow(listingUi, cal.data),
+            hasSeasonal,
+          }
+        },
+      })
+
+      const failed = buildResults.find((r) => !r.ok)
+      if (failed) {
+        const err = failed.error
+        return NextResponse.json(
+          {
+            status: 'error',
+            error: err?.message || 'Calendar build failed',
+            code: err?.code || 'CALENDAR_BUILD',
+          },
+          { status: err?.httpStatus || 400 },
+        )
+      }
+
       const listingsPayload = []
       let hasSeasonalPrices = false
-
-      for (const listing of listings) {
-        const rawCat = listing.categories
-        const cat = Array.isArray(rawCat) ? rawCat[0] : rawCat
-        const categorySlug = cat?.slug ? String(cat.slug).toLowerCase() : null
-
-        const priceFields = mapListingPriceFieldsForApi(listing)
-        const listingUi = {
-          id: listing.id,
-          title: listing.title,
-          district: listing.district,
-          coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
-          basePriceThb: priceFields.basePriceThb,
-          baseCurrency: priceFields.baseCurrency,
-          basePriceAsset: priceFields.basePriceAsset,
-          commissionRate: (() => {
-            const n = parseFloat(listing.commission_rate)
-            return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission
-          })(),
-          categoryId: listing.category_id ?? null,
-          category: cat
-            ? {
-                id: cat.id,
-                name: cat.name,
-                slug: cat.slug,
-                icon: cat.icon ?? null,
-              }
-            : null,
-          categorySlug,
-          type: mapCategorySlugToListingType(categorySlug || undefined),
-        }
-
-        const cal = await CalendarService.getCalendarForDateRange(String(listing.id), startDate, endDate, {
-          marketingPromoRows: promoRows,
-        })
-
-        if (!cal.success) {
-          return NextResponse.json(
-            { status: 'error', error: cal.error || 'Calendar build failed', code: cal.code || 'CALENDAR_BUILD' },
-            { status: 400 },
-          )
-        }
-
-        if (!hasSeasonalPrices && Array.isArray(cal.data?.calendar)) {
-          hasSeasonalPrices = cal.data.calendar.some(
-            (d) => d.season && String(d.season).trim() && String(d.season).trim() !== 'Base',
-          )
-        }
-
-        const row = CalendarService.mapPartnerCalendarGridRow(listingUi, cal.data)
-        if (row) listingsPayload.push(row)
+      for (const r of buildResults) {
+        if (r.value?.hasSeasonal) hasSeasonalPrices = true
+        if (r.value?.row) listingsPayload.push(r.value.row)
       }
 
       const dates = ymdRangeInclusive(startDate, endDate)

@@ -27,7 +27,14 @@ import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth-context'
-import { usePartnerCalendar, useCreateBlock, useCreateManualBooking, useDeleteBlock } from '@/lib/hooks/use-partner-calendar'
+import {
+  usePartnerCalendar,
+  useCreateBlock,
+  useCreateManualBooking,
+  useDeleteBlock,
+  partnerCalendarKeys,
+  fetchPartnerCalendarQueryData,
+} from '@/lib/hooks/use-partner-calendar'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
@@ -123,7 +130,13 @@ function MasterCalendarContent() {
   // View state — Stage 200.40/200.41: near agenda · month grid · 3-month overview
   const [viewMode, setViewMode] = useState('normal')
   const [mobilePane, setMobilePane] = useState('near') // 'near' | 'month' | 'overview'
-  const [daysToShow, setDaysToShow] = useState(30)
+  // Stage 200.53.2 — init from viewport to avoid first fetch with daysToShow=30 then 10 on mobile.
+  const [daysToShow, setDaysToShow] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+      return 10
+    }
+    return 30
+  })
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
 
   useEffect(() => {
@@ -252,6 +265,53 @@ function MasterCalendarContent() {
 
   const { clearRangeSelection, getCellRangeRole, processAvailableCellTap } =
     usePartnerCalendarRangeSelection({ language })
+
+  /** Cached dates do not fully cover the requested API window (near→month/3mo). */
+  const rangeCoveragePending = useMemo(() => {
+    if (!isFetching || isInitialLoading) return false
+    const fetched = calendarData?.dates
+    if (!Array.isArray(fetched) || fetched.length === 0) return true
+    return fetched[0] > startDate || fetched[fetched.length - 1] < endDate
+  }, [isFetching, isInitialLoading, calendarData?.dates, startDate, endDate])
+
+  // Stage 200.53.2 — warm month cache after near succeeds (Airbnb-style progressive load).
+  useEffect(() => {
+    if (!partnerId || !calendarData?.dates?.length || isFetching || isInitialLoading) return
+    if (isNarrowCalendar && mobilePane !== 'near') return
+    try {
+      const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+      const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd')
+      if (calendarData.dates[0] <= monthStart && calendarData.dates[calendarData.dates.length - 1] >= monthEnd) {
+        return
+      }
+      void queryClient.prefetchQuery({
+        queryKey: partnerCalendarKeys.data(
+          partnerId,
+          { startDate: monthStart, endDate: monthEnd },
+          filterListingId || null,
+        ),
+        queryFn: () =>
+          fetchPartnerCalendarQueryData({
+            partnerId,
+            startDate: monthStart,
+            endDate: monthEnd,
+            listingId: filterListingId || null,
+          }),
+        staleTime: 90 * 1000,
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [
+    partnerId,
+    calendarData?.dates,
+    isFetching,
+    isInitialLoading,
+    isNarrowCalendar,
+    mobilePane,
+    filterListingId,
+    queryClient,
+  ])
 
   useEffect(() => {
     if (!showOnboarding || onboardingToastShownRef.current || authLoading || !partnerId) return
@@ -807,6 +867,7 @@ function MasterCalendarContent() {
             todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
             initialListingId={filterListingId || undefined}
             onOpenMonth={openMonthFromOverview}
+            rangePending={rangeCoveragePending}
           />
         ) : mobilePane === 'month' ? (
           <CalendarMobileMonthGrid
@@ -818,6 +879,7 @@ function MasterCalendarContent() {
             initialExpandedListingId={filterListingId || undefined}
             language={language}
             monthAnchor={startDate}
+            rangePending={rangeCoveragePending}
           />
         ) : (
           <CalendarMobileAgenda

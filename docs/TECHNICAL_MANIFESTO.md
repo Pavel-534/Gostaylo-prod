@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.35 | **Last Updated**: 2026-08-06 | **Tip of tree:** Stage **203**; **200.55** Guest Wave 2B mobile-flat (secondary).
+> **Version**: 13.2.36 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.53.2** partner calendar perf quick wins.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.53.2 — Partner calendar performance quick wins
+
+- **API** `GET /api/v2/partner/calendar`: `maxDuration=60`; parallel `CalendarService` builds (`runWithConcurrency` ×5); pass `listingRow` + category slug (skip re-fetch); range-filter `seasonal_prices`.
+- **Client**: mobile `daysToShow` init 10 (no 30→10 double fetch); soft retry (no stack on 504); month prefetch after near; month/overview `rangePending` cell skeleton while cached `dates` don’t cover requested window.
+- **Next (200.53.3+ / bulk SoT):** one bulk bookings+blocks+seasonal query for all listing IDs; light heatmap DTO for overview; progressive per-listing hydrate; HTTP cache keyed by partner+range; cap/page listings on mobile month when N large.
 
 ### Stage 200.55 — Guest Wave 2B mobile-flat (Guest Secondary)
 
