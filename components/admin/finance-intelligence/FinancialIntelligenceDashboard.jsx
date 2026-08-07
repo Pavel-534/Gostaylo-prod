@@ -33,6 +33,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 import { ReferralMarginWaterfall } from '@/components/admin/finances/FinTechMarginBar';
 import IntelligenceBookingsSheet from '@/components/admin/finance-intelligence/IntelligenceBookingsSheet';
 import PartnerLiabilitySheet from '@/components/admin/finance-intelligence/PartnerLiabilitySheet';
@@ -120,12 +125,13 @@ function PeriodCompare({ deltaPct, absLabel, invert = false, live = false }) {
 }
 
 function ClickableCard({ className, onClick, children }) {
+  const flat = cn(MOBILE_FLAT_CARD_CLASS, className);
   if (!onClick) {
-    return <Card className={className}>{children}</Card>;
+    return <Card className={flat}>{children}</Card>;
   }
   return (
     <Card
-      className={cn(className, 'cursor-pointer transition hover:shadow-md hover:border-indigo-200/80')}
+      className={cn(flat, 'cursor-pointer max-sm:hover:shadow-none sm:transition sm:hover:shadow-md sm:hover:border-indigo-200/80')}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -156,8 +162,8 @@ function KpiCard({ card, onClick }) {
     : formatAbsDelta(card.value, card.previousValue, isRatio ? 'ratio' : 'thb');
 
   return (
-    <ClickableCard className="border-slate-200/80 shadow-sm" onClick={onClick}>
-      <CardHeader className="pb-2 pt-4 px-4">
+    <ClickableCard className="sm:border-slate-200/80 sm:shadow-sm" onClick={onClick}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 pt-4 max-sm:px-0 sm:px-4')}>
         <div className="flex items-start justify-between gap-2">
           <CardDescription className="text-xs font-medium uppercase tracking-wide text-slate-500">
             {card.label}
@@ -478,7 +484,7 @@ export function FinancialIntelligenceDashboard() {
                     type="button"
                     onClick={() => setPeriod(opt.id)}
                     className={cn(
-                      'px-3 py-1.5 text-xs font-medium rounded-md transition',
+                      'min-h-[44px] px-3 py-1.5 text-xs font-medium rounded-md transition sm:min-h-0',
                       period === opt.id ? 'bg-white text-slate-900 shadow' : 'text-white/80 hover:text-white',
                     )}
                   >
@@ -495,7 +501,7 @@ export function FinancialIntelligenceDashboard() {
                 asChild
                 variant="secondary"
                 size="sm"
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               >
                 <Link href="/admin/marketing/roi#owner-guide">
                   <Megaphone className="h-4 w-4 mr-1" />
@@ -506,7 +512,7 @@ export function FinancialIntelligenceDashboard() {
                 variant="secondary"
                 size="sm"
                 onClick={() => openBookings({})}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               >
                 <List className="h-4 w-4 mr-1" />
                 Брони
@@ -516,7 +522,7 @@ export function FinancialIntelligenceDashboard() {
                 size="sm"
                 onClick={refreshAll}
                 disabled={loading}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               >
                 <RefreshCw className={cn('h-4 w-4 mr-1', loading && 'animate-spin')} />
                 Обновить всё
@@ -655,7 +661,7 @@ export function FinancialIntelligenceDashboard() {
           </Card>
 
           <ClickableCard
-            className="border-slate-200/80 shadow-sm"
+            className="sm:border-slate-200/80 sm:shadow-sm"
             onClick={() => openBookings({ pipelineOnly: true })}
           >
             <CardHeader>
@@ -669,7 +675,7 @@ export function FinancialIntelligenceDashboard() {
               {['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT'].map((status) => (
                 <div
                   key={status}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+                  className={cn(MOBILE_FLAT_INSET_CLASS, 'flex items-center justify-between max-sm:border-b max-sm:border-slate-100 max-sm:py-3 sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white sm:px-3 sm:py-2.5')}
                 >
                   <div>
                     <Badge variant="outline" className="font-mono text-[10px]">
@@ -685,7 +691,7 @@ export function FinancialIntelligenceDashboard() {
                   <span className="underline">смотреть список</span>
                 </p>
               ) : null}
-              <Button asChild variant="outline" size="sm" className="w-full" onClick={(e) => e.stopPropagation()}>
+              <Button asChild variant="outline" size="sm" className="min-h-[44px] w-full" onClick={(e) => e.stopPropagation()}>
                 <Link href="/admin/settings/finances">FinTech-пульт</Link>
               </Button>
             </CardContent>
@@ -694,7 +700,7 @@ export function FinancialIntelligenceDashboard() {
 
         <section className="grid gap-4 lg:grid-cols-2">
           <ClickableCard
-            className="border-slate-200/80 shadow-sm"
+            className="sm:border-slate-200/80 sm:shadow-sm"
             onClick={() => openBookings({ pipelineOnly: true, escrowAgingMinDays: 7 })}
           >
             <CardHeader>
@@ -709,7 +715,7 @@ export function FinancialIntelligenceDashboard() {
                 <button
                   key={bucket.id}
                   type="button"
-                  className="w-full flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left hover:border-amber-300 hover:bg-amber-50/40 transition"
+                  className={cn(MOBILE_FLAT_INSET_CLASS, 'flex w-full min-h-[44px] items-center justify-between text-left max-sm:border-b max-sm:border-slate-100 max-sm:py-3 sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white sm:px-3 sm:py-2.5 sm:hover:border-amber-300 sm:hover:bg-amber-50/40 sm:transition')}
                   onClick={(e) => {
                     e.stopPropagation();
                     openBookings({ pipelineOnly: true, escrowAgingMinDays: bucket.minDays });
@@ -727,7 +733,7 @@ export function FinancialIntelligenceDashboard() {
             </CardContent>
           </ClickableCard>
 
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card className="sm:border-slate-200/80 sm:shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <PiggyBank className="h-4 w-4 text-emerald-600" />
@@ -781,7 +787,7 @@ export function FinancialIntelligenceDashboard() {
                 </p>
               ) : null}
               <TreasuryTimelinePanel timeline={cashPosition.treasuryTimeline} />
-              <Button asChild variant="outline" size="sm" className="w-full">
+              <Button asChild variant="outline" size="sm" className="min-h-[44px] w-full">
                 <Link href="/admin/settings/finances">Treasury в FinTech-пульте</Link>
               </Button>
             </CardContent>
@@ -801,7 +807,7 @@ export function FinancialIntelligenceDashboard() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card className="sm:border-slate-200/80 sm:shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Разбивка маржи по юрисдикциям</CardTitle>
               <CardDescription>RU ~7% · KG ~8% · FX (ADR-097, из снимка цены)</CardDescription>
@@ -812,7 +818,7 @@ export function FinancialIntelligenceDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card className="sm:border-slate-200/80 sm:shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Реферальная экономика (детали)</CardTitle>
               <CardDescription>За период · waterfall комиссия → бонусы → net</CardDescription>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { resolveBatchStatusLabel, resolvePayoutRailLabel } from '@/lib/admin/fintech-ui-labels'
 import { cn } from '@/lib/utils'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {object} props
@@ -78,7 +79,7 @@ export function PayoutBatchRow({
           <Button
             size="default"
             className={cn(
-              'shrink-0 h-10 px-4',
+              'min-h-[44px] h-11 w-full shrink-0 px-4 sm:w-auto',
               canSettleAction
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 : 'bg-slate-200 text-slate-500 cursor-not-allowed hover:bg-slate-200',
@@ -93,17 +94,17 @@ export function PayoutBatchRow({
       </div>
       <div className="flex flex-wrap gap-2">
         {isDraft && (
-          <Button size="sm" variant="secondary" onClick={() => onLock(batch.id)}>
+          <Button size="sm" className="min-h-[44px] w-full sm:w-auto" variant="secondary" onClick={() => onLock(batch.id)}>
             <Lock className="h-3.5 w-3.5 mr-1" />
             Зафиксировать перед выгрузкой
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={() => onExport(batch.id)}>
+        <Button size="sm" className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => onExport(batch.id)}>
           <Download className="h-3.5 w-3.5 mr-1" />
           Скачать CSV для банка
         </Button>
         {onBankPackage && ['LOCKED', 'EXPORTED', 'SETTLED'].includes(status) ? (
-          <Button size="sm" variant="outline" onClick={() => onBankPackage(batch.id)}>
+          <Button size="sm" className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => onBankPackage(batch.id)}>
             <FileArchive className="h-3.5 w-3.5 mr-1" />
             Пакет для банка (ZIP)
           </Button>

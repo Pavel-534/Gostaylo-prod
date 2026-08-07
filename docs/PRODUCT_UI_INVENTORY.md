@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.7.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.8.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -19,6 +19,7 @@
 | `[x] Finished (Auth Wave 4 / 200.57)` | Auth + marketing/legal public pages; demo exclude |
 | `[x] Finished (Admin Wave 5A / 200.58)` | Core ops: `/admin`, dashboard, moderation (=listings), bookings |
 | `[x] Finished (Admin Wave 5B / 200.59)` | Users, partners, disputes, reviews polish, waitlist |
+| `[x] Finished (Admin Wave 5C / 200.60)` | FinTech: finances, ledger health, intelligence, payouts |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -82,6 +83,14 @@
 - Isolation OK: dispute Sheet + `UnifiedOrderCard`, partner sticky CTA, login-as / role Select (class-only).
 - **Defer:** categories, locations/suggestions, messages/[id] (chat Wave 3), FinTech/marketing admin.
 
+**Уточнения ТЗ (Wave 5C — FinTech, Escrow & Payouts):**
+
+- Canonical inventory §4.2: **`/admin/finances`**, **`/admin/financial-health`**, **`/admin/finance/intelligence`**, **`/admin/finance/intelligence/bookings/[id]`**, **`/admin/payout-methods`**, **`/admin/payout-verification`**, **`/admin/settings/finances`**.
+- **Нет** отдельных `app/admin/payout-batches/**` или `app/admin/escrow/**` — батчи = tab `pools` в FinTech console (`PayoutBatchesPanel` / `PayoutBatchRow`); escrow aging/pipeline = Intelligence dashboard widgets.
+- Tables: desktop `sm+` numeric tables; mobile card stacks (`sm:hidden`) for verification, referral/ledger P&L.
+- Touch: `min-h-[44px]` on refresh / Process Batch / Confirm-Reject / period filters.
+- **Не трогать:** payment APIs, ledger queries, escrow release hooks, batch settle formulas.
+
 ---
 
 ## Сводка
@@ -91,10 +100,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **12** | 40 |
-| **Итого** | **116** | **74** | **42** |
+| Admin Panel | 52 | **19** | 33 |
+| **Итого** | **116** | **81** | **35** |
 
-**Wave 1–4 closed.** **Wave 5A–5B (200.58–200.59):** Admin core + people/cases. Next → Admin 5C (categories/locations/messages polish) or FinTech.
+**Wave 1–4 closed.** **Wave 5A–5C (200.58–200.60):** Admin core + people/cases + FinTech. Next → Admin marketing / categories / system.
 
 ---
 
@@ -105,7 +114,7 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** users/partners/disputes/reviews/waitlist; continue FinTech / marketing / system.
+5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** users/partners/disputes/reviews/waitlist; **5C Done (200.60)** FinTech §4.2; continue marketing / system.
 
 **Замечания / долг:**
 
@@ -272,13 +281,13 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/admin/finances` | `…/finances/page.js` | Finances hub |
-| [ ] | `/admin/financial-health` | `…/financial-health/page.jsx` | Financial health |
-| [ ] | `/admin/finance/intelligence` | `…/finance/intelligence/page.js` | Intelligence |
-| [ ] | `/admin/finance/intelligence/bookings/[id]` | `…/bookings/[id]/page.js` | Booking financial timeline |
-| [ ] | `/admin/payout-methods` | `…/payout-methods/page.js` | Payout methods |
-| [ ] | `/admin/payout-verification` | `…/payout-verification/page.jsx` | Payout verification |
-| [ ] | `/admin/settings/finances` | `…/settings/finances/page.jsx` | FinTech settings |
+| [x] | `/admin/finances` | `…/finances/page.js` | **Admin Wave 5C / 200.60** (payments hub cards) |
+| [x] | `/admin/financial-health` | `…/financial-health/page.jsx` | **Admin Wave 5C / 200.60** (ledger health) |
+| [x] | `/admin/finance/intelligence` | `…/finance/intelligence/page.js` | **Admin Wave 5C / 200.60** (escrow widgets alias) |
+| [x] | `/admin/finance/intelligence/bookings/[id]` | `…/bookings/[id]/page.js` | **Admin Wave 5C / 200.60** (P&L table↔cards) |
+| [x] | `/admin/payout-methods` | `…/payout-methods/page.js` | **Admin Wave 5C / 200.60** |
+| [x] | `/admin/payout-verification` | `…/payout-verification/page.jsx` | **Admin Wave 5C / 200.60** (table↔cards) |
+| [x] | `/admin/settings/finances` | `…/settings/finances/page.jsx` | **Admin Wave 5C / 200.60** (batches via `PayoutBatchesPanel`) |
 
 ### 4.3 Marketing / growth admin
 

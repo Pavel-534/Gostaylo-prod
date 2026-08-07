@@ -27,6 +27,11 @@ import { PAYMENT_METHODS, STATUS_CONFIG, isTestPaymentRow } from '@/lib/admin/ad
 import { AdminStatusPill } from '@/components/admin/AdminStatusPill'
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount'
 import { useAdminPaymentsPage } from '@/hooks/admin/use-admin-payments-page'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function AdminPaymentsPageContent() {
   const {
@@ -54,7 +59,7 @@ export default function AdminPaymentsPageContent() {
   } = useAdminPaymentsPage()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 max-sm:bg-brand-surface max-sm:p-0 lg:p-8 sm:p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -85,7 +90,7 @@ export default function AdminPaymentsPageContent() {
               </div>
             )}
           </div>
-          <Button onClick={loadPayments} variant="outline" size="sm">
+          <Button className="min-h-[44px]" onClick={loadPayments} variant="outline" size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
@@ -110,9 +115,9 @@ export default function AdminPaymentsPageContent() {
         </Link>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
-          <Card className={`bg-white/80 backdrop-blur ${pendingCount > 0 ? 'border-red-300 ring-2 ring-red-200' : ''}`}>
-            <CardContent className="p-4">
+        <div className="mb-6 grid grid-cols-2 gap-3 max-sm:gap-4 lg:grid-cols-4 lg:gap-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, pendingCount > 0 ? 'sm:border-red-300 sm:ring-2 sm:ring-red-200' : '', 'sm:bg-white/80 sm:backdrop-blur')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${pendingCount > 0 ? 'bg-red-100' : 'bg-yellow-100'}`}>
                   <Clock className={`h-5 w-5 ${pendingCount > 0 ? 'text-red-600' : 'text-yellow-600'}`} />
@@ -133,8 +138,8 @@ export default function AdminPaymentsPageContent() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur">
-            <CardContent className="p-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-white/80 sm:backdrop-blur')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <CheckCircle className="h-5 w-5 text-green-600" />
@@ -149,8 +154,8 @@ export default function AdminPaymentsPageContent() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur">
-            <CardContent className="p-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-white/80 sm:backdrop-blur')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
                   <Wallet className="h-5 w-5 text-amber-600" />
@@ -165,8 +170,8 @@ export default function AdminPaymentsPageContent() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur">
-            <CardContent className="p-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-white/80 sm:backdrop-blur')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <CreditCard className="h-5 w-5 text-blue-600" />
@@ -238,15 +243,16 @@ export default function AdminPaymentsPageContent() {
                   return (
                     <Card 
                       key={payment.id} 
-                      className={`backdrop-blur hover:shadow-lg transition-shadow cursor-pointer ${
-                        isTestPayment ? 'bg-slate-50/95 border-slate-300' : 'bg-white/90'
-                      } ${
-                        payment.status === 'PENDING' ? 'border-l-4 border-l-yellow-500' : ''
-                      }`}
+                      className={cn(
+                        MOBILE_FLAT_CARD_CLASS,
+                        'overflow-hidden cursor-pointer max-sm:border-b max-sm:border-slate-100 sm:backdrop-blur sm:transition-shadow sm:hover:shadow-lg',
+                        isTestPayment ? 'sm:border-slate-300 sm:bg-slate-50/95' : 'sm:bg-white/90',
+                        payment.status === 'PENDING' ? 'sm:border-l-4 sm:border-l-yellow-500' : '',
+                      )}
                       onClick={() => setSelectedPayment(payment)}
                       data-testid={`payment-card-${payment.id}`}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-3 sm:p-4')}>
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${methodConfig.color}-100`}>
@@ -515,11 +521,11 @@ export default function AdminPaymentsPageContent() {
 
                 {/* Admin Actions */}
                 {selectedPayment.status === 'PENDING' && (
-                  <div className="flex gap-3 pt-4 border-t">
+                  <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row">
                     <Button
                       onClick={() => handleConfirmPayment(selectedPayment.id)}
                       disabled={processing}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      className="min-h-[44px] w-full flex-1 bg-green-600 hover:bg-green-700"
                       data-testid="confirm-payment-btn"
                     >
                       {processing ? (
@@ -533,7 +539,7 @@ export default function AdminPaymentsPageContent() {
                       onClick={() => setShowRejectModal(true)}
                       variant="destructive"
                       disabled={processing}
-                      className="flex-1"
+                      className="min-h-[44px] w-full flex-1"
                       data-testid="reject-payment-btn"
                     >
                       <XCircle className="h-4 w-4 mr-2" />
@@ -565,11 +571,12 @@ export default function AdminPaymentsPageContent() {
             placeholder="Причина отклонения..."
             className="min-h-[100px]"
           />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => setShowRejectModal(false)}>
               Отмена
             </Button>
             <Button
+              className="min-h-[44px] w-full sm:w-auto"
               variant="destructive"
               onClick={() => handleRejectPayment(selectedPayment?.id)}
               disabled={processing || !rejectReason.trim()}

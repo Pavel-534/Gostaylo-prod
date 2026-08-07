@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.37 | **Last Updated**: 2026-08-07 | **Stage 200.59** Admin Wave 5B; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
+> **Version**: 13.2.38 | **Last Updated**: 2026-08-07 | **Stage 200.60** Admin Wave 5C FinTech; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

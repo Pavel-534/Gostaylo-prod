@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.60 | 2026-08-07 | Admin Wave 5C mobile-flat: FinTech finances, ledger, intelligence, payouts | Done |
 | 200.59 | 2026-08-07 | Admin Wave 5B mobile-flat: users, partners, disputes, reviews, waitlist | Done |
 | 200.58 | 2026-08-07 | Admin Wave 5A mobile-flat: dashboard, moderation, bookings | Done |
 | 200.57 | 2026-08-07 | Auth Wave 4 mobile-flat: auth shells + marketing/legal | Done |

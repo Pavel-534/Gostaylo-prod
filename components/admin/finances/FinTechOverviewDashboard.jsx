@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import {
   BREAKDOWN_ROWS,
   FISCAL_QUEUE_STATUS_RU,
@@ -94,7 +95,7 @@ export function FinTechOverviewDashboard({
   return (
     <div className="space-y-8">
       {!ownerMode && (
-        <Card className="border-indigo-100 shadow-sm overflow-hidden">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:border-indigo-100 sm:shadow-sm')}>
           <CardHeader className="pb-2" style={{ borderLeft: '4px solid #6366f1' }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
               <Scale className="h-5 w-5 text-indigo-600" />
@@ -116,7 +117,7 @@ export function FinTechOverviewDashboard({
       )}
 
       {!ownerMode && (
-        <Card className="border-brand/20 shadow-sm overflow-hidden">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:border-brand/20 sm:shadow-sm')}>
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${FINTECH_MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
               <Zap className="h-5 w-5" style={{ color: FINTECH_MINT }} />
@@ -155,7 +156,7 @@ export function FinTechOverviewDashboard({
         </Card>
       )}
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
             <Receipt className="h-5 w-5 text-brand" />
@@ -220,7 +221,7 @@ export function FinTechOverviewDashboard({
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
             <Calculator className="h-5 w-5 text-brand" />
@@ -367,7 +368,7 @@ export function FinTechOverviewDashboard({
         </CardContent>
       </Card>
 
-      <Card className="border-brand/20 shadow-sm">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-brand/20 sm:shadow-sm')}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg" style={{ color: FINTECH_NAVY }}>
             Маржа за текущий месяц
@@ -384,7 +385,7 @@ export function FinTechOverviewDashboard({
         </CardContent>
       </Card>
 
-      <Card className={cn('border-slate-200 shadow-sm', driftBad && 'border-red-300 bg-red-50/30')}>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm', driftBad && 'sm:border-red-300 sm:bg-red-50/30')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
             <Gauge className="h-5 w-5" />

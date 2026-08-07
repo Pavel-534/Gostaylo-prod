@@ -8,6 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Plus, Trash2, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPayoutMethodOptionSuffix } from '@/lib/finance/payout-method-fee'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const CHANNEL_LABEL = {
   CARD: 'Карта',
@@ -189,24 +196,24 @@ export default function AdminPayoutMethodsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{editingId ? 'Редактировать метод' : 'Добавить метод'}</CardTitle>
           <CardDescription>
             Пример: «Карта РФ» — канал «Карта», тип «Процент», значение 3.5, валюта RUB, мин. выплата 500.
           </CardDescription>
         </CardHeader>
-        <CardContent className='grid md:grid-cols-6 gap-3'>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid gap-3 md:grid-cols-6')}>
           <Input
             placeholder='Название для партнёра'
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            className='md:col-span-2'
+            className='min-h-[44px] md:col-span-2'
           />
           <select
             value={form.channel}
             onChange={(e) => setForm((prev) => ({ ...prev, channel: e.target.value }))}
-            className='rounded-md border border-slate-300 px-3 py-2 text-sm'
+            className='min-h-[44px] rounded-md border border-slate-300 px-3 py-2 text-sm'
           >
             <option value='CARD'>Карта (CARD)</option>
             <option value='BANK'>Банк (BANK)</option>
@@ -215,7 +222,7 @@ export default function AdminPayoutMethodsPage() {
           <select
             value={form.feeType}
             onChange={(e) => setForm((prev) => ({ ...prev, feeType: e.target.value }))}
-            className='rounded-md border border-slate-300 px-3 py-2 text-sm'
+            className='min-h-[44px] rounded-md border border-slate-300 px-3 py-2 text-sm'
           >
             <option value='fixed'>Фиксированная сумма</option>
             <option value='percentage'>Процент от суммы</option>
@@ -240,12 +247,12 @@ export default function AdminPayoutMethodsPage() {
             onChange={(e) => setForm((prev) => ({ ...prev, minPayout: e.target.value }))}
           />
           <div className='md:col-span-6 flex gap-2'>
-            <Button onClick={handleSave} disabled={saving || !form.name} variant='brand'>
+            <Button className='min-h-[44px] max-sm:w-full' onClick={handleSave} disabled={saving || !form.name} variant='brand'>
               {saving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : editingId ? <Save className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
               {editingId ? 'Сохранить' : 'Добавить'}
             </Button>
             {editingId && (
-              <Button variant='outline' onClick={() => { setEditingId(null); setForm(EMPTY_FORM) }}>
+              <Button className='min-h-[44px] max-sm:w-full' variant='outline' onClick={() => { setEditingId(null); setForm(EMPTY_FORM) }}>
                 Отмена
               </Button>
             )}
@@ -253,19 +260,19 @@ export default function AdminPayoutMethodsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Доступные методы</CardTitle>
           <CardDescription>Все записи из таблицы payout_methods (в т.ч. отключённые).</CardDescription>
         </CardHeader>
-        <CardContent className='space-y-3'>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           {loading ? (
             <div className='py-4 flex items-center justify-center'>
               <Loader2 className='h-5 w-5 animate-spin text-brand' />
             </div>
           ) : (
             methods.map((method) => (
-              <div key={method.id} className='rounded-lg border border-slate-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3'>
+              <div key={method.id} className={cn(MOBILE_FLAT_INSET_CLASS, 'flex flex-col justify-between gap-3 md:flex-row md:items-center sm:border-slate-200')}>
                 <div>
                   <p className='font-semibold text-slate-900'>{method.name}</p>
                   <p className='text-sm text-slate-600'>
@@ -292,8 +299,8 @@ export default function AdminPayoutMethodsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Сырой ответ API партнёра</CardTitle>
           <CardDescription>
             Источник для страницы партнёра: <code>/api/v2/payout-methods</code>. Если здесь старые значения, партнёр
@@ -318,7 +325,7 @@ export default function AdminPayoutMethodsPage() {
           ) : null}
 
           <div className='flex flex-wrap gap-2 items-center'>
-            <Button variant='outline' size='sm' onClick={handleRefreshApiCache}>
+            <Button className='min-h-[44px]' variant='outline' size='sm' onClick={handleRefreshApiCache}>
               Обновить API
             </Button>
             {publicMethodsError ? (

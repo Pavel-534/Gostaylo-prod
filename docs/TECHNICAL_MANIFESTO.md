@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.41 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.59** Admin Wave 5B mobile-flat.
+> **Version**: 13.2.42 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.60** Admin Wave 5C FinTech mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.60 — Admin Wave 5C mobile-flat (FinTech, escrow & payouts)
+
+- Paths: `/admin/finances`, `/admin/financial-health`, `/admin/finance/intelligence` (+ booking P&L), `/admin/payout-methods`, `/admin/payout-verification`, `/admin/settings/finances` (batches panel).
+- Aliases: no `/admin/payout-batches` or `/admin/escrow` pages — batches = FinTech `pools` tab; escrow aging = Intelligence widgets.
+- SSOT: `MOBILE_FLAT_*`; verification + P&L referral/ledger: mobile cards + desktop tables; touch `min-h-[44px]`.
+- No payment/ledger/escrow/batch settle API or formula changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.8.0. Next → Admin marketing / categories / system.
 
 ### Stage 200.59 — Admin Wave 5B mobile-flat (people & cases)
 

@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 export default function AdminFinancialHealthPage() {
   const [data, setData] = useState(null);
@@ -58,7 +62,7 @@ export default function AdminFinancialHealthPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Финансовое здоровье (Ledger)</h1>
@@ -67,11 +71,11 @@ export default function AdminFinancialHealthPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button variant="outline" className="min-h-[44px]" onClick={() => void load()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="ml-2">Обновить</span>
           </Button>
-          <Button variant="secondary" size="sm" asChild>
+          <Button variant="secondary" className="min-h-[44px]" asChild>
             <Link href="/admin/marketing/referral-payouts?tab=registry">
               <ExternalLink className="h-4 w-4" />
               <span className="ml-2">Referral Payout Ops →</span>
@@ -93,7 +97,7 @@ export default function AdminFinancialHealthPage() {
 
       {sys ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-fuchsia-600 to-rose-500 p-8 text-white shadow-xl ring-1 ring-white/20">
+          <div className="relative overflow-hidden max-sm:rounded-none max-sm:shadow-none sm:rounded-2xl sm:shadow-xl bg-gradient-to-br from-violet-600 via-fuchsia-600 to-rose-500 p-6 sm:p-8 text-white ring-1 ring-white/20">
             <PiggyBank className="absolute -right-2 -top-2 h-36 w-36 opacity-15" aria-hidden />
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/90">Копилка на платежки</p>
             <h2 className="mt-1 text-2xl font-bold leading-tight">Rounding Pot</h2>
@@ -108,7 +112,7 @@ export default function AdminFinancialHealthPage() {
               {fmtThb(potThb)}
             </p>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-brand-hover to-emerald-600 p-8 text-white shadow-xl ring-1 ring-white/20">
+          <div className="relative overflow-hidden max-sm:rounded-none max-sm:shadow-none sm:rounded-2xl sm:shadow-xl bg-gradient-to-br from-sky-800 via-brand-hover to-emerald-600 p-6 sm:p-8 text-white ring-1 ring-white/20">
             <Landmark className="absolute -right-2 -top-2 h-36 w-36 opacity-15" aria-hidden />
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/90">Страховой фонд</p>
             <h2 className="mt-1 text-2xl font-bold leading-tight">Insurance Fund</h2>
@@ -128,11 +132,14 @@ export default function AdminFinancialHealthPage() {
 
       {recon && (
         <Card
-          className={`rounded-2xl border shadow-sm ${
-            recon.marginLeakage ? 'border-amber-300 bg-amber-50/80' : 'border-slate-200'
-          }`}
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            recon.marginLeakage
+              ? 'sm:rounded-2xl sm:border-amber-300 sm:bg-amber-50/80 sm:shadow-sm'
+              : 'sm:rounded-2xl sm:border-slate-200 sm:shadow-sm',
+          )}
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 max-sm:px-0 sm:px-6">
             <CardTitle className="text-lg flex items-center gap-2">
               {recon.marginLeakage ? (
                 <AlertTriangle className="h-5 w-5 text-amber-700" />
@@ -203,41 +210,41 @@ export default function AdminFinancialHealthPage() {
 
       {sys ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className="pb-2 max-sm:px-0 sm:px-6">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-slate-700" />
                 Комиссия платформы (нетто)
               </CardTitle>
               <CardDescription>PLATFORM_FEE — маржа за вычетом страхового резерва</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-sm:px-0 sm:px-6 sm:pt-0">
               <p className="text-3xl font-semibold tabular-nums">{fmtThb(sys.platformFeeThb)}</p>
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className="pb-2 max-sm:px-0 sm:px-6">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-amber-700" />
                 К оплате партнёрам (сумма)
               </CardTitle>
               <CardDescription>Все счета PARTNER_EARNINGS по проводкам</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-sm:px-0 sm:px-6 sm:pt-0">
               <p className="text-3xl font-semibold tabular-nums">{fmtThb(data.partnerEarningsTotalThb)}</p>
               <p className="text-xs text-slate-500 mt-2">Счетов партнёров: {data.partnerAccountCount}</p>
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-slate-200 shadow-sm sm:col-span-2 lg:col-span-1">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:col-span-2 lg:col-span-1 sm:rounded-2xl sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className="pb-2 max-sm:px-0 sm:px-6">
               <CardTitle className="text-lg">Guest clearing (контроль)</CardTitle>
               <CardDescription>
                 Ожидаемо совпадает с суммой зачислений; соглашение: баланс = CREDIT − DEBIT по счёту
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-sm:px-0 sm:px-6 sm:pt-0">
               <p className="text-2xl font-semibold tabular-nums">{fmtThb(sys.guestPaymentClearingThb)}</p>
               <p className="text-xs text-slate-500 mt-2">{data.convention}</p>
             </CardContent>

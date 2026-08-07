@@ -40,6 +40,8 @@ import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTec
 import { FinTechEmergencyPauseCard } from '@/components/admin/finances/FinTechEmergencyPauseCard'
 import { FinTechOverviewDashboard } from '@/components/admin/finances/FinTechOverviewDashboard'
 import { PayoutBatchesPanel } from '@/components/admin/finances/PayoutBatchesPanel'
+import { MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_CARD_CONTENT_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { cn } from '@/lib/utils'
 import { ConversionsPanel } from '@/components/admin/finances/ConversionsPanel'
 import { FinTechTreasuryMonitoringPanel } from '@/components/admin/finances/FinTechTreasuryMonitoringPanel'
 import { MovementsJournal } from '@/components/admin/finances/MovementsJournal'
@@ -117,8 +119,8 @@ export function AdminFinTechConsole() {
         />
         <FinTechEmergencyPauseCard ops={c.treasuryOps} onUpdated={c.load} toast={c.toast} />
 
-        <Card className="border-amber-200 bg-amber-50/90 shadow-sm">
-          <CardContent className="py-4 flex flex-wrap items-start gap-3 text-sm text-amber-950">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-200 sm:bg-amber-50/90 sm:shadow-sm')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap items-start gap-3 py-4 text-sm text-amber-950 max-sm:py-3')}>
             <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
             <div>
               <p className="font-semibold">Режим Concierge Launch (ручной)</p>
