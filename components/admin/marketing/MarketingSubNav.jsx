@@ -59,7 +59,7 @@ export function MarketingSubNav({ className }) {
   return (
     <nav
       className={cn(
-        'flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/90 bg-white p-1 shadow-sm scrollbar-thin',
+        'flex gap-1 overflow-x-auto max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:p-0 max-sm:shadow-none sm:rounded-2xl sm:border sm:border-slate-200/90 sm:bg-white sm:p-1 sm:shadow-sm scrollbar-thin',
         className,
       )}
       aria-label="Маркетинг и рефералка"
@@ -73,7 +73,7 @@ export function MarketingSubNav({ className }) {
             href={item.href}
             title={item.href === '/admin/marketing/rules' ? 'Правила и настройки' : item.label}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+              'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
               active
                 ? 'bg-brand text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',

@@ -29,6 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
+
 
 const EMPTY_FORM = {
   name: '',
@@ -209,15 +216,15 @@ export default function ReferralRewardRulesAdminPage() {
             ledger. Базовая экономика (маржа + safety cap 95%) не меняется.
           </p>
         </div>
-        <Button type="button" variant="brand" size="sm" onClick={() => void load()} disabled={loading}>
+        <Button type="button" variant="brand" size="sm" className="min-h-[44px] max-sm:w-full" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Обновить
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-emerald-200 bg-emerald-50/30">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-200 sm:bg-emerald-50/30')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-700" />
               Production
@@ -234,8 +241,8 @@ export default function ReferralRewardRulesAdminPage() {
             )}
           </CardContent>
         </Card>
-        <Card className="border-violet-200 bg-violet-50/30">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-violet-200 sm:bg-violet-50/30')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-base flex items-center gap-2">
               <FlaskConical className="h-4 w-4 text-violet-700" />
               Shadow A/B
@@ -254,8 +261,8 @@ export default function ReferralRewardRulesAdminPage() {
         </Card>
       </div>
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-base">Статистика A/B (ledger metadata)</CardTitle>
           <CardDescription>Агрегат по reward_rule_version и shadow-сэмплам за период</CardDescription>
         </CardHeader>
@@ -266,7 +273,7 @@ export default function ReferralRewardRulesAdminPage() {
               <Input
                 id="stats-from"
                 type="date"
-                className="mt-1"
+                className="mt-1 min-h-[44px]"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
               />
@@ -276,7 +283,7 @@ export default function ReferralRewardRulesAdminPage() {
               <Input
                 id="stats-to"
                 type="date"
-                className="mt-1"
+                className="mt-1 min-h-[44px]"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
               />
@@ -355,14 +362,14 @@ export default function ReferralRewardRulesAdminPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">{editingId ? 'Редактировать' : 'Новое правило'}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
             <div>
               <Label>Название</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input className="min-h-[44px]" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -370,6 +377,7 @@ export default function ReferralRewardRulesAdminPage() {
                 <Input
                   type="number"
                   min={1}
+                  className="min-h-[44px]"
                   value={form.version}
                   onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
                 />
@@ -378,6 +386,7 @@ export default function ReferralRewardRulesAdminPage() {
                 <Label>Приоритет</Label>
                 <Input
                   type="number"
+                  className="min-h-[44px]"
                   value={form.priority}
                   onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
                 />
@@ -457,7 +466,7 @@ export default function ReferralRewardRulesAdminPage() {
                   setForm((f) => ({ ...f, campaignSlug: value === '__all__' ? '' : value }))
                 }
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 min-h-[44px]">
                   <SelectValue placeholder="Все кампании" />
                 </SelectTrigger>
                 <SelectContent>
@@ -478,12 +487,12 @@ export default function ReferralRewardRulesAdminPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="brand" disabled={saving} onClick={() => void saveRule()}>
+              <Button type="button" variant="brand" className="min-h-[44px] max-sm:w-full" disabled={saving} onClick={() => void saveRule()}>
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? '…' : 'Сохранить'}
               </Button>
               {editingId ? (
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" className="min-h-[44px] max-sm:w-full" onClick={resetForm}>
                   Отмена
                 </Button>
               ) : null}
@@ -491,12 +500,49 @@ export default function ReferralRewardRulesAdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">Все правила</CardTitle>
             <CardDescription>{rules.length} записей</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
+            <div className="sm:hidden space-y-0">
+              {rules.map((row) => (
+                <div key={row.id} className="border-b border-slate-100 py-4 last:border-0">
+                  <p className="font-medium text-slate-900">{row.name}</p>
+                  <p className="text-xs text-slate-500">v{row.version} · hold {row.rules?.hold_days != null ? `${row.rules.hold_days} дн` : '—'}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {row.isShadow ? (
+                      <Badge variant="outline" className="border-violet-300 text-violet-900">
+                        Shadow {row.shadowTrafficPct}%
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-emerald-300 text-emerald-900">
+                        Production
+                      </Badge>
+                    )}
+                    {row.isActive ? (
+                      <Badge className="bg-emerald-600">ON</Badge>
+                    ) : (
+                      <Badge variant="secondary">OFF</Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <Button type="button" size="sm" variant="outline" className="min-h-[44px] w-full" onClick={() => startEdit(row)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Редактировать
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="min-h-[44px] w-full" onClick={() => void toggleActive(row)}>
+                      {row.isActive ? (
+                        <><Pause className="mr-1 h-3.5 w-3.5" /> Пауза</>
+                      ) : (
+                        <><Play className="mr-1 h-3.5 w-3.5" /> Активировать</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -552,6 +598,7 @@ export default function ReferralRewardRulesAdminPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
             {!rules.length && !loading ? (
               <p className="py-6 text-center text-sm text-slate-500">
                 <Plus className="mx-auto mb-2 h-5 w-5 opacity-50" />

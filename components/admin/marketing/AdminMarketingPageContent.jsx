@@ -13,6 +13,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { TrendingUp, Plus, Trash2, Calendar, AlertTriangle, Users, Zap, Type } from 'lucide-react';
 import { promoExpiryEndMs, isPlatformPromoCritical } from '@/lib/admin/marketing-promo-helpers';
 import { useAdminMarketingPage } from '@/hooks/admin/use-admin-marketing-page';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 export default function AdminMarketingPageContent() {
   const {
@@ -64,15 +70,15 @@ export default function AdminMarketingPageContent() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-950">Промокоды</h1>
           <p className="text-sm text-slate-600 mt-1">PLATFORM-коды и партнёрские акции на чекауте</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="bg-brand hover:bg-brand-hover w-full sm:w-auto">
+        <Button onClick={() => setShowCreateModal(true)} className="min-h-[44px] bg-brand hover:bg-brand-hover w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Создать промокод
         </Button>
       </div>
 
       {criticalPlatformPromos.length > 0 ? (
-        <Card className="border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 shadow-md">
-          <CardHeader className="p-4 sm:p-6 pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-red-300 sm:bg-gradient-to-r sm:from-red-50 sm:to-orange-50 sm:shadow-md')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-4 sm:p-6 pb-2')}>
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-red-900">
               <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 shrink-0 text-red-600" />
               Critical Promo Alerts
@@ -81,11 +87,11 @@ export default function AdminMarketingPageContent() {
               PLATFORM-коды с остатком лимита меньше 10% — расширьте лимит, чтобы не потерять трафик на чекауте.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 space-y-3">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 sm:p-6 pt-0 space-y-3')}>
             {criticalPlatformPromos.map((p) => (
               <div
                 key={p.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-red-200 bg-white/90 px-3 py-3"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-red-200 bg-white/90 px-3 py-3 max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0 max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0"
               >
                 <div className="min-w-0">
                   <p className="font-mono font-bold text-red-950 truncate">{p.code}</p>
@@ -95,7 +101,7 @@ export default function AdminMarketingPageContent() {
                 </div>
                 <Button
                   size="sm"
-                  className="bg-red-600 hover:bg-red-700 shrink-0"
+                  className="min-h-[44px] max-sm:w-full bg-red-600 hover:bg-red-700 shrink-0"
                   disabled={extendingId === p.id}
                   onClick={() => void handleExtendUses(p.id, p.code)}
                 >
@@ -109,22 +115,22 @@ export default function AdminMarketingPageContent() {
 
       {/* Stats - Mobile Responsive */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
-        <Card className="border-2 border-green-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Активные</CardTitle></CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{activePromos.length}</div></CardContent>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-green-100')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-2 sm:p-4 pb-1 sm:pb-2')}><CardTitle className="text-xs sm:text-sm text-gray-600">Активные</CardTitle></CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-2 sm:p-4 pt-0')}><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{activePromos.length}</div></CardContent>
         </Card>
-        <Card className="border-2 border-blue-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Всего</CardTitle></CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{promoCodes.length}</div></CardContent>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-blue-100')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-2 sm:p-4 pb-1 sm:pb-2')}><CardTitle className="text-xs sm:text-sm text-gray-600">Всего</CardTitle></CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-2 sm:p-4 pt-0')}><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{promoCodes.length}</div></CardContent>
         </Card>
-        <Card className="border-2 border-purple-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Оплач./Заверш.</CardTitle></CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-purple-100')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-2 sm:p-4 pb-1 sm:pb-2')}><CardTitle className="text-xs sm:text-sm text-gray-600">Оплач./Заверш.</CardTitle></CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-2 sm:p-4 pt-0')}><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
         </Card>
       </div>
 
-      <Card className="border border-amber-200 bg-gradient-to-br from-amber-50/90 to-white shadow-sm">
-        <CardHeader className="p-4 sm:p-6 pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border sm:border-amber-200 sm:bg-gradient-to-br sm:from-amber-50/90 sm:to-white sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-4 sm:p-6 pb-2')}>
           <CardTitle className="flex items-center gap-2 text-base text-amber-950">
             <Type className="h-5 w-5 text-amber-600 shrink-0" />
             UI Copywriting
@@ -137,7 +143,7 @@ export default function AdminMarketingPageContent() {
             <code className="rounded bg-amber-100/80 px-1">flashHotExpiresIn</code>.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3 p-4 sm:p-6 pt-0')}>
           <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
             <li>
               <code>flashHotBookingsToday</code> — обязательно содержит подстроку <code>{'{{count}}'}</code>
@@ -158,11 +164,12 @@ export default function AdminMarketingPageContent() {
               placeholder={'{\n  "ru": {\n    "flashHotBookingsToday": "Популярно: {{count}} сегодня",\n    "flashHotExpiresIn": "Осталось {{hm}}"\n  }\n}'}
             />
           )}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
+              className="min-h-[44px] max-sm:w-full"
               onClick={() => void loadMarketingUiStrings()}
               disabled={marketingUiLoading || marketingUiSaving}
             >
@@ -171,7 +178,7 @@ export default function AdminMarketingPageContent() {
             <Button
               type="button"
               size="sm"
-              className="bg-amber-600 hover:bg-amber-700"
+              className="min-h-[44px] max-sm:w-full bg-amber-600 hover:bg-amber-700"
               onClick={() => void handleSaveMarketingUiStrings()}
               disabled={marketingUiLoading || marketingUiSaving}
             >
@@ -182,8 +189,8 @@ export default function AdminMarketingPageContent() {
       </Card>
 
       {topPartners.length > 0 ? (
-        <Card className="border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-sm">
-          <CardHeader className="p-4 sm:p-6 pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border sm:border-indigo-100 sm:bg-gradient-to-br sm:from-indigo-50/80 sm:to-white sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-4 sm:p-6 pb-2')}>
             <CardTitle className="flex items-center gap-2 text-base text-indigo-950">
               <Users className="h-5 w-5 text-indigo-600 shrink-0" />
               Топ партнёров по промокодам
@@ -192,8 +199,32 @@ export default function AdminMarketingPageContent() {
               Кто создаёт больше всего PARTNER-кодов (вовлечённость в продвижение).
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="overflow-x-auto">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 sm:p-6 pt-0')}>
+            <div className="sm:hidden space-y-0">
+              {topPartners.map((row, i) => (
+                <div
+                  key={row.partnerId}
+                  className="border-b border-slate-100 py-3 last:border-0"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-400">#{i + 1}</p>
+                      <p className="font-medium text-slate-900 truncate">
+                        {row.partnerName || row.partnerId}
+                      </p>
+                      {row.partnerEmail ? (
+                        <p className="text-xs text-slate-500 truncate">{row.partnerEmail}</p>
+                      ) : null}
+                    </div>
+                    <div className="shrink-0 text-right text-sm">
+                      <p className="tabular-nums font-semibold text-indigo-700">{row.promoCount} кодов</p>
+                      <p className="tabular-nums text-slate-600">{row.totalUses} исп.</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs text-gray-500">
@@ -229,8 +260,8 @@ export default function AdminMarketingPageContent() {
         </Card>
       ) : null}
 
-      <Card className="border border-rose-100 bg-gradient-to-br from-rose-50/70 to-white shadow-sm">
-        <CardHeader className="p-4 sm:p-6 pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border sm:border-rose-100 sm:bg-gradient-to-br sm:from-rose-50/70 sm:to-white sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-4 sm:p-6 pb-2')}>
           <CardTitle className="flex items-center gap-2 text-base text-rose-950">
             <Calendar className="h-5 w-5 text-rose-600 shrink-0" />
             Global Campaign Landing
@@ -239,7 +270,7 @@ export default function AdminMarketingPageContent() {
             Объединяйте несколько PLATFORM-промокодов под единой распродажей и заголовком.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 sm:p-6 pt-0 space-y-4')}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Заголовок Campaign *</Label>
@@ -247,7 +278,7 @@ export default function AdminMarketingPageContent() {
                 value={campaignForm.title}
                 onChange={(e) => setCampaignForm((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="Summer Super Sale"
-                className="mt-2"
+                className="mt-2 min-h-[44px]"
               />
             </div>
             <div>
@@ -256,7 +287,7 @@ export default function AdminMarketingPageContent() {
                 value={campaignForm.subtitle}
                 onChange={(e) => setCampaignForm((prev) => ({ ...prev, subtitle: e.target.value }))}
                 placeholder="До -30% на selected listings"
-                className="mt-2"
+                className="mt-2 min-h-[44px]"
               />
             </div>
             <div>
@@ -265,7 +296,7 @@ export default function AdminMarketingPageContent() {
                 type="datetime-local"
                 value={campaignForm.startsAtIso}
                 onChange={(e) => setCampaignForm((prev) => ({ ...prev, startsAtIso: e.target.value }))}
-                className="mt-2"
+                className="mt-2 min-h-[44px]"
               />
             </div>
             <div>
@@ -274,7 +305,7 @@ export default function AdminMarketingPageContent() {
                 type="datetime-local"
                 value={campaignForm.endsAtIso}
                 onChange={(e) => setCampaignForm((prev) => ({ ...prev, endsAtIso: e.target.value }))}
-                className="mt-2"
+                className="mt-2 min-h-[44px]"
               />
             </div>
           </div>
@@ -285,7 +316,7 @@ export default function AdminMarketingPageContent() {
               {platformPromos.slice(0, 24).map((promo) => (
                 <label
                   key={promo.id}
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm"
+                  className="flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0 max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0"
                 >
                   <Checkbox
                     checked={campaignForm.promoCodeIds.includes(promo.id)}
@@ -300,11 +331,11 @@ export default function AdminMarketingPageContent() {
             ) : null}
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-slate-600">
               Выбрано кодов: <span className="font-semibold">{campaignForm.promoCodeIds.length}</span>
             </p>
-            <Button onClick={handleCreateCampaign} className="bg-rose-600 hover:bg-rose-700">
+            <Button onClick={handleCreateCampaign} className="min-h-[44px] max-sm:w-full bg-rose-600 hover:bg-rose-700">
               Создать Campaign
             </Button>
           </div>
@@ -334,8 +365,8 @@ export default function AdminMarketingPageContent() {
       </Card>
 
       {/* Table - Mobile Responsive */}
-      <Card className="shadow-xl">
-        <CardHeader className="p-4 sm:p-6 space-y-3">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-xl')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'p-4 sm:p-6 space-y-3')}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
@@ -346,7 +377,7 @@ export default function AdminMarketingPageContent() {
                 type="button"
                 size="sm"
                 variant={promoListFilter === 'all' ? 'default' : 'outline'}
-                className={promoListFilter === 'all' ? 'bg-indigo-600' : ''}
+                className={cn('min-h-[44px]', promoListFilter === 'all' ? 'bg-indigo-600' : '')}
                 onClick={() => setPromoListFilter('all')}
               >
                 Все
@@ -355,7 +386,7 @@ export default function AdminMarketingPageContent() {
                 type="button"
                 size="sm"
                 variant={promoListFilter === 'flash' ? 'default' : 'outline'}
-                className={promoListFilter === 'flash' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                className={cn('min-h-[44px]', promoListFilter === 'flash' ? 'bg-orange-600 hover:bg-orange-700' : '')}
                 onClick={() => setPromoListFilter('flash')}
               >
                 <Zap className="w-4 h-4 mr-1 inline" />
@@ -370,7 +401,7 @@ export default function AdminMarketingPageContent() {
               : ''}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 sm:p-6 pt-0')}>
           <div className="space-y-3 sm:space-y-4">
             {displayedPromos.map((promo) => {
               const endMs = promoExpiryEndMs(promo);
@@ -381,10 +412,10 @@ export default function AdminMarketingPageContent() {
               const isCritical = isPlatformPromoCritical(promo);
 
               return (
-                <div key={promo.id} className={`p-3 sm:p-4 lg:p-6 rounded-xl border-2 transition-all ${
+                <div key={promo.id} className={`p-3 sm:p-4 lg:p-6 rounded-xl border-2 transition-all max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0 max-sm:border-b max-sm:px-0 ${
                   isCritical
-                    ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-400 ring-2 ring-red-100'
-                    : isActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' : 'bg-gray-50 border-gray-300 opacity-60'
+                    ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-400 ring-2 ring-red-100 max-sm:bg-transparent max-sm:ring-0'
+                    : isActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 max-sm:bg-transparent' : 'bg-gray-50 border-gray-300 opacity-60 max-sm:bg-transparent'
                 }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3 sm:gap-4">
@@ -441,18 +472,18 @@ export default function AdminMarketingPageContent() {
                               : '—'}
                         </p>
                       </div>
-                      <div className="flex gap-2 sm:mt-2">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:mt-2 w-full sm:w-auto">
                         {isCritical ? (
                           <Button
                             size="sm"
-                            className="h-8 bg-red-600 hover:bg-red-700"
+                            className="min-h-[44px] max-sm:w-full bg-red-600 hover:bg-red-700"
                             disabled={extendingId === promo.id}
                             onClick={() => void handleExtendUses(promo.id, promo.code)}
                           >
                             {extendingId === promo.id ? '…' : 'Extend +100'}
                           </Button>
                         ) : null}
-                        <Button size="sm" variant="destructive" className="h-8" onClick={() => handleDelete(promo.id, promo.code)}>
+                        <Button size="sm" variant="destructive" className="min-h-[44px] max-sm:w-full" onClick={() => handleDelete(promo.id, promo.code)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -523,9 +554,9 @@ export default function AdminMarketingPageContent() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>Отмена</Button>
-            <Button onClick={handleCreate} className="bg-indigo-600 hover:bg-indigo-700">✅ Создать</Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="min-h-[44px] w-full sm:w-auto" onClick={() => setShowCreateModal(false)}>Отмена</Button>
+            <Button onClick={handleCreate} className="min-h-[44px] w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">✅ Создать</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

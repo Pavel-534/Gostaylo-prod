@@ -3,6 +3,12 @@
 import Link from 'next/link';
 import { ArrowRight, Layers, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 const HUB_ITEMS = [
   {
@@ -34,17 +40,22 @@ export default function MarketingRulesHubPage() {
         {HUB_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href}>
-              <Card className="h-full border-slate-200 shadow-sm transition-shadow hover:border-brand/30 hover:shadow-md">
-                <CardHeader>
+            <Link key={item.href} href={item.href} className="block min-h-[44px]">
+              <Card
+                className={cn(
+                  MOBILE_FLAT_CARD_CLASS,
+                  'h-full transition-shadow max-sm:border-b max-sm:border-slate-100 max-sm:py-3 sm:border-slate-200 sm:shadow-sm hover:sm:border-brand/30 hover:sm:shadow-md',
+                )}
+              >
+                <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Icon className="h-4 w-4 text-brand" />
                     {item.title}
                   </CardTitle>
                   <CardDescription>{item.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-brand">
+                <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+                  <span className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-brand">
                     Открыть
                     <ArrowRight className="h-4 w-4" />
                   </span>

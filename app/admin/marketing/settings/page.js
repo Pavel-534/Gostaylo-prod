@@ -10,6 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
+
 
 function FieldHint({ children }) {
   return (
@@ -17,7 +24,7 @@ function FieldHint({ children }) {
       <TooltipTrigger asChild>
         <button
           type="button"
-          className="inline-flex shrink-0 align-middle text-slate-400 hover:text-slate-700"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center shrink-0 align-middle text-slate-400 hover:text-slate-700"
           aria-label="Пояснение"
         >
           <CircleHelp className="h-4 w-4" />
@@ -358,21 +365,21 @@ export default function MarketingSettingsPage() {
             </a>
           </nav>
         </div>
-        <Button onClick={() => void handleSave()} disabled={saving}>
+        <Button className="min-h-[44px] max-sm:w-full" onClick={() => void handleSave()} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Сохранение…' : 'Сохранить'}
         </Button>
       </div>
 
-      <Card id="referral-hold" className="scroll-mt-4 border-emerald-300 bg-emerald-50/40 shadow-sm">
-        <CardHeader>
+      <Card id="referral-hold" className={cn(MOBILE_FLAT_CARD_CLASS, 'scroll-mt-4 sm:border-emerald-300 sm:bg-emerald-50/40 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-emerald-950">Период охлаждения реферального бонуса</CardTitle>
           <CardDescription>
             После завершения брони бонус виден пригласившему, но на кошелёк попадёт только через указанное число дней
             (на случай отмены или спора). Поставьте <strong>0</strong>, чтобы зачислять сразу.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4')}>
           <div className="space-y-2 w-full max-w-[220px]">
             <div className="flex items-center gap-1.5">
               <Label htmlFor="referralHoldDaysTop" className="text-base font-medium">
@@ -389,7 +396,7 @@ export default function MarketingSettingsPage() {
               min={0}
               max={90}
               step={1}
-              className="text-lg font-semibold bg-white"
+              className="min-h-[44px] text-lg font-semibold bg-white"
               value={form.referralHoldDays}
               onChange={(e) =>
                 setForm((prev) => ({
@@ -406,15 +413,15 @@ export default function MarketingSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card id="marketing-pool" className="scroll-mt-4">
-        <CardHeader>
+      <Card id="marketing-pool" className={cn(MOBILE_FLAT_CARD_CLASS, 'scroll-mt-4')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Маркетинговый бюджет (пул)</CardTitle>
           <CardDescription>
             Отдельный «кошелёк» платформы на бонусы и акции. Баланс виден ниже; все движения пишутся в журнал.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-slate-700">
-          <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 text-sm text-slate-700')}>
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:p-0">
             <p className="font-medium text-slate-900">Откуда пополняется бюджет</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
@@ -439,7 +446,7 @@ export default function MarketingSettingsPage() {
               Сейчас в пуле:{' '}
               <strong>{promoPotThb != null ? `${Number(promoPotThb).toLocaleString('ru-RU')} ฿` : '—'}</strong>
             </span>
-            <Button type="button" variant="outline" size="sm" onClick={() => void refreshTankData()}>
+            <Button type="button" variant="outline" size="sm" className="min-h-[44px]" onClick={() => void refreshTankData()}>
               {tankLogLoading ? '…' : 'Обновить баланс и журнал'}
             </Button>
           </div>
@@ -454,6 +461,7 @@ export default function MarketingSettingsPage() {
                 value={topupAmount}
                 onChange={(e) => setTopupAmount(e.target.value)}
                 placeholder="5000"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
@@ -463,10 +471,11 @@ export default function MarketingSettingsPage() {
                 value={topupNote}
                 onChange={(e) => setTopupNote(e.target.value)}
                 placeholder="Напр. пополнение Q2"
+                className="min-h-[44px]"
               />
             </div>
             <div className="sm:col-span-3">
-              <Button type="submit" disabled={topupBusy}>
+              <Button type="submit" className="min-h-[44px] max-sm:w-full" disabled={topupBusy}>
                 {topupBusy ? 'Пополнение…' : 'Пополнить бюджет'}
               </Button>
             </div>
@@ -543,14 +552,14 @@ export default function MarketingSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card id="referral-bonuses" className="scroll-mt-4">
-        <CardHeader>
+      <Card id="referral-bonuses" className={cn(MOBILE_FLAT_CARD_CLASS, 'scroll-mt-4')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Бонусы</CardTitle>
           <CardDescription>
             Сколько отдавать за приглашённых гостей и партнёров и как долго держать бонус до зачисления на кошелёк.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid gap-4 sm:grid-cols-2')}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
               <Label htmlFor="referralReinvestmentPercent">Доля маржи на реферальные выплаты, %</Label>
@@ -673,8 +682,8 @@ export default function MarketingSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Экономика сети</CardTitle>
           <CardDescription>
             Дополнительные расходы платформы с каждой брони — уменьшают «чистую маржу», из которой считается потолок
@@ -702,9 +711,13 @@ export default function MarketingSettingsPage() {
 
       <Card
         id="safety-limits"
-        className={`scroll-mt-4 ${mlmTotalPercent > 100 ? 'border-red-300' : 'border-emerald-300'}`}
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'scroll-mt-4',
+          mlmTotalPercent > 100 ? 'sm:border-red-300' : 'sm:border-emerald-300',
+        )}
       >
-        <CardHeader>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2">
             <ShieldAlert className={`h-4 w-4 ${mlmTotalPercent > 100 ? 'text-red-600' : 'text-emerald-600'}`} />
             Лимиты безопасности
@@ -714,7 +727,7 @@ export default function MarketingSettingsPage() {
             платформы.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-slate-700 space-y-1">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-sm text-slate-700 space-y-1')}>
           <p>
             Прямая + вторая линия (в сумме): <strong>{pct(mlmTotalPercent)}</strong>
             {mlmTotalPercent > 100 ? (
@@ -743,24 +756,24 @@ export default function MarketingSettingsPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Уже выплачено по рефералке</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
             {Number(payoutStats?.totalPaidOutThb || 0).toLocaleString('ru-RU')} ฿
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Баланс маркетингового пула</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
             {Number(payoutStats?.currentPromoTankBalanceThb || 0).toLocaleString('ru-RU')} ฿
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Резерв на 10 активаций партнёров</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">

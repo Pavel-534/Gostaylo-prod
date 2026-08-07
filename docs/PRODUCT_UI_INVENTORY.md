@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.9.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.10.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -21,6 +21,7 @@
 | `[x] Finished (Admin Wave 5B / 200.59)` | Users, partners, disputes, reviews polish, waitlist |
 | `[x] Finished (Admin Wave 5C / 200.60)` | FinTech: finances, ledger health, intelligence, payouts |
 | `[x] Finished (Admin Wave 5D / 200.61)` | Categories, location suggestions, staff messages |
+| `[x] Finished (Admin Wave 5E-1 / 200.62)` | Marketing admin hub: overview, promos, campaigns, rules, settings, attribution |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -100,6 +101,15 @@
 - Staff chat: soft-flat hall metrics + `AdminConversationSidebar` / thread composer (safe-area); **lg+** `ChatThreadChrome` split unchanged.
 - **Не трогать:** category APIs, geo suggestion queries, chat/message handlers.
 
+**Уточнения ТЗ (Wave 5E-1 — Admin marketing core):**
+
+- Scope (8 routes): **`/admin/marketing`**, **`/admin/marketing/promos`**, **`/admin/marketing/campaigns`**, **`/admin/marketing/campaigns/[slug]`**, **`/admin/marketing/rules`**, **`/admin/marketing/reward-rules`**, **`/admin/marketing/settings`**, **`/admin/marketing/attribution`**.
+- Shared shell: `app/admin/marketing/layout.js` + `MarketingSubNav` soft-flat on `&lt;sm`; touch nav `min-h-[44px]`.
+- Tables: desktop `hidden sm:block`; mobile card stacks (`sm:hidden`) for campaigns list, partner top, reward rules, attribution campaign/referrer summaries, campaign detail tabs.
+- Touch: `min-h-[44px]`; remove `h-8` button shrink; primary CTA `max-sm:w-full` where header stacks.
+- **Не трогать:** fetch / PATCH / validation / ROI calculation / sort logic bodies — layout/Tailwind only.
+- **Next 5E-2:** analytics, budget, payouts, referral-payouts, fraud-queue, roi (+ slug), audit, wallet-audit — or Admin system.
+
 ---
 
 ## Сводка
@@ -109,10 +119,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **23** | 29 |
-| **Итого** | **116** | **85** | **31** |
+| Admin Panel | 52 | **31** | 21 |
+| **Итого** | **116** | **93** | **23** |
 
-**Wave 1–4 closed.** **Wave 5A–5D (200.58–200.61):** Admin core + people/cases + FinTech + content/support. Next → Admin marketing / system.
+**Wave 1–4 closed.** **Wave 5A–5E-1 (200.58–200.62):** Admin core + people/cases + FinTech + content/support + marketing core. Next → Admin Wave **5E-2** (analytics/budget/payouts/fraud/roi/audit) or system.
 
 ---
 
@@ -123,14 +133,14 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; continue marketing / system.
+5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; **5E-1 Done (200.62)** marketing core; next **5E-2** (analytics/budget/payouts/fraud/roi/audit) or system.
 
 **Замечания / долг:**
 
 - Дубли маршрутов бронирований: `/my-bookings`, `/renter/bookings`, возможно legacy `/dashboard/*` — кандидаты на canonical redirect SSOT (не смешивать flattening с редиректом в одном PR без ADR).
 - Legacy `/login` рядом с каноном `/auth/login` — зафиксировать один entry.
 - Shared overlays (cancel booking, review modal, partner apply, sheets) — не `page.js`, но входят в UX-контракт; см. §5.
-- Admin marketing subtree — отдельная волна (много страниц, свой layout).
+- Admin marketing **5E-2** remainder (analytics/budget/payouts/fraud/roi/audit) + system subtree.
 
 ---
 
@@ -302,23 +312,23 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/admin/marketing` | `…/marketing/page.js` | Marketing hub |
-| [ ] | `/admin/marketing/settings` | `…/settings/page.js` | Marketing settings |
-| [ ] | `/admin/marketing/campaigns` | `…/campaigns/page.js` | Campaigns |
-| [ ] | `/admin/marketing/campaigns/[slug]` | `…/campaigns/[slug]/page.js` | Campaign detail |
-| [ ] | `/admin/marketing/promos` | `…/promos/page.js` | Promos |
-| [ ] | `/admin/marketing/rules` | `…/rules/page.js` | Rules |
-| [ ] | `/admin/marketing/reward-rules` | `…/reward-rules/page.js` | Reward rules |
-| [ ] | `/admin/marketing/attribution` | `…/attribution/page.js` | Attribution |
-| [ ] | `/admin/marketing/analytics` | `…/analytics/page.js` | Analytics |
-| [ ] | `/admin/marketing/budget` | `…/budget/page.js` | Budget |
-| [ ] | `/admin/marketing/payouts` | `…/payouts/page.js` | Marketing payouts |
-| [ ] | `/admin/marketing/referral-payouts` | `…/referral-payouts/page.js` | Referral payouts |
-| [ ] | `/admin/marketing/fraud-queue` | `…/fraud-queue/page.js` | Fraud queue |
-| [ ] | `/admin/marketing/roi` | `…/roi/page.js` | ROI |
-| [ ] | `/admin/marketing/roi/[campaignSlug]` | `…/roi/[campaignSlug]/page.js` | ROI by campaign |
-| [ ] | `/admin/marketing/audit` | `…/audit/page.js` | Marketing audit |
-| [ ] | `/admin/marketing/wallet-audit` | `…/wallet-audit/page.js` | Wallet audit |
+| [x] | `/admin/marketing` | `…/marketing/page.js` | **Admin Wave 5E-1 / 200.62** |
+| [x] | `/admin/marketing/settings` | `…/settings/page.js` | **Admin Wave 5E-1 / 200.62** |
+| [x] | `/admin/marketing/campaigns` | `…/campaigns/page.js` | **Admin Wave 5E-1 / 200.62** (table↔cards) |
+| [x] | `/admin/marketing/campaigns/[slug]` | `…/campaigns/[slug]/page.js` | **Admin Wave 5E-1 / 200.62** (tabs table↔cards) |
+| [x] | `/admin/marketing/promos` | `…/promos/page.js` | **Admin Wave 5E-1 / 200.62** (`AdminMarketingPageContent`) |
+| [x] | `/admin/marketing/rules` | `…/rules/page.js` | **Admin Wave 5E-1 / 200.62** |
+| [x] | `/admin/marketing/reward-rules` | `…/reward-rules/page.js` | **Admin Wave 5E-1 / 200.62** (table↔cards) |
+| [x] | `/admin/marketing/attribution` | `…/attribution/page.js` | **Admin Wave 5E-1 / 200.62** (campaign/referrer cards) |
+| [ ] | `/admin/marketing/analytics` | `…/analytics/page.js` | Analytics — **5E-2** |
+| [ ] | `/admin/marketing/budget` | `…/budget/page.js` | Budget — **5E-2** |
+| [ ] | `/admin/marketing/payouts` | `…/payouts/page.js` | Marketing payouts — **5E-2** |
+| [ ] | `/admin/marketing/referral-payouts` | `…/referral-payouts/page.js` | Referral payouts — **5E-2** |
+| [ ] | `/admin/marketing/fraud-queue` | `…/fraud-queue/page.js` | Fraud queue — **5E-2** |
+| [ ] | `/admin/marketing/roi` | `…/roi/page.js` | ROI — **5E-2** |
+| [ ] | `/admin/marketing/roi/[campaignSlug]` | `…/roi/[campaignSlug]/page.js` | ROI by campaign — **5E-2** |
+| [ ] | `/admin/marketing/audit` | `…/audit/page.js` | Marketing audit — **5E-2** |
+| [ ] | `/admin/marketing/wallet-audit` | `…/wallet-audit/page.js` | Wallet audit — **5E-2** |
 
 ### 4.4 System / security / compliance
 

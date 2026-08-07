@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.62 | 2026-08-07 | Admin Wave 5E-1 mobile-flat: marketing hub, promos, campaigns, rules, attribution | Done |
 | 200.61 | 2026-08-07 | Admin Wave 5D mobile-flat: categories, location suggestions, staff messages | Done |
 | 200.60 | 2026-08-07 | Admin Wave 5C mobile-flat: FinTech finances, ledger, intelligence, payouts | Done |
 | 200.59 | 2026-08-07 | Admin Wave 5B mobile-flat: users, partners, disputes, reviews, waitlist | Done |

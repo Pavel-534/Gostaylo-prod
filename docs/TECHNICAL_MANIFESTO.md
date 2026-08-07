@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.43 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.61** Admin Wave 5D content & support mobile-flat.
+> **Version**: 13.2.44 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.62** Admin Wave 5E-1 marketing mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.62 — Admin Wave 5E-1 mobile-flat (marketing admin core)
+
+- Paths: `/admin/marketing`, `/promos`, `/campaigns` (+ `[slug]`), `/rules`, `/reward-rules`, `/settings`, `/attribution` (+ shared marketing layout/SubNav).
+- SSOT: `MOBILE_FLAT_*`; campaigns/rules/attribution/detail tabs: mobile cards + desktop tables; touch `min-h-[44px]`.
+- Layout/Tailwind only — no marketing API, fetch, PATCH, validation, or ROI math changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.10.0. Next → Admin Wave **5E-2** (analytics/budget/payouts/fraud/roi/audit) or system.
 
 ### Stage 200.61 — Admin Wave 5D mobile-flat (content & support ops)
 

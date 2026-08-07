@@ -14,6 +14,12 @@ import { CampaignBudgetUsageBadge, CampaignStatusBadge } from '@/components/admi
 import { formatDaysUntilExpiry } from '@/lib/admin/referral-campaign-ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 const EMPTY_FORM = {
   name: '',
@@ -181,10 +187,11 @@ export default function MarketingCampaignsAdminPage() {
           <h1 className="text-2xl font-bold text-slate-950">Кампании</h1>
           <p className="mt-1 text-sm text-slate-600">Управляйте бюджетом, сроком и hold override без изменения базовой экономики.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <Button
             type="button"
             variant="outline"
+            className="min-h-[44px] max-sm:w-full"
             onClick={async () => {
               try {
                 const res = await fetch('/api/v2/admin/referral/campaigns?format=csv', {
@@ -207,7 +214,7 @@ export default function MarketingCampaignsAdminPage() {
             <Download className="mr-2 h-4 w-4" />
             CSV всех кампаний
           </Button>
-          <Button type="button" variant="brand" onClick={resetForm}>
+          <Button type="button" variant="brand" className="min-h-[44px] max-sm:w-full" onClick={resetForm}>
             <Plus className="mr-2 h-4 w-4" />
             Создать новую
           </Button>
@@ -226,130 +233,177 @@ export default function MarketingCampaignsAdminPage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_2fr]">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>{editingSlug ? 'Редактирование кампании' : 'Новая кампания'}</CardTitle>
             <CardDescription>Slug уникален. Override hold ограничен 0..90 дней.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
             <div className="space-y-1">
               <Label>Название</Label>
-              <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Referral Summer 2026" />
+              <Input className="min-h-[44px]" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Referral Summer 2026" />
             </div>
             <div className="space-y-1">
               <Label>Campaign slug</Label>
-              <Input value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))} disabled={!!editingSlug} placeholder="summer-2026" />
+              <Input className="min-h-[44px]" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))} disabled={!!editingSlug} placeholder="summer-2026" />
             </div>
             <div className="space-y-1">
               <Label>Max Budget THB</Label>
-              <Input type="number" min={0} step="0.01" value={form.maxBudgetThb} onChange={(e) => setForm((p) => ({ ...p, maxBudgetThb: e.target.value }))} placeholder="50000" />
+              <Input className="min-h-[44px]" type="number" min={0} step="0.01" value={form.maxBudgetThb} onChange={(e) => setForm((p) => ({ ...p, maxBudgetThb: e.target.value }))} placeholder="50000" />
             </div>
             <div className="space-y-1">
               <Label>Expires At</Label>
-              <Input type="datetime-local" value={form.campaignExpiresAt} onChange={(e) => setForm((p) => ({ ...p, campaignExpiresAt: e.target.value }))} />
+              <Input className="min-h-[44px]" type="datetime-local" value={form.campaignExpiresAt} onChange={(e) => setForm((p) => ({ ...p, campaignExpiresAt: e.target.value }))} />
             </div>
             <div className="space-y-1">
               <Label>Override Hold Days</Label>
-              <Input type="number" min={0} max={90} step="1" value={form.overrideHoldDays} onChange={(e) => setForm((p) => ({ ...p, overrideHoldDays: e.target.value }))} placeholder="14" />
+              <Input className="min-h-[44px]" type="number" min={0} max={90} step="1" value={form.overrideHoldDays} onChange={(e) => setForm((p) => ({ ...p, overrideHoldDays: e.target.value }))} placeholder="14" />
             </div>
             <div className="space-y-1">
               <Label>Статус</Label>
               <Select value={form.isActive ? '1' : '0'} onValueChange={(v) => setForm((p) => ({ ...p, isActive: v === '1' }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="min-h-[44px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">Активна</SelectItem>
                   <SelectItem value="0">Пауза</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button type="button" variant="brand" onClick={() => void saveCampaign()} disabled={saving}>
+            <Button type="button" variant="brand" className="min-h-[44px] max-sm:w-full" onClick={() => void saveCampaign()} disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
               {saving ? 'Сохраняю...' : editingSlug ? 'Сохранить изменения' : 'Создать кампанию'}
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle>Список кампаний</CardTitle>
             <CardDescription>Статус вычисляется из паузы, срока и остатка бюджета.</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
             {loading ? (
               <p className="text-sm text-slate-500">Загрузка...</p>
             ) : (
-              <Table className="min-w-[980px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Название</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead className="text-right">Max Budget</TableHead>
-                    <TableHead className="text-right">Потрачено</TableHead>
-                    <TableHead className="text-right">Остаток</TableHead>
-                    <TableHead className="text-right">Override Hold</TableHead>
-                    <TableHead>До окончания</TableHead>
-                    <TableHead>Expires At</TableHead>
-                    <TableHead className="text-right">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                <div className="sm:hidden space-y-0">
                   {campaigns.map((row) => (
-                      <TableRow
-                        key={row.slug}
-                        className="cursor-pointer hover:bg-brand/5"
+                    <div
+                      key={row.slug}
+                      className="border-b border-slate-100 py-4 last:border-0"
+                    >
+                      <button
+                        type="button"
+                        className="min-h-[44px] w-full text-left"
                         onClick={() => router.push(`/admin/marketing/campaigns/${encodeURIComponent(row.slug)}`)}
                       >
-                        <TableCell className="font-medium">
-                          <span className="inline-flex items-center gap-1">
-                            {row.name}
-                            <ChevronRight className="h-4 w-4 text-slate-400" />
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{row.slug}</TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <CampaignStatusBadge status={row.status} />
-                            <CampaignBudgetUsageBadge
-                              budgetAlertLevel={row.budgetAlertLevel}
-                              budgetUsagePct={row.budgetUsagePct}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{row.maxBudgetThb != null ? formatThb(row.maxBudgetThb) : '∞'}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatThb(row.spentThb)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{row.remainingBudgetThb != null ? formatThb(row.remainingBudgetThb) : '∞'}</TableCell>
-                        <TableCell className="text-right tabular-nums">{row.overrideHoldDays != null ? `${row.overrideHoldDays} дн` : '—'}</TableCell>
-                        <TableCell className="tabular-nums text-sm">
-                          {formatDaysUntilExpiry(row.campaignExpiresAt)}
-                        </TableCell>
-                        <TableCell>{formatDate(row.campaignExpiresAt)}</TableCell>
-                        <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="outline" onClick={() => startEdit(row)}><Pencil className="mr-1 h-3.5 w-3.5" />Ред.</Button>
-                          <Button size="sm" variant="outline" onClick={() => void toggleCampaign(row)}>
-                            {row?.isActive === false ? <Play className="mr-1 h-3.5 w-3.5" /> : <Pause className="mr-1 h-3.5 w-3.5" />}
-                            {row?.isActive === false ? 'Активировать' : 'Пауза'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        <p className="font-medium text-slate-900">{row.name}</p>
+                        <p className="font-mono text-xs text-slate-500">{row.slug}</p>
+                      </button>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <CampaignStatusBadge status={row.status} />
+                        <CampaignBudgetUsageBadge
+                          budgetAlertLevel={row.budgetAlertLevel}
+                          budgetUsagePct={row.budgetUsagePct}
+                        />
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-slate-500">Потрачено</p>
+                          <p className="tabular-nums font-medium">{formatThb(row.spentThb)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Остаток</p>
+                          <p className="tabular-nums font-medium">{row.remainingBudgetThb != null ? formatThb(row.remainingBudgetThb) : '∞'}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-col gap-2">
+                        <Button size="sm" variant="outline" className="min-h-[44px] w-full" onClick={() => startEdit(row)}>
+                          <Pencil className="mr-1 h-3.5 w-3.5" />Ред.
+                        </Button>
+                        <Button size="sm" variant="outline" className="min-h-[44px] w-full" onClick={() => void toggleCampaign(row)}>
+                          {row?.isActive === false ? <Play className="mr-1 h-3.5 w-3.5" /> : <Pause className="mr-1 h-3.5 w-3.5" />}
+                          {row?.isActive === false ? 'Активировать' : 'Пауза'}
+                        </Button>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+                <div className="hidden sm:block">
+                  <Table className="min-w-[980px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Название</TableHead>
+                        <TableHead>Slug</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead className="text-right">Max Budget</TableHead>
+                        <TableHead className="text-right">Потрачено</TableHead>
+                        <TableHead className="text-right">Остаток</TableHead>
+                        <TableHead className="text-right">Override Hold</TableHead>
+                        <TableHead>До окончания</TableHead>
+                        <TableHead>Expires At</TableHead>
+                        <TableHead className="text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {campaigns.map((row) => (
+                          <TableRow
+                            key={row.slug}
+                            className="cursor-pointer hover:bg-brand/5"
+                            onClick={() => router.push(`/admin/marketing/campaigns/${encodeURIComponent(row.slug)}`)}
+                          >
+                            <TableCell className="font-medium">
+                              <span className="inline-flex items-center gap-1">
+                                {row.name}
+                                <ChevronRight className="h-4 w-4 text-slate-400" />
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">{row.slug}</TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <CampaignStatusBadge status={row.status} />
+                                <CampaignBudgetUsageBadge
+                                  budgetAlertLevel={row.budgetAlertLevel}
+                                  budgetUsagePct={row.budgetUsagePct}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{row.maxBudgetThb != null ? formatThb(row.maxBudgetThb) : '∞'}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatThb(row.spentThb)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{row.remainingBudgetThb != null ? formatThb(row.remainingBudgetThb) : '∞'}</TableCell>
+                            <TableCell className="text-right tabular-nums">{row.overrideHoldDays != null ? `${row.overrideHoldDays} дн` : '—'}</TableCell>
+                            <TableCell className="tabular-nums text-sm">
+                              {formatDaysUntilExpiry(row.campaignExpiresAt)}
+                            </TableCell>
+                            <TableCell>{formatDate(row.campaignExpiresAt)}</TableCell>
+                            <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                              <Button size="sm" variant="outline" onClick={() => startEdit(row)}><Pencil className="mr-1 h-3.5 w-3.5" />Ред.</Button>
+                              <Button size="sm" variant="outline" onClick={() => void toggleCampaign(row)}>
+                                {row?.isActive === false ? <Play className="mr-1 h-3.5 w-3.5" /> : <Pause className="mr-1 h-3.5 w-3.5" />}
+                                {row?.isActive === false ? 'Активировать' : 'Пауза'}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-indigo-200 bg-indigo-50/30 shadow-sm">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-indigo-200 sm:bg-indigo-50/30 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Привязка кампании к реферальному коду</CardTitle>
           <CardDescription>Применяется к выбранной реферальной ссылке (`referral_codes`).</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid gap-3 md:grid-cols-3')}>
           <div className="space-y-1">
             <Label>Реферальный код</Label>
             <Select value={selectedCodeId} onValueChange={setSelectedCodeId}>
-              <SelectTrigger><SelectValue placeholder="Выберите код" /></SelectTrigger>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="Выберите код" /></SelectTrigger>
               <SelectContent>
                 {referralCodes.map((row) => (
                   <SelectItem key={row.id} value={row.id}>
@@ -362,7 +416,7 @@ export default function MarketingCampaignsAdminPage() {
           <div className="space-y-1">
             <Label>Кампания</Label>
             <Select value={selectedCampaignSlug} onValueChange={setSelectedCampaignSlug}>
-              <SelectTrigger><SelectValue placeholder="Без кампании" /></SelectTrigger>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="Без кампании" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Без кампании</SelectItem>
                 {activeCampaigns.map((row) => (
@@ -372,7 +426,7 @@ export default function MarketingCampaignsAdminPage() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button type="button" variant="brand" onClick={() => void bindCode()}>Сохранить привязку</Button>
+            <Button type="button" variant="brand" className="min-h-[44px] max-sm:w-full" onClick={() => void bindCode()}>Сохранить привязку</Button>
           </div>
         </CardContent>
       </Card>

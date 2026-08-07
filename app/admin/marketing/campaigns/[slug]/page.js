@@ -31,6 +31,13 @@ import { CampaignStatusBadge } from '@/components/admin/referral/CampaignStatusB
 import { ReferralFunnelPanel } from '@/components/admin/referral/ReferralFunnelPanel';
 import { formatDaysUntilExpiry } from '@/lib/admin/referral-campaign-ui';
 import { roiToneClass } from '@/lib/admin/referral-monetary-kpi';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
+
 
 function defaultDateFrom() {
   const d = new Date();
@@ -204,17 +211,17 @@ export default function ReferralCampaignDetailPage() {
           </div>
           <p className="mt-1 font-mono text-xs text-slate-500">{slug}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => void downloadDetailCsv()}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Button type="button" variant="outline" size="sm" className="min-h-[44px] max-sm:w-full" onClick={() => void downloadDetailCsv()}>
             <Download className="mr-2 h-4 w-4" />
             CSV отчёт
           </Button>
-          <Button asChild type="button" variant="outline" size="sm">
+          <Button asChild type="button" variant="outline" size="sm" className="min-h-[44px] max-sm:w-full">
             <Link href={`/admin/marketing/attribution?campaignSlug=${encodeURIComponent(slug)}`}>
               Денежный пульт
             </Link>
           </Button>
-          <Button type="button" variant="brand" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button type="button" variant="brand" size="sm" className="min-h-[44px] max-sm:w-full" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
@@ -223,18 +230,18 @@ export default function ReferralCampaignDetailPage() {
 
       {campaign ? <CampaignBudgetAlertBanner campaign={campaign} /> : null}
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-base">Период аналитики</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap gap-4')}>
           <div>
             <Label htmlFor="camp-from">С</Label>
-            <Input id="camp-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1" />
+            <Input id="camp-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 min-h-[44px]" />
           </div>
           <div>
             <Label htmlFor="camp-to">По</Label>
-            <Input id="camp-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1" />
+            <Input id="camp-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 min-h-[44px]" />
           </div>
         </CardContent>
       </Card>
@@ -250,8 +257,8 @@ export default function ReferralCampaignDetailPage() {
           ['ROI', metrics.roiIndex != null ? Number(metrics.roiIndex).toFixed(2) : '—', 'roi'],
           ['Остаток бюджета', campaign?.remainingBudgetThb != null ? formatThb(campaign.remainingBudgetThb) : '∞', null],
         ].map(([label, value, kind]) => (
-          <Card key={label} className="border-slate-200/80 shadow-sm">
-            <CardHeader className="pb-1">
+          <Card key={label} className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-1')}>
               <CardDescription className="text-xs">{label}</CardDescription>
               <CardTitle className="text-xl tabular-nums">
                 {kind === 'thb' ? (
@@ -268,8 +275,8 @@ export default function ReferralCampaignDetailPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Card className="border-emerald-100 bg-emerald-50/20 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-100 sm:bg-emerald-50/20 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-emerald-700" />
               Бюджет кампании
@@ -279,7 +286,7 @@ export default function ReferralCampaignDetailPage() {
               {campaign?.maxBudgetThb != null ? formatThb(campaign.maxBudgetThb) : 'без лимита'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
             {budgetPct != null ? (
               <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-100">
                 <div
@@ -303,6 +310,7 @@ export default function ReferralCampaignDetailPage() {
                   min={0}
                   step="100"
                   placeholder="10000"
+                  className="min-h-[44px]"
                   value={topUpAmount}
                   onChange={(e) => setTopUpAmount(e.target.value)}
                 />
@@ -312,14 +320,15 @@ export default function ReferralCampaignDetailPage() {
                 <Input
                   id="topup-comment"
                   placeholder="Причина пополнения (опционально)"
+                  className="min-h-[44px]"
                   value={topUpComment}
                   onChange={(e) => setTopUpComment(e.target.value)}
                 />
               </div>
-              <Button type="button" variant="brand" disabled={topUpSaving} onClick={() => void topUpBudget()}>
+              <Button type="button" variant="brand" className="min-h-[44px] max-sm:w-full" disabled={topUpSaving} onClick={() => void topUpBudget()}>
                 {topUpSaving ? '…' : 'Пополнить'}
               </Button>
-              <Button type="button" variant="outline" onClick={() => void togglePause()}>
+              <Button type="button" variant="outline" className="min-h-[44px] max-sm:w-full" onClick={() => void togglePause()}>
                 {campaign?.isActive === false ? (
                   <>
                     <Play className="mr-1 h-3.5 w-3.5" />
@@ -343,12 +352,12 @@ export default function ReferralCampaignDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">Привязанные коды</CardTitle>
             <CardDescription>{codes.length} referral_codes</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[200px] overflow-y-auto text-sm space-y-2">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-h-[200px] overflow-y-auto text-sm space-y-2')}>
             {codes.length === 0 ? (
               <p className="text-slate-500">Нет привязанных кодов.</p>
             ) : (
@@ -367,7 +376,7 @@ export default function ReferralCampaignDetailPage() {
         <p className="text-sm text-slate-500">Загрузка…</p>
       ) : (
         <Tabs defaultValue="funnel" className="space-y-4">
-          <TabsList>
+          <TabsList className="min-h-[44px] h-auto flex-wrap">
             <TabsTrigger value="funnel">Воронка</TabsTrigger>
             <TabsTrigger value="referrers">Рефереры ({referrerRows.length})</TabsTrigger>
             <TabsTrigger value="codes">Коды ({codes.length})</TabsTrigger>
@@ -380,168 +389,241 @@ export default function ReferralCampaignDetailPage() {
           </TabsContent>
 
           <TabsContent value="referrers">
-            <Card className="shadow-sm">
-              <CardContent className="overflow-x-auto pt-6">
-                <Table className="min-w-[900px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Реферер</TableHead>
-                      <TableHead className="text-right">Клики</TableHead>
-                      <TableHead className="text-right">Привлеч.</TableHead>
-                      <TableHead className="text-right">Брони</TableHead>
-                      <TableHead className="text-right">Бонусы</TableHead>
-                      <TableHead className="text-right">Net</TableHead>
-                      <TableHead className="text-right">ROI</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {referrerRows.map((row) => (
-                      <TableRow key={row.referrerId}>
-                        <TableCell>
-                          <Link href={`/admin/users/${row.referrerId}`} className="font-medium text-brand hover:underline">
-                            {row.name}
-                          </Link>
-                          <p className="text-xs text-slate-500">{row.referralCode}</p>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{row.clicksCount ?? 0}</TableCell>
-                        <TableCell className="text-right tabular-nums">{row.referredUsersCount ?? 0}</TableCell>
-                        <TableCell className="text-right tabular-nums">{row.bookingsCount ?? 0}</TableCell>
-                        <TableCell className="text-right">
-                          <AdminTableAmount value={row.bonusesThb} showPlus={false} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <AdminTableAmount value={row.netMarginThb} showPlus className="inline" />
-                        </TableCell>
-                        <TableCell className={`text-right ${roiToneClass(row.roiIndex)}`}>
-                          {row.roiIndex != null ? Number(row.roiIndex).toFixed(2) : '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="codes">
-            <Card className="shadow-sm">
-              <CardContent className="overflow-x-auto pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Код</TableHead>
-                      <TableHead>Владелец</TableHead>
-                      <TableHead>Статус</TableHead>
-                      <TableHead className="text-right">Потрачено по коду</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {codes.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-mono text-sm">{row.code}</TableCell>
-                        <TableCell>
-                          <Link href={`/admin/users/${row.userId}`} className="text-brand hover:underline text-sm">
-                            {row.ownerLabel}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{row.isActive ? 'Активен' : 'Выключен'}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatThb(row.currentSpentThb)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="topups">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base">История пополнений бюджета</CardTitle>
-                <CardDescription>
-                  Аудит в `metadata.budget_topups` — кто, когда и на сколько увеличил лимит.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
-                {budgetTopups.length === 0 ? (
-                  <p className="text-sm text-slate-500">Пополнений ещё не было.</p>
-                ) : (
-                  <Table className="min-w-[640px]">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-sm')}>
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto pt-6')}>
+                <div className="sm:hidden space-y-0">
+                  {referrerRows.map((row) => (
+                    <div key={row.referrerId} className="border-b border-slate-100 py-3 last:border-0">
+                      <Link href={`/admin/users/${row.referrerId}`} className="font-medium text-brand hover:underline">
+                        {row.name}
+                      </Link>
+                      <p className="text-xs text-slate-500">{row.referralCode}</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        <div><p className="text-xs text-slate-500">Бонусы</p><AdminTableAmount value={row.bonusesThb} showPlus={false} /></div>
+                        <div><p className="text-xs text-slate-500">Net</p><AdminTableAmount value={row.netMarginThb} showPlus className="inline" /></div>
+                        <div><p className="text-xs text-slate-500">Брони</p><p className="tabular-nums">{row.bookingsCount ?? 0}</p></div>
+                        <div><p className="text-xs text-slate-500">ROI</p><p className={roiToneClass(row.roiIndex)}>{row.roiIndex != null ? Number(row.roiIndex).toFixed(2) : '—'}</p></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table className="min-w-[900px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Дата</TableHead>
-                        <TableHead className="text-right">Сумма</TableHead>
-                        <TableHead>Кто пополнил</TableHead>
-                        <TableHead>Комментарий</TableHead>
+                        <TableHead>Реферер</TableHead>
+                        <TableHead className="text-right">Клики</TableHead>
+                        <TableHead className="text-right">Привлеч.</TableHead>
+                        <TableHead className="text-right">Брони</TableHead>
+                        <TableHead className="text-right">Бонусы</TableHead>
+                        <TableHead className="text-right">Net</TableHead>
+                        <TableHead className="text-right">ROI</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {budgetTopups.map((row) => (
-                        <TableRow key={row.id || row.atIso}>
-                          <TableCell className="text-sm whitespace-nowrap">
-                            {row.atIso
-                              ? new Date(row.atIso).toLocaleString('ru-RU', {
-                                  dateStyle: 'short',
-                                  timeStyle: 'short',
-                                })
-                              : '—'}
+                      {referrerRows.map((row) => (
+                        <TableRow key={row.referrerId}>
+                          <TableCell>
+                            <Link href={`/admin/users/${row.referrerId}`} className="font-medium text-brand hover:underline">
+                              {row.name}
+                            </Link>
+                            <p className="text-xs text-slate-500">{row.referralCode}</p>
                           </TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">
-                            +{formatThb(row.amountThb)}
+                          <TableCell className="text-right tabular-nums">{row.clicksCount ?? 0}</TableCell>
+                          <TableCell className="text-right tabular-nums">{row.referredUsersCount ?? 0}</TableCell>
+                          <TableCell className="text-right tabular-nums">{row.bookingsCount ?? 0}</TableCell>
+                          <TableCell className="text-right">
+                            <AdminTableAmount value={row.bonusesThb} showPlus={false} />
                           </TableCell>
-                          <TableCell className="text-sm">
-                            <p className="font-medium">{row.adminName || row.adminEmail || '—'}</p>
-                            {row.adminUserId ? (
-                              <Link
-                                href={`/admin/users/${row.adminUserId}`}
-                                className="text-xs text-brand hover:underline font-mono"
-                              >
-                                {row.adminUserId}
-                              </Link>
-                            ) : null}
+                          <TableCell className="text-right">
+                            <AdminTableAmount value={row.netMarginThb} showPlus className="inline" />
                           </TableCell>
-                          <TableCell className="text-sm text-slate-600 max-w-[280px]">
-                            {row.comment || '—'}
+                          <TableCell className={`text-right ${roiToneClass(row.roiIndex)}`}>
+                            {row.roiIndex != null ? Number(row.roiIndex).toFixed(2) : '—'}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="codes">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-sm')}>
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto pt-6')}>
+                <div className="sm:hidden space-y-0">
+                  {codes.map((row) => (
+                    <div key={row.id} className="border-b border-slate-100 py-3 last:border-0">
+                      <p className="font-mono text-sm font-medium">{row.code}</p>
+                      <Link href={`/admin/users/${row.userId}`} className="text-sm text-brand hover:underline">
+                        {row.ownerLabel}
+                      </Link>
+                      <div className="mt-1 flex justify-between text-sm">
+                        <span className="text-slate-500">{row.isActive ? 'Активен' : 'Выключен'}</span>
+                        <span className="tabular-nums font-medium">{formatThb(row.currentSpentThb)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Код</TableHead>
+                        <TableHead>Владелец</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead className="text-right">Потрачено по коду</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {codes.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-mono text-sm">{row.code}</TableCell>
+                          <TableCell>
+                            <Link href={`/admin/users/${row.userId}`} className="text-brand hover:underline text-sm">
+                              {row.ownerLabel}
+                            </Link>
+                          </TableCell>
+                          <TableCell>{row.isActive ? 'Активен' : 'Выключен'}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatThb(row.currentSpentThb)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="topups">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-sm')}>
+              <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+                <CardTitle className="text-base">История пополнений бюджета</CardTitle>
+                <CardDescription>
+                  Аудит в `metadata.budget_topups` — кто, когда и на сколько увеличил лимит.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
+                {budgetTopups.length === 0 ? (
+                  <p className="text-sm text-slate-500">Пополнений ещё не было.</p>
+                ) : (
+                  <>
+                    <div className="sm:hidden space-y-0">
+                      {budgetTopups.map((row) => (
+                        <div key={row.id || row.atIso} className="border-b border-slate-100 py-3 last:border-0">
+                          <div className="flex justify-between gap-2">
+                            <p className="text-sm text-slate-600">
+                              {row.atIso
+                                ? new Date(row.atIso).toLocaleString('ru-RU', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short',
+                                  })
+                                : '—'}
+                            </p>
+                            <p className="tabular-nums font-medium">+{formatThb(row.amountThb)}</p>
+                          </div>
+                          <p className="mt-1 text-sm font-medium">{row.adminName || row.adminEmail || '—'}</p>
+                          <p className="text-sm text-slate-600">{row.comment || '—'}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table className="min-w-[640px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Дата</TableHead>
+                            <TableHead className="text-right">Сумма</TableHead>
+                            <TableHead>Кто пополнил</TableHead>
+                            <TableHead>Комментарий</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {budgetTopups.map((row) => (
+                            <TableRow key={row.id || row.atIso}>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {row.atIso
+                                  ? new Date(row.atIso).toLocaleString('ru-RU', {
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
+                                  : '—'}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums font-medium">
+                                +{formatThb(row.amountThb)}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                <p className="font-medium">{row.adminName || row.adminEmail || '—'}</p>
+                                {row.adminUserId ? (
+                                  <Link
+                                    href={`/admin/users/${row.adminUserId}`}
+                                    className="text-xs text-brand hover:underline font-mono"
+                                  >
+                                    {row.adminUserId}
+                                  </Link>
+                                ) : null}
+                              </TableCell>
+                              <TableCell className="text-sm text-slate-600 max-w-[280px]">
+                                {row.comment || '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="cohort">
-            <Card className="shadow-sm">
-              <CardContent className="overflow-x-auto pt-6">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-sm')}>
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto pt-6')}>
                 {!cohortRows.length ? (
                   <p className="text-sm text-slate-500">Нет когорт за период.</p>
                 ) : (
-                  <Table className="min-w-[720px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Реферер</TableHead>
-                        <TableHead>Месяц</TableHead>
-                        <TableHead className="text-right">Привлеч.</TableHead>
-                        <TableHead className="text-right">Брони</TableHead>
-                        <TableHead className="text-right">Net</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <>
+                    <div className="sm:hidden space-y-0">
                       {cohortRows.map((row) => (
-                        <TableRow key={`${row.referrerId}-${row.cohortMonth}`}>
-                          <TableCell className="text-sm">{row.referrerName || row.referrerId}</TableCell>
-                          <TableCell>{row.cohortMonth}</TableCell>
-                          <TableCell className="text-right">{row.referredUsersCount}</TableCell>
-                          <TableCell className="text-right">{row.bookingsCount}</TableCell>
-                          <TableCell className="text-right">
+                        <div key={`${row.referrerId}-${row.cohortMonth}`} className="border-b border-slate-100 py-3 last:border-0">
+                          <p className="font-medium text-sm">{row.referrerName || row.referrerId}</p>
+                          <p className="text-xs text-slate-500">{row.cohortMonth}</p>
+                          <div className="mt-2 flex justify-between text-sm">
+                            <span>Привлеч. {row.referredUsersCount} · Брони {row.bookingsCount}</span>
                             <AdminTableAmount value={row.netMarginThb} showPlus className="inline" />
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table className="min-w-[720px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Реферер</TableHead>
+                            <TableHead>Месяц</TableHead>
+                            <TableHead className="text-right">Привлеч.</TableHead>
+                            <TableHead className="text-right">Брони</TableHead>
+                            <TableHead className="text-right">Net</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cohortRows.map((row) => (
+                            <TableRow key={`${row.referrerId}-${row.cohortMonth}`}>
+                              <TableCell className="text-sm">{row.referrerName || row.referrerId}</TableCell>
+                              <TableCell>{row.cohortMonth}</TableCell>
+                              <TableCell className="text-right">{row.referredUsersCount}</TableCell>
+                              <TableCell className="text-right">{row.bookingsCount}</TableCell>
+                              <TableCell className="text-right">
+                                <AdminTableAmount value={row.netMarginThb} showPlus className="inline" />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>

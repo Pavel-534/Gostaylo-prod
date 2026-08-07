@@ -31,6 +31,11 @@ import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { CampaignBudgetAlertBanner } from '@/components/admin/referral/CampaignBudgetAlertBanner';
 import { CampaignStatusBadge } from '@/components/admin/referral/CampaignStatusBadge';
 import { roiToneClass } from '@/lib/admin/referral-monetary-kpi';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 import { cn } from '@/lib/utils';
 import {
   ResponsiveContainer,
@@ -148,8 +153,8 @@ function KpiHint({ hint }) {
 
 function KpiSkeleton() {
   return (
-    <Card className="border-slate-200/80 shadow-sm">
-      <CardHeader className="pb-2 pt-4">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 pt-4')}>
         <div className="h-3 w-20 animate-pulse rounded bg-slate-200" />
         <div className="mt-3 h-8 w-28 animate-pulse rounded bg-slate-200" />
         <div className="mt-2 h-3 w-32 animate-pulse rounded bg-slate-100" />
@@ -171,8 +176,8 @@ function DashboardKpiCard({ label, hint, value, kind, deltaCurrent, deltaPreviou
   }
 
   return (
-    <Card className={cn('border-slate-200/80 shadow-sm transition-shadow hover:shadow-md', accent)}>
-      <CardHeader className="pb-3 pt-4">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm sm:transition-shadow sm:hover:shadow-md', accent)}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3 pt-4')}>
         <CardDescription className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           {label}
           <KpiHint hint={hint} />
@@ -511,8 +516,8 @@ export default function MarketingDashboard() {
                 }
                 if (item.type === 'fraud') {
                   return (
-                    <Card key="fraud" className="border-rose-300 bg-white/90 shadow-sm">
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <Card key="fraud" className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-rose-300 sm:bg-white/90 sm:shadow-sm')}>
+                      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap items-center justify-between gap-3 py-4')}>
                         <div className="flex items-center gap-3 text-sm font-medium text-rose-950">
                           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100">
                             <ShieldAlert className="h-5 w-5 text-rose-600" />
@@ -524,7 +529,7 @@ export default function MarketingDashboard() {
                             </p>
                           </div>
                         </div>
-                        <Button asChild size="sm" variant="brand">
+                        <Button asChild size="sm" variant="brand" className="min-h-[44px] max-sm:w-full">
                           <Link href="/admin/marketing/fraud-queue">Разобрать сейчас</Link>
                         </Button>
                       </CardContent>
@@ -533,13 +538,13 @@ export default function MarketingDashboard() {
                 }
                 if (item.type === 'low-roi') {
                   return (
-                    <Card key="roi" className="border-amber-300 bg-white/90 shadow-sm">
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <Card key="roi" className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-300 sm:bg-white/90 sm:shadow-sm')}>
+                      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap items-center justify-between gap-3 py-4')}>
                         <div className="text-sm text-amber-950">
                           <span className="font-semibold">Низкий ROI ({item.roi.toFixed(2)})</span>
                           <span className="text-amber-800"> — бонусы съедают комиссию</span>
                         </div>
-                        <Button asChild size="sm" variant="outline">
+                        <Button asChild size="sm" variant="outline" className="min-h-[44px] max-sm:w-full">
                           <Link href="/admin/marketing/attribution">Денежный пульт</Link>
                         </Button>
                       </CardContent>
@@ -548,13 +553,13 @@ export default function MarketingDashboard() {
                 }
                 if (item.type === 'suspicious') {
                   return (
-                    <Card key="suspicious" className="border-amber-200 bg-white/90 shadow-sm">
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <Card key="suspicious" className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-200 sm:bg-white/90 sm:shadow-sm')}>
+                      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap items-center justify-between gap-3 py-4')}>
                         <div className="flex items-center gap-2 text-sm text-amber-950">
                           <AlertTriangle className="h-4 w-4 shrink-0" />
                           Подозрительных конверсий: {item.count} ({formatPct(item.pct)})
                         </div>
-                        <Button asChild size="sm" variant="outline">
+                        <Button asChild size="sm" variant="outline" className="min-h-[44px] max-sm:w-full">
                           <Link href="/admin/marketing/attribution">Смотреть в аналитике</Link>
                         </Button>
                       </CardContent>
@@ -622,7 +627,7 @@ export default function MarketingDashboard() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200 hover:bg-white/15"
+                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/15"
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {item.label}
@@ -632,14 +637,14 @@ export default function MarketingDashboard() {
           </div>
         </section>
 
-        <Card className="border-slate-200/80 shadow-sm">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base text-slate-950">Динамика за 30 дней</CardTitle>
             <CardDescription>
               Клики и регистрации — левая шкала; начисления (฿) и брони — правая. Наведите на точку для деталей.
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'h-80')}>
             {loading ? (
               <div className="flex h-full items-center justify-center">
                 <div className="h-48 w-full max-w-md animate-pulse rounded-xl bg-slate-100" />
@@ -724,19 +729,19 @@ export default function MarketingDashboard() {
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-slate-200/80 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between')}>
               <div>
                 <CardTitle className="text-base">Активные кампании</CardTitle>
                 <CardDescription>
                   {activeCampaigns.length} активных · {campaigns.length} всего
                 </CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="min-h-[44px]">
                 <Link href="/admin/marketing/campaigns">Все</Link>
               </Button>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
               {!activeCampaigns.length ? (
                 <p className="text-sm text-slate-500">Нет активных кампаний.</p>
               ) : (
@@ -757,19 +762,19 @@ export default function MarketingDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/80 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between')}>
               <div>
                 <CardTitle className="text-base">Правила начислений</CardTitle>
                 <CardDescription>
                   Production: {productionRules.length} · Shadow: {shadowRules.length}
                 </CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="min-h-[44px]">
                 <Link href="/admin/marketing/rules">Управлять</Link>
               </Button>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
               {rules.slice(0, 5).map((r) => (
                 <div
                   key={r.id}
