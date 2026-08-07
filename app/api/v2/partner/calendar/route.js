@@ -1,11 +1,10 @@
 /**
  * Partner Calendar API (v2)
  *
- * SSOT: availability + nightly pricing come from `CalendarService.getCalendarForDateRange`
- * (same `buildCalendar` as guest/public flows). No duplicated night/promo logic here.
+ * Stage 200.53.3 — bulk raw load (3 DB queries for N listings) + in-memory `buildCalendar`
+ * (same SSOT as guest/public). Response DTO unchanged.
  *
- * Stage 200.53.2 — parallel listing builds (bounded concurrency) + pass listingRow to skip
- * duplicate listing/category fetches. Still one CalendarService build per listing (bulk SoT later).
+ * Guest/public single-listing calendar keeps its existing per-listing path — not this route.
  */
 
 import { NextResponse } from 'next/server'
@@ -15,8 +14,10 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
-import { addListingDays } from '@/lib/listing-date'
+import { addListingDays, toListingDate } from '@/lib/listing-date'
+import { resolveListingTimeZoneFromMetadata } from '@/lib/geo/listing-timezone-ssot'
 import { CalendarService } from '@/lib/services/calendar.service'
+import { loadPartnerCalendarRaw } from '@/lib/services/calendar/partner-calendar-bulk-load.js'
 import { promoIsActiveAt } from '@/lib/promo/promo-engine'
 import { mapListingPriceFieldsForApi } from '@/lib/listing/listing-base-price-canon'
 import { runWithConcurrency } from '@/lib/partner/run-with-concurrency.js'
@@ -25,10 +26,11 @@ export const dynamic = 'force-dynamic'
 /** Partner calendar can span many listings × month/90d — avoid platform kill mid-build. */
 export const maxDuration = 60
 
-/** Cap parallel CalendarService builds (DB-friendly; ~N/5 of serial wall time). */
+/** CPU-only parallel assemble (no DB inside workers). */
 const PARTNER_CALENDAR_BUILD_CONCURRENCY = 5
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/
+const MAX_RANGE_DAYS = 400
 
 function ymdRangeInclusive(startYmd, endYmd) {
   const dates = []
@@ -38,6 +40,24 @@ function ymdRangeInclusive(startYmd, endYmd) {
     cur = addListingDays(cur, 1)
   }
   return dates
+}
+
+function assertRangeWithinLimit(startYmd, endYmd) {
+  const rs = toListingDate(startYmd)
+  const re = toListingDate(endYmd)
+  if (!rs || !re || rs > re) {
+    return { ok: false, code: 'INVALID_DATE_RANGE' }
+  }
+  let span = 0
+  let cur = rs
+  while (cur <= re) {
+    span += 1
+    if (span > MAX_RANGE_DAYS) {
+      return { ok: false, code: 'RANGE_TOO_LARGE', maxDays: MAX_RANGE_DAYS }
+    }
+    cur = addListingDays(cur, 1)
+  }
+  return { ok: true, rs, re }
 }
 
 async function loadActivePromoRows() {
@@ -93,6 +113,22 @@ export async function GET(request) {
       )
     }
 
+    const rangeCheck = assertRangeWithinLimit(startDate, endDate)
+    if (!rangeCheck.ok) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error:
+            rangeCheck.code === 'RANGE_TOO_LARGE'
+              ? `Date range too large (max ${rangeCheck.maxDays} days)`
+              : 'Invalid startDate / endDate',
+          code: rangeCheck.code,
+          maxDays: rangeCheck.maxDays,
+        },
+        { status: 400 },
+      )
+    }
+
     if (!supabaseAdmin) {
       return NextResponse.json(
         {
@@ -135,17 +171,34 @@ export async function GET(request) {
         return NextResponse.json({
           status: 'success',
           data: { dates: [], listings: [], summary: { totalListings: 0, totalBookings: 0, totalBlocks: 0 } },
-          meta: { partnerId: userId, startDate, endDate, calendarSsot: 'CalendarService', hasSeasonalPrices: false },
+          meta: {
+            partnerId: userId,
+            startDate,
+            endDate,
+            calendarSsot: 'buildCalendar',
+            calendarLoad: 'partner-calendar-bulk',
+            hasSeasonalPrices: false,
+          },
         })
       }
 
       const promoRows = await loadActivePromoRows()
       const defaultListingCommission = await resolveDefaultCommissionPercent()
 
+      const listingIds = listings.map((l) => String(l.id))
+      const raw = await loadPartnerCalendarRaw({
+        listingIds,
+        rangeStart: startDate,
+        rangeEnd: endDate,
+        includePartnerGridFields: true,
+        supabase: supabaseAdmin,
+      })
+
       const buildResults = await runWithConcurrency({
         items: listings,
         concurrency: PARTNER_CALENDAR_BUILD_CONCURRENCY,
         worker: async (listing) => {
+          const id = String(listing.id)
           const rawCat = listing.categories
           const cat = Array.isArray(rawCat) ? rawCat[0] : rawCat
           const categorySlug = cat?.slug ? String(cat.slug).toLowerCase() : null
@@ -176,27 +229,42 @@ export async function GET(request) {
             type: mapCategorySlugToListingType(categorySlug || undefined),
           }
 
-          const cal = await CalendarService.getCalendarForDateRange(String(listing.id), startDate, endDate, {
-            marketingPromoRows: promoRows,
-            listingRow: listing,
-            listingCategorySlugOverride: categorySlug || undefined,
+          const bookings = raw.bookingsByListingId.get(id) || []
+          const blocks = raw.blocksByListingId.get(id) || []
+          const seasonalPrices = raw.seasonalByListingId.get(id) || []
+          const listingTimeZone = resolveListingTimeZoneFromMetadata(listing.metadata)
+
+          const calendar = CalendarService.buildCalendar({
+            rangeStart: startDate,
+            rangeEnd: endDate,
+            listing,
+            listingTimeZone,
+            bookings,
+            blocks,
+            seasonalPrices,
+            metadataSeasonalPricing: listing.metadata?.seasonal_pricing || [],
+            excludeBookingId: null,
+            requestedGuests: 1,
+            listingCategorySlug: categorySlug || '',
+            marketingPromos: promoRows || [],
+            partnerUi: true,
           })
 
-          if (!cal.success) {
-            const err = new Error(cal.error || 'Calendar build failed')
-            err.code = cal.code || 'CALENDAR_BUILD'
-            err.httpStatus = 400
-            throw err
+          const calInner = {
+            calendar,
+            listingTimeZone,
+            bookings,
+            blocks,
           }
 
-          const hasSeasonal = Array.isArray(cal.data?.calendar)
-            ? cal.data.calendar.some(
+          const hasSeasonal = Array.isArray(calendar)
+            ? calendar.some(
                 (d) => d.season && String(d.season).trim() && String(d.season).trim() !== 'Base',
               )
             : false
 
           return {
-            row: CalendarService.mapPartnerCalendarGridRow(listingUi, cal.data),
+            row: CalendarService.mapPartnerCalendarGridRow(listingUi, calInner),
             hasSeasonal,
           }
         },
@@ -241,18 +309,21 @@ export async function GET(request) {
           startDate,
           endDate,
           hasSeasonalPrices,
-          calendarSsot: 'CalendarService.getCalendarForDateRange',
+          calendarSsot: 'buildCalendar',
+          calendarLoad: 'partner-calendar-bulk',
         },
       })
     } catch (error) {
       console.error('[CALENDAR API] Supabase error:', error)
+      const code = error?.code || 'CALENDAR_DB_ERROR'
+      const status = code === 'INVALID_DATE_RANGE' || code === 'RANGE_TOO_LARGE' ? 400 : 503
       return NextResponse.json(
         {
           status: 'error',
           error: error?.message || 'Не удалось загрузить календарь из базы данных.',
-          code: 'CALENDAR_DB_ERROR',
+          code,
         },
-        { status: 503 },
+        { status },
       )
     }
   } catch (error) {

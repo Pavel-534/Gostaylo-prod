@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.36 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.53.2** partner calendar perf quick wins.
+> **Version**: 13.2.37 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.53.3** partner calendar bulk SoT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.53.3 — Partner calendar bulk SoT (read path)
+
+- New SSOT raw loader: `lib/services/calendar/partner-calendar-bulk-load.js` → `loadPartnerCalendarRaw` — **3 DB queries** for N listings (bookings / calendar_blocks / seasonal_prices), Maps by `listing_id`.
+- `GET /api/v2/partner/calendar`: listings + promos as before → bulk raw → in-memory `buildCalendar` + `mapPartnerCalendarGridRow`. Response DTO unchanged. `maxDuration=60`. No `getCalendarForDateRange` in this route.
+- Guest/public single-listing still uses `getCalendarForDateRange` (unchanged).
+- **Backlog (not this Stage):** light heatmap DTO for overview, HTTP/CDN cache by partner+range, force `listingId` / page when N large.
 
 ### Stage 200.53.2 — Partner calendar performance quick wins
 
