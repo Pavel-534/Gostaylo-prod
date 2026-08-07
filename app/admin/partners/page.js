@@ -23,6 +23,13 @@ import {
 } from '@/components/ui/dialog'
 import Link from 'next/link'
 import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function AdminPartnersPage() {
   const router = useRouter()
@@ -192,21 +199,24 @@ export default function AdminPartnersPage() {
       {/* Content */}
       <div className="container mx-auto px-4 py-6">
         {applications.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, MOBILE_FLAT_EMPTY_CLASS, 'sm:py-12')}>
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <p className="text-slate-600">Нет заявок на рассмотрение</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-sm:space-y-0 max-sm:divide-y max-sm:divide-slate-100">
             {applications.map(app => (
               <Card 
                 key={app.id} 
-                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                className={cn(
+                  MOBILE_FLAT_CARD_CLASS,
+                  'overflow-hidden cursor-pointer max-sm:rounded-none max-sm:shadow-none sm:hover:shadow-md sm:transition-shadow',
+                )}
                 onClick={() => router.push(`/admin/partners/${app.application_id}`)}
               >
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:p-6')}>
                   <div className="flex flex-col gap-4">
                     {/* Header: Avatar + Name + Badge */}
                     <div className="flex items-start gap-3">
@@ -242,7 +252,7 @@ export default function AdminPartnersPage() {
                     </div>
 
                     {/* Experience Preview */}
-                    <div className="bg-slate-50 rounded-lg p-3">
+                    <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50')}>
                       <div className="flex items-center gap-2 mb-1">
                         <FileText className="h-3.5 w-3.5 text-slate-500" />
                         <span className="text-xs font-medium text-slate-700">Опыт</span>
@@ -273,19 +283,19 @@ export default function AdminPartnersPage() {
                       </p>
                       
                       {/* Actions */}
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row" onClick={(e) => e.stopPropagation()}>
                         <Button
                           onClick={() => approvePartner(app.id)}
                           disabled={processingId === app.id}
                           size="sm"
-                          className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 h-9"
+                          className="min-h-[44px] w-full flex-1 sm:flex-none bg-green-600 hover:bg-green-700 sm:h-9"
                         >
                           {processingId === app.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <>
                               <CheckCircle className="h-4 w-4 sm:mr-1" />
-                              <span className="hidden sm:inline">Одобрить</span>
+                              <span>Одобрить</span>
                             </>
                           )}
                         </Button>
@@ -297,10 +307,10 @@ export default function AdminPartnersPage() {
                           disabled={processingId === app.id}
                           variant="outline"
                           size="sm"
-                          className="flex-1 sm:flex-none text-red-600 border-red-200 hover:bg-red-50 h-9"
+                          className="min-h-[44px] w-full flex-1 sm:flex-none text-red-600 border-red-200 hover:bg-red-50 sm:h-9"
                         >
                           <XCircle className="h-4 w-4 sm:mr-1" />
-                          <span className="hidden sm:inline">Отклонить</span>
+                          <span>Отклонить</span>
                         </Button>
                       </div>
                     </div>

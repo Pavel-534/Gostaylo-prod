@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.6.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.7.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -18,6 +18,7 @@
 | `[x] Finished (Chat Wave 3 / 200.56)` | Messages hall + thread chrome; composer safe-area kept |
 | `[x] Finished (Auth Wave 4 / 200.57)` | Auth + marketing/legal public pages; demo exclude |
 | `[x] Finished (Admin Wave 5A / 200.58)` | Core ops: `/admin`, dashboard, moderation (=listings), bookings |
+| `[x] Finished (Admin Wave 5B / 200.59)` | Users, partners, disputes, reviews polish, waitlist |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -74,6 +75,13 @@
 - Isolation OK: FX stale banner, Recharts, moderation Dialog/carousel, Switch rate-limit control.
 - Next 5B+: users/partners/disputes/reviews/messages, then FinTech & marketing admin.
 
+**Уточнения ТЗ (Wave 5B — Admin people & cases):**
+
+- Scope: **`/admin/users`**, **`/admin/users/[id]`**, **`/admin/partners`**, **`/admin/partners/[id]`**, **`/admin/disputes`**, **`/admin/reviews`**, **`/admin/waitlist`**.
+- Disputes / waitlist / reviews: table `hidden sm:block` + mobile card stack `sm:hidden`.
+- Isolation OK: dispute Sheet + `UnifiedOrderCard`, partner sticky CTA, login-as / role Select (class-only).
+- **Defer:** categories, locations/suggestions, messages/[id] (chat Wave 3), FinTech/marketing admin.
+
 ---
 
 ## Сводка
@@ -83,10 +91,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **5** | 47 |
-| **Итого** | **116** | **67** | **49** |
+| Admin Panel | 52 | **12** | 40 |
+| **Итого** | **116** | **74** | **42** |
 
-**Wave 1–4 closed.** **Wave 5A (200.58):** Admin core ops started. Next → Admin users/partners/disputes (5B) or FinTech.
+**Wave 1–4 closed.** **Wave 5A–5B (200.58–200.59):** Admin core + people/cases. Next → Admin 5C (categories/locations/messages polish) or FinTech.
 
 ---
 
@@ -97,7 +105,7 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; continue FinTech / marketing / system densest surfaces (tables → card stack `&lt;sm` per Stage 176.2).
+5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** users/partners/disputes/reviews/waitlist; continue FinTech / marketing / system.
 
 **Замечания / долг:**
 
@@ -246,16 +254,16 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 | [x] | `/admin` | `app/admin/page.js` | **Admin Wave 5A / 200.58** |
 | [x] | `/admin/dashboard` | `…/dashboard/page.js` | **Admin Wave 5A / 200.58** |
 | [x] | `/admin/moderation` | `…/moderation/page.js` | **Admin Wave 5A / 200.58** (listings registry) |
-| [ ] | `/admin/users` | `…/users/page.js` | Users list |
-| [ ] | `/admin/users/[id]` | `…/users/[id]/page.js` | User detail |
-| [ ] | `/admin/partners` | `…/partners/page.js` | Partners list |
-| [ ] | `/admin/partners/[id]` | `…/partners/[id]/page.js` | Partner detail |
+| [x] | `/admin/users` | `…/users/page.js` | **Admin Wave 5B / 200.59** |
+| [x] | `/admin/users/[id]` | `…/users/[id]/page.js` | **Admin Wave 5B / 200.59** |
+| [x] | `/admin/partners` | `…/partners/page.js` | **Admin Wave 5B / 200.59** |
+| [x] | `/admin/partners/[id]` | `…/partners/[id]/page.js` | **Admin Wave 5B / 200.59** |
 | [x] | `/admin/bookings` | `…/bookings/page.jsx` | **Admin Wave 5A / 200.58** |
 | [x] | `/admin/bookings/[id]` | `…/bookings/[id]/page.jsx` | **Admin Wave 5A / 200.58** (table↔cards) |
-| [ ] | `/admin/disputes` | `…/disputes/page.js` | Disputes |
-| [ ] | `/admin/reviews` | `…/reviews/page.js` | Reviews moderation |
+| [x] | `/admin/disputes` | `…/disputes/page.js` | **Admin Wave 5B / 200.59** (table↔cards) |
+| [x] | `/admin/reviews` | `…/reviews/page.js` | **Admin Wave 5B / 200.59** (chrome + sm breakpoint) |
 | [ ] | `/admin/categories` | `…/categories/page.js` | Categories |
-| [ ] | `/admin/waitlist` | `…/waitlist/page.js` | Waitlist |
+| [x] | `/admin/waitlist` | `…/waitlist/page.js` | **Admin Wave 5B / 200.59** |
 | [ ] | `/admin/locations/suggestions` | `…/locations/suggestions/page.js` | Geo suggestions |
 | [ ] | `/admin/messages` | `…/messages/page.js` | Staff messages |
 | [ ] | `/admin/messages/[id]` | `…/messages/[id]/page.js` | Staff thread |

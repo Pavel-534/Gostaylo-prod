@@ -24,6 +24,12 @@ import {
 import Link from 'next/link'
 import { ProxiedImage } from '@/components/proxied-image'
 import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function PartnerApplicationDetailPage() {
   const router = useRouter()
@@ -216,8 +222,8 @@ export default function PartnerApplicationDetailPage() {
       <div className="container mx-auto px-4 py-6 max-w-2xl space-y-4">
         
         {/* User Info Card */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
             <CardTitle className="text-base flex items-center gap-2">
               <User className="h-4 w-4 text-brand" />
               Информация о пользователе
@@ -279,8 +285,8 @@ export default function PartnerApplicationDetailPage() {
         </Card>
 
         {/* Experience Card */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
             <CardTitle className="text-base flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-brand" />
               Опыт в аренде
@@ -296,8 +302,8 @@ export default function PartnerApplicationDetailPage() {
         </Card>
 
         {/* Verification Document */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="h-4 w-4 text-brand" />
               Документ для верификации
@@ -372,8 +378,8 @@ export default function PartnerApplicationDetailPage() {
         </Card>
 
         {/* Application Meta */}
-        <Card>
-          <CardContent className="pt-6">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:pt-6')}>
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Clock className="h-4 w-4" />
               <span>Заявка подана:</span>

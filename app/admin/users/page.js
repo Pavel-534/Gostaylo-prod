@@ -10,6 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Shield, User, Users as UsersIcon, Search, Mail, Phone, LogIn, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -227,25 +233,25 @@ export default function UsersPage() {
       </div>
 
       {/* Stats - Stack on mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-6">
-        <Card className="border-2 border-red-100">
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-6 max-sm:gap-4 max-sm:divide-y max-sm:divide-slate-100">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-red-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs lg:text-sm text-gray-600">Администраторы</p>
             <p className="text-2xl lg:text-3xl font-bold text-red-600 mt-1">
               {users.filter((u) => u.role === 'ADMIN').length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-indigo-100">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:pt-3 sm:border-2 sm:border-indigo-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs lg:text-sm text-gray-600">Партнеры</p>
             <p className="text-2xl lg:text-3xl font-bold text-indigo-600 mt-1">
               {users.filter((u) => u.role === 'PARTNER').length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-green-100">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:pt-3 sm:border-2 sm:border-green-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs lg:text-sm text-gray-600">Арендаторы</p>
             <p className="text-2xl lg:text-3xl font-bold text-green-600 mt-1">
               {users.filter((u) => u.role === 'RENTER').length}
@@ -255,8 +261,8 @@ export default function UsersPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:pt-6')}>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -264,11 +270,11 @@ export default function UsersPage() {
                 placeholder="Поиск по email или имени..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="min-h-[44px] pl-10"
               />
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full md:w-48">
+              <SelectTrigger className="min-h-[44px] w-full md:w-48">
                 <SelectValue placeholder="Фильтр по роли" />
               </SelectTrigger>
               <SelectContent>
@@ -284,19 +290,19 @@ export default function UsersPage() {
       </Card>
 
       {/* Users Table */}
-      <Card className="shadow-lg lg:shadow-xl">
-        <CardHeader className="pb-2 lg:pb-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:shadow-none sm:shadow-lg lg:shadow-xl')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
           <CardTitle className="text-base lg:text-lg">
             Пользователи ({filteredUsers.length})
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 lg:p-6">
-          <div className="space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-3 lg:p-6 max-sm:pt-2')}>
+          <div className="space-y-3 max-sm:space-y-0 max-sm:divide-y max-sm:divide-slate-100">
             {filteredUsers.map((user) => (
               <div
                 key={user.id}
                 onClick={() => router.push(`/admin/users/${user.id}`)}
-                className="p-3 lg:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all cursor-pointer"
+                className="p-3 lg:p-4 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:rounded-lg sm:border sm:border-gray-200 sm:bg-gray-50 sm:hover:bg-gray-100 transition-all cursor-pointer"
                 data-testid={`user-card-${user.id}`}
               >
                 {/* Mobile Layout */}
@@ -322,7 +328,7 @@ export default function UsersPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 h-8 text-xs flex-1"
+                        className="min-h-[44px] text-indigo-600 border-indigo-200 hover:bg-indigo-50 text-xs flex-1"
                         onClick={(e) => { e.stopPropagation(); handleLoginAs(user); }}
                         data-testid={`login-as-${user.id}-mobile`}
                       >
@@ -336,7 +342,7 @@ export default function UsersPage() {
                       value={user.role}
                       onValueChange={(value) => handleRoleChange(user.id, value)}
                     >
-                      <SelectTrigger className="w-28 h-8 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <SelectTrigger className="min-h-[44px] w-28 text-xs" onClick={(e) => e.stopPropagation()}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

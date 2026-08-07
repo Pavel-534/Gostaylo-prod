@@ -24,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
@@ -41,6 +47,45 @@ function statusLabel(status, frozen) {
   const s = String(status || '').toUpperCase()
   if (frozen && ['OPEN', 'IN_REVIEW'].includes(s)) return 'FROZEN'
   return s || '—'
+}
+
+function DisputeMobileCard({ row, onOpen }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(row.id)}
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'w-full max-sm:border-b max-sm:border-slate-100 max-sm:py-3 text-left sm:p-4',
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 space-y-1">
+          <p className="font-mono text-xs text-slate-800 break-all">{row.bookingId}</p>
+          <p className="text-[10px] text-slate-500 truncate" title={row.id}>
+            {row.id}
+          </p>
+        </div>
+        <AdminStatusPill status={statusLabel(row.status, row.freezePayment)} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+        <div>
+          <p className="text-slate-400">Тип</p>
+          <p className="mt-0.5 font-medium text-slate-800">{typeLabel(row.orderType)}</p>
+        </div>
+        <div>
+          <p className="text-slate-400">Дата</p>
+          <p className="mt-0.5 font-medium text-slate-800">
+            {row.createdAt ? new Date(row.createdAt).toLocaleString('ru-RU') : '—'}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-slate-700 truncate">
+        <span className="text-slate-400">Инициатор: </span>
+        {row.openedByLabel || '—'}
+      </p>
+    </button>
+  )
 }
 
 function mergeRowFromSnapshot(row, snap) {
@@ -311,7 +356,13 @@ export default function AdminDisputesPage() {
           </h1>
           <p className="text-slate-600 text-sm mt-1">Арбитраж по бронированиям: заморозка эскроу, возврат, закрытие.</p>
         </div>
-        <Button type="button" variant="outline" onClick={() => void loadList()} disabled={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-[44px] w-full sm:w-auto"
+          onClick={() => void loadList()}
+          disabled={loading}
+        >
           Обновить список
         </Button>
       </div>
@@ -323,7 +374,10 @@ export default function AdminDisputesPage() {
             type="button"
             size="sm"
             variant={filter === f.id ? 'default' : 'outline'}
-            className={filter === f.id ? 'bg-brand hover:bg-brand-hover' : ''}
+            className={cn(
+              'min-h-[44px]',
+              filter === f.id ? 'bg-brand hover:bg-brand-hover' : '',
+            )}
             onClick={() => setFilter(f.id)}
           >
             {f.label}
@@ -331,53 +385,60 @@ export default function AdminDisputesPage() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-lg">Кейсы</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loading ? (
             <ListSkeleton />
           ) : rows.length === 0 ? (
             <p className="text-sm text-slate-500 py-6">Нет записей для выбранного фильтра.</p>
           ) : (
-            <div className="overflow-x-auto rounded-md border border-slate-100">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Заказ / кейс</TableHead>
-                    <TableHead>Тип</TableHead>
-                    <TableHead>Инициатор</TableHead>
-                    <TableHead>Дата</TableHead>
-                    <TableHead>Статус</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      className="cursor-pointer hover:bg-slate-50"
-                      onClick={() => openRow(r.id)}
-                    >
-                      <TableCell className="font-mono text-xs sm:text-sm">
-                        <div>{r.bookingId}</div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[140px]" title={r.id}>
-                          {r.id}
-                        </div>
-                      </TableCell>
-                      <TableCell>{typeLabel(r.orderType)}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{r.openedByLabel}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs sm:text-sm">
-                        {r.createdAt ? new Date(r.createdAt).toLocaleString('ru-RU') : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <AdminStatusPill status={statusLabel(r.status, r.freezePayment)} />
-                      </TableCell>
+            <>
+              <div className="space-y-0 sm:hidden">
+                {rows.map((r) => (
+                  <DisputeMobileCard key={r.id} row={r} onOpen={openRow} />
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto rounded-md border border-slate-100 sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Заказ / кейс</TableHead>
+                      <TableHead>Тип</TableHead>
+                      <TableHead>Инициатор</TableHead>
+                      <TableHead>Дата</TableHead>
+                      <TableHead>Статус</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow
+                        key={r.id}
+                        className="cursor-pointer hover:bg-slate-50"
+                        onClick={() => openRow(r.id)}
+                      >
+                        <TableCell className="font-mono text-xs sm:text-sm">
+                          <div>{r.bookingId}</div>
+                          <div className="text-[10px] text-slate-500 truncate max-w-[140px]" title={r.id}>
+                            {r.id}
+                          </div>
+                        </TableCell>
+                        <TableCell>{typeLabel(r.orderType)}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{r.openedByLabel}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs sm:text-sm">
+                          {r.createdAt ? new Date(r.createdAt).toLocaleString('ru-RU') : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <AdminStatusPill status={statusLabel(r.status, r.freezePayment)} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

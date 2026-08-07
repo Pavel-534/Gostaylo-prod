@@ -18,6 +18,12 @@ import {
 import { toast } from 'sonner';
 import { ProxiedImage } from '@/components/proxied-image';
 import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 const ADMIN_BADGE_LABEL_RU = {
   fast_start: 'Быстрый старт',
@@ -359,8 +365,8 @@ export default function UserDetailPage() {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Info Card */}
-          <Card>
-            <CardHeader>
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5 text-indigo-600" />
                 Основная информация
@@ -472,8 +478,8 @@ export default function UserDetailPage() {
           </Card>
 
           {referralGamification ? (
-            <Card className="border border-brand/10 bg-brand/5">
-              <CardHeader className="pb-2">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border sm:border-brand/10 sm:bg-brand/5')}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Medal className="w-5 h-5 text-brand shrink-0" />
                   Реферальные медали
@@ -513,15 +519,16 @@ export default function UserDetailPage() {
 
           {/* Stage 90.0 — KYC / Verification: профиль (**VERIFIED**) + документы (заявка / профиль) */}
           <Card
-            className={`border-2 ${
+            className={cn(
+              MOBILE_FLAT_CARD_CLASS,
               String(user.verificationStatus || '').toUpperCase() === 'VERIFIED'
-                ? 'border-green-200'
+                ? 'sm:border-2 sm:border-green-200'
                 : String(user.verificationStatus || '').toUpperCase() === 'PENDING'
-                  ? 'border-yellow-200'
-                  : 'border-gray-200'
-            }`}
+                  ? 'sm:border-2 sm:border-yellow-200'
+                  : 'sm:border-2 sm:border-gray-200',
+            )}
           >
-            <CardHeader>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-brand" />
                 KYC / Verification
@@ -690,8 +697,8 @@ export default function UserDetailPage() {
 
           {/* Commission Card - Only for Partners */}
           {user.role === 'PARTNER' && (
-            <Card className="border-2 border-green-200">
-              <CardHeader>
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-green-200')}>
+              <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
                 <CardTitle className="flex items-center gap-2">
                   <Percent className="w-5 h-5 text-green-600" />
                   Настройки комиссии
@@ -759,8 +766,8 @@ export default function UserDetailPage() {
         <div className="space-y-6">
           {/* Balance Card - Partners only */}
           {user.role === 'PARTNER' && (
-            <Card className="border-2 border-indigo-200">
-              <CardHeader className="pb-2">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-indigo-200')}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-indigo-600" />
                   Баланс
@@ -777,8 +784,8 @@ export default function UserDetailPage() {
 
           {/* Listings - Partners only */}
           {user.role === 'PARTNER' && listings.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className={MOBILE_FLAT_CARD_CLASS}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-purple-600" />
                   Объекты ({listings.length})
@@ -809,8 +816,8 @@ export default function UserDetailPage() {
           )}
 
           {/* Quick Stats */}
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
               <CardTitle className="text-sm">Статистика</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">

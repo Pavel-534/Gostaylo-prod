@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.59 | 2026-08-07 | Admin Wave 5B mobile-flat: users, partners, disputes, reviews, waitlist | Done |
 | 200.58 | 2026-08-07 | Admin Wave 5A mobile-flat: dashboard, moderation, bookings | Done |
 | 200.57 | 2026-08-07 | Auth Wave 4 mobile-flat: auth shells + marketing/legal | Done |
 | 200.56 | 2026-08-07 | Chat Wave 3 mobile-flat: messages hall + thread chrome | Done |

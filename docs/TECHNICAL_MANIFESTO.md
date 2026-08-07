@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.40 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.58** Admin Wave 5A mobile-flat.
+> **Version**: 13.2.41 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.59** Admin Wave 5B mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.59 — Admin Wave 5B mobile-flat (people & cases)
+
+- Paths: `/admin/users`, `/admin/users/[id]`, `/admin/partners`, `/admin/partners/[id]`, `/admin/disputes`, `/admin/reviews`, `/admin/waitlist`.
+- Disputes / waitlist / reviews: mobile card stack + desktop table (`sm` breakpoint). Touch `min-h-[44px]`; partner Approve/Reject full-width on max-sm.
+- No role/KYC/escrow/moderation API logic changes. Deferred: categories, locations, messages thread.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.7.0. Next → Admin 5C or FinTech.
 
 ### Stage 200.58 — Admin Wave 5A mobile-flat (core ops)
 
