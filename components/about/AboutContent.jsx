@@ -11,6 +11,8 @@ import Link from 'next/link'
 import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { Shield, Sparkles, HeartHandshake, Globe2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 const PRINCIPLES = [
   { iconKey: 'shield', icon: Shield },
@@ -146,7 +148,10 @@ export default function AboutContent() {
             return (
               <div
                 key={p.title}
-                className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 transition-all duration-300 hover:border-brand/30 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]"
+                className={cn(
+                  MOBILE_FLAT_CARD_CLASS,
+                  'max-sm:py-2 sm:p-7 sm:transition-all sm:duration-300 sm:hover:border-brand/30 sm:hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]',
+                )}
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   <Icon className="h-5 w-5" />

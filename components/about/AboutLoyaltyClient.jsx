@@ -11,6 +11,12 @@ import { getUIText } from '@/lib/translations'
 import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
 import { useEffect, useMemo } from 'react'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const STEPS = [
   { key: 'stage91_loyaltyStep1Title', bodyKey: 'stage91_loyaltyStep1Body', Icon: UserPlus, tone: 'bg-brand' },
@@ -45,7 +51,12 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
           <p className="text-xs font-semibold uppercase tracking-widest text-brand-hover">{brandDisplayName}</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">{t('stage91_loyaltyPageTitle')}</h1>
           <p className="text-lg text-slate-600 leading-relaxed">{t('stage91_loyaltyPageLead')}</p>
-          <p className="text-sm text-slate-600 leading-relaxed max-w-xl mx-auto border border-brand/20 bg-brand/10 rounded-xl px-4 py-3">
+          <p
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'text-sm text-slate-600 leading-relaxed max-w-xl mx-auto sm:border-brand/20 sm:bg-brand/10',
+            )}
+          >
             {t('stage91_loyaltyWithRefHint')}
           </p>
         </header>
@@ -57,9 +68,9 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
             const ctx = titleKey === 'stage91_loyaltyStep2Title' || step.bodyKey === 'stage91_loyaltyStep2Body' ? step2Ctx : undefined
             return (
               <li key={step.key}>
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="flex gap-4 p-5 sm:p-6">
+                <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden')}>
+                  <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-0 sm:p-0')}>
+                    <div className="flex gap-4 max-sm:py-2 sm:p-6">
                       <div
                         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white ${step.tone}`}
                         aria-hidden

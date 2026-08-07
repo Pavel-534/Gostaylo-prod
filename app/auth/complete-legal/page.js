@@ -13,6 +13,11 @@ import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const OAUTH_RETURN_TO_LS = 'gostaylo_oauth_return_to'
 
@@ -128,8 +133,13 @@ export default function CompleteLegalPage() {
   if (!loading && user && alreadyAccepted) return null
 
   return (
-    <main className='min-h-screen bg-slate-50 font-sans antialiased text-slate-900 py-16 px-6'>
-      <div className='mx-auto max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 shadow-sm ring-1 ring-slate-100'>
+    <main className='min-h-screen bg-brand-surface font-sans antialiased text-slate-900 py-16 px-6'>
+      <div
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'mx-auto max-w-md max-sm:p-0 sm:p-8 sm:ring-1 sm:ring-slate-100',
+        )}
+      >
         <h1 className='text-xl font-semibold tracking-tight text-slate-900'>
           {getUIText('auth_completeLegal_title', language)}
         </h1>
@@ -142,7 +152,10 @@ export default function CompleteLegalPage() {
             checked={checked}
             onCheckedChange={setChecked}
             id='oauth-complete-legal'
-            className='rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5'
+            className={cn(
+              MOBILE_FLAT_NESTED_PANEL_CLASS,
+              'px-3 py-2.5 sm:border-slate-100 sm:bg-slate-50/80',
+            )}
           />
         </div>
         {localError ? <p className='mt-3 text-sm text-red-600'>{localError}</p> : null}

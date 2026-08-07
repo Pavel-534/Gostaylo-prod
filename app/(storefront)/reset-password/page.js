@@ -11,6 +11,12 @@ import { toast } from 'sonner';
 import { useI18n } from '@/contexts/i18n-context';
 import { getUIText, getAuthErrorMessage } from '@/lib/translations';
 import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -76,9 +82,9 @@ function ResetPasswordContent() {
 
   if (success) {
     return (
-      <div className='flex min-h-screen items-center justify-center bg-slate-50 p-4'>
-        <Card className='w-full max-w-md'>
-          <CardContent className='pt-6 text-center'>
+      <div className='flex min-h-screen items-center justify-center bg-brand-surface p-4'>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-center max-sm:pt-0 sm:pt-6')}>
             <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100'>
               <CheckCircle className='h-8 w-8 text-green-600' />
             </div>
@@ -97,9 +103,9 @@ function ResetPasswordContent() {
 
   if (!token) {
     return (
-      <div className='flex min-h-screen items-center justify-center bg-slate-50 p-4'>
-        <Card className='w-full max-w-md'>
-          <CardContent className='pt-6 text-center'>
+      <div className='flex min-h-screen items-center justify-center bg-brand-surface p-4'>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-center max-sm:pt-0 sm:pt-6')}>
             <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100'>
               <XCircle className='h-8 w-8 text-red-600' />
             </div>
@@ -117,13 +123,13 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-slate-50 p-4'>
-      <Card className='w-full max-w-md'>
-        <CardHeader>
+    <div className='flex min-h-screen items-center justify-center bg-brand-surface p-4'>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'w-full max-w-md')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>{getUIText('AUTH_RESET_TITLE', language)}</CardTitle>
           <CardDescription>{getUIText('AUTH_RESET_DESC', language)}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div className='space-y-2'>
               <Label htmlFor='password'>{getUIText('AUTH_RESET_NEW_PASSWORD_LABEL', language)}</Label>

@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.4.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.5.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -16,6 +16,7 @@
 | `[x] Finished (Guest Wave 2A / 200.54)` | Core guest path: home → catalog → PDP → checkout → my-bookings |
 | `[x] Finished (Guest Wave 2B / 200.55)` | Secondary guest: favorites, profile/wallet/settings, public `/u`, reviews |
 | `[x] Finished (Chat Wave 3 / 200.56)` | Messages hall + thread chrome; composer safe-area kept |
+| `[x] Finished (Auth Wave 4 / 200.57)` | Auth + marketing/legal public pages; demo exclude |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -53,6 +54,17 @@
 - Flatten на **max-sm**: hall/archived shell (`MOBILE_FLAT_SHELL_CARD`), soft header glass, deal card nesting in sheet.
 - **Не flatten:** message bubbles, composer capsules, VoiceRecorder/QuickReplies popovers, `ThreadDealDetailsSheet`, `pb-safe-chat-composer`.
 
+**Уточнения ТЗ (Wave 4 — Auth & marketing/legal):**
+
+- Канон auth: **`/auth/login`**, **`/auth/register`**, **`/auth/forgot-password`**, **`/auth/verify-email`**, **`/auth/complete-legal`**, **`/auth/link-conflict`**, **`/auth/oauth-error`**.
+- **`/login`** — redirect → `/auth/login` (не visual).
+- Reset: **`/reset-password`** (storefront) + forgot via AuthPageShell.
+- Legal SSOT shell: **`LegalDocShell`** (`/legal/*`); marketing: about / loyalty / referral / help / terms.
+- Flatten shared shells first (`AuthPageShell`, `LegalDocShell`) + page-local cards; **sm+** elevated chrome preserved.
+- **Не трогать:** auth/session/API contracts, OAuth flows, consent checkbox logic.
+- **Exclude:** `/demo/price-breakdown`, `/test-db` (dev/demo — out of product flatten).
+- Isolation OK: Auth modal bottom-sheet, OTP inputs, provider buttons, FAQ `<details>`, escrow content blocks as single nested level after shell flatten.
+
 ---
 
 ## Сводка
@@ -60,12 +72,12 @@
 | Домен | Страниц | Finished | Pending |
 |-------|--------:|---------:|--------:|
 | Partner Hub | 14 | **14** | 0 |
-| Storefront / Renter (+ Chat) | 29 | **25** | 4 |
-| Auth & System (+ Marketing, demo) | 21 | 0 | 21 |
+| Storefront / Renter (+ Chat) | 29 | **27** | 2 |
+| Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
 | Admin Panel | 52 | 0 | 52 |
-| **Итого** | **116** | **39** | **77** |
+| **Итого** | **116** | **62** | **54** |
 
-**Wave 1–2B closed.** **Wave 3 (200.56):** Chat closed. Next → **Auth & marketing/legal**.
+**Wave 1–3 closed.** **Wave 4 (200.57):** Auth & marketing/legal closed (demo marked exclude). Next → **Admin**.
 
 ---
 
@@ -75,7 +87,7 @@
 2. **Storefront critical path (Wave 2A)** — **Done (200.54)** — `/` → `/listings` → PDP → checkout → `/my-bookings`.
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
-4. **Auth & marketing/legal** — проще, но влияют на first impression и compliance.
+4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
 5. **Admin** — densest surface; flatten постепенно (tables → card stack `&lt;md` per Stage 176.2), не блокировать guest/partner.
 
 **Замечания / долг:**
@@ -158,8 +170,8 @@
 |:------:|------|--------|-------|
 | [ ] | `/dashboard` | `…/dashboard/page.js` | Role-based redirect |
 | [ ] | `/dashboard/renter` | `…/dashboard/renter/page.js` | Legacy renter entry |
-| [ ] | `/login` | `…/login/page.js` | Legacy vs `/auth/login` |
-| [ ] | `/reset-password` | `…/reset-password/page.js` | Password reset (storefront shell) |
+| [x] | `/login` | `…/login/page.js` | **redirect** → `/auth/login` (Wave 4) |
+| [x] | `/reset-password` | `…/reset-password/page.js` | **Auth Wave 4 / 200.57** |
 
 ### 2.5 Chat (shared)
 
@@ -182,35 +194,35 @@ Auth (`app/auth/*`), marketing/legal (`(marketing)/*`), demo/internal, global er
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/auth/login` | `app/auth/login/page.js` | Canonical login |
-| [ ] | `/auth/register` | `…/register/page.js` | Register |
-| [ ] | `/auth/forgot-password` | `…/forgot-password/page.js` | Forgot password |
-| [ ] | `/auth/verify-email` | `…/verify-email/page.js` | Email verify |
-| [ ] | `/auth/complete-legal` | `…/complete-legal/page.js` | Legal acceptance gate |
-| [ ] | `/auth/link-conflict` | `…/link-conflict/page.js` | OAuth/link conflict |
-| [ ] | `/auth/oauth-error` | `…/oauth-error/page.js` | OAuth error |
+| [x] | `/auth/login` | `app/auth/login/page.js` | **Auth Wave 4 / 200.57** (`AuthPageShell`) |
+| [x] | `/auth/register` | `…/register/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/auth/forgot-password` | `…/forgot-password/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/auth/verify-email` | `…/verify-email/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/auth/complete-legal` | `…/complete-legal/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/auth/link-conflict` | `…/link-conflict/page.js` | **Auth Wave 4 / 200.57** (OTP nest flat) |
+| [x] | `/auth/oauth-error` | `…/oauth-error/page.js` | **Auth Wave 4 / 200.57** (no card chrome) |
 
 ### 3.2 Marketing & legal (public)
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/about` | `app/(marketing)/about/page.js` | About |
-| [ ] | `/about/loyalty` | `…/about/loyalty/page.js` | Loyalty |
-| [ ] | `/about/referral` | `…/about/referral/page.js` | Referral program |
-| [ ] | `/help` | `…/help/page.js` | Help center |
-| [ ] | `/help/escrow-protection` | `…/help/escrow-protection/page.js` | Escrow explainer |
-| [ ] | `/terms` | `…/terms/page.js` | Terms |
-| [ ] | `/legal/public-offer` | `…/legal/public-offer/page.js` | Public offer |
-| [ ] | `/legal/privacy` | `…/legal/privacy/page.js` | Privacy |
-| [ ] | `/legal/refund` | `…/legal/refund/page.js` | Refund policy |
-| [ ] | `/legal/partner-terms` | `…/legal/partner-terms/page.js` | Partner terms |
+| [x] | `/about` | `app/(marketing)/about/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/about/loyalty` | `…/about/loyalty/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/about/referral` | `…/about/referral/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/help` | `…/help/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/help/escrow-protection` | `…/help/escrow-protection/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/terms` | `…/terms/page.js` | **Auth Wave 4 / 200.57** (CTA-only; no box shell) |
+| [x] | `/legal/public-offer` | `…/legal/public-offer/page.js` | **Auth Wave 4 / 200.57** (`LegalDocShell`) |
+| [x] | `/legal/privacy` | `…/legal/privacy/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/legal/refund` | `…/legal/refund/page.js` | **Auth Wave 4 / 200.57** |
+| [x] | `/legal/partner-terms` | `…/legal/partner-terms/page.js` | **Auth Wave 4 / 200.57** |
 
 ### 3.3 Demo / internal (non-prod UX)
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/demo/price-breakdown` | `app/demo/price-breakdown/page.js` | Pricing demo |
-| [ ] | `/test-db` | `app/test-db/page.js` | Dev DB check — **exclude from product flatten waves** or gate |
+| [x] | `/demo/price-breakdown` | `app/demo/price-breakdown/page.js` | **exclude** from product flatten (Wave 4) |
+| [x] | `/test-db` | `app/test-db/page.js` | **exclude** / gate — out of Wave 4 |
 
 ---
 

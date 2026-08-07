@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.38 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.56** Chat Wave 3 mobile-flat.
+> **Version**: 13.2.39 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.57** Auth Wave 4 mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.57 — Auth Wave 4 mobile-flat
+
+- Paths: `/auth/*`, `/reset-password`, marketing `/about*`, `/help*`, `/terms`, `/legal/*` (+ `/login` redirect).
+- SSOT: `AuthPageShell` + `LegalDocShell` + page-local `MOBILE_FLAT_*` — max-sm flat canvas; **sm+** elevated cards unchanged.
+- Nested soft-flat: legal consent insets, link-conflict OTP panel, loyalty/referral/help FAQ shells.
+- **No** auth/session/API contract changes. Demo `/demo/price-breakdown`, `/test-db` excluded.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.5.0. Next → Admin.
 
 ### Stage 200.56 — Chat Wave 3 mobile-flat
 

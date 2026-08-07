@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { Shield, MessageCircle, CreditCard, MapPin, BadgeCheck, Mail } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 export const metadata = {
   title: `Центр помощи | ${getSiteDisplayName()}`,
@@ -80,7 +82,12 @@ export default function HelpPage() {
                 {title}
               </h2>
             </div>
-            <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+            <div
+              className={cn(
+                MOBILE_FLAT_CARD_CLASS,
+                'divide-y divide-slate-100 max-sm:border-t max-sm:border-b max-sm:border-slate-100',
+              )}
+            >
               {items.map(({ q, a }) => (
                 <details
                   key={q}

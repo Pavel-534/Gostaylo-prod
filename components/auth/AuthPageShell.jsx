@@ -6,10 +6,14 @@ import { cn } from '@/lib/utils'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import {
+  MOBILE_FLAT_SHELL_CARD_CLASS,
+  MOBILE_FLAT_SHELL_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * Stage 189.0 / 189.3.1 — fullscreen Immersive Auth shell (no AppHeader / BottomNav).
- * Premium brand gradient + elevated form card (`rounded-3xl`).
+ * Stage 200.57 — max-sm flat form canvas (MOBILE_FLAT_*); sm+ keeps elevated card.
  */
 export function AuthPageShell({ children, title, subtitle, backHref = '/', className }) {
   const { language } = useI18n()
@@ -54,7 +58,13 @@ export function AuthPageShell({ children, title, subtitle, backHref = '/', class
           ) : null}
         </div>
 
-        <div className="flex flex-1 flex-col rounded-3xl border border-white/80 bg-white/90 p-5 shadow-xl shadow-brand/5 backdrop-blur-sm sm:p-6">
+        <div
+          className={cn(
+            MOBILE_FLAT_SHELL_CARD_CLASS,
+            MOBILE_FLAT_SHELL_CONTENT_CLASS,
+            'flex flex-1 flex-col max-sm:bg-transparent sm:rounded-3xl sm:border-white/80 sm:bg-white/90 sm:p-6 sm:shadow-xl sm:shadow-brand/5 sm:backdrop-blur-sm',
+          )}
+        >
           {children}
         </div>
       </main>

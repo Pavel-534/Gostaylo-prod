@@ -5,11 +5,15 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /**
- * Оболочка «Airy Premium» для статичных юр. страниц:
- * Inter через font-sans, slate-50 фон, slate-900 текст, просторные отступы.
- * Футер и mailto поддержки локализуются через getUIText.
+ * Оболочка «Airy Premium» для статичных юр. страниц.
+ * Stage 200.57 — max-sm flat publisher/intro (MOBILE_FLAT_*); sm+ keeps card chrome.
  */
 export function LegalDocShell({ eyebrow = 'Legal', title, lead, introBlock, publisher, children }) {
   const brand = getSiteDisplayName()
@@ -32,7 +36,12 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, introBlock, publ
         ) : null}
 
         {introBlock ? (
-          <div className="mt-6 rounded-xl border border-teal-100 bg-teal-50/60 px-5 py-4 text-[15px] leading-relaxed text-slate-700">
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'mt-6 text-[15px] leading-relaxed text-slate-700 sm:border-teal-100 sm:bg-teal-50/60 sm:px-5 sm:py-4',
+            )}
+          >
             {introBlock}
           </div>
         ) : null}
@@ -79,7 +88,12 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, introBlock, publ
 
 function PublisherCard({ publisher }) {
   return (
-    <div className="mt-12 rounded-2xl border border-slate-200/90 bg-white p-8 shadow-sm ring-1 ring-slate-100">
+    <div
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'mt-12 space-y-0 max-sm:border-t max-sm:border-slate-200 max-sm:pt-8 sm:p-8 sm:ring-1 sm:ring-slate-100',
+      )}
+    >
       <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Оператор платформы</h2>
       <dl className="mt-4 space-y-2 text-[15px] leading-relaxed text-slate-700">
         <div>

@@ -9,6 +9,8 @@ import { ArrowLeft, Shield } from 'lucide-react'
 
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 export default function EscrowProtectionHelpPage() {
   const { language } = useI18n()
@@ -24,7 +26,12 @@ export default function EscrowProtectionHelpPage() {
         <span className="break-words">{t('escrowProtection_backToMessages')}</span>
       </Link>
 
-      <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 sm:p-6">
+      <div
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          'max-sm:py-2 sm:border-sky-100 sm:bg-sky-50/60 sm:p-6',
+        )}
+      >
         <div className="flex items-start gap-3">
           <Shield className="mt-0.5 h-8 w-8 shrink-0 text-sky-700" aria-hidden />
           <div className="min-w-0 flex-1">

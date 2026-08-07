@@ -12,16 +12,28 @@ import { useAuth } from '@/contexts/auth-context'
 import { useCurrency } from '@/contexts/currency-context'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { formatNativeAmountInCurrency } from '@/lib/currency'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function ResultTile({ icon: Icon, label, amountThb, hint, tone = 'slate', formatAmount }) {
   const tones = {
-    brand: 'border-brand/30 bg-brand/5 text-brand',
-    violet: 'border-violet-200 bg-violet-50/80 text-violet-950',
-    teal: 'border-teal-200 bg-teal-50/80 text-teal-950',
-    slate: 'border-slate-200 bg-white text-slate-900',
+    brand: 'sm:border-brand/30 sm:bg-brand/5 text-brand',
+    violet: 'sm:border-violet-200 sm:bg-violet-50/80 text-violet-950',
+    teal: 'sm:border-teal-200 sm:bg-teal-50/80 text-teal-950',
+    slate: 'sm:border-slate-200 sm:bg-white text-slate-900',
   }
   return (
-    <div className={`rounded-xl border p-5 ${tones[tone] || tones.slate}`}>
+    <div
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'max-sm:border-t max-sm:border-slate-100 max-sm:py-4 sm:rounded-xl sm:p-5',
+        tones[tone] || tones.slate,
+      )}
+    >
       <div className="flex items-center gap-2 text-sm font-medium opacity-80">
         <Icon className="h-4 w-4" aria-hidden />
         {label}
@@ -158,8 +170,8 @@ export function ReferralCalculatorClient() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">{language === 'en' ? 'Booking parameters' : 'Параметры брони'}</CardTitle>
           <CardDescription>
             {language === 'en'
@@ -167,7 +179,7 @@ export function ReferralCalculatorClient() {
               : 'Субтотал проживания, сервисный сбор и способ оплаты гостя'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <PaymentModeToggle mode={paymentMode} onChange={setPaymentMode} disabled={loading} language={language} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -204,8 +216,8 @@ export function ReferralCalculatorClient() {
       </Card>
 
       {isRubMode && result?.guestPaysRub != null ? (
-        <Card className="border-amber-200/80 bg-amber-50/40">
-          <CardContent className="py-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-200/80 sm:bg-amber-50/40')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:py-4')}>
             <p className="text-sm text-amber-950">
               {language === 'en' ? 'Guest pays approximately ' : 'Гость заплатит примерно '}
               <strong className="tabular-nums">
@@ -259,8 +271,8 @@ export function ReferralCalculatorClient() {
         </div>
       ) : null}
 
-      <Card className="border-slate-200 bg-slate-50/80">
-        <CardContent className="py-4 flex gap-3 text-sm text-slate-600">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-slate-50/80')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex gap-3 text-sm text-slate-600 max-sm:py-2 sm:py-4')}>
           <Info className="h-5 w-5 shrink-0 text-slate-400 mt-0.5" />
           <div className="space-y-2">
             <p>{result?.transparencyNote || result?.disclaimer || (language === 'en' ? 'Estimate before hold and payout.' : 'Оценка до hold и вывода.')}</p>

@@ -10,6 +10,8 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { finishAuthNavigation } from '@/lib/auth/auth-redirect'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_NESTED_PANEL_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 function LinkConflictInner() {
   const router = useRouter()
@@ -171,7 +173,12 @@ function LinkConflictInner() {
 
             {conflict.canMerge ? (
               mergeStep === 'otp' ? (
-                <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                <div
+                  className={cn(
+                    MOBILE_FLAT_NESTED_PANEL_CLASS,
+                    'space-y-4 sm:border-slate-200 sm:bg-white',
+                  )}
+                >
                   <p className="text-sm text-slate-600">
                     {getUIText('auth_linkConflict_mergeOtpLead', language)}
                   </p>
