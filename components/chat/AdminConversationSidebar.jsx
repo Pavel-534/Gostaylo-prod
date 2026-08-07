@@ -7,6 +7,11 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getUIText } from '@/lib/translations'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export function AdminConversationSidebar({
   conversations = [],
@@ -23,8 +28,8 @@ export function AdminConversationSidebar({
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
 
   return (
-    <Card className="flex h-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-slate-200 shadow-sm">
-      <CardHeader className="border-b pb-3">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'flex h-full min-h-0 flex-shrink-0 flex-col overflow-hidden sm:border-slate-200 sm:shadow-sm')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'border-b pb-3 max-sm:px-0 sm:px-6')}>
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5 text-indigo-600" />
           {language === 'en' ? 'All conversations' : 'Все диалоги'}
@@ -38,11 +43,11 @@ export function AdminConversationSidebar({
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            className="pl-9"
+            className="min-h-[44px] pl-9"
           />
         </div>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'min-h-0 flex-1 overflow-y-auto max-sm:p-0 sm:p-0')}>
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -68,7 +73,7 @@ export function AdminConversationSidebar({
                   }
                 }}
                 className={cn(
-                  'cursor-pointer border-b p-4 transition-colors',
+                  'min-h-[44px] cursor-pointer border-b p-4 transition-colors',
                   isActive ? 'border-l-4 border-l-indigo-600 bg-indigo-50' : 'hover:bg-slate-50'
                 )}
               >

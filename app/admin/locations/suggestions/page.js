@@ -14,6 +14,12 @@ import {
   fetchLocationSuggestionsQueue,
   resolveLocationSuggestion,
 } from '@/lib/admin/location-suggestions-api-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function LocationSuggestionsAdminPage() {
   const [authLoading, setAuthLoading] = useState(true)
@@ -134,7 +140,7 @@ export default function LocationSuggestionsAdminPage() {
   }
 
   return (
-    <div className="p-4 lg:p-8 max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 max-sm:px-0 lg:p-8 sm:p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -146,37 +152,37 @@ export default function LocationSuggestionsAdminPage() {
             REJECT скрывает термин из подсказок. Разрешение — только ADMIN.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={loadQueue} disabled={loading}>
+        <Button type="button" variant="outline" size="sm" className="min-h-[44px] w-full sm:w-auto" onClick={loadQueue} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden />
           Обновить
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:pt-4 sm:pb-4')}>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">В очереди</p>
             <p className="text-2xl font-bold tabular-nums text-slate-900">{total}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:pt-4 sm:pb-4')}>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Unverified (batch)</p>
             <p className="text-2xl font-bold tabular-nums text-slate-900">
               {lastNormalize?.remaining_unverified ?? '—'}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:pt-4 sm:pb-4')}>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Suggest p95</p>
             <p className="text-2xl font-bold tabular-nums text-slate-900">
               {suggestMetrics?.p95_ms != null ? `${suggestMetrics.p95_ms} ms` : '—'}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:pt-4 sm:pb-4')}>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Synonym hit rate</p>
             <p className="text-2xl font-bold tabular-nums text-emerald-700">
               {suggestMetrics?.synonym_hit_rate != null
@@ -204,8 +210,8 @@ export default function LocationSuggestionsAdminPage() {
       ) : null}
 
       {!loading && rows.length === 0 && !err ? (
-        <Card className="border-dashed">
-          <CardContent className="py-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, 'sm:border-dashed')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-4')}>
             <EmptyState
               title="Очередь чиста — все локации верифицированы ✅"
               hint="Партнёры используют канонические районы. Новые непроверенные термины появятся здесь автоматически, когда кто-то укажет незнакомое место в объявлении."

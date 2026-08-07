@@ -116,7 +116,7 @@ export function LocationMergeDialog({
               autoComplete="off"
             />
             {suggestLoading ? (
-              <p className="flex items-center gap-2 text-xs text-slate-500">
+              <p className="flex items-center gap-2 text-xs text-slate-500 min-h-[44px]">
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                 Поиск подсказок…
               </p>
@@ -151,7 +151,7 @@ export function LocationMergeDialog({
           <div className="space-y-2">
             <Label>Тип цели (target_type)</Label>
             <Select value={targetType} onValueChange={setTargetType}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -179,12 +179,13 @@ export function LocationMergeDialog({
           ) : null}
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
+        <DialogFooter className="gap-2">
+          <Button type="button" className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Отмена
           </Button>
           <Button
             type="button"
+            className="min-h-[44px] w-full sm:w-auto"
             variant="brand"
             disabled={!canSubmit}
             onClick={() =>

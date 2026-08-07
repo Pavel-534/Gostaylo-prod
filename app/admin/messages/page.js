@@ -11,6 +11,7 @@ import { AdminConversationSidebar } from '@/components/chat/AdminConversationSid
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_CARD_CONTENT_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 function AdminMessagesHallContent() {
   const { language } = useI18n()
@@ -122,18 +123,18 @@ function AdminMessagesHallContent() {
 
   const statRowClass = ({ active, tone = 'indigo', interactive = true }) =>
     cn(
-      'flex w-full items-center gap-2.5 rounded-2xl border bg-gradient-to-br from-white to-slate-50/90 px-3 py-2 text-left shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.06)] backdrop-blur-sm transition',
+      'flex min-h-[44px] w-full items-center gap-2.5 text-left transition max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0 max-sm:py-3 max-sm:shadow-none sm:rounded-2xl sm:border sm:bg-gradient-to-br sm:from-white sm:to-slate-50/90 sm:px-3 sm:py-2 sm:shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.06)] sm:backdrop-blur-sm',
       interactive && 'active:scale-[0.99]',
-      active && tone === 'indigo' && 'border-indigo-300/90 ring-1 ring-indigo-400/35',
-      active && tone === 'amber' && 'border-amber-300/90 ring-1 ring-amber-400/40',
-      !active && 'border-slate-200/70',
-      interactive && !active && 'hover:border-slate-300/80'
+      active && tone === 'indigo' && 'max-sm:border-b-indigo-200 sm:border-indigo-300/90 sm:ring-1 sm:ring-indigo-400/35',
+      active && tone === 'amber' && 'max-sm:border-b-amber-200 sm:border-amber-300/90 sm:ring-1 sm:ring-amber-400/40',
+      !active && 'sm:border-slate-200/70',
+      interactive && !active && 'sm:hover:border-slate-300/80'
     )
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-2 lg:gap-4">
       {/* Мобиле: узкий вертикальный список метрик (премиальный ряд, не горизонтальный скролл) */}
-      <div className="mx-auto flex w-full max-w-[17rem] shrink-0 flex-col gap-1.5 lg:hidden">
+      <div className="mx-auto flex w-full max-w-lg shrink-0 flex-col gap-0 lg:hidden">
         <button
           type="button"
           className={statRowClass({ active: !priorityOnly, tone: 'indigo' })}
@@ -182,11 +183,12 @@ function AdminMessagesHallContent() {
         >
           <Card
             className={cn(
-              'border-indigo-100 shadow-sm transition hover:shadow-md',
-              !priorityOnly && 'ring-2 ring-indigo-300/70'
+              MOBILE_FLAT_CARD_CLASS,
+              'sm:border-indigo-100 sm:shadow-sm sm:transition sm:hover:shadow-md',
+              !priorityOnly && 'sm:ring-2 sm:ring-indigo-300/70'
             )}
           >
-            <CardContent className="flex items-center gap-3 p-4">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-3 max-sm:py-2 sm:p-4')}>
               <div className="rounded-lg bg-indigo-50 p-2">
                 <Inbox className="h-5 w-5 text-indigo-600" />
               </div>
@@ -199,8 +201,8 @@ function AdminMessagesHallContent() {
           </Card>
         </button>
         <div>
-          <Card className="border-emerald-100 shadow-sm">
-            <CardContent className="flex items-center gap-3 p-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-100 sm:shadow-sm')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-3 max-sm:py-2 sm:p-4')}>
               <div className="rounded-lg bg-emerald-50 p-2">
                 <Activity className="h-5 w-5 text-emerald-600" />
               </div>
@@ -215,11 +217,12 @@ function AdminMessagesHallContent() {
         <button type="button" className="text-left" onClick={() => setPriorityOnly(true)}>
           <Card
             className={cn(
-              'border-amber-100 shadow-sm transition hover:shadow-md',
-              priorityOnly && 'ring-2 ring-amber-400/80'
+              MOBILE_FLAT_CARD_CLASS,
+              'sm:border-amber-100 sm:shadow-sm sm:transition sm:hover:shadow-md',
+              priorityOnly && 'sm:ring-2 sm:ring-amber-400/80'
             )}
           >
-            <CardContent className="flex items-center gap-3 p-4">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-3 max-sm:py-2 sm:p-4')}>
               <div className="rounded-lg bg-amber-50 p-2">
                 <Headphones className="h-5 w-5 text-amber-600" />
               </div>
@@ -238,7 +241,7 @@ function AdminMessagesHallContent() {
           type="button"
           variant={priorityOnly ? 'default' : 'outline'}
           size="sm"
-          className={priorityOnly ? 'bg-amber-600 hover:bg-amber-700' : ''}
+          className={cn('min-h-[44px]', priorityOnly ? 'bg-amber-600 hover:bg-amber-700' : '')}
           onClick={() => setPriorityOnly((v) => !v)}
         >
           {t('adminPriorityFilter')}

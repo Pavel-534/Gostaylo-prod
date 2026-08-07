@@ -21,6 +21,12 @@ import { toast } from 'sonner';
 import { categoryTranslations, supportedLanguages, getCategoryName } from '@/lib/translations';
 import { resolveCategoryDisplayName } from '@/lib/category-display-name';
 import { CategoryAdminIcon } from '@/components/admin/category/CategoryAdminIcon';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 const WIZARD_OPTIONS = [
   { value: '_none', label: '— (наследовать / эвристика)' },
@@ -383,7 +389,7 @@ export default function CategoriesPage() {
         </div>
         <Button
           onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold w-full sm:w-auto"
+          className="min-h-[44px] w-full bg-gradient-to-r from-indigo-600 to-purple-600 font-semibold text-white hover:from-indigo-700 hover:to-purple-700 sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Добавить
@@ -391,32 +397,32 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <Card className="border-2 border-green-100">
-          <CardContent className="p-3 sm:p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-green-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs sm:text-sm text-gray-600">Активные</p>
             <p className="text-xl sm:text-2xl font-bold text-green-600">
               {categories.filter((c) => c.isActive).length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-red-100">
-          <CardContent className="p-3 sm:p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-red-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs sm:text-sm text-gray-600">Выключены</p>
             <p className="text-xl sm:text-2xl font-bold text-red-600">
               {categories.filter((c) => !c.isActive).length}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-2 border-indigo-100">
-          <CardContent className="p-3 sm:p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-indigo-100')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
             <p className="text-xs sm:text-sm text-gray-600">Всего</p>
             <p className="text-xl sm:text-2xl font-bold text-indigo-600">{categories.length}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardContent className="p-4 flex items-center gap-3">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-blue-200 sm:bg-gradient-to-r sm:from-blue-50 sm:to-indigo-50')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-3 max-sm:py-3 sm:p-4')}>
           <Globe className="w-8 h-8 text-blue-600 flex-shrink-0" />
           <div className="flex-1">
             <p className="font-semibold text-blue-900">Мультиязычная поддержка</p>
@@ -432,24 +438,25 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-xl">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-xl')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'max-sm:pb-2 sm:p-6')}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Layers className="w-5 h-5 text-indigo-600" />
             Все категории
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0">
-          <div className="flex flex-col gap-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-0 sm:p-6 sm:pt-0')}>
+          <div className="flex flex-col gap-0 sm:gap-3">
             {categoryTreeRows.map(({ cat: category, depth }) => (
               <div
                 key={category.id}
-                style={{ marginLeft: depth * 20 }}
-                className={`rounded-xl border-2 p-3 sm:p-4 transition-all ${
+                style={{ ['--cat-depth']: depth }}
+                className={cn(
+                  'transition-all max-sm:border-b max-sm:border-slate-100 max-sm:py-3 max-sm:pl-[calc(var(--cat-depth)*0.75rem)] sm:ml-[calc(var(--cat-depth)*1.25rem)] sm:rounded-xl sm:border-2 sm:p-4',
                   category.isActive
-                    ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50'
-                    : 'border-gray-300 bg-gray-50 opacity-60'
-                }`}
+                    ? 'sm:border-green-300 sm:bg-gradient-to-br sm:from-green-50 sm:to-emerald-50'
+                    : 'max-sm:opacity-70 sm:border-gray-300 sm:bg-gray-50 sm:opacity-60',
+                )}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -506,7 +513,7 @@ export default function CategoriesPage() {
                         disabled={parentPatchingId === category.id}
                         onValueChange={(v) => patchParentQuick(category.id, v)}
                       >
-                        <SelectTrigger className="h-9 mt-1">
+                        <SelectTrigger className="mt-1 min-h-[44px] h-11">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -524,7 +531,7 @@ export default function CategoriesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => openEditModal(category)}
-                        className="h-8 w-8 p-0"
+                        className="min-h-[44px] min-w-[44px] h-11 w-11 p-0"
                         title="Редактировать"
                       >
                         <Edit className="w-4 h-4" />
@@ -533,7 +540,7 @@ export default function CategoriesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => openTranslateModal(category)}
-                        className="h-8 w-8 p-0"
+                        className="min-h-[44px] min-w-[44px] h-11 w-11 p-0"
                         title="Переводы (localStorage)"
                       >
                         <Languages className="w-4 h-4" />
@@ -683,9 +690,9 @@ export default function CategoriesPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>Отмена</Button>
-            <Button onClick={handleAddCategory} className="bg-indigo-600 hover:bg-indigo-700">Создать</Button>
+          <DialogFooter className="gap-2">
+            <Button className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => setShowAddModal(false)}>Отмена</Button>
+            <Button onClick={handleAddCategory} className="min-h-[44px] w-full bg-indigo-600 hover:bg-indigo-700 sm:w-auto">Создать</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -785,9 +792,9 @@ export default function CategoriesPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>Отмена</Button>
-            <Button onClick={handleSaveEdit} className="bg-indigo-600 hover:bg-indigo-700">Сохранить</Button>
+          <DialogFooter className="gap-2">
+            <Button className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => setShowEditModal(false)}>Отмена</Button>
+            <Button onClick={handleSaveEdit} className="min-h-[44px] w-full bg-indigo-600 hover:bg-indigo-700 sm:w-auto">Сохранить</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -829,9 +836,9 @@ export default function CategoriesPage() {
             ))}
           </Tabs>
 
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setShowTranslateModal(false)}>Отмена</Button>
-            <Button onClick={handleSaveTranslations} className="bg-indigo-600 hover:bg-indigo-700">Сохранить переводы</Button>
+          <DialogFooter className="mt-6 gap-2">
+            <Button className="min-h-[44px] w-full sm:w-auto" variant="outline" onClick={() => setShowTranslateModal(false)}>Отмена</Button>
+            <Button onClick={handleSaveTranslations} className="min-h-[44px] w-full bg-indigo-600 hover:bg-indigo-700 sm:w-auto">Сохранить переводы</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

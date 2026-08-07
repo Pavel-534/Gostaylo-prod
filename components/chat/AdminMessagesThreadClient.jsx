@@ -113,7 +113,7 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
         type="button"
         variant={priorityOnly ? 'default' : 'outline'}
         size="sm"
-        className={priorityOnly ? 'bg-amber-600 hover:bg-amber-700' : ''}
+        className={priorityOnly ? 'min-h-[44px] bg-amber-600 hover:bg-amber-700' : 'min-h-[44px]'}
         onClick={() => setPriorityOnly((v) => !v)}
       >
         {t('adminPriorityFilter')}
@@ -252,7 +252,7 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
           ? 'This conversation was not found or you do not have access.'
           : 'Диалог не найден или нет доступа.'}
       </p>
-      <Button type="button" variant="outline" onClick={() => router.push('/admin/messages/')}>
+      <Button type="button" className="min-h-[44px]" variant="outline" onClick={() => router.push('/admin/messages/')}>
         {language === 'en' ? 'Back to conversations' : 'К списку диалогов'}
       </Button>
     </div>
@@ -299,7 +299,7 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
           type="button"
           variant="outline"
           size="icon"
-          className="flex-shrink-0 border-slate-200"
+          className="min-h-[44px] min-w-[44px] flex-shrink-0 border-slate-200"
           disabled={sending}
           aria-label={language === 'en' ? 'Attach file' : 'Прикрепить файл'}
           onClick={() => attachFileRef.current?.click()}
@@ -312,13 +312,13 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
           placeholder={
             language === 'en' ? 'Write a message as support…' : 'Напишите сообщение от имени поддержки…'
           }
-          className="min-w-0 flex-1"
+          className="min-h-[44px] min-w-0 flex-1"
           disabled={sending}
         />
         <Button
           type="submit"
           disabled={!newMessage.trim() || sending}
-          className="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700"
+          className="min-h-[44px] min-w-[44px] flex-shrink-0 bg-indigo-600 hover:bg-indigo-700"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>

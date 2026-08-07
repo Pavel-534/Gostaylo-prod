@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.8.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.9.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -20,6 +20,7 @@
 | `[x] Finished (Admin Wave 5A / 200.58)` | Core ops: `/admin`, dashboard, moderation (=listings), bookings |
 | `[x] Finished (Admin Wave 5B / 200.59)` | Users, partners, disputes, reviews polish, waitlist |
 | `[x] Finished (Admin Wave 5C / 200.60)` | FinTech: finances, ledger health, intelligence, payouts |
+| `[x] Finished (Admin Wave 5D / 200.61)` | Categories, location suggestions, staff messages |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -91,6 +92,14 @@
 - Touch: `min-h-[44px]` on refresh / Process Batch / Confirm-Reject / period filters.
 - **Не трогать:** payment APIs, ledger queries, escrow release hooks, batch settle formulas.
 
+**Уточнения ТЗ (Wave 5D — Admin content & support ops):**
+
+- Scope: **`/admin/categories`**, **`/admin/locations/suggestions`**, **`/admin/messages`**, **`/admin/messages/[id]`**.
+- Categories: flat stats/list on `&lt;sm`; tree indent via CSS var; desktop bordered tree rows kept.
+- Locations: mobile card stack + desktop table; MERGE/REJECT dialogs touch `min-h-[44px]` full-width on max-sm.
+- Staff chat: soft-flat hall metrics + `AdminConversationSidebar` / thread composer (safe-area); **lg+** `ChatThreadChrome` split unchanged.
+- **Не трогать:** category APIs, geo suggestion queries, chat/message handlers.
+
 ---
 
 ## Сводка
@@ -100,10 +109,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **19** | 33 |
-| **Итого** | **116** | **81** | **35** |
+| Admin Panel | 52 | **23** | 29 |
+| **Итого** | **116** | **85** | **31** |
 
-**Wave 1–4 closed.** **Wave 5A–5C (200.58–200.60):** Admin core + people/cases + FinTech. Next → Admin marketing / categories / system.
+**Wave 1–4 closed.** **Wave 5A–5D (200.58–200.61):** Admin core + people/cases + FinTech + content/support. Next → Admin marketing / system.
 
 ---
 
@@ -114,7 +123,7 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** users/partners/disputes/reviews/waitlist; **5C Done (200.60)** FinTech §4.2; continue marketing / system.
+5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; continue marketing / system.
 
 **Замечания / долг:**
 
@@ -271,11 +280,11 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 | [x] | `/admin/bookings/[id]` | `…/bookings/[id]/page.jsx` | **Admin Wave 5A / 200.58** (table↔cards) |
 | [x] | `/admin/disputes` | `…/disputes/page.js` | **Admin Wave 5B / 200.59** (table↔cards) |
 | [x] | `/admin/reviews` | `…/reviews/page.js` | **Admin Wave 5B / 200.59** (chrome + sm breakpoint) |
-| [ ] | `/admin/categories` | `…/categories/page.js` | Categories |
+| [x] | `/admin/categories` | `…/categories/page.js` | **Admin Wave 5D / 200.61** |
 | [x] | `/admin/waitlist` | `…/waitlist/page.js` | **Admin Wave 5B / 200.59** |
-| [ ] | `/admin/locations/suggestions` | `…/locations/suggestions/page.js` | Geo suggestions |
-| [ ] | `/admin/messages` | `…/messages/page.js` | Staff messages |
-| [ ] | `/admin/messages/[id]` | `…/messages/[id]/page.js` | Staff thread |
+| [x] | `/admin/locations/suggestions` | `…/locations/suggestions/page.js` | **Admin Wave 5D / 200.61** (table↔cards) |
+| [x] | `/admin/messages` | `…/messages/page.js` | **Admin Wave 5D / 200.61** |
+| [x] | `/admin/messages/[id]` | `…/messages/[id]/page.js` | **Admin Wave 5D / 200.61** (thread chrome) |
 
 ### 4.2 Finance / FinTech
 

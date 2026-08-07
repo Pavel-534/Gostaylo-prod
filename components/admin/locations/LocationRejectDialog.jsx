@@ -54,9 +54,9 @@ export function LocationRejectDialog({
             maxLength={500}
           />
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={processing}>Отмена</AlertDialogCancel>
-          <Button type="button" variant="destructive" disabled={processing} onClick={onConfirm}>
+        <AlertDialogFooter className="gap-2">
+          <AlertDialogCancel className="min-h-[44px] w-full sm:w-auto" disabled={processing}>Отмена</AlertDialogCancel>
+          <Button type="button" className="min-h-[44px] w-full sm:w-auto" variant="destructive" disabled={processing} onClick={onConfirm}>
             {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Отклонить
           </Button>

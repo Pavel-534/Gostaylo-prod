@@ -79,8 +79,8 @@ export function AdminChatPinnedSlot({
             variant="secondary"
             size="sm"
             className={cn(
-              'h-8 w-full gap-1.5 border border-slate-200/90 bg-white text-xs text-slate-800 shadow-sm',
-              'hover:bg-slate-50 sm:w-auto sm:min-w-[10rem]'
+              'min-h-[44px] w-full gap-1.5 border border-slate-200/90 bg-white text-xs text-slate-800 shadow-sm',
+              'hover:bg-slate-50 sm:w-auto sm:min-w-[10rem]',
             )}
             disabled={joinSupportLoading}
             onClick={() => onJoinAsSupport?.()}
