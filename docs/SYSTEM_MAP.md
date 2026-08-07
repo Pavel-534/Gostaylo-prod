@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.32 | **Last Updated**: 2026-08-07 | **Stage 200.53.2** partner calendar perf; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
+> **Version**: 13.2.33 | **Last Updated**: 2026-08-07 | **Stage 200.53.3** partner calendar bulk SoT; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -130,7 +130,7 @@
 | `GET /api/v2/geo/listing-label` | Listing location display line (codes → labels) |
 | `GET /api/v2/geocode` · `/suggest` · `/reverse` | GeoService (catalog + Nominatim cache) |
 | `GET|PUT /api/v2/partner/bookings*` |
-| `GET /api/v2/partner/calendar` |
+| `GET /api/v2/partner/calendar` | Stage **200.53.3** bulk raw (3 queries) + `buildCalendar` in-memory; DTO unchanged |
 | `GET /api/v2/partner/stats` |
 | `GET /api/v2/partner/balance-breakdown` |
 | `GET /api/v2/partner/finances-summary` |
