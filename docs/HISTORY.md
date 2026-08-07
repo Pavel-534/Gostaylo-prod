@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.58 | 2026-08-07 | Admin Wave 5A mobile-flat: dashboard, moderation, bookings | Done |
 | 200.57 | 2026-08-07 | Auth Wave 4 mobile-flat: auth shells + marketing/legal | Done |
 | 200.56 | 2026-08-07 | Chat Wave 3 mobile-flat: messages hall + thread chrome | Done |
 | 200.53.3 | 2026-08-07 | Partner calendar bulk SoT: 3 DB queries for N listings + in-memory buildCalendar | Done |

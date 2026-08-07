@@ -1,8 +1,8 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.5.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.6.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
-> **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
+> **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
 
 ---
@@ -17,6 +17,7 @@
 | `[x] Finished (Guest Wave 2B / 200.55)` | Secondary guest: favorites, profile/wallet/settings, public `/u`, reviews |
 | `[x] Finished (Chat Wave 3 / 200.56)` | Messages hall + thread chrome; composer safe-area kept |
 | `[x] Finished (Auth Wave 4 / 200.57)` | Auth + marketing/legal public pages; demo exclude |
+| `[x] Finished (Admin Wave 5A / 200.58)` | Core ops: `/admin`, dashboard, moderation (=listings), bookings |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -65,6 +66,14 @@
 - **Exclude:** `/demo/price-breakdown`, `/test-db` (dev/demo — out of product flatten).
 - Isolation OK: Auth modal bottom-sheet, OTP inputs, provider buttons, FAQ `<details>`, escrow content blocks as single nested level after shell flatten.
 
+**Уточнения ТЗ (Wave 5A — Admin Core Ops):**
+
+- Scope: **`/admin`**, **`/admin/dashboard`**, **`/admin/moderation`** (listings registry alias — **нет** `/admin/listings`), **`/admin/bookings`**, **`/admin/bookings/[id]`**.
+- Tables: desktop `hidden sm:block` (or `md` where already used); mobile stacked cards `sm:hidden` — Stage 176.2.
+- Touch: `min-h-[44px]`; primary Approve/Reject/Save `w-full` on max-sm.
+- Isolation OK: FX stale banner, Recharts, moderation Dialog/carousel, Switch rate-limit control.
+- Next 5B+: users/partners/disputes/reviews/messages, then FinTech & marketing admin.
+
 ---
 
 ## Сводка
@@ -74,10 +83,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | 0 | 52 |
-| **Итого** | **116** | **62** | **54** |
+| Admin Panel | 52 | **5** | 47 |
+| **Итого** | **116** | **67** | **49** |
 
-**Wave 1–3 closed.** **Wave 4 (200.57):** Auth & marketing/legal closed (demo marked exclude). Next → **Admin**.
+**Wave 1–4 closed.** **Wave 5A (200.58):** Admin core ops started. Next → Admin users/partners/disputes (5B) or FinTech.
 
 ---
 
@@ -88,7 +97,7 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — densest surface; flatten постепенно (tables → card stack `&lt;md` per Stage 176.2), не блокировать guest/partner.
+5. **Admin** — **5A Done (200.58)** core ops; continue FinTech / marketing / system densest surfaces (tables → card stack `&lt;sm` per Stage 176.2).
 
 **Замечания / долг:**
 
@@ -234,15 +243,15 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/admin` | `app/admin/page.js` | Admin entry |
-| [ ] | `/admin/dashboard` | `…/dashboard/page.js` | Dashboard |
-| [ ] | `/admin/moderation` | `…/moderation/page.js` | Listing moderation |
+| [x] | `/admin` | `app/admin/page.js` | **Admin Wave 5A / 200.58** |
+| [x] | `/admin/dashboard` | `…/dashboard/page.js` | **Admin Wave 5A / 200.58** |
+| [x] | `/admin/moderation` | `…/moderation/page.js` | **Admin Wave 5A / 200.58** (listings registry) |
 | [ ] | `/admin/users` | `…/users/page.js` | Users list |
 | [ ] | `/admin/users/[id]` | `…/users/[id]/page.js` | User detail |
 | [ ] | `/admin/partners` | `…/partners/page.js` | Partners list |
 | [ ] | `/admin/partners/[id]` | `…/partners/[id]/page.js` | Partner detail |
-| [ ] | `/admin/bookings` | `…/bookings/page.jsx` | Bookings list |
-| [ ] | `/admin/bookings/[id]` | `…/bookings/[id]/page.jsx` | Booking detail |
+| [x] | `/admin/bookings` | `…/bookings/page.jsx` | **Admin Wave 5A / 200.58** |
+| [x] | `/admin/bookings/[id]` | `…/bookings/[id]/page.jsx` | **Admin Wave 5A / 200.58** (table↔cards) |
 | [ ] | `/admin/disputes` | `…/disputes/page.js` | Disputes |
 | [ ] | `/admin/reviews` | `…/reviews/page.js` | Reviews moderation |
 | [ ] | `/admin/categories` | `…/categories/page.js` | Categories |

@@ -6,6 +6,13 @@ import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle, UserPlus, CreditCard, RefreshCw, Send, Home, Wallet, Handshake, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 const ADMIN_CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b'];
 
@@ -248,14 +255,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 max-sm:gap-6 max-sm:divide-y max-sm:divide-slate-100">
         {/* Total Revenue */}
-        <Card className="border-2 border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-indigo-100 sm:bg-gradient-to-br sm:from-indigo-50 sm:to-white')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between pb-2')}>
             <CardTitle className="text-sm font-medium text-gray-600">Общая выручка</CardTitle>
             <DollarSign className="w-5 h-5 text-indigo-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="text-2xl font-bold text-indigo-900">
               {stats?.revenue?.toLocaleString('ru-RU')} ₿
             </div>
@@ -266,12 +273,12 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Commission */}
-        <Card className="border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:pt-4 sm:border-2 sm:border-purple-100 sm:bg-gradient-to-br sm:from-purple-50 sm:to-white')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between pb-2')}>
             <CardTitle className="text-sm font-medium text-gray-600">Комиссия платформы</CardTitle>
             <TrendingUp className="w-5 h-5 text-purple-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="text-2xl font-bold text-purple-900">
               {stats?.commission?.toLocaleString('ru-RU')} ₿
             </div>
@@ -284,12 +291,12 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Total Users */}
-        <Card className="border-2 border-pink-100 bg-gradient-to-br from-pink-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:pt-4 sm:border-2 sm:border-pink-100 sm:bg-gradient-to-br sm:from-pink-50 sm:to-white')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between pb-2')}>
             <CardTitle className="text-sm font-medium text-gray-600">Пользователи</CardTitle>
             <Users className="w-5 h-5 text-pink-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="text-2xl font-bold text-pink-900">{stats?.totalUsers}</div>
             <p className="text-xs text-gray-600 mt-1">
               {stats?.totalPartners} партнеров | {stats?.totalRenters} арендаторов
@@ -298,12 +305,12 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Active Bookings */}
-        <Card className="border-2 border-orange-100 bg-gradient-to-br from-orange-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:pt-4 sm:border-2 sm:border-orange-100 sm:bg-gradient-to-br sm:from-orange-50 sm:to-white')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between pb-2')}>
             <CardTitle className="text-sm font-medium text-gray-600">Активные бронирования</CardTitle>
             <ShoppingBag className="w-5 h-5 text-orange-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="text-2xl font-bold text-orange-900">{stats?.activeBookings}</div>
             <p className="text-xs text-gray-600 mt-1">
               из {stats?.totalBookings} всего
@@ -315,12 +322,12 @@ export default function AdminDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Revenue Trend Chart */}
-        <Card className="shadow-xl overflow-hidden">
-          <CardHeader className="pb-2 lg:pb-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden max-sm:shadow-none sm:shadow-xl')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
             <CardTitle className="text-lg lg:text-xl">Динамика выручки</CardTitle>
             <CardDescription className="text-xs lg:text-sm">Ежемесячный тренд (THB)</CardDescription>
           </CardHeader>
-          <CardContent className="p-2 lg:p-6">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-2 lg:p-6 max-sm:pt-2')}>
             <div className="w-full overflow-x-auto">
               <div className="min-w-[300px]">
                 <ResponsiveContainer width="100%" height={250}>
@@ -340,12 +347,12 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Category Distribution */}
-        <Card className="shadow-xl overflow-hidden">
-          <CardHeader className="pb-2 lg:pb-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden max-sm:shadow-none sm:shadow-xl')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
             <CardTitle className="text-lg lg:text-xl">По категориям</CardTitle>
             <CardDescription className="text-xs lg:text-sm">Распределение листингов</CardDescription>
           </CardHeader>
-          <CardContent className="p-2 lg:p-6">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-2 lg:p-6 max-sm:pt-2')}>
             <div className="w-full overflow-x-auto">
               <div className="min-w-[250px]">
                 <ResponsiveContainer width="100%" height={250}>
@@ -375,8 +382,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Telegram Command Center */}
-      <Card className="shadow-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardHeader className="pb-2 lg:pb-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:shadow-none sm:border-2 sm:border-blue-200 sm:bg-gradient-to-br sm:from-blue-50 sm:to-indigo-50 sm:shadow-xl')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle className="text-lg lg:text-xl flex items-center gap-2">
@@ -402,13 +409,13 @@ export default function AdminDashboard() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-0">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:p-4 lg:p-6 sm:pt-0')}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
             {/* Test Booking Alert */}
             <Button
               onClick={() => sendTestAlert('booking')}
               disabled={sendingAlert === 'booking'}
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              className="min-h-[44px] h-auto w-full py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
               data-testid="test-booking-alert-btn"
             >
               {sendingAlert === 'booking' ? (
@@ -424,7 +431,7 @@ export default function AdminDashboard() {
             <Button
               onClick={() => sendTestAlert('finance')}
               disabled={sendingAlert === 'finance'}
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              className="min-h-[44px] h-auto w-full py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
               data-testid="test-finance-alert-btn"
             >
               {sendingAlert === 'finance' ? (
@@ -440,7 +447,7 @@ export default function AdminDashboard() {
             <Button
               onClick={() => sendTestAlert('partner')}
               disabled={sendingAlert === 'partner'}
-              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+              className="min-h-[44px] h-auto w-full py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
               data-testid="test-partner-alert-btn"
             >
               {sendingAlert === 'partner' ? (
@@ -454,7 +461,7 @@ export default function AdminDashboard() {
           </div>
 
           {telegramStatus?.bot && (
-            <div className="mt-4 p-3 bg-white/70 rounded-lg border border-blue-200">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'mt-4 sm:border-blue-200 sm:bg-white/70')}>
               <p className="text-sm text-gray-700">
                 <strong>Bot:</strong> @{telegramStatus.bot.username} ({telegramStatus.bot.firstName})
               </p>
@@ -469,20 +476,20 @@ export default function AdminDashboard() {
       </Card>
 
       {/* Activity Feed */}
-      <Card className="shadow-xl">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:shadow-none sm:shadow-xl')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-xl flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             Последние события
           </CardTitle>
           <CardDescription>Real-time активность на платформе</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="space-y-4">
             {activity.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                className="flex items-center justify-between gap-3 p-4 max-sm:rounded-none max-sm:border-b max-sm:border-slate-100 max-sm:bg-transparent max-sm:px-0 sm:rounded-lg sm:border sm:border-gray-200 sm:bg-gray-50 sm:hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-lg border border-gray-300">

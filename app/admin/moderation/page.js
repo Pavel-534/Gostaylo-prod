@@ -27,6 +27,12 @@ import {
 import { useI18n } from '@/contexts/i18n-context'
 import { getCategoryName } from '@/lib/translations'
 import { resolveCategoryDisplayName } from '@/lib/category-display-name'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_EMPTY_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function ModerationPage() {
   const { language } = useI18n()
@@ -329,8 +335,8 @@ export default function ModerationPage() {
       </div>
 
       {/* Stats */}
-      <Card className="bg-orange-50 border-orange-200">
-        <CardContent className="p-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-orange-200 sm:bg-orange-50')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
               <Building2 className="h-6 w-6 text-orange-600" />
@@ -348,8 +354,8 @@ export default function ModerationPage() {
       </Card>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4 space-y-3">
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3 max-sm:py-2 sm:p-4')}>
           <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
             <Filter className="h-4 w-4" />
             Фильтры
@@ -364,7 +370,7 @@ export default function ModerationPage() {
                 placeholder="Имя, email, id…"
                 value={filters.partner}
                 onChange={(e) => setFilters((f) => ({ ...f, partner: e.target.value }))}
-                className="mt-1"
+                className="mt-1 min-h-[44px]"
               />
             </div>
             <div>
@@ -375,7 +381,7 @@ export default function ModerationPage() {
                 id="mod-filter-category"
                 value={filters.category}
                 onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="mt-1 flex min-h-[44px] h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">Все</option>
                 {facets.categories?.map((c) => (
@@ -394,7 +400,7 @@ export default function ModerationPage() {
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                className="mt-1"
+                className="mt-1 min-h-[44px]"
               />
             </div>
             <div>
@@ -406,11 +412,11 @@ export default function ModerationPage() {
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                className="mt-1"
+                className="mt-1 min-h-[44px]"
               />
             </div>
             <div className="flex items-end">
-              <Button type="button" variant="outline" className="w-full" onClick={clearFilters}>
+              <Button type="button" variant="outline" className="min-h-[44px] w-full" onClick={clearFilters}>
                 Сбросить
               </Button>
             </div>
@@ -420,19 +426,22 @@ export default function ModerationPage() {
 
       {/* Listings Grid */}
       {pendingListings.length === 0 ? (
-        <Card className="bg-white">
-          <CardContent className="p-8 text-center">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-white')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, MOBILE_FLAT_EMPTY_CLASS, 'sm:p-8')}>
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-900">Всё проверено!</h3>
             <p className="text-slate-600">Нет объявлений на модерации</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-sm:space-y-0 max-sm:divide-y max-sm:divide-slate-100">
           {pendingListings.map((listing) => (
             <Card
               key={listing.id}
-              className="overflow-hidden border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+              className={cn(
+                MOBILE_FLAT_CARD_CLASS,
+                'overflow-hidden cursor-pointer max-sm:rounded-none max-sm:shadow-none sm:border-slate-200 sm:hover:border-indigo-200 sm:hover:shadow-md sm:transition-all',
+              )}
               onClick={() => setSelectedListing(listing)}
             >
               <CardContent className="p-0">
@@ -492,13 +501,13 @@ export default function ModerationPage() {
                     </div>
 
                     <div
-                      className="flex shrink-0 flex-col gap-2 sm:w-[200px]"
+                      className="flex shrink-0 flex-col gap-2 w-full sm:w-[200px]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Button
                         type="button"
                         size="lg"
-                        className="h-12 w-full bg-green-600 hover:bg-green-700 text-base font-semibold shadow-sm"
+                        className="min-h-[44px] h-12 w-full bg-green-600 hover:bg-green-700 text-base font-semibold shadow-sm"
                         disabled={processingId != null}
                         onClick={(e) => onListApprove(listing, e)}
                       >
@@ -515,7 +524,7 @@ export default function ModerationPage() {
                         type="button"
                         size="lg"
                         variant="destructive"
-                        className="h-12 w-full text-base font-semibold shadow-sm"
+                        className="min-h-[44px] h-12 w-full text-base font-semibold shadow-sm"
                         disabled={processing}
                         onClick={(e) => openRejectModal(listing, e)}
                       >
@@ -526,7 +535,7 @@ export default function ModerationPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-full text-slate-600"
+                        className="min-h-[44px] w-full text-slate-600"
                         onClick={() => setSelectedListing(listing)}
                       >
                         Подробнее
@@ -714,8 +723,8 @@ export default function ModerationPage() {
                 </div>
 
                 {/* Owner Card */}
-                <Card className="border-2 border-indigo-200 bg-indigo-50/50">
-                  <CardContent className="p-4">
+                <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-indigo-200 sm:bg-indigo-50/50')}>
+                  <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-2 sm:p-4')}>
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -731,11 +740,11 @@ export default function ModerationPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         {selectedListing.owner?.phone && (
                           <a 
                             href={`tel:${selectedListing.owner.phone}`}
-                            className="text-sm text-slate-600 flex items-center gap-1 hover:text-indigo-600"
+                            className="inline-flex min-h-[44px] items-center gap-1 text-sm text-slate-600 hover:text-indigo-600"
                           >
                             <Phone className="h-3 w-3" />
                             {selectedListing.owner.phone}
@@ -743,10 +752,10 @@ export default function ModerationPage() {
                         )}
                         <Link 
                           href={`/admin/users/${selectedListing.owner_id}`}
-                          className="text-indigo-600 hover:text-indigo-800"
+                          className="text-indigo-600 hover:text-indigo-800 w-full sm:w-auto"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Button variant="outline" size="sm" className="text-indigo-600">
+                          <Button variant="outline" size="sm" className="min-h-[44px] w-full text-indigo-600 sm:w-auto">
                             <ExternalLink className="h-3 w-3 mr-1" />
                             Профиль
                           </Button>

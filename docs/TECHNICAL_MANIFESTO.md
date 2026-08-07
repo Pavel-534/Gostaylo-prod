@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.39 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.57** Auth Wave 4 mobile-flat.
+> **Version**: 13.2.40 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.58** Admin Wave 5A mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 

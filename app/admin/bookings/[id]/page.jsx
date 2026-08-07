@@ -18,6 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function formatDt(iso) {
   if (!iso) return '—'
@@ -49,6 +56,46 @@ function pushStatus(ev) {
   if (p.skipped) return 'Пропуск (staff)'
   if (p.success) return `OK (sent ${p.sent ?? 0})`
   return `Ошибка: ${p.error || 'FCM'}`
+}
+
+function EmergencyEventMobileCard({ ev, markingAt, onMarkAbuse }) {
+  const at = String(ev?.at || '')
+  const abused = ev?.abuse?.marked === true
+  return (
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'max-sm:border-b max-sm:border-slate-100 max-sm:py-3')}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-mono text-xs text-slate-700">{formatDt(at)}</span>
+          {abused ? (
+            <Badge variant="secondary" className="text-xs">
+              Помечено
+            </Badge>
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
+        </div>
+        <div className="text-sm text-slate-800">
+          <p className="text-xs font-medium text-slate-500">Причина</p>
+          <p className="mt-0.5 break-words">{checklistSummary(ev?.checklist)}</p>
+        </div>
+        <div className="text-sm text-slate-800">
+          <p className="text-xs font-medium text-slate-500">Push</p>
+          <p className="mt-0.5 break-words">{pushStatus(ev)}</p>
+        </div>
+        {!abused ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-[44px] w-full text-sm"
+            disabled={markingAt === at}
+            onClick={() => void onMarkAbuse(at)}
+          >
+            {markingAt === at ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Пометить как злоупотребление'}
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function AdminBookingDetailPage() {
@@ -137,16 +184,16 @@ export default function AdminBookingDetailPage() {
     : []
 
   return (
-    <div className="space-y-6 max-w-5xl p-4 md:p-6">
+    <div className="max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="outline" size="sm" className="rounded-xl">
+        <Button asChild variant="outline" size="sm" className="min-h-[44px] rounded-xl">
           <Link href="/admin/disputes">
             <ArrowLeft className="h-4 w-4 mr-2" />
             К спорам
           </Link>
         </Button>
         <h1 className="text-xl font-bold text-slate-900">Бронирование</h1>
-        <code className="text-sm bg-slate-100 px-2 py-1 rounded">{id || '—'}</code>
+        <code className="text-sm bg-slate-100 px-2 py-1 rounded break-all">{id || '—'}</code>
       </div>
 
       {loading ? (
@@ -157,12 +204,12 @@ export default function AdminBookingDetailPage() {
         <p className="text-slate-600">Бронь не найдена или нет доступа.</p>
       ) : (
         <>
-          <Card className="rounded-2xl border-slate-200">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:border-slate-200')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
               <CardTitle className="text-base">Кратко</CardTitle>
               <CardDescription>Статус и участники</CardDescription>
             </CardHeader>
-            <CardContent className="text-sm space-y-1 text-slate-700">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-1 text-sm text-slate-700')}>
               <p>
                 <span className="text-slate-500">Статус:</span> {String(booking.status || '—')}
               </p>
@@ -175,8 +222,8 @@ export default function AdminBookingDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-red-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:border-red-200 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
               <CardTitle className="text-base flex items-center gap-2">
                 <Siren className="h-5 w-5 text-red-600" />
                 Trust &amp; Safety Audit
@@ -187,8 +234,13 @@ export default function AdminBookingDetailPage() {
                 <code className="text-xs bg-slate-100 px-1 rounded">metadata.emergency_contact_events[].abuse</code>.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+              <div
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'flex flex-wrap items-center justify-between gap-3 sm:border-slate-200 sm:bg-slate-50',
+                )}
+              >
                 <div className="space-y-0.5">
                   <Label htmlFor="em-exempt" className="text-sm font-medium text-slate-800">
                     Снять лимит 24 ч (повторные экстренные вызовы)
@@ -201,55 +253,72 @@ export default function AdminBookingDetailPage() {
               {events.length === 0 ? (
                 <p className="text-sm text-slate-600">Записей пока нет.</p>
               ) : (
-                <div className="rounded-xl border border-slate-200 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Время</TableHead>
-                        <TableHead>Причина</TableHead>
-                        <TableHead>Push</TableHead>
-                        <TableHead>Абьюз</TableHead>
-                        <TableHead className="text-right">Действия</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {events.map((ev) => {
-                        const at = String(ev?.at || '')
-                        const abused = ev?.abuse?.marked === true
-                        return (
-                          <TableRow key={at}>
-                            <TableCell className="whitespace-nowrap font-mono text-xs">{formatDt(at)}</TableCell>
-                            <TableCell className="max-w-[220px] text-xs">{checklistSummary(ev?.checklist)}</TableCell>
-                            <TableCell className="text-xs">{pushStatus(ev)}</TableCell>
-                            <TableCell>
-                              {abused ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  Помечено
-                                </Badge>
-                              ) : (
-                                <span className="text-slate-400 text-xs">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {!abused ? (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-xs"
-                                  disabled={markingAt === at}
-                                  onClick={() => void markAbuse(at)}
-                                >
-                                  {markingAt === at ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Пометить как злоупотребление'}
-                                </Button>
-                              ) : null}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  <div className="space-y-0 sm:hidden">
+                    {events.map((ev) => (
+                      <EmergencyEventMobileCard
+                        key={String(ev?.at || '')}
+                        ev={ev}
+                        markingAt={markingAt}
+                        onMarkAbuse={markAbuse}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Время</TableHead>
+                          <TableHead>Причина</TableHead>
+                          <TableHead>Push</TableHead>
+                          <TableHead>Абьюз</TableHead>
+                          <TableHead className="text-right">Действия</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {events.map((ev) => {
+                          const at = String(ev?.at || '')
+                          const abused = ev?.abuse?.marked === true
+                          return (
+                            <TableRow key={at}>
+                              <TableCell className="whitespace-nowrap font-mono text-xs">{formatDt(at)}</TableCell>
+                              <TableCell className="max-w-[220px] text-xs">{checklistSummary(ev?.checklist)}</TableCell>
+                              <TableCell className="text-xs">{pushStatus(ev)}</TableCell>
+                              <TableCell>
+                                {abused ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Помечено
+                                  </Badge>
+                                ) : (
+                                  <span className="text-slate-400 text-xs">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {!abused ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="min-h-[44px] text-xs"
+                                    disabled={markingAt === at}
+                                    onClick={() => void markAbuse(at)}
+                                  >
+                                    {markingAt === at ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      'Пометить как злоупотребление'
+                                    )}
+                                  </Button>
+                                ) : null}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

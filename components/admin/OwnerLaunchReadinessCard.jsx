@@ -23,6 +23,13 @@ import {
   postFintechSmokeFinancialRun,
   postFintechPreparePause,
 } from '@/lib/admin/admin-fintech-api-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const STATUS_ICON = {
   green: CheckCircle2,
@@ -134,8 +141,13 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
   const busy = smokeBusy || pauseBusy
 
   return (
-    <Card className="border-[3px] border-indigo-500 bg-gradient-to-br from-indigo-50/90 via-white to-emerald-50/30 shadow-xl ring-2 ring-indigo-100/80">
-      <CardHeader className="pb-3">
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'max-sm:border-b max-sm:border-indigo-100 max-sm:pb-4 sm:border-[3px] sm:border-indigo-500 sm:bg-gradient-to-br sm:from-indigo-50/90 sm:via-white sm:to-emerald-50/30 sm:shadow-xl sm:ring-2 sm:ring-indigo-100/80',
+      )}
+    >
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-2xl sm:text-3xl font-bold text-slate-900">
@@ -147,7 +159,7 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
             </CardDescription>
           </div>
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold ${OVERALL_BADGE[overall] || OVERALL_BADGE.yellow}`}
+            className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold ${OVERALL_BADGE[overall] || OVERALL_BADGE.yellow}`}
           >
             <OverallIcon className="h-4 w-4" aria-hidden />
             {overall === 'green' ? 'Можно запускать' : overall === 'red' ? 'Есть блокеры' : 'Нужно внимание'}
@@ -155,16 +167,20 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
         </div>
 
         <div
-          className="mt-4 rounded-xl border-2 border-dashed border-brand/35 bg-brand/5 p-4 space-y-3"
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'mt-4 space-y-3 sm:border-2 sm:border-dashed sm:border-brand/35 sm:bg-brand/5',
+          )}
           role="group"
           aria-label="Быстрые действия"
         >
           <p className="text-sm font-semibold text-brand">Быстрые действия</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               variant="brand"
               size="sm"
+              className="min-h-[44px] max-sm:w-full"
               disabled={busy}
               onClick={() => void runSmoke()}
             >
@@ -179,7 +195,7 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
               type="button"
               size="sm"
               variant="outline"
-              className="border-slate-400 bg-white hover:bg-slate-50"
+              className="min-h-[44px] border-slate-400 bg-white hover:bg-slate-50 max-sm:w-full"
               disabled={busy}
               onClick={() => void runPreparePause()}
             >
@@ -190,13 +206,13 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
               )}
               Подготовить к паузе
             </Button>
-            <Button type="button" size="sm" variant="outline" asChild disabled={busy}>
+            <Button type="button" size="sm" variant="outline" className="min-h-[44px] max-sm:w-full" asChild disabled={busy}>
               <Link href="/admin/moderation">
                 <Building2 className="h-4 w-4 mr-1.5" />
                 Открыть модерацию
               </Link>
             </Button>
-            <Button type="button" size="sm" variant="outline" asChild disabled={busy}>
+            <Button type="button" size="sm" variant="outline" className="min-h-[44px] max-sm:w-full" asChild disabled={busy}>
               <Link href="/admin/security">
                 <Shield className="h-4 w-4 mr-1.5" />
                 Открыть нарушителей
@@ -206,19 +222,19 @@ export function OwnerLaunchReadinessCard({ launchReadiness, onRefresh }) {
         </div>
 
         {!paymentsGreen ? (
-          <p className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-sm text-emerald-900">
+          <p className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-sm text-emerald-900 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0">
             <Info className="h-4 w-4 shrink-0 mt-0.5 text-emerald-700" aria-hidden />
             После подключения ЮKassa и онлайн-кассы карточка станет полностью зелёной.
           </p>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-2">
-        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
+        <ul className="divide-y divide-slate-100 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
           {launchReadiness.items.map((item) => {
             const Icon = STATUS_ICON[item.status] || AlertCircle
             const style = STATUS_STYLES[item.status] || STATUS_STYLES.yellow
             const inner = (
-              <div className={`flex gap-3 p-4 ${item.link ? 'hover:bg-slate-50/80' : ''}`}>
+              <div className={`flex min-h-[44px] gap-3 p-4 ${item.link ? 'hover:bg-slate-50/80' : ''}`}>
                 <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${style}`}>
                   <Icon className="h-5 w-5" aria-hidden />
                 </div>
