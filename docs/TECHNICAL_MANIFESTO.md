@@ -27,6 +27,14 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 200.58 — Admin Wave 5A mobile-flat (core ops)
+
+- Paths: `/admin`, `/admin/dashboard`, `/admin/moderation` (listings alias — no `/admin/listings`), `/admin/bookings`, `/admin/bookings/[id]`.
+- SSOT: `MOBILE_FLAT_*` (+ bundle alias `MOBILE_FLAT_CANVAS`); max-sm flat cards; **sm+** dense chrome/tables kept.
+- Bookings detail: emergency events — mobile card stack + desktop `Table`. Touch `min-h-[44px]`; Approve/Reject full-width on queue.
+- No admin API / moderation / emergency-action logic changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.6.0. Next → Admin 5B (users/partners/…).
+
 ### Stage 200.57 — Auth Wave 4 mobile-flat
 
 - Paths: `/auth/*`, `/reset-password`, marketing `/about*`, `/help*`, `/terms`, `/legal/*` (+ `/login` redirect).
