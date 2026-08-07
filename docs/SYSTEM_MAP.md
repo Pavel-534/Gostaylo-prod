@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.33 | **Last Updated**: 2026-08-07 | **Stage 200.53.3** partner calendar bulk SoT; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
+> **Version**: 13.2.34 | **Last Updated**: 2026-08-07 | **Stage 200.56** Chat Wave 3; inventory [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

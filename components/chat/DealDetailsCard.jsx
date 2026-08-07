@@ -13,6 +13,10 @@ import { Building2, CalendarRange, Banknote, ExternalLink, Shield, ArrowRight } 
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getUIText } from '@/lib/translations'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
@@ -144,8 +148,8 @@ export function DealDetailsCard({
           {getUIText('dealCard_tripDetails', language) || (language === 'en' ? 'Trip details' : 'Детали поездки')}
         </h3>
 
-        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
-          <div className="flex gap-3 p-3 bg-white">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:border-slate-200')}>
+          <div className="flex gap-3 bg-white p-3 max-sm:px-0">
             <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
               {img ? (
                 <img src={img} alt="" className="h-full w-full object-cover" />
@@ -188,8 +192,8 @@ export function DealDetailsCard({
             </div>
           </div>
 
-          <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
-            <CardContent className="p-3 space-y-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-white')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 max-sm:py-0 sm:p-3')}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-500">
                   {getUIText('dealCard_status', language) || (language === 'en' ? 'Status' : 'Статус')}

@@ -20,6 +20,8 @@ import {
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
 import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_SHELL_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
@@ -112,8 +114,13 @@ export default function MessagesArchivedPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-surface">
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden gsl-card md:shadow-sm">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden max-sm:px-0 max-sm:py-0 sm:px-4 sm:py-2">
+        <div
+          className={cn(
+            MOBILE_FLAT_SHELL_CARD_CLASS,
+            'flex min-h-0 flex-1 flex-col overflow-hidden',
+          )}
+        >
           <ConversationList
             inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
             selectedId={null}

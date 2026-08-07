@@ -81,7 +81,8 @@ export function ChatThreadChrome({
           'flex h-full min-h-0 w-full flex-shrink-0 flex-col overflow-hidden',
           'lg:w-80',
           hasThread ? 'hidden lg:flex' : 'flex',
-          'border-r border-slate-200',
+          // Wave 3: edge-to-edge inbox on mobile; hairline divider only from lg (two-column).
+          'max-sm:border-0 lg:border-r lg:border-slate-200',
         )}
       >
         {sidebarSlot ?? <DefaultSidebarEmpty language={language} />}
@@ -130,7 +131,7 @@ export function ChatThreadChrome({
               </div>
 
               {composerSlot && (
-                <div className="flex-shrink-0 border-t border-slate-100 bg-white">
+                <div className="flex-shrink-0 border-t border-slate-100 bg-white max-sm:border-slate-100/80">
                   {composerSlot}
                 </div>
               )}

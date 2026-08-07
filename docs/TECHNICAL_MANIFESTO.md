@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.37 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.53.3** partner calendar bulk SoT.
+> **Version**: 13.2.38 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.56** Chat Wave 3 mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.56 — Chat Wave 3 mobile-flat
+
+- Paths: `/messages`, `/messages/archived`, `/messages/[id]` (+ `/chat/[id]` redirect).
+- SSOT: `MOBILE_FLAT_SHELL_CARD` / `MOBILE_FLAT_CARD_*` — hall edge-to-edge on `&lt;sm`; `sm+` card chrome; **lg+** two-column in `ChatThreadChrome` unchanged.
+- Soften sticky/header glass shadows on max-sm; `DealDetailsCard` flat in mobile sheet nesting.
+- **Kept:** bubbles, composer capsules, VoiceRecorder/QuickReplies, `ThreadDealDetailsSheet`, `CHAT_COMPOSER_SHELL_CLASS` / `pb-safe-chat-composer`. No API/transport changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.4.0. Next → Auth & marketing.
 
 ### Stage 200.53.3 — Partner calendar bulk SoT (read path)
 

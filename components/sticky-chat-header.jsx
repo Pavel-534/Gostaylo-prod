@@ -177,9 +177,10 @@ export function StickyChatHeader({
         embedded
           ? cn(
               'relative z-[15] shadow-none',
-              showUnifiedTop && 'border-b border-slate-200/80 bg-white/88 backdrop-blur-md xl:border-0 xl:bg-transparent xl:backdrop-blur-none'
+              showUnifiedTop &&
+                'border-b border-slate-200/80 bg-white max-sm:bg-white sm:bg-white/88 sm:backdrop-blur-md xl:border-0 xl:bg-transparent xl:backdrop-blur-none',
             )
-          : 'sticky top-0 z-20 bg-white/95 shadow-sm backdrop-blur',
+          : 'sticky top-0 z-20 bg-white max-sm:shadow-none sm:bg-white/95 sm:shadow-sm sm:backdrop-blur',
         className
       )}
     >
@@ -236,7 +237,7 @@ export function StickyChatHeader({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-2xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75"
+            className="h-9 w-9 shrink-0 rounded-2xl border border-slate-200 bg-white text-slate-700 max-sm:shadow-none sm:border-white/55 sm:bg-white/50 sm:shadow-[0_2px_12px_rgba(15,23,42,0.07)] sm:backdrop-blur-md sm:hover:bg-white/75 hover:bg-slate-50"
             aria-label={
               messagesListBackLabel
                 ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')

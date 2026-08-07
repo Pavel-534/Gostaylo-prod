@@ -291,7 +291,7 @@ export function ChatHeaderActions({
           variant="outline"
           size="icon"
           className={cn(
-            'lg:hidden h-8 w-8 shrink-0 border border-slate-300 bg-white text-slate-700 shadow-sm',
+            'lg:hidden h-8 w-8 shrink-0 border border-slate-300 bg-white text-slate-700 max-sm:shadow-none sm:shadow-sm',
             'hover:bg-slate-50 hover:text-slate-900'
           )}
           onClick={onDealInfoClick}

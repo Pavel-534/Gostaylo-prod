@@ -355,7 +355,7 @@ export default function UnifiedMessagesClient({ params }) {
 
   const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? selectedConv?.listing_id ?? null
   const mobileHeaderIconClass =
-    'h-9 w-9 shrink-0 rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] hover:bg-slate-50'
+    'h-9 w-9 shrink-0 rounded-2xl border border-slate-200 bg-white text-slate-700 max-sm:shadow-none hover:bg-slate-50 sm:shadow-[0_2px_12px_rgba(15,23,42,0.07)]'
   const headerSlot = selectedConv ? (
     <StickyChatHeader
       listing={listing}

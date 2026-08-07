@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.3.0 | **Updated**: 2026-08-06 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.4.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -15,6 +15,7 @@
 | `[x] Finished (Hub Wave 1 / 200.53)` | Partner Hub page mobile-flat (nesting ≤1 on `&lt;sm`) |
 | `[x] Finished (Guest Wave 2A / 200.54)` | Core guest path: home → catalog → PDP → checkout → my-bookings |
 | `[x] Finished (Guest Wave 2B / 200.55)` | Secondary guest: favorites, profile/wallet/settings, public `/u`, reviews |
+| `[x] Finished (Chat Wave 3 / 200.56)` | Messages hall + thread chrome; composer safe-area kept |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -45,6 +46,13 @@
 - Isolation OK: sticky withdraw (wallet), referral marketing export canvases, ReviewModal, status/alert messaging shells as single nested level.
 - Redirect-only (не visual): **`/bookings/[id]`** → checkout, **`/go/[vanity]`** → `/u/[id]`, **`/renter`** → dashboard.
 
+**Уточнения ТЗ (Wave 3 — Chat):**
+
+- Канон: **`/messages`**, **`/messages/[id]`**, **`/messages/archived`**; **`/chat/[id]`** — redirect → `/messages/[id]`.
+- Двухколоночный layout (inbox \| thread \| deal panel) — **lg+** в `ChatThreadChrome` (не переносить на sm).
+- Flatten на **max-sm**: hall/archived shell (`MOBILE_FLAT_SHELL_CARD`), soft header glass, deal card nesting in sheet.
+- **Не flatten:** message bubbles, composer capsules, VoiceRecorder/QuickReplies popovers, `ThreadDealDetailsSheet`, `pb-safe-chat-composer`.
+
 ---
 
 ## Сводка
@@ -52,12 +60,12 @@
 | Домен | Страниц | Finished | Pending |
 |-------|--------:|---------:|--------:|
 | Partner Hub | 14 | **14** | 0 |
-| Storefront / Renter (+ Chat) | 29 | **21** | 8 |
+| Storefront / Renter (+ Chat) | 29 | **25** | 4 |
 | Auth & System (+ Marketing, demo) | 21 | 0 | 21 |
 | Admin Panel | 52 | 0 | 52 |
-| **Итого** | **116** | **35** | **81** |
+| **Итого** | **116** | **39** | **77** |
 
-**Wave 1 (200.53):** Partner Hub closed. **Wave 2A (200.54):** Core guest path closed. **Wave 2B (200.55):** Guest secondary closed. Next → **Chat** (`/messages*`) or Auth.
+**Wave 1–2B closed.** **Wave 3 (200.56):** Chat closed. Next → **Auth & marketing/legal**.
 
 ---
 
@@ -66,7 +74,7 @@
 1. **Partner Hub** — **Done (200.53)**.
 2. **Storefront critical path (Wave 2A)** — **Done (200.54)** — `/` → `/listings` → PDP → checkout → `/my-bookings`.
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
-3. **Chat** (`/messages*`) — shared shell; один раз для renter + partner.
+3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — проще, но влияют на first impression и compliance.
 5. **Admin** — densest surface; flatten постепенно (tables → card stack `&lt;md` per Stage 176.2), не блокировать guest/partner.
 
@@ -157,10 +165,10 @@
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/messages` | `app/(chat)/messages/page.js` | Inbox |
-| [ ] | `/messages/archived` | `…/messages/archived/page.js` | Archived |
-| [ ] | `/messages/[id]` | `…/messages/[id]/page.js` | Thread |
-| [ ] | `/chat/[id]` | `app/(chat)/chat/[id]/page.js` | Legacy/alternate thread URL? |
+| [x] | `/messages` | `app/(chat)/messages/page.js` | **Chat Wave 3 / 200.56** (shell flat; list rows kept) |
+| [x] | `/messages/archived` | `…/messages/archived/page.js` | **Chat Wave 3 / 200.56** |
+| [x] | `/messages/[id]` | `…/messages/[id]/page.js` | **Chat Wave 3 / 200.56** (lg+ two-col; composer safe-area) |
+| [x] | `/chat/[id]` | `app/(chat)/chat/[id]/page.js` | **redirect** → `/messages/[id]` (Wave 3) |
 
 **Shell / errors:** storefront `layout.js`, listings `error.jsx`, chat `layout.js`.
 

@@ -1,6 +1,9 @@
 /**
- * Stage 200.13 — inbox hall skeleton for /messages (thread has its own loading.js).
+ * Stage 200.13 / 200.56 — inbox hall skeleton for /messages (thread has its own loading.js).
  */
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_SHELL_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
+
 export default function MessagesHallLoading() {
   return (
     <div
@@ -8,9 +11,14 @@ export default function MessagesHallLoading() {
       aria-busy="true"
       aria-label="Загрузка сообщений"
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-2 overflow-hidden p-3 md:px-4 md:py-2">
-        <div className="gsl-shimmer h-10 w-full max-w-sm rounded-2xl" />
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-2 overflow-hidden max-sm:p-0 sm:px-4 sm:py-2">
+        <div className="gsl-shimmer h-10 w-full max-w-sm rounded-2xl max-sm:mx-3 max-sm:mt-2" />
+        <div
+          className={cn(
+            MOBILE_FLAT_SHELL_CARD_CLASS,
+            'flex min-h-0 flex-1 flex-col overflow-hidden',
+          )}
+        >
           <div className="space-y-1 border-b border-slate-100 px-4 py-3">
             <div className="gsl-shimmer h-5 w-36 rounded-lg" />
             <div className="gsl-shimmer h-3 w-24 rounded-lg" />
