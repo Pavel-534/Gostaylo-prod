@@ -40,6 +40,11 @@ import { RoiFraudModeToggle } from '@/components/admin/marketing/RoiFraudModeTog
 import { RoiOwnerGuideCard } from '@/components/admin/marketing/RoiOwnerGuideCard';
 import { campaignRoiDetailPath } from '@/lib/admin/marketing-roi-routes';
 import { roiToneClass } from '@/lib/admin/referral-monetary-kpi';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 import { cn } from '@/lib/utils';
 import { GSL_FINTECH_HERO_GRADIENT } from '@/lib/theme/product-ui';
 import {
@@ -214,7 +219,7 @@ export function ReferralRoiDashboard() {
                       type="button"
                       onClick={() => setPeriod(opt.id)}
                       className={cn(
-                        'px-3 py-1.5 text-xs font-medium rounded-md transition',
+                        'min-h-[44px] px-3 py-1.5 text-xs font-medium rounded-md transition sm:min-h-0',
                         period === opt.id ? 'bg-white text-slate-900 shadow' : 'text-white/80 hover:text-white',
                       )}
                     >
@@ -227,7 +232,7 @@ export function ReferralRoiDashboard() {
                   size="sm"
                   onClick={() => load(true)}
                   disabled={loading}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
                 >
                   <RefreshCw className={cn('h-4 w-4 mr-1', loading && 'animate-spin')} />
                   Обновить
@@ -236,7 +241,7 @@ export function ReferralRoiDashboard() {
                   variant="secondary"
                   size="sm"
                   onClick={() => handleExport('csv')}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
                 >
                   <Download className="h-4 w-4 mr-1" />
                   CSV
@@ -245,7 +250,7 @@ export function ReferralRoiDashboard() {
                   variant="secondary"
                   size="sm"
                   onClick={() => handleExport('xlsx')}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-1" />
                   Excel
@@ -254,7 +259,7 @@ export function ReferralRoiDashboard() {
                   asChild
                   variant="secondary"
                   size="sm"
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
                 >
                   <Link href="/admin/finance/intelligence">
                     <Landmark className="h-4 w-4 mr-1" />
@@ -276,14 +281,14 @@ export function ReferralRoiDashboard() {
           <RoiOwnerGuideCard />
 
           {report?.businessSummary?.bullets?.length ? (
-            <Card className="border-sky-200/80 shadow-sm bg-gradient-to-br from-sky-50/90 to-white">
-              <CardHeader className="pb-2">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-sky-200/80 sm:shadow-sm sm:bg-gradient-to-br sm:from-sky-50/90 sm:to-white')}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-base text-sky-950">Что это значит для бизнеса</CardTitle>
                 <CardDescription className="text-sky-900/70">
                   Краткие выводы за выбранный период (read-only)
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
                 <ul className="list-disc pl-5 space-y-1.5 text-sm text-slate-700">
                   {report.businessSummary.bullets.map((line) => (
                     <li key={line}>{line}</li>
@@ -304,8 +309,8 @@ export function ReferralRoiDashboard() {
             ) : null}
           </div>
 
-          <Card className="border-emerald-200/80 shadow-md overflow-hidden">
-            <CardHeader className="pb-2 bg-gradient-to-br from-emerald-50/80 to-white">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden sm:border-emerald-200/80 sm:shadow-md')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 sm:bg-gradient-to-br sm:from-emerald-50/80 sm:to-white')}>
               <CardDescription className="text-xs uppercase tracking-wide text-emerald-900/70 flex items-center gap-1">
                 {isFraudMode ? 'Referral ROI (без подозрительных броней)' : 'Общий Referral ROI за период'}
                 <KpiHint text="ROI = комиссия платформы с реферальных броней ÷ расход promo tank (earned бонусы). >1 — программа окупается." />
@@ -331,7 +336,7 @@ export function ReferralRoiDashboard() {
                 {isFraudMode ? fraudAdjusted.ownerNote : report?.profitImpact?.ownerNote}
               </p>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'pt-4')}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   {
@@ -368,8 +373,8 @@ export function ReferralRoiDashboard() {
             </CardContent>
           </Card>
 
-          <Card id="cac" className="border-indigo-200/80 shadow-sm scroll-mt-24">
-            <CardHeader className="pb-2 bg-gradient-to-br from-indigo-50/80 to-white">
+          <Card id="cac" className={cn(MOBILE_FLAT_CARD_CLASS, 'scroll-mt-24 sm:border-indigo-200/80 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 sm:bg-gradient-to-br sm:from-indigo-50/80 sm:to-white')}>
               <CardDescription className="text-xs uppercase tracking-wide text-indigo-900/70 flex items-center gap-1">
                 Стоимость привлечения (CAC)
                 <KpiHint text="CAC = расход promo tank ÷ число первых броней от реферера за период. Сравнивайте с ROI: при ROI ≥ 1 комиссия покрывает расход." />
@@ -389,7 +394,7 @@ export function ReferralRoiDashboard() {
               </CardTitle>
               <p className="text-sm text-slate-600">{cacOverall.ownerNote}</p>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'pt-4')}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 {cacBySource.length ? (
                   cacBySource.map((row) => (
@@ -422,8 +427,8 @@ export function ReferralRoiDashboard() {
           </Card>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="lg:col-span-2 border-slate-200/80 shadow-sm">
-              <CardHeader>
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'lg:col-span-2 sm:border-slate-200/80 sm:shadow-sm')}>
+              <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <CardTitle className="text-base">Динамика ROI</CardTitle>
@@ -444,7 +449,7 @@ export function ReferralRoiDashboard() {
                         type="button"
                         onClick={() => setChartGranularity(opt.id)}
                         className={cn(
-                          'px-2.5 py-1 text-xs font-medium rounded-md transition',
+                          'min-h-[44px] px-2.5 py-1 text-xs font-medium rounded-md transition sm:min-h-0',
                           chartGranularity === opt.id
                             ? 'bg-white text-slate-900 shadow-sm'
                             : 'text-slate-600 hover:text-slate-900',
@@ -456,7 +461,7 @@ export function ReferralRoiDashboard() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="h-72">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'h-72')}>
                 {chartData.length > 0 && !loading ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -492,12 +497,12 @@ export function ReferralRoiDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardHeader>
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+              <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
                 <CardTitle className="text-base">Источники трафика</CardTitle>
                 <CardDescription>Organic · Paid · Host activation</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
                 {(report?.sourceBreakdown || []).length ? (
                   report.sourceBreakdown.map((row) => (
                     <div
@@ -522,110 +527,156 @@ export function ReferralRoiDashboard() {
             </Card>
           </div>
 
-          <Card className="border-slate-200/80 shadow-sm">
-            <CardHeader>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="text-base">Кампании</CardTitle>
               <CardDescription>
                 Клик по строке — детали кампании и список броней с переходом в P&L
                 <KpiHint text="LTV ≈ комиссия / число гостей. % бюджета — lifetime spend vs лимит кампании." />
               </CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Кампания</TableHead>
-                    <TableHead className="text-right">ROI</TableHead>
-                    <TableHead className="text-right">CAC</TableHead>
-                    <TableHead className="text-right">Расход</TableHead>
-                    <TableHead className="text-right">Комиссия</TableHead>
-                    <TableHead className="text-right">Net</TableHead>
-                    <TableHead className="text-right">Гости</TableHead>
-                    <TableHead className="text-right">LTV</TableHead>
-                    <TableHead className="text-right">Бюджет</TableHead>
-                    <TableHead className="text-right">% бюджета</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center text-slate-500">
-                        Загрузка…
-                      </TableCell>
-                    </TableRow>
-                  ) : (report?.campaigns || []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center text-slate-500">
-                        Нет кампаний с активностью за период
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    report.campaigns.map((row) => {
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
+              {loading ? (
+                <p className="py-6 text-center text-sm text-slate-500">Загрузка…</p>
+              ) : (report?.campaigns || []).length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">Нет кампаний с активностью за период</p>
+              ) : (
+                <>
+                  <div className="sm:hidden space-y-0">
+                    {report.campaigns.map((row) => {
                       const adj = fraudBySlug.get(row.campaignSlug);
                       const rowRoi = isFraudMode ? adj?.roiIndex : row.roiIndex;
                       const rowSpend = isFraudMode ? adj?.spendThb : row.spendThb;
                       const rowCommission = isFraudMode ? adj?.commissionThb : row.commissionThb;
                       const rowNet = isFraudMode ? adj?.netEffectThb : row.netEffectThb;
                       return (
-                      <TableRow
-                        key={row.campaignSlug}
-                        className={cn(
-                          'cursor-pointer hover:bg-indigo-50/40 transition-colors',
-                          budgetRowClass(row.budgetAlertLevel),
-                        )}
-                        onClick={() =>
-                          router.push(`${campaignRoiDetailPath(row.campaignSlug)}?period=${period}`)
-                        }
-                      >
-                        <TableCell>
-                          <span className="font-medium text-indigo-700">{row.campaignSlug}</span>
-                          <div className="text-[10px] text-slate-400">
-                            {row.clicksCount} кликов · {row.signupsCount} рег.
-                          </div>
-                        </TableCell>
-                        <TableCell className={cn('text-right font-bold tabular-nums', roiToneClass(rowRoi))}>
-                          {rowRoi != null ? rowRoi.toFixed(2) : '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {row.cacThb != null
-                            ? `฿${row.cacThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
-                            : '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          ฿{(rowSpend || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          ฿{(rowCommission || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          <AdminTableAmount value={rowNet} showPlus className="inline font-medium" />
-                        </TableCell>
-                        <TableCell className="text-right">{row.firstBookingsCount || row.signupsCount || 0}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {row.ltvThb != null
-                            ? `฿${row.ltvThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
-                            : '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-slate-600">
-                          {row.maxBudgetThb != null
-                            ? `฿${row.maxBudgetThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
-                            : '∞'}
-                        </TableCell>
-                        <TableCell
+                        <button
+                          key={row.campaignSlug}
+                          type="button"
                           className={cn(
-                            'text-right tabular-nums font-medium',
-                            row.budgetAlertLevel === 'critical' && 'text-rose-700',
-                            row.budgetAlertLevel === 'warning' && 'text-amber-700',
+                            'w-full min-h-[44px] border-b border-slate-100 py-4 last:border-0 text-left space-y-1',
+                            budgetRowClass(row.budgetAlertLevel),
                           )}
+                          onClick={() =>
+                            router.push(`${campaignRoiDetailPath(row.campaignSlug)}?period=${period}`)
+                          }
                         >
-                          {row.budgetUsagePct != null ? `${row.budgetUsagePct}%` : '—'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                          <p className="font-medium text-indigo-700">{row.campaignSlug}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {row.clicksCount} кликов · {row.signupsCount} рег.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <p className={cn('font-bold tabular-nums', roiToneClass(rowRoi))}>
+                              ROI {rowRoi != null ? rowRoi.toFixed(2) : '—'}
+                            </p>
+                            <p className="tabular-nums">
+                              CAC{' '}
+                              {row.cacThb != null
+                                ? `฿${row.cacThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                                : '—'}
+                            </p>
+                            <p className="tabular-nums">
+                              Расход ฿{(rowSpend || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                            </p>
+                            <p className="tabular-nums">
+                              Ком. ฿{(rowCommission || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                            </p>
+                          </div>
+                          <AdminTableAmount value={rowNet} showPlus className="font-medium" />
+                          <p className="text-xs text-slate-500">
+                            Гости {row.firstBookingsCount || row.signupsCount || 0}
+                            {' · '}
+                            бюджет {row.budgetUsagePct != null ? `${row.budgetUsagePct}%` : '—'}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Кампания</TableHead>
+                          <TableHead className="text-right">ROI</TableHead>
+                          <TableHead className="text-right">CAC</TableHead>
+                          <TableHead className="text-right">Расход</TableHead>
+                          <TableHead className="text-right">Комиссия</TableHead>
+                          <TableHead className="text-right">Net</TableHead>
+                          <TableHead className="text-right">Гости</TableHead>
+                          <TableHead className="text-right">LTV</TableHead>
+                          <TableHead className="text-right">Бюджет</TableHead>
+                          <TableHead className="text-right">% бюджета</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {report.campaigns.map((row) => {
+                          const adj = fraudBySlug.get(row.campaignSlug);
+                          const rowRoi = isFraudMode ? adj?.roiIndex : row.roiIndex;
+                          const rowSpend = isFraudMode ? adj?.spendThb : row.spendThb;
+                          const rowCommission = isFraudMode ? adj?.commissionThb : row.commissionThb;
+                          const rowNet = isFraudMode ? adj?.netEffectThb : row.netEffectThb;
+                          return (
+                          <TableRow
+                            key={row.campaignSlug}
+                            className={cn(
+                              'cursor-pointer hover:bg-indigo-50/40 transition-colors',
+                              budgetRowClass(row.budgetAlertLevel),
+                            )}
+                            onClick={() =>
+                              router.push(`${campaignRoiDetailPath(row.campaignSlug)}?period=${period}`)
+                            }
+                          >
+                            <TableCell>
+                              <span className="font-medium text-indigo-700">{row.campaignSlug}</span>
+                              <div className="text-[10px] text-slate-400">
+                                {row.clicksCount} кликов · {row.signupsCount} рег.
+                              </div>
+                            </TableCell>
+                            <TableCell className={cn('text-right font-bold tabular-nums', roiToneClass(rowRoi))}>
+                              {rowRoi != null ? rowRoi.toFixed(2) : '—'}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {row.cacThb != null
+                                ? `฿${row.cacThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                                : '—'}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              ฿{(rowSpend || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              ฿{(rowCommission || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <AdminTableAmount value={rowNet} showPlus className="inline font-medium" />
+                            </TableCell>
+                            <TableCell className="text-right">{row.firstBookingsCount || row.signupsCount || 0}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {row.ltvThb != null
+                                ? `฿${row.ltvThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                                : '—'}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-slate-600">
+                              {row.maxBudgetThb != null
+                                ? `฿${row.maxBudgetThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                                : '∞'}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                'text-right tabular-nums font-medium',
+                                row.budgetAlertLevel === 'critical' && 'text-rose-700',
+                                row.budgetAlertLevel === 'warning' && 'text-amber-700',
+                              )}
+                            >
+                              {row.budgetUsagePct != null ? `${row.budgetUsagePct}%` : '—'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

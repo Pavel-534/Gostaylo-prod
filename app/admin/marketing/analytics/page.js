@@ -21,6 +21,12 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 function formatThb(value) {
   const n = Number(value);
@@ -128,7 +134,7 @@ export default function MarketingAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1 min-h-[44px]">
             <Link href="/admin/marketing">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to marketing
@@ -139,14 +145,14 @@ export default function MarketingAnalyticsPage() {
             LTV vs acquisition cost, efficiency index, conversion funnel and ambassador tiers.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void loadAnalytics(true)} disabled={refreshing || loading}>
+        <Button variant="outline" className="min-h-[44px] max-sm:w-full" onClick={() => void loadAnalytics(true)} disabled={refreshing || loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${(refreshing || loading) ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
-      <Card className="border-sky-100 bg-sky-50/60">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-sky-100 sm:bg-sky-50/60 sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-sm">Термины маркетинга (Stage 91.2)</CardTitle>
           <CardDescription className="text-xs leading-relaxed">
             <strong>Marketing Budget (Pool)</strong> — общий виртуальный бюджет для turbo-бустов и активаций (ранее «promo
@@ -164,33 +170,37 @@ export default function MarketingAnalyticsPage() {
       </Card>
 
       {loading ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-slate-500">Loading analytics...</CardContent>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-10 text-center text-sm text-slate-500')}>Loading analytics...</CardContent>
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-xs text-slate-500">Referral LTV (commission)</CardTitle>
               </CardHeader>
-              <CardContent className="text-xl font-semibold text-emerald-700">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold text-emerald-700')}>
                 {formatThb(data?.roi?.ltvFromCommissionThb)} THB
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-xs text-slate-500">Cost of acquisition (bonuses)</CardTitle>
               </CardHeader>
-              <CardContent className="text-xl font-semibold text-rose-700">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold text-rose-700')}>
                 {formatThb(data?.roi?.acquisitionCostThb)} THB
               </CardContent>
             </Card>
-            <Card className={isLowEfficiency ? 'border-rose-300 bg-rose-50/70' : 'border-emerald-200 bg-emerald-50/60'}>
-              <CardHeader className="pb-2">
+            <Card className={cn(
+              MOBILE_FLAT_CARD_CLASS,
+              isLowEfficiency ? 'sm:border-rose-300 sm:bg-rose-50/70' : 'sm:border-emerald-200 sm:bg-emerald-50/60',
+              'sm:shadow-sm',
+            )}>
+              <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
                 <CardTitle className="text-xs text-slate-500">Efficiency index (LTV / Cost)</CardTitle>
               </CardHeader>
-              <CardContent className="flex items-center gap-2">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-2')}>
                 {isLowEfficiency ? (
                   <TrendingDown className="h-5 w-5 text-rose-700" />
                 ) : (
@@ -208,8 +218,8 @@ export default function MarketingAnalyticsPage() {
             </Card>
           </div>
 
-          <Card className="border-violet-200 bg-violet-50/40">
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-violet-200 sm:bg-violet-50/40 sm:shadow-sm')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between')}>
               <div>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Trophy className="h-5 w-5 text-violet-700" />
@@ -227,13 +237,13 @@ export default function MarketingAnalyticsPage() {
                 <input
                   id="admin-lb-month"
                   type="month"
-                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm tabular-nums"
+                  className="min-h-[44px] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm tabular-nums"
                   value={leaderboardYm}
                   onChange={(e) => setLeaderboardYm(e.target.value)}
                 />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               {leaderboardLoading ? (
                 <p className="text-sm text-slate-500">Loading leaderboard…</p>
               ) : leaderboardData?.rows?.length ? (
@@ -241,7 +251,22 @@ export default function MarketingAnalyticsPage() {
                   <p className="text-xs text-slate-600 mb-3 tabular-nums">
                     Period (UTC): {leaderboardData.periodStartDdMmYyyy} — {leaderboardData.periodEndDdMmYyyy}
                   </p>
-                  <div className="rounded-md border bg-white overflow-x-auto">
+                  <div className="sm:hidden space-y-0">
+                    {leaderboardData.rows.map((row) => (
+                      <div key={row.referrerId} className="border-b border-slate-100 py-4 last:border-0 space-y-1">
+                        <p className="text-xs text-slate-500 tabular-nums">#{row.rank}</p>
+                        <p className="font-medium text-slate-900">{row.displayNameFull}</p>
+                        <AdminTableAmount value={row.amountThb} showPlus={false} className="text-sm" />
+                        <Link
+                          href={row.adminProfileUrl}
+                          className="inline-flex min-h-[44px] items-center text-violet-700 underline font-medium hover:text-violet-900"
+                        >
+                          Profile
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block rounded-md border bg-white overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-slate-50 text-left">
@@ -279,12 +304,12 @@ export default function MarketingAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle>Conversion funnel</CardTitle>
               <CardDescription>Invitations → Registrations → First Bookings → Partner Activations</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
               {[
                 { key: 'invitations', label: 'Invitations' },
                 { key: 'registrations', label: 'Registrations' },
@@ -306,15 +331,15 @@ export default function MarketingAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle>Cohort ROI (by signup month)</CardTitle>
               <CardDescription>
                 Bonus spend vs cumulative guest commission (completed bookings) in windows M0–M6 after cohort anchor
                 month.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
               {cohortChartRows.length === 0 ? (
                 <FinTechEmptyState
                   icon={TrendingUp}
@@ -370,7 +395,22 @@ export default function MarketingAnalyticsPage() {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="rounded-md border text-xs overflow-x-auto">
+                  <div className="sm:hidden space-y-0">
+                    {[...cohortChartRows].reverse().map((row) => (
+                      <div key={row.cohortMonth} className="border-b border-slate-100 py-4 last:border-0 space-y-1">
+                        <p className="font-medium tabular-nums text-slate-900">{row.cohortMonth}</p>
+                        <p className="text-xs text-slate-500">Referees: {row.referees}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs tabular-nums">
+                          <p>Bonus: {formatThb(row.bonusCostThb)}</p>
+                          <p>M0: {formatThb(row.commissionM0)}</p>
+                          <p>M1: {formatThb(row.commissionM1)}</p>
+                          <p>M3: {formatThb(row.commissionM3)}</p>
+                          <p>M6: {formatThb(row.commissionM6)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block rounded-md border text-xs overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b bg-slate-50">
@@ -403,15 +443,15 @@ export default function MarketingAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle>Ambassador tiers snapshot</CardTitle>
               <CardDescription>Configured payout tiers and current distribution in network.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
               {(data?.tiers || []).map((tier) => (
-                <div key={tier.id} className="rounded-md border p-3">
-                  <div className="flex items-center justify-between">
+                <div key={tier.id} className="max-sm:border-b max-sm:border-slate-100 max-sm:py-3 sm:rounded-md sm:border sm:p-3">
+                  <div className="flex items-center justify-between gap-2">
                     <p className="font-medium">{tier.name}</p>
                     <Badge variant="outline">{Number(tier.payoutRatio || 0)}% withdrawable</Badge>
                   </div>
@@ -421,7 +461,7 @@ export default function MarketingAnalyticsPage() {
                 </div>
               ))}
               {(data?.byTier || []).length > 0 ? (
-                <div className="rounded-md border p-3 text-sm">
+                <div className="max-sm:space-y-1 sm:rounded-md sm:border sm:p-3 text-sm">
                   {(data.byTier || []).map((item) => (
                     <p key={item.tierName} className="text-slate-700">
                       {item.tierName}: {Number(item.referrersCount || 0)} referrers / {Number(item.invitations || 0)} invitations

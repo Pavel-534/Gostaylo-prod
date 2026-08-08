@@ -13,8 +13,8 @@ import {
  */
 export function RoiFraudModeToggle({ mode, onChange, suspiciousCount = 0, className }) {
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+      <div className="flex w-full max-sm:flex-col sm:w-auto rounded-lg border border-slate-200 bg-slate-50 p-0.5 max-sm:gap-0.5">
         {[
           { id: 'standard', label: 'Обычный ROI' },
           { id: 'fraud_adjusted', label: 'Fraud-adjusted' },
@@ -24,7 +24,7 @@ export function RoiFraudModeToggle({ mode, onChange, suspiciousCount = 0, classN
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              'px-2.5 py-1 text-xs font-medium rounded-md transition',
+              'min-h-[44px] px-2.5 py-1 text-xs font-medium rounded-md transition max-sm:w-full sm:min-h-0',
               mode === opt.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900',
             )}
           >
@@ -34,7 +34,7 @@ export function RoiFraudModeToggle({ mode, onChange, suspiciousCount = 0, classN
       </div>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+          <span className="inline-flex min-h-[44px] items-center gap-1 text-[10px] text-slate-500 sm:min-h-0">
             <Shield className="h-3.5 w-3.5" />
             {suspiciousCount > 0 ? `${suspiciousCount} подозр.` : 'fraud OK'}
           </span>

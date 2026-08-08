@@ -18,6 +18,12 @@ import { FileDown, Filter, ArrowLeft, ScrollText } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 function formatDateTime(value) {
   const d = new Date(value || '');
@@ -170,14 +176,14 @@ export default function MarketingTankAuditPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Marketing Budget (Pool) — Audit Trail</h1>
           <p className="text-sm text-slate-600">
             Журнал движения маркетингового пула (SSOT в настройках + ledger) для финансового контроля.
           </p>
         </div>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="min-h-[44px] max-sm:w-full">
           <Link href="/admin/marketing">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Назад в Маркетинг
@@ -185,15 +191,15 @@ export default function MarketingTankAuditPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-base flex items-center gap-2">
             <Filter className="h-4 w-4" />
             Фильтры
           </CardTitle>
           <CardDescription>Тип / Дата / booking_id</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label>Тип</Label>
@@ -201,7 +207,7 @@ export default function MarketingTankAuditPage() {
                 value={filters.type}
                 onValueChange={(value) => setFilters((p) => ({ ...p, type: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="min-h-[44px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,6 +222,7 @@ export default function MarketingTankAuditPage() {
               <Label>Дата с</Label>
               <Input
                 type="date"
+                className="min-h-[44px]"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters((p) => ({ ...p, dateFrom: e.target.value }))}
               />
@@ -224,6 +231,7 @@ export default function MarketingTankAuditPage() {
               <Label>Дата по</Label>
               <Input
                 type="date"
+                className="min-h-[44px]"
                 value={filters.dateTo}
                 onChange={(e) => setFilters((p) => ({ ...p, dateTo: e.target.value }))}
               />
@@ -232,16 +240,17 @@ export default function MarketingTankAuditPage() {
               <Label>booking_id</Label>
               <Input
                 placeholder="booking-..."
+                className="min-h-[44px]"
                 value={filters.bookingId}
                 onChange={(e) => setFilters((p) => ({ ...p, bookingId: e.target.value }))}
               />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={handleFilterApply} disabled={loading}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button className="min-h-[44px] max-sm:w-full" onClick={handleFilterApply} disabled={loading}>
               {loading ? 'Загрузка...' : 'Применить'}
             </Button>
-            <Button variant="outline" onClick={handleExportCsv}>
+            <Button variant="outline" className="min-h-[44px] max-sm:w-full" onClick={handleExportCsv}>
               <FileDown className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
@@ -249,81 +258,96 @@ export default function MarketingTankAuditPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-base">Сводка Marketing Budget (Pool)</CardTitle>
           <CardDescription>Текущий остаток и быстрое ручное пополнение.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           <p className="text-2xl font-semibold tabular-nums">{formatAmount(promoPotThb)} THB</p>
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="space-y-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="space-y-1 flex-1 min-w-[160px]">
               <Label htmlFor="quick-topup">Quick top-up (THB)</Label>
               <Input
                 id="quick-topup"
                 type="number"
                 min={1}
                 step={1}
+                className="min-h-[44px]"
                 value={topupAmount}
                 onChange={(e) => setTopupAmount(e.target.value)}
                 placeholder="5000"
               />
             </div>
-            <Button type="button" onClick={() => void handleQuickTopup()} disabled={topupBusy}>
+            <Button type="button" className="min-h-[44px] max-sm:w-full" onClick={() => void handleQuickTopup()} disabled={topupBusy}>
               {topupBusy ? 'Пополнение…' : 'Пополнить'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-base">Итоги выборки</CardTitle>
           <CardDescription>
             Topups: ฿{formatAmount(totals.topups)} / Debits: ฿{formatAmount(totals.debits)} / Rows: {events.length}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Дата</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>booking_id</TableHead>
-                <TableHead className="text-right">Сумма (THB)</TableHead>
-                <TableHead>id</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {events.map((row) => {
-                const amount = Number(row?.amount_thb) || 0;
-                return (
-                  <TableRow key={row.id}>
-                    <TableCell>{formatDateTime(row.created_at)}</TableCell>
-                    <TableCell>{toTypeLabel(row.entry_type)}</TableCell>
-                    <TableCell className="font-mono text-xs">{row.booking_id || '—'}</TableCell>
-                    <AdminTableAmount as="td" value={amount} />
-                    <TableCell className="font-mono text-[11px] text-slate-500">{row.id}</TableCell>
-                  </TableRow>
-                );
-              })}
-              {!events.length && (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-0 border-0">
-                    <FinTechEmptyState
-                      icon={ScrollText}
-                      title="События не найдены"
-                      description="Измените фильтры или период — записи marketing promo tank появятся здесь."
-                      className="m-4 border-0 bg-transparent"
-                    />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+          {!events.length ? (
+            <FinTechEmptyState
+              icon={ScrollText}
+              title="События не найдены"
+              description="Измените фильтры или период — записи marketing promo tank появятся здесь."
+              className="m-0 border-0 bg-transparent sm:m-4"
+            />
+          ) : (
+            <>
+              <div className="sm:hidden space-y-0">
+                {events.map((row) => {
+                  const amount = Number(row?.amount_thb) || 0;
+                  return (
+                    <div key={row.id} className="border-b border-slate-100 py-4 last:border-0 space-y-1">
+                      <p className="text-xs text-slate-500">{formatDateTime(row.created_at)}</p>
+                      <p className="text-sm font-medium text-slate-900">{toTypeLabel(row.entry_type)}</p>
+                      <p className="font-mono text-xs text-slate-600">{row.booking_id || '—'}</p>
+                      <AdminTableAmount value={amount} className="text-base" />
+                      <p className="font-mono text-[11px] text-slate-500 break-all">{row.id}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Дата</TableHead>
+                      <TableHead>Тип</TableHead>
+                      <TableHead>booking_id</TableHead>
+                      <TableHead className="text-right">Сумма (THB)</TableHead>
+                      <TableHead>id</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {events.map((row) => {
+                      const amount = Number(row?.amount_thb) || 0;
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell>{formatDateTime(row.created_at)}</TableCell>
+                          <TableCell>{toTypeLabel(row.entry_type)}</TableCell>
+                          <TableCell className="font-mono text-xs">{row.booking_id || '—'}</TableCell>
+                          <AdminTableAmount as="td" value={amount} />
+                          <TableCell className="font-mono text-[11px] text-slate-500">{row.id}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-

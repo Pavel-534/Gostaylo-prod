@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.10.0 | **Updated**: 2026-08-07 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.11.0 | **Updated**: 2026-08-08 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -22,6 +22,7 @@
 | `[x] Finished (Admin Wave 5C / 200.60)` | FinTech: finances, ledger health, intelligence, payouts |
 | `[x] Finished (Admin Wave 5D / 200.61)` | Categories, location suggestions, staff messages |
 | `[x] Finished (Admin Wave 5E-1 / 200.62)` | Marketing admin hub: overview, promos, campaigns, rules, settings, attribution |
+| `[x] Finished (Admin Wave 5E-2 / 200.63)` | Marketing admin remainder: analytics, budget, payouts ops, fraud, ROI, audit |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -108,7 +109,16 @@
 - Tables: desktop `hidden sm:block`; mobile card stacks (`sm:hidden`) for campaigns list, partner top, reward rules, attribution campaign/referrer summaries, campaign detail tabs.
 - Touch: `min-h-[44px]`; remove `h-8` button shrink; primary CTA `max-sm:w-full` where header stacks.
 - **Не трогать:** fetch / PATCH / validation / ROI calculation / sort logic bodies — layout/Tailwind only.
-- **Next 5E-2:** analytics, budget, payouts, referral-payouts, fraud-queue, roi (+ slug), audit, wallet-audit — or Admin system.
+- **Done → 5E-2 (200.63):** analytics, budget, payouts (redirect), referral-payouts, fraud-queue, roi (+ slug), audit, wallet-audit.
+
+**Уточнения ТЗ (Wave 5E-2 — Admin marketing remainder):**
+
+- Scope (9 inventory routes): **`/admin/marketing/analytics`**, **`/budget`**, **`/payouts`** (redirect → referral-payouts), **`/referral-payouts`**, **`/fraud-queue`**, **`/roi`**, **`/roi/[campaignSlug]`**, **`/audit`**, **`/wallet-audit`**.
+- **`/admin/marketing/payouts`** — redirect-only; visual covered via **`ReferralPayoutOpsDesk`** on referral-payouts.
+- Tables: desktop `hidden sm:block`; mobile card stacks (`sm:hidden`) for fraud queue, payout tabs, tank/wallet ledgers, analytics leaderboard/cohorts, ROI campaigns/bookings.
+- Touch: `min-h-[44px]`; fraud actions short labels Одобр./Блок/Флаг; TabsTrigger / dialog footers / PAID·FAILED·Approve·Reject full-width on max-sm.
+- **Не трогать:** fetch / PATCH / payout / fraud / wallet calculation bodies — layout/Tailwind only.
+- **Next:** Admin system settings / remaining §4.4 admin.
 
 ---
 
@@ -119,10 +129,10 @@
 | Partner Hub | 14 | **14** | 0 |
 | Storefront / Renter (+ Chat) | 29 | **27** | 2 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **31** | 21 |
-| **Итого** | **116** | **93** | **23** |
+| Admin Panel | 52 | **40** | 12 |
+| **Итого** | **116** | **102** | **14** |
 
-**Wave 1–4 closed.** **Wave 5A–5E-1 (200.58–200.62):** Admin core + people/cases + FinTech + content/support + marketing core. Next → Admin Wave **5E-2** (analytics/budget/payouts/fraud/roi/audit) or system.
+**Wave 1–4 closed.** **Wave 5A–5E-2 (200.58–200.63):** Admin core + people/cases + FinTech + content/support + full marketing admin. Next → Admin system settings / remaining admin.
 
 ---
 
@@ -133,14 +143,14 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; **5E-1 Done (200.62)** marketing core; next **5E-2** (analytics/budget/payouts/fraud/roi/audit) or system.
+5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; **5E-1 Done (200.62)** marketing core; **5E-2 Done (200.63)** marketing remainder; next Admin system / §4.4.
 
 **Замечания / долг:**
 
 - Дубли маршрутов бронирований: `/my-bookings`, `/renter/bookings`, возможно legacy `/dashboard/*` — кандидаты на canonical redirect SSOT (не смешивать flattening с редиректом в одном PR без ADR).
 - Legacy `/login` рядом с каноном `/auth/login` — зафиксировать один entry.
 - Shared overlays (cancel booking, review modal, partner apply, sheets) — не `page.js`, но входят в UX-контракт; см. §5.
-- Admin marketing **5E-2** remainder (analytics/budget/payouts/fraud/roi/audit) + system subtree.
+- Admin system subtree (§4.4) — next flatten wave.
 
 ---
 
@@ -320,15 +330,15 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 | [x] | `/admin/marketing/rules` | `…/rules/page.js` | **Admin Wave 5E-1 / 200.62** |
 | [x] | `/admin/marketing/reward-rules` | `…/reward-rules/page.js` | **Admin Wave 5E-1 / 200.62** (table↔cards) |
 | [x] | `/admin/marketing/attribution` | `…/attribution/page.js` | **Admin Wave 5E-1 / 200.62** (campaign/referrer cards) |
-| [ ] | `/admin/marketing/analytics` | `…/analytics/page.js` | Analytics — **5E-2** |
-| [ ] | `/admin/marketing/budget` | `…/budget/page.js` | Budget — **5E-2** |
-| [ ] | `/admin/marketing/payouts` | `…/payouts/page.js` | Marketing payouts — **5E-2** |
-| [ ] | `/admin/marketing/referral-payouts` | `…/referral-payouts/page.js` | Referral payouts — **5E-2** |
-| [ ] | `/admin/marketing/fraud-queue` | `…/fraud-queue/page.js` | Fraud queue — **5E-2** |
-| [ ] | `/admin/marketing/roi` | `…/roi/page.js` | ROI — **5E-2** |
-| [ ] | `/admin/marketing/roi/[campaignSlug]` | `…/roi/[campaignSlug]/page.js` | ROI by campaign — **5E-2** |
-| [ ] | `/admin/marketing/audit` | `…/audit/page.js` | Marketing audit — **5E-2** |
-| [ ] | `/admin/marketing/wallet-audit` | `…/wallet-audit/page.js` | Wallet audit — **5E-2** |
+| [x] | `/admin/marketing/analytics` | `…/analytics/page.js` | **Admin Wave 5E-2 / 200.63** (KPI + leaderboard/cohort table↔cards) |
+| [x] | `/admin/marketing/budget` | `…/budget/page.js` | **Admin Wave 5E-2 / 200.63** (hub cards like rules) |
+| [x] | `/admin/marketing/payouts` | `…/payouts/page.js` | **redirect** → referral-payouts; covered via **5E-2 / 200.63** Ops Desk |
+| [x] | `/admin/marketing/referral-payouts` | `…/referral-payouts/page.js` | **Admin Wave 5E-2 / 200.63** (`ReferralPayoutOpsDesk` tabs table↔cards) |
+| [x] | `/admin/marketing/fraud-queue` | `…/fraud-queue/page.js` | **Admin Wave 5E-2 / 200.63** (table↔cards; Одобр./Блок/Флаг) |
+| [x] | `/admin/marketing/roi` | `…/roi/page.js` | **Admin Wave 5E-2 / 200.63** (`ReferralRoiDashboard`) |
+| [x] | `/admin/marketing/roi/[campaignSlug]` | `…/roi/[campaignSlug]/page.js` | **Admin Wave 5E-2 / 200.63** (`ReferralCampaignRoiDetail`) |
+| [x] | `/admin/marketing/audit` | `…/audit/page.js` | **Admin Wave 5E-2 / 200.63** (ledger table↔cards) |
+| [x] | `/admin/marketing/wallet-audit` | `…/wallet-audit/page.js` | **Admin Wave 5E-2 / 200.63** (journal table↔cards) |
 
 ### 4.4 System / security / compliance
 

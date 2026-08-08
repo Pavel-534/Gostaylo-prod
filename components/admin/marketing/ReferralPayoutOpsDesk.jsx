@@ -53,6 +53,12 @@ import {
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { AdminStatusPill } from '@/components/admin/AdminStatusPill';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 const TAB_KEYS = ['queue', 'registry', 'processing'];
 
@@ -200,52 +206,54 @@ function QueueTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Min payout threshold</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatThb(minPayoutThb)} THB</CardContent>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold')}>{formatThb(minPayoutThb)} THB</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Ready in queue</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold">{readyCount}</CardContent>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold')}>{readyCount}</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-slate-500">Withdrawable total</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatThb(readyWithdrawableTotalThb)} THB</CardContent>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold')}>{formatThb(readyWithdrawableTotalThb)} THB</CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Filters</CardTitle>
           <CardDescription>Заявки withdrawable_referral и кандидаты на approve/reject.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col gap-3 sm:flex-row sm:items-end')}>
           <div className="flex-1 space-y-2">
             <Label htmlFor="payout-query">Search</Label>
             <Input
               id="payout-query"
+              className="min-h-[44px]"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="email / name / user id"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-h-[44px] items-center gap-2">
             <input
               id="ready-only"
               type="checkbox"
+              className="h-5 w-5"
               checked={readyOnly}
               onChange={(e) => setReadyOnly(e.target.checked)}
             />
             <Label htmlFor="ready-only">Ready only</Label>
           </div>
-          <Button onClick={() => void loadPayouts({ readyOnly, query })}>Apply</Button>
-          <Button variant="outline" onClick={() => void loadPayouts()} disabled={loading}>
+          <Button className="min-h-[44px] max-sm:w-full" onClick={() => void loadPayouts({ readyOnly, query })}>Apply</Button>
+          <Button variant="outline" className="min-h-[44px] max-sm:w-full" onClick={() => void loadPayouts()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -253,30 +261,31 @@ function QueueTab() {
       </Card>
 
       {rows.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={bulkBusy || selectedIds.size === 0} onClick={() => void bulkReferral('approve')}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button type="button" className="min-h-[44px] max-sm:w-full" disabled={bulkBusy || selectedIds.size === 0} onClick={() => void bulkReferral('approve')}>
             Approve selected ({selectedIds.size})
           </Button>
           <Button
             type="button"
             variant="outline"
+            className="min-h-[44px] max-sm:w-full"
             disabled={bulkBusy || selectedIds.size === 0}
             onClick={openRejectDialog}
           >
             Reject selected
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds(new Set(rows.map((r) => r.userId)))}>
+          <Button type="button" variant="ghost" className="min-h-[44px] max-sm:w-full" onClick={() => setSelectedIds(new Set(rows.map((r) => r.userId)))}>
             Select all
           </Button>
         </div>
       ) : null}
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Очередь</CardTitle>
           <CardDescription>Bulk approve/reject для withdrawable_referral.</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
           {loading ? (
             <p className="text-sm text-slate-500 py-10 text-center">Loading...</p>
           ) : rows.length === 0 ? (
@@ -286,58 +295,50 @@ function QueueTab() {
               description="Амбассадоры с withdrawable_referral появятся здесь после заявки в кошельке."
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10" />
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Withdrawable</TableHead>
-                  <TableHead className="text-right">Internal</TableHead>
-                  <TableHead>Profile</TableHead>
-                  <TableHead>Payout flag</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Referral</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="sm:hidden space-y-0">
                 {rows.map((row) => (
-                  <TableRow key={row.userId}>
-                    <TableCell>
+                  <div key={row.userId} className="border-b border-slate-100 py-4 last:border-0 space-y-2">
+                    <label className="flex min-h-[44px] items-center gap-2">
                       <input
                         type="checkbox"
+                        className="h-5 w-5"
                         checked={selectedIds.has(row.userId)}
                         onChange={() => toggleSelect(row.userId)}
                         aria-label={`Select ${row.userId}`}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{userLabel(row)}</div>
-                      <div className="text-xs text-slate-500 font-mono break-all">{row.userId}</div>
-                    </TableCell>
-                    <AdminTableAmount as="td" value={row.withdrawableBalanceThb} showPlus={false} />
-                    <AdminTableAmount as="td" value={row.internalCreditsThb} showPlus={false} className="text-slate-700" />
-                    <TableCell>
+                      <span className="font-medium">{userLabel(row)}</span>
+                    </label>
+                    <p className="text-xs text-slate-500 font-mono break-all">{row.userId}</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-slate-500">Withdrawable</p>
+                        <AdminTableAmount value={row.withdrawableBalanceThb} showPlus={false} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Internal</p>
+                        <AdminTableAmount value={row.internalCreditsThb} showPlus={false} className="text-slate-700" />
+                      </div>
+                    </div>
+                    <div className="text-xs space-y-1">
                       {row.profileVerified ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
                           <ShieldCheck className="h-4 w-4" /> verified
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-amber-700 text-xs">
+                        <span className="inline-flex items-center gap-1 text-amber-700">
                           <ShieldOff className="h-4 w-4" /> pending
                         </span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {row.verifiedForPayout ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
-                          <CheckCircle2 className="h-4 w-4" /> Доступен вывод
-                        </span>
-                      ) : (
-                        <span className="text-rose-700 text-xs">Доступен вывод: нет</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
+                      <div>
+                        {row.verifiedForPayout ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-700">
+                            <CheckCircle2 className="h-4 w-4" /> Доступен вывод
+                          </span>
+                        ) : (
+                          <span className="text-rose-700">Доступен вывод: нет</span>
+                        )}
+                      </div>
                       {row.readyForPayout ? (
                         <AdminStatusPill status="READY" />
                       ) : (
@@ -349,8 +350,6 @@ function QueueTab() {
                           ))}
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell className="text-xs">
                       {row.referralWithdrawalStatus === 'withdrawable_referral' ? (
                         <span className="text-violet-700 font-medium">
                           withdrawable_referral
@@ -358,15 +357,14 @@ function QueueTab() {
                             ? ` · ${formatThb(row.referralWithdrawalAmountThb)} THB`
                             : ''}
                         </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
+                      ) : null}
+                    </div>
+                    <div className="flex flex-col gap-2">
                       {row.referralWithdrawalStatus === 'withdrawable_referral' ? (
                         <Button
                           size="sm"
                           variant="secondary"
+                          className="min-h-[44px] w-full"
                           disabled={togglingId === row.userId}
                           onClick={() => void clearReferralRequest(row)}
                         >
@@ -375,6 +373,7 @@ function QueueTab() {
                       ) : null}
                       <Button
                         size="sm"
+                        className="min-h-[44px] w-full"
                         variant={row.verifiedForPayout ? 'outline' : 'default'}
                         disabled={togglingId === row.userId}
                         onClick={() => void toggleVerify(row)}
@@ -385,11 +384,117 @@ function QueueTab() {
                             ? 'Отключить вывод'
                             : 'Открыть вывод'}
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10" />
+                      <TableHead>User</TableHead>
+                      <TableHead className="text-right">Withdrawable</TableHead>
+                      <TableHead className="text-right">Internal</TableHead>
+                      <TableHead>Profile</TableHead>
+                      <TableHead>Payout flag</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Referral</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.userId}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(row.userId)}
+                            onChange={() => toggleSelect(row.userId)}
+                            aria-label={`Select ${row.userId}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{userLabel(row)}</div>
+                          <div className="text-xs text-slate-500 font-mono break-all">{row.userId}</div>
+                        </TableCell>
+                        <AdminTableAmount as="td" value={row.withdrawableBalanceThb} showPlus={false} />
+                        <AdminTableAmount as="td" value={row.internalCreditsThb} showPlus={false} className="text-slate-700" />
+                        <TableCell>
+                          {row.profileVerified ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
+                              <ShieldCheck className="h-4 w-4" /> verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-700 text-xs">
+                              <ShieldOff className="h-4 w-4" /> pending
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {row.verifiedForPayout ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
+                              <CheckCircle2 className="h-4 w-4" /> Доступен вывод
+                            </span>
+                          ) : (
+                            <span className="text-rose-700 text-xs">Доступен вывод: нет</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.readyForPayout ? (
+                            <AdminStatusPill status="READY" />
+                          ) : (
+                            <div className="space-y-1">
+                              {(row.blockers || []).map((blocker) => (
+                                <div key={blocker} className="text-amber-700">
+                                  {blockersMap[blocker] || blocker}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {row.referralWithdrawalStatus === 'withdrawable_referral' ? (
+                            <span className="text-violet-700 font-medium">
+                              withdrawable_referral
+                              {row.referralWithdrawalAmountThb
+                                ? ` · ${formatThb(row.referralWithdrawalAmountThb)} THB`
+                                : ''}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          {row.referralWithdrawalStatus === 'withdrawable_referral' ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={togglingId === row.userId}
+                              onClick={() => void clearReferralRequest(row)}
+                            >
+                              Clear referral
+                            </Button>
+                          ) : null}
+                          <Button
+                            size="sm"
+                            variant={row.verifiedForPayout ? 'outline' : 'default'}
+                            disabled={togglingId === row.userId}
+                            onClick={() => void toggleVerify(row)}
+                          >
+                            {togglingId === row.userId
+                              ? '...'
+                              : row.verifiedForPayout
+                                ? 'Отключить вывод'
+                                : 'Открыть вывод'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -412,9 +517,9 @@ function QueueTab() {
               className="mt-2 min-h-[88px]"
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkBusy}>Отмена</AlertDialogCancel>
-            <Button type="button" variant="destructive" disabled={bulkBusy} onClick={() => void confirmReject()}>
+          <AlertDialogFooter className="gap-2 sm:gap-0 flex-col-reverse sm:flex-row">
+            <AlertDialogCancel disabled={bulkBusy} className="min-h-[44px] max-sm:w-full">Отмена</AlertDialogCancel>
+            <Button type="button" variant="destructive" className="min-h-[44px] max-sm:w-full" disabled={bulkBusy} onClick={() => void confirmReject()}>
               {bulkBusy ? 'Отклонение…' : 'Отклонить'}
             </Button>
           </AlertDialogFooter>
@@ -483,13 +588,13 @@ function RegistryTab() {
             {preview.length} строк · Σ {totalRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} RUB
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void loadPreview()} disabled={loading}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Button variant="outline" className="min-h-[44px] max-sm:w-full" onClick={() => void loadPreview()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
           <Button
-            className="bg-slate-900 text-white hover:bg-slate-800"
+            className="min-h-[44px] max-sm:w-full bg-slate-900 text-white hover:bg-slate-800"
             onClick={() => void handleExport()}
             disabled={exporting}
             data-testid="tbank-registry-export"
@@ -501,11 +606,11 @@ function RegistryTab() {
       </div>
 
       {skipped.length > 0 ? (
-        <Card className="border-amber-200 bg-amber-50/60">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-200 sm:bg-amber-50/60 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-sm text-amber-900">Пропущено ({skipped.length})</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-amber-900 space-y-1 max-h-40 overflow-y-auto">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xs text-amber-900 space-y-1 max-h-40 overflow-y-auto')}>
             {skipped.map((s, i) => (
               <div key={`${s.payoutId}-${i}`}>
                 <span className="font-mono">{s.payoutId || s.partnerId || '—'}</span>
@@ -517,12 +622,12 @@ function RegistryTab() {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Превью реестра Т-Банка</CardTitle>
           <CardDescription>ФИО; счёт; БИК; ИНН; назначение; сумма RUB</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
           {loading ? (
             <p className="text-sm text-slate-500 py-8 text-center">Загрузка…</p>
           ) : preview.length === 0 ? (
@@ -532,28 +637,43 @@ function RegistryTab() {
               description="После approve в очереди и создания payout PENDING строки появятся здесь."
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Payout ID</TableHead>
-                  <TableHead>ФИО</TableHead>
-                  <TableHead>Rail</TableHead>
-                  <TableHead className="text-right">RUB</TableHead>
-                  <TableHead>Назначение</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="sm:hidden space-y-0">
                 {preview.map((row) => (
-                  <TableRow key={row.payoutId}>
-                    <TableCell className="font-mono text-xs">{row.payoutId}</TableCell>
-                    <TableCell>{row.recipientName}</TableCell>
-                    <TableCell className="text-xs font-mono">{row.payoutRail || 'REFERRAL_RUB_CARD'}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.amountRub}</TableCell>
-                    <TableCell className="text-xs text-slate-600 max-w-[240px] truncate">{row.purpose}</TableCell>
-                  </TableRow>
+                  <div key={row.payoutId} className="border-b border-slate-100 py-4 last:border-0 space-y-1">
+                    <p className="font-mono text-xs break-all">{row.payoutId}</p>
+                    <p className="font-medium text-slate-900">{row.recipientName}</p>
+                    <p className="text-xs font-mono text-slate-600">{row.payoutRail || 'REFERRAL_RUB_CARD'}</p>
+                    <p className="text-right tabular-nums font-semibold">{row.amountRub} RUB</p>
+                    <p className="text-xs text-slate-600">{row.purpose}</p>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payout ID</TableHead>
+                      <TableHead>ФИО</TableHead>
+                      <TableHead>Rail</TableHead>
+                      <TableHead className="text-right">RUB</TableHead>
+                      <TableHead>Назначение</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {preview.map((row) => (
+                      <TableRow key={row.payoutId}>
+                        <TableCell className="font-mono text-xs">{row.payoutId}</TableCell>
+                        <TableCell>{row.recipientName}</TableCell>
+                        <TableCell className="text-xs font-mono">{row.payoutRail || 'REFERRAL_RUB_CARD'}</TableCell>
+                        <TableCell className="text-right tabular-nums">{row.amountRub}</TableCell>
+                        <TableCell className="text-xs text-slate-600 max-w-[240px] truncate">{row.purpose}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -627,11 +747,14 @@ function ProcessingTab() {
               className="resize-none min-h-0"
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!payoutActionId}>Отмена</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 sm:gap-0 flex-col-reverse sm:flex-row">
+            <AlertDialogCancel disabled={!!payoutActionId} className="min-h-[44px] max-sm:w-full">Отмена</AlertDialogCancel>
             <Button
               variant={payoutConfirm?.status === 'FAILED' ? 'destructive' : 'default'}
-              className={payoutConfirm?.status === 'PAID' ? 'bg-emerald-700 hover:bg-emerald-800' : ''}
+              className={cn(
+                'min-h-[44px] max-sm:w-full',
+                payoutConfirm?.status === 'PAID' ? 'bg-emerald-700 hover:bg-emerald-800' : '',
+              )}
               disabled={!!payoutActionId || !payoutConfirm}
               onClick={() => void confirmMarkStatus()}
             >
@@ -641,30 +764,31 @@ function ProcessingTab() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         {['PROCESSING', 'PAID', 'FAILED'].map((st) => (
           <Button
             key={st}
             size="sm"
+            className="min-h-[44px] max-sm:w-full"
             variant={statusFilter === st ? 'default' : 'outline'}
             onClick={() => setStatusFilter(st)}
           >
             {st}
           </Button>
         ))}
-        <Button variant="ghost" size="sm" onClick={() => void load()} disabled={loading}>
+        <Button variant="ghost" className="min-h-[44px] min-w-[44px]" aria-label="Обновить" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Referral payouts — {statusFilter}</CardTitle>
           <CardDescription>
             Только REFERRAL_RUB_CARD / referral_withdrawal. После реестра — отметьте PAID или FAILED.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
           {loading ? (
             <p className="text-sm text-slate-500 py-8 text-center">Загрузка…</p>
           ) : rows.length === 0 ? (
@@ -674,60 +798,102 @@ function ProcessingTab() {
               description="Экспортируйте реестр или дождитесь обработки банком."
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Partner</TableHead>
-                  <TableHead className="text-right">THB / payout</TableHead>
-                  <TableHead>Rail</TableHead>
-                  <TableHead>Метод</TableHead>
-                  <TableHead>Дата</TableHead>
-                  {statusFilter === 'PROCESSING' ? <TableHead>Действия</TableHead> : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="sm:hidden space-y-0">
                 {rows.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs">{p.id}</TableCell>
-                    <TableCell className="text-xs">{p.partnerId}</TableCell>
-                    <TableCell className="text-right">
-                      <AdminTableAmount value={p.grossAmount ?? p.finalAmount ?? p.amount} showPlus={false} />
-                      {p.amountInPayoutCurrency != null ? (
-                        <div className="text-xs text-slate-500">{fmtAdminPayoutAmount(p)}</div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono">{p.payoutRail || '—'}</TableCell>
-                    <TableCell className="text-xs">{p.payoutMethod?.name || '—'}</TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {p.createdAt ? new Date(p.createdAt).toLocaleString('ru-RU') : '—'}
-                    </TableCell>
-                    {statusFilter === 'PROCESSING' ? (
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-emerald-700 text-white hover:bg-emerald-800"
-                            disabled={!!payoutActionId}
-                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'PAID', note: '' })}
-                          >
-                            PAID
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={!!payoutActionId}
-                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'FAILED', note: '' })}
-                          >
-                            FAILED
-                          </Button>
-                        </div>
-                      </TableCell>
+                  <div key={p.id} className="border-b border-slate-100 py-4 last:border-0 space-y-2">
+                    <p className="font-mono text-xs break-all">{p.id}</p>
+                    <p className="text-xs text-slate-600">{p.partnerId}</p>
+                    <AdminTableAmount value={p.grossAmount ?? p.finalAmount ?? p.amount} showPlus={false} />
+                    {p.amountInPayoutCurrency != null ? (
+                      <p className="text-xs text-slate-500">{fmtAdminPayoutAmount(p)}</p>
                     ) : null}
-                  </TableRow>
+                    <p className="text-xs font-mono">{p.payoutRail || '—'}</p>
+                    <p className="text-xs">{p.payoutMethod?.name || '—'}</p>
+                    <p className="text-xs text-slate-500">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleString('ru-RU') : '—'}
+                    </p>
+                    {statusFilter === 'PROCESSING' ? (
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          className="min-h-[44px] w-full bg-emerald-700 text-white hover:bg-emerald-800"
+                          disabled={!!payoutActionId}
+                          onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'PAID', note: '' })}
+                        >
+                          PAID
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="min-h-[44px] w-full"
+                          disabled={!!payoutActionId}
+                          onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'FAILED', note: '' })}
+                        >
+                          FAILED
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Partner</TableHead>
+                      <TableHead className="text-right">THB / payout</TableHead>
+                      <TableHead>Rail</TableHead>
+                      <TableHead>Метод</TableHead>
+                      <TableHead>Дата</TableHead>
+                      {statusFilter === 'PROCESSING' ? <TableHead>Действия</TableHead> : null}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-mono text-xs">{p.id}</TableCell>
+                        <TableCell className="text-xs">{p.partnerId}</TableCell>
+                        <TableCell className="text-right">
+                          <AdminTableAmount value={p.grossAmount ?? p.finalAmount ?? p.amount} showPlus={false} />
+                          {p.amountInPayoutCurrency != null ? (
+                            <div className="text-xs text-slate-500">{fmtAdminPayoutAmount(p)}</div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{p.payoutRail || '—'}</TableCell>
+                        <TableCell className="text-xs">{p.payoutMethod?.name || '—'}</TableCell>
+                        <TableCell className="text-xs text-slate-500">
+                          {p.createdAt ? new Date(p.createdAt).toLocaleString('ru-RU') : '—'}
+                        </TableCell>
+                        {statusFilter === 'PROCESSING' ? (
+                          <TableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-emerald-700 text-white hover:bg-emerald-800"
+                                disabled={!!payoutActionId}
+                                onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'PAID', note: '' })}
+                              >
+                                PAID
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={!!payoutActionId}
+                                onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'FAILED', note: '' })}
+                              >
+                                FAILED
+                              </Button>
+                            </div>
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -751,7 +917,7 @@ export function ReferralPayoutOpsDesk() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1 min-h-[44px]">
             <Link href="/admin/marketing/budget">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Бюджет и выплаты
@@ -765,10 +931,10 @@ export function ReferralPayoutOpsDesk() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setTab}>
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
-          <TabsTrigger value="queue">Очередь</TabsTrigger>
-          <TabsTrigger value="registry">Реестр Т-Банка</TabsTrigger>
-          <TabsTrigger value="processing">В обработке</TabsTrigger>
+        <TabsList className="grid w-full max-w-lg grid-cols-3 h-auto">
+          <TabsTrigger value="queue" className="min-h-[44px]">Очередь</TabsTrigger>
+          <TabsTrigger value="registry" className="min-h-[44px]">Реестр Т-Банка</TabsTrigger>
+          <TabsTrigger value="processing" className="min-h-[44px]">В обработке</TabsTrigger>
         </TabsList>
         <TabsContent value="queue" className="mt-6">
           <QueueTab />

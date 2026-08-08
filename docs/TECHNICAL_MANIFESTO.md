@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.44 | **Last Updated**: 2026-08-07 | **Tip of tree:** Stage **203**; **200.62** Admin Wave 5E-1 marketing mobile-flat.
+> **Version**: 13.2.45 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.63** Admin Wave 5E-2 marketing remainder mobile-flat.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.63 — Admin Wave 5E-2 mobile-flat (marketing admin remainder)
+
+- Paths: `/admin/marketing/analytics`, `/budget`, `/referral-payouts` (+ `/payouts` redirect), `/fraud-queue`, `/roi` (+ `[campaignSlug]`), `/audit`, `/wallet-audit`.
+- SSOT: `MOBILE_FLAT_*`; fraud/payout/audit/wallet/analytics/ROI tables: mobile cards + desktop tables; touch `min-h-[44px]`; fraud labels Одобр./Блок/Флаг.
+- Layout/Tailwind only — no marketing API, fetch, PATCH, payout/fraud/wallet math changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.11.0. Next → Admin system settings / remaining admin.
 
 ### Stage 200.62 — Admin Wave 5E-1 mobile-flat (marketing admin core)
 

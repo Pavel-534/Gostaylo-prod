@@ -19,6 +19,12 @@ import { toast } from 'sonner';
 import { formatAdminUserLabel } from '@/lib/admin/format-admin-user-label';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 function formatDateTime(value) {
   const d = new Date(value || '');
@@ -138,7 +144,7 @@ export default function WalletAuditPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1 min-h-[44px]">
             <Link href="/admin/marketing">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Маркетинг
@@ -150,25 +156,25 @@ export default function WalletAuditPage() {
             ledger показываются человекочитаемо (бонус за друга / кешбэк).
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => void loadLedger()} disabled={loading}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" className="min-h-[44px] max-sm:w-full" onClick={() => void loadLedger()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
-          <Button variant="secondary" size="sm" onClick={downloadCsv} disabled={loading || !transactions.length}>
+          <Button variant="secondary" className="min-h-[44px] max-sm:w-full" onClick={downloadCsv} disabled={loading || !transactions.length}>
             CSV
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-lg">Фильтры</CardTitle>
           <CardDescription>
             По умолчанию последние {limit} записей. Укажите User ID для узкого поиска.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col gap-4 sm:flex-row sm:items-end')}>
           <div className="flex-1 space-y-2">
             <Label htmlFor="wallet-user-filter">User ID</Label>
             <Input
@@ -176,48 +182,48 @@ export default function WalletAuditPage() {
               placeholder="user-xxxxx…"
               value={userIdFilter}
               onChange={(e) => setUserIdFilter(e.target.value)}
-              className="font-mono text-sm"
+              className="font-mono text-sm min-h-[44px]"
             />
           </div>
-          <Button onClick={() => void loadLedger(limit, userIdFilter)} disabled={loading}>
+          <Button className="min-h-[44px] max-sm:w-full" onClick={() => void loadLedger(limit, userIdFilter)} disabled={loading}>
             Применить
           </Button>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-muted-foreground">Строк в выборке</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold">{transactions.length}</CardContent>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold')}>{transactions.length}</CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-muted-foreground">Σ credit (выборка)</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold tabular-nums">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold tabular-nums')}>
             {formatAmount(creditsDebits.credits)} THB
           </CardContent>
         </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'col-span-2 sm:col-span-1 sm:border-slate-200 sm:shadow-sm')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-xs text-muted-foreground">Σ debit (выборка)</CardTitle>
           </CardHeader>
-          <CardContent className="text-xl font-semibold tabular-nums">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-xl font-semibold tabular-nums')}>
             {formatAmount(creditsDebits.debits)} THB
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Журнал</CardTitle>
           <CardDescription>
             Полный след для сверки SSOT: кто потратил бонусы на оплату и когда пришли начисления.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'overflow-x-auto')}>
           {loading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Загрузка…</p>
           ) : transactions.length === 0 ? (
@@ -227,54 +233,77 @@ export default function WalletAuditPage() {
               description="За выбранный период нет движений по кошелькам. Измените фильтры или дождитесь новых операций."
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Время</TableHead>
-                  <TableHead>Пользователь</TableHead>
-                  <TableHead>Операция</TableHead>
-                  <TableHead className="text-right">Сумма</TableHead>
-                  <TableHead>Тип</TableHead>
-                  <TableHead>Суть / reference</TableHead>
-                  <TableHead className="text-right">Баланс после</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="sm:hidden space-y-0">
                 {transactions.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {formatDateTime(row.created_at)}
-                    </TableCell>
-                    <TableCell className="min-w-[200px]">
-                      <div className="text-sm font-medium text-slate-900">
-                        {formatAdminUserLabel(row.profile, row.user_id)}
-                      </div>
-                      <div className="text-[10px] font-mono text-muted-foreground break-all mt-0.5">
-                        {row.user_id}
-                      </div>
-                    </TableCell>
-                    <TableCell className="uppercase text-xs">{row.operation_type}</TableCell>
-                    <AdminTableAmount as="td" value={row.amount_thb} />
-                    <TableCell className="text-xs max-w-[180px] break-words">
-                      {txTypeLabel(row.tx_type)}
-                    </TableCell>
-                    <TableCell className="text-xs max-w-[260px] break-words">
-                      {row.reference_label ? (
-                        <span className="text-slate-800">{row.reference_label}</span>
-                      ) : null}
-                      {row.reference_id ? (
-                        <div className={`font-mono text-[10px] text-slate-500 break-all ${row.reference_label ? 'mt-1' : ''}`}>
-                          {row.reference_id}
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
-                    <AdminTableAmount as="td" value={row.balance_after_thb} showPlus={false} className="text-xs text-slate-600" />
-                  </TableRow>
+                  <div key={row.id} className="border-b border-slate-100 py-4 last:border-0 space-y-1">
+                    <p className="text-xs text-slate-500">{formatDateTime(row.created_at)}</p>
+                    <p className="text-sm font-medium text-slate-900">{formatAdminUserLabel(row.profile, row.user_id)}</p>
+                    <p className="text-[10px] font-mono text-muted-foreground break-all">{row.user_id}</p>
+                    <p className="uppercase text-xs text-slate-600">{row.operation_type}</p>
+                    <AdminTableAmount value={row.amount_thb} />
+                    <p className="text-xs text-slate-700">{txTypeLabel(row.tx_type)}</p>
+                    {row.reference_label ? <p className="text-xs text-slate-800">{row.reference_label}</p> : null}
+                    {row.reference_id ? (
+                      <p className="font-mono text-[10px] text-slate-500 break-all">{row.reference_id}</p>
+                    ) : null}
+                    <p className="text-xs text-slate-600">
+                      Баланс после: <AdminTableAmount value={row.balance_after_thb} showPlus={false} className="inline text-xs" />
+                    </p>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Время</TableHead>
+                      <TableHead>Пользователь</TableHead>
+                      <TableHead>Операция</TableHead>
+                      <TableHead className="text-right">Сумма</TableHead>
+                      <TableHead>Тип</TableHead>
+                      <TableHead>Суть / reference</TableHead>
+                      <TableHead className="text-right">Баланс после</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {formatDateTime(row.created_at)}
+                        </TableCell>
+                        <TableCell className="min-w-[200px]">
+                          <div className="text-sm font-medium text-slate-900">
+                            {formatAdminUserLabel(row.profile, row.user_id)}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground break-all mt-0.5">
+                            {row.user_id}
+                          </div>
+                        </TableCell>
+                        <TableCell className="uppercase text-xs">{row.operation_type}</TableCell>
+                        <AdminTableAmount as="td" value={row.amount_thb} />
+                        <TableCell className="text-xs max-w-[180px] break-words">
+                          {txTypeLabel(row.tx_type)}
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[260px] break-words">
+                          {row.reference_label ? (
+                            <span className="text-slate-800">{row.reference_label}</span>
+                          ) : null}
+                          {row.reference_id ? (
+                            <div className={`font-mono text-[10px] text-slate-500 break-all ${row.reference_label ? 'mt-1' : ''}`}>
+                              {row.reference_id}
+                            </div>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <AdminTableAmount as="td" value={row.balance_after_thb} showPlus={false} className="text-xs text-slate-600" />
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

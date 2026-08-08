@@ -14,6 +14,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { REFERRAL_ROI_OWNER_GUIDE } from '@/lib/analytics/owner/referral-roi-owner-guide';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
+import { cn } from '@/lib/utils';
 
 /**
  * Stage 124.16 — «Как пользоваться аналитикой» на ROI-пульте.
@@ -24,9 +30,12 @@ export function RoiOwnerGuideCard() {
   return (
     <Card
       id="owner-guide"
-      className="border-indigo-200/90 shadow-md scroll-mt-24 bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/40"
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'scroll-mt-24 sm:border-indigo-200/90 sm:shadow-md sm:bg-gradient-to-br sm:from-indigo-50/80 sm:via-white sm:to-violet-50/40',
+      )}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle className="text-lg text-indigo-950 flex items-center gap-2">
@@ -37,14 +46,14 @@ export function RoiOwnerGuideCard() {
               {guide.subtitle}
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm" className="border-indigo-200 bg-white/80">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+            <Button asChild variant="outline" size="sm" className="min-h-[44px] max-sm:w-full border-indigo-200 bg-white/80">
               <Link href={guide.routes.fi}>
                 <Landmark className="h-4 w-4 mr-1" />
                 Financial Intelligence
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="border-indigo-200 bg-white/80">
+            <Button asChild variant="outline" size="sm" className="min-h-[44px] max-sm:w-full border-indigo-200 bg-white/80">
               <Link href={guide.routes.fraudQueue}>
                 <ShieldAlert className="h-4 w-4 mr-1" />
                 Фрод-очередь
@@ -53,7 +62,7 @@ export function RoiOwnerGuideCard() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-5')}>
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 flex items-center gap-1">
             <Route className="h-3.5 w-3.5" />
@@ -86,7 +95,7 @@ export function RoiOwnerGuideCard() {
           </ul>
         </div>
 
-        <div className="rounded-xl border border-violet-100 bg-white/70 px-4 py-3">
+        <div className="max-sm:space-y-2 sm:rounded-xl sm:border sm:border-violet-100 sm:bg-white/70 sm:px-4 sm:py-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-violet-800 mb-2 flex items-center gap-1">
             <Mail className="h-3.5 w-3.5" />
             Еженедельный ритм
@@ -98,10 +107,10 @@ export function RoiOwnerGuideCard() {
           </ul>
         </div>
 
-        <p className="text-xs text-slate-500 flex items-center gap-1">
+        <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1">
           <Megaphone className="h-3.5 w-3.5" />
           Все экраны только для просмотра — изменение бюджетов и правил в разделах «Кампании» и «Бюджет».
-          <Link href={guide.routes.budget} className="text-indigo-600 hover:underline inline-flex items-center ml-1">
+          <Link href={guide.routes.budget} className="text-indigo-600 hover:underline inline-flex min-h-[44px] items-center ml-1 sm:min-h-0">
             Promo tank
             <ArrowRight className="h-3 w-3" />
           </Link>
