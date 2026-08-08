@@ -8,15 +8,18 @@ import { partnerStatsKeys } from '@/lib/hooks/use-partner-stats'
 import { partnerCalendarKeys } from '@/lib/hooks/use-partner-calendar'
 import { WALLET_ME_QUERY_KEY } from '@/lib/hooks/use-wallet-me'
 import { partnerDashboardMoneyKeys } from '@/hooks/partner/use-partner-dashboard-money'
+import { useHaptic } from '@/hooks/use-haptic'
 import { getUIText } from '@/lib/translations'
 
 /**
  * Stage 110.8 — approve/decline pending bookings на дашборде партнёра.
  * Stage 139 — локализованные тосты (`language`).
+ * Stage 200.67 — haptic on approve/decline.
  */
 export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
   const queryClient = useQueryClient()
   const updateStatusMutation = useUpdateBookingStatus()
+  const haptic = useHaptic()
 
   const invalidatePartnerQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: partnerStatsKeys.all })
@@ -28,6 +31,7 @@ export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
 
   const handleApprove = useCallback(
     async (bookingId) => {
+      haptic.light()
       try {
         await updateStatusMutation.mutateAsync({
           bookingId,
@@ -35,16 +39,19 @@ export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
           partnerId,
         })
         invalidatePartnerQueries()
+        haptic.success()
         toast.success(getUIText('partnerDashboard_approveSuccess', language))
       } catch {
+        haptic.error()
         toast.error(getUIText('partnerDashboard_approveError', language))
       }
     },
-    [updateStatusMutation, partnerId, invalidatePartnerQueries, language],
+    [updateStatusMutation, partnerId, invalidatePartnerQueries, language, haptic],
   )
 
   const handleDecline = useCallback(
     async (bookingId, reason) => {
+      haptic.light()
       try {
         await updateStatusMutation.mutateAsync({
           bookingId,
@@ -53,13 +60,15 @@ export function usePartnerDashboardBookingActions(partnerId, language = 'ru') {
           partnerId,
         })
         invalidatePartnerQueries()
+        haptic.success()
         toast.success(getUIText('partnerDashboard_declineSuccess', language))
       } catch {
+        haptic.error()
         toast.error(getUIText('partnerDashboard_declineError', language))
         throw new Error('decline_failed')
       }
     },
-    [updateStatusMutation, partnerId, invalidatePartnerQueries, language],
+    [updateStatusMutation, partnerId, invalidatePartnerQueries, language, haptic],
   )
 
   return {

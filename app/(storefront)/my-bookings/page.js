@@ -31,6 +31,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
 
 const SWITCH_SKELETON_DELAY_MS = 120
 
@@ -128,8 +129,8 @@ function MyBookingsContent() {
   const [actionBookingId, setActionBookingId] = useState(null)
   const [currentUserId, setCurrentUserId] = useState(null)
 
-  const loadBookings = useCallback(async () => {
-    setLoading(true)
+  const loadBookings = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setLoadError(false)
     try {
       const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
@@ -163,9 +164,13 @@ function MyBookingsContent() {
       setBookings([])
       setLoadError(true)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
+
+  const { indicator: pullIndicator } = usePullToRefresh({
+    onRefresh: () => loadBookings({ silent: true }),
+  })
 
   const { submitReview, isPending: reviewSubmitPending } = useReviewSubmission({
     language,
@@ -358,6 +363,7 @@ function MyBookingsContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {pullIndicator}
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <Link href="/" className="inline-flex items-center text-brand hover:text-brand/90 mb-4">

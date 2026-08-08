@@ -496,6 +496,8 @@ export function ConversationListPanel({
   viewerId = null,
   isUserOnline = null,
   typingByConversation = {},
+  scrollContainerRef = null,
+  pullIndicator = null,
 }) {
   const sentinelRef = useRef(null)
 
@@ -581,7 +583,11 @@ export function ConversationListPanel({
         />
       ) : null}
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+      >
+        {pullIndicator}
         {isLoading && conversations.length === 0 && (
           <div className="p-6 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-brand/70" />
@@ -649,6 +655,8 @@ export function ConversationList({
   favoritesFilterEnabled = true,
   /** Ссылка на каталог; null — скрыть полосу «К каталогу» */
   catalogHref = '/listings',
+  scrollContainerRef = null,
+  pullIndicator = null,
 }) {
   const { user } = useAuth()
   const { isUserOnline } = usePresenceContext()
@@ -714,6 +722,8 @@ export function ConversationList({
       viewerId={user?.id ?? null}
       isUserOnline={isUserOnline}
       typingByConversation={typingByConversation}
+      scrollContainerRef={scrollContainerRef}
+      pullIndicator={pullIndicator}
     />
   )
 }

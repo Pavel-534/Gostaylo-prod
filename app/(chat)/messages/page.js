@@ -5,7 +5,7 @@
  * Переход в тред: /messages/[id].
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessagesAuthGate } from '@/components/product/MessagesAuthGate'
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
 import { ConversationList } from '@/components/chat/ConversationList'
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
 import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
@@ -98,6 +99,15 @@ export default function UnifiedMessagesHallPage() {
     [inbox.inboxTab]
   )
 
+  const [inboxScrollEl, setInboxScrollEl] = useState(null)
+  const handleInboxRefresh = useCallback(() => {
+    inbox.refresh()
+  }, [inbox])
+  const { indicator: pullIndicator } = usePullToRefresh({
+    onRefresh: handleInboxRefresh,
+    scrollEl: inboxScrollEl,
+  })
+
   const flowT = (key) => getUIText(key, language)
 
   if (authLoading || !user) {
@@ -129,6 +139,8 @@ export default function UnifiedMessagesHallPage() {
             roleTabsVisible={showHostingTabs}
             catalogHref={null}
             className="min-h-0 flex-1"
+            scrollContainerRef={setInboxScrollEl}
+            pullIndicator={pullIndicator}
           />
         </div>
       </div>

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.47 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.65** storefront redirect debt closed (inventory 116/116).
+> **Version**: 13.2.48 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.67** PWA haptic + pull-to-refresh hooks.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.67 — PWA native haptic + pull-to-refresh
+
+- Hooks (SSR-safe): `hooks/use-haptic.js` (`navigator.vibrate` presets light/medium/success/error), `hooks/use-pull-to-refresh.js` (mobile `<sm` only; threshold 70px; window or scroll container).
+- Haptic: admin moderation approve/reject; partner booking approve/decline; checkout pay initiate + confirm success/fail; chat text send.
+- Pull-to-refresh: `/my-bookings`, `/messages` (inbox list scroller), `/admin/moderation` — silent reload, no desktop layout impact (`sm:hidden` indicator).
 
 ### Stage 200.65 — Storefront redirect debt (Wave 6)
 

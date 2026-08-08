@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.67 | 2026-08-08 | PWA native UX: useHaptic + usePullToRefresh; wired on moderation, partner approve, checkout, chat, bookings/messages feeds | Done |
 | 200.65 | 2026-08-08 | Wave 6 storefront redirect debt: `/dashboard`, `/dashboard/renter` — inventory 116/116 | Done |
 | 200.64 | 2026-08-08 | Admin Wave 5F mobile-flat: system, security, health, audit, privacy, settings/legal | Done |
 | 200.63 | 2026-08-08 | Admin Wave 5E-2 mobile-flat: analytics, budget, payouts ops, fraud, ROI, audit | Done |

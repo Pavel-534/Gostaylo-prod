@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.43 | **Last Updated**: 2026-08-08 | **Stage 200.65** inventory 116/116; [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md).  
+> **Version**: 13.2.44 | **Last Updated**: 2026-08-08 | **Stage 200.67** PWA haptic/PTR; **200.65** inventory 116/116.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -20,7 +20,7 @@
 | Concierge ops | treasury / payouts UI + runbooks | Ops |
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
-| PWA / push | SW + FCM | Clients |
+| PWA / push | SW + FCM; haptic `hooks/use-haptic.js`; PTR `hooks/use-pull-to-refresh.js` (`/my-bookings`, `/messages`, `/admin/moderation`) | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
 

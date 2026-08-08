@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,9 +33,12 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_EMPTY_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { useHaptic } from '@/hooks/use-haptic'
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
 
 export default function ModerationPage() {
   const { language } = useI18n()
+  const haptic = useHaptic()
   const [pendingListings, setPendingListings] = useState([])
   const [totalPending, setTotalPending] = useState(0)
   const [facets, setFacets] = useState({ partners: [], categories: [] })
@@ -58,25 +61,8 @@ export default function ModerationPage() {
   const [draftDistrict, setDraftDistrict] = useState('')
   const [draftPrice, setDraftPrice] = useState('')
 
-  useEffect(() => {
-    loadData()
-  }, [filters.partner, filters.category, filters.dateFrom, filters.dateTo])
-
-  useEffect(() => {
-    if (!selectedListing) return
-    setEditTextMode(false)
-    setDraftTitle(selectedListing.title ?? '')
-    setDraftDescription(selectedListing.description ?? '')
-    setDraftDistrict(selectedListing.district ?? '')
-    setDraftPrice(
-      selectedListing.base_price_thb != null && selectedListing.base_price_thb !== ''
-        ? String(selectedListing.base_price_thb)
-        : '',
-    )
-  }, [selectedListing?.id])
-
-  async function loadData() {
-    setLoading(true)
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filters.partner.trim()) params.set('partner', filters.partner.trim())
@@ -98,9 +84,30 @@ export default function ModerationPage() {
       console.error('Error loading data:', error)
       toast.error('Не удалось загрузить данные')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }
+  }, [filters.partner, filters.category, filters.dateFrom, filters.dateTo])
+
+  const { indicator: pullIndicator } = usePullToRefresh({
+    onRefresh: () => loadData({ silent: true }),
+  })
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    if (!selectedListing) return
+    setEditTextMode(false)
+    setDraftTitle(selectedListing.title ?? '')
+    setDraftDescription(selectedListing.description ?? '')
+    setDraftDistrict(selectedListing.district ?? '')
+    setDraftPrice(
+      selectedListing.base_price_thb != null && selectedListing.base_price_thb !== ''
+        ? String(selectedListing.base_price_thb)
+        : '',
+    )
+  }, [selectedListing?.id])
 
   function clearFilters() {
     setFilters({ partner: '', category: '', dateFrom: '', dateTo: '' })
@@ -148,6 +155,7 @@ export default function ModerationPage() {
       return
     }
 
+    haptic.light()
     setProcessingId(listingId)
     try {
       const res = await fetch('/api/admin/moderation', {
@@ -167,17 +175,19 @@ export default function ModerationPage() {
       
       if (data.success) {
         await revalidateListingsCache(listingId)
+        haptic.success()
         toast.success(
           data.notificationSent
             ? 'Одобрено — объявление в каталоге и поиске. Партнёр уведомлён в Telegram.'
             : 'Одобрено — объявление в каталоге и поиске.',
         )
         setSelectedListing(null)
-        loadData()
+        void loadData({ silent: true })
       } else {
         throw new Error(data.error)
       }
     } catch (error) {
+      haptic.error()
       toast.error('Не удалось одобрить объявление')
     } finally {
       setProcessingId(null)
@@ -256,6 +266,7 @@ export default function ModerationPage() {
       return
     }
 
+    haptic.light()
     setProcessingId(rejectingListing.id)
     try {
       const res = await fetch('/api/admin/moderation', {
@@ -271,6 +282,7 @@ export default function ModerationPage() {
       const data = await res.json()
       
       if (data.success) {
+        haptic.success()
         toast.success(data.notificationSent 
           ? 'Объявление отклонено! Партнёр уведомлён в Telegram'
           : 'Объявление отклонено'
@@ -278,11 +290,12 @@ export default function ModerationPage() {
         setShowRejectModal(false)
         setSelectedListing(null)
         setRejectingListing(null)
-        loadData()
+        void loadData({ silent: true })
       } else {
         throw new Error(data.error)
       }
     } catch (error) {
+      haptic.error()
       toast.error('Не удалось отклонить объявление')
     } finally {
       setProcessingId(null)
@@ -328,6 +341,7 @@ export default function ModerationPage() {
 
   return (
     <div className="space-y-6">
+      {pullIndicator}
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Модерация объявлений</h1>

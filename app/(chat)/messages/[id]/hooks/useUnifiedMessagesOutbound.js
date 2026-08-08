@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { useHaptic } from '@/hooks/use-haptic'
 import {
   showContactSafetyWarning,
   shouldWarnContactSafetyForText,
@@ -11,6 +12,7 @@ import {
 /**
  * Outbound chat UI handlers (Stage 110.7).
  * Вся отправка — SSOT `useChatThreadMessages` (post-chat-message / post-chat-invoice).
+ * Stage 200.67 — haptic on send.
  */
 export function useUnifiedMessagesOutbound({
   language,
@@ -35,6 +37,7 @@ export function useUnifiedMessagesOutbound({
   discardVoice,
   setVoiceSending,
 }) {
+  const haptic = useHaptic()
   const afterOutbound = useCallback(() => {
     inbox.refresh()
   }, [inbox])
@@ -48,11 +51,15 @@ export function useUnifiedMessagesOutbound({
       if (shouldWarnContactSafetyForText(text, booking?.status)) {
         showContactSafetyWarning({ language, toast, bookingStatus: booking?.status })
       }
+      haptic.light()
       setNewMessage('')
       setSending(true)
       try {
         await sendMessageText(text)
+        haptic.success()
         afterOutbound()
+      } catch {
+        haptic.error()
       } finally {
         setSending(false)
       }
@@ -67,6 +74,8 @@ export function useUnifiedMessagesOutbound({
       broadcastTypingStop,
       setNewMessage,
       setSending,
+      haptic,
+      language,
     ],
   )
 

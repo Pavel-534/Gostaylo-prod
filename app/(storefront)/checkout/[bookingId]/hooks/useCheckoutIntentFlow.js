@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { useHaptic } from '@/hooks/use-haptic'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 import { resolveGuestPayInitiateI18nKey } from '@/lib/checkout/guest-pay-error-messages.js'
 import {
@@ -41,6 +42,7 @@ export function useCheckoutIntentFlow({
   refreshWalletEverywhere,
   promoCode = null,
 }) {
+  const haptic = useHaptic()
   const loadPaymentIntent = useCallback(
     async (resolvedInvoice) => {
       try {
@@ -76,6 +78,7 @@ export function useCheckoutIntentFlow({
   )
 
   const handleInitiatePayment = useCallback(async () => {
+    haptic.light()
     setProcessing(true)
     try {
       const res = await fetch(`/api/v2/bookings/${bookingId}/payment/initiate`, {
@@ -91,6 +94,7 @@ export function useCheckoutIntentFlow({
       })
       const data = await res.json()
       if (data.code === LEGAL_CONSENT_ERROR_CODE) {
+        haptic.error()
         toast.error(getUIText('checkout_legalConsentRequiredToast', language))
         return
       }
@@ -112,6 +116,7 @@ export function useCheckoutIntentFlow({
             process.env.NODE_ENV !== 'production' ||
             process.env.NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING === '1'
           if (!mockAllowed) {
+            haptic.error()
             toast.error(getUIText('checkout_toast_acquiringNotConfigured', language))
             return
           }
@@ -121,10 +126,12 @@ export function useCheckoutIntentFlow({
           }, 2000)
         }
       } else {
+        haptic.error()
         toast.error(resolveCheckoutInitiateError(data, language))
       }
     } catch (error) {
       console.error('Failed to initiate payment:', error)
+      haptic.error()
       toast.error(getUIText('checkout_toast_paymentInitFail', language))
     } finally {
       setProcessing(false)
@@ -140,6 +147,7 @@ export function useCheckoutIntentFlow({
     refreshWalletEverywhere,
     acceptedLegalTermsForPayment,
     promoCode,
+    haptic,
   ])
 
   return {

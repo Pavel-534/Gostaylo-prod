@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { useHaptic } from '@/hooks/use-haptic'
 import { interpolateTemplate } from '../hooks/interpolate.js'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
@@ -17,6 +18,7 @@ export function useCheckoutConfirmFlow({
   setPaymentSuccess,
   setCryptoModalOpen,
 }) {
+  const haptic = useHaptic()
   const [txId, setTxId] = useState('')
   const [verificationStep, setVerificationStep] = useState(0)
   const [confirmations, setConfirmations] = useState(0)
@@ -58,6 +60,7 @@ export function useCheckoutConfirmFlow({
             return
           }
           if (!verifyData.success) {
+            haptic.error()
             toast.error(verifyData.error || getUIText('checkout_toast_txNotVerified', language))
             setVerifying(false)
             setVerificationStep(0)
@@ -67,6 +70,7 @@ export function useCheckoutConfirmFlow({
           toast.success(getUIText('checkout_toast_chainOk', language))
           await new Promise((r) => setTimeout(r, 500))
           if (verifyData.paymentSettled?.success === true) {
+            haptic.success()
             void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
               booking_id: bookingId,
               method: paymentMethod,
@@ -76,10 +80,12 @@ export function useCheckoutConfirmFlow({
             await loadPaymentStatus()
             await refreshWalletEverywhere()
           } else {
+            haptic.error()
             toast.error(verifyData.paymentSettled?.error || getUIText('checkout_toast_paymentConfirmFail', language))
           }
         } catch (error) {
           console.error('Failed to verify crypto payment:', error)
+          haptic.error()
           toast.error(getUIText('checkout_toast_verifyPaymentFail', language))
           setVerificationStep(0)
         } finally {
@@ -105,6 +111,7 @@ export function useCheckoutConfirmFlow({
           return
         }
         if (data.success) {
+          haptic.success()
           toast.success(getUIText('checkout_toast_paymentOk', language))
           void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
             booking_id: bookingId,
@@ -115,10 +122,12 @@ export function useCheckoutConfirmFlow({
           await loadPaymentStatus()
           await refreshWalletEverywhere()
         } else {
+          haptic.error()
           toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
         }
       } catch (error) {
         console.error('Failed to confirm payment:', error)
+        haptic.error()
         toast.error(getUIText('checkout_toast_paymentConfirmFail', language))
       }
     },
@@ -134,6 +143,7 @@ export function useCheckoutConfirmFlow({
       acceptedLegalTermsForPayment,
       setPaymentSuccess,
       setCryptoModalOpen,
+      haptic,
     ],
   )
 
