@@ -22,6 +22,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /** Синхронизировано с lib/ai/usage-log.js */
 const TASK_TELEGRAM_PARSER = 'telegram_parser'
@@ -198,7 +205,7 @@ export default function AdminSystemAiPage() {
             variant={period === p.id ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              'rounded-full px-4 transition-all',
+              'min-h-[44px] rounded-full px-4 transition-all',
               period === p.id &&
                 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:from-violet-700 hover:to-indigo-700',
             )}
@@ -210,13 +217,13 @@ export default function AdminSystemAiPage() {
       </div>
 
       {err ? (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-6 text-sm text-red-800">{err}</CardContent>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-red-200 sm:bg-red-50')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-6 text-sm text-red-800')}>{err}</CardContent>
         </Card>
       ) : null}
 
-      <Card className="border border-amber-200/80 bg-amber-50/40 shadow-sm">
-        <CardContent className="flex flex-col gap-4 py-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-amber-200/80 sm:bg-amber-50/40 sm:shadow-sm')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col gap-4 py-4')}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-amber-950">Поисковые векторы</p>
@@ -231,7 +238,7 @@ export default function AdminSystemAiPage() {
               disabled={reindexing}
               onClick={runReindexEmbeddings}
               title="Переиндексировать до 5 объявлений для смыслового поиска"
-              className="h-auto w-full min-h-11 shrink-0 whitespace-normal border-amber-300 bg-white px-4 py-3 text-amber-950 hover:bg-amber-100 sm:w-auto sm:max-w-[14rem]"
+              className="h-auto w-full min-h-[44px] shrink-0 whitespace-normal border-amber-300 bg-white px-4 py-3 text-amber-950 hover:bg-amber-100 sm:w-auto sm:max-w-[14rem]"
             >
               <span className="flex w-full flex-col items-center gap-1 sm:items-stretch">
                 <span className="inline-flex items-center justify-center gap-2">
@@ -249,7 +256,7 @@ export default function AdminSystemAiPage() {
             </Button>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-xl border border-amber-200/90 bg-white/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn(MOBILE_FLAT_NESTED_PANEL_CLASS, 'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:border-amber-200/90 sm:bg-white/80')}>
             <div className="min-w-0 flex-1 space-y-1">
               <Label htmlFor="semantic-site-switch" className="text-sm font-medium text-amber-950">
                 Включить семантический поиск на сайте
@@ -259,7 +266,7 @@ export default function AdminSystemAiPage() {
                 При выключении иконка «умного поиска» на витрине неактивна.
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-2 sm:pl-4">
+            <div className="flex shrink-0 items-center gap-2 min-h-[44px] sm:pl-4">
               <Switch
                 id="semantic-site-switch"
                 checked={payload?.semanticSearchOnSite !== false}
@@ -274,19 +281,21 @@ export default function AdminSystemAiPage() {
             <div className="space-y-3">
               <div
                 className={cn(
-                  'grid grid-cols-1 gap-3 rounded-xl border p-3 sm:grid-cols-3',
+                  MOBILE_FLAT_NESTED_PANEL_CLASS,
+                  'grid grid-cols-1 gap-3 p-3 sm:grid-cols-3',
                   vectorCoverageComplete &&
-                    'border-emerald-200/90 bg-gradient-to-b from-emerald-50/90 via-emerald-50/40 to-white shadow-sm shadow-emerald-900/5',
-                  vectorCoverageEmpty && 'border-slate-200/90 bg-slate-50/50',
+                    'sm:border-emerald-200/90 sm:bg-gradient-to-b sm:from-emerald-50/90 sm:via-emerald-50/40 sm:to-white sm:shadow-sm sm:shadow-emerald-900/5',
+                  vectorCoverageEmpty && 'sm:border-slate-200/90 sm:bg-slate-50/50',
                   !vectorCoverageComplete &&
                     !vectorCoverageEmpty &&
-                    'border-amber-200/60 bg-white/80',
+                    'sm:border-amber-200/60 sm:bg-white/80',
                 )}
               >
                 <div
                   className={cn(
-                    'rounded-lg px-3 py-2.5',
-                    vectorCoverageComplete ? 'bg-white/70' : 'bg-amber-50/70',
+                    MOBILE_FLAT_INSET_CLASS,
+                    'px-3 py-2.5',
+                    vectorCoverageComplete ? 'sm:bg-white/70' : 'sm:bg-amber-50/70',
                   )}
                 >
                   <p className="text-xs font-medium text-slate-700">Объявлений в поиске</p>
@@ -299,10 +308,11 @@ export default function AdminSystemAiPage() {
                 </div>
                 <div
                   className={cn(
-                    'rounded-lg px-3 py-2.5 ring-1 transition-colors',
+                    MOBILE_FLAT_INSET_CLASS,
+                    'px-3 py-2.5 sm:ring-1 transition-colors',
                     vectorCoverageComplete
-                      ? 'bg-emerald-50/80 ring-emerald-200/80'
-                      : 'bg-amber-50/70 ring-amber-100/80',
+                      ? 'sm:bg-emerald-50/80 sm:ring-emerald-200/80'
+                      : 'sm:bg-amber-50/70 sm:ring-amber-100/80',
                   )}
                 >
                   <p className="text-xs font-medium text-slate-700">Объектов с умным поиском</p>
@@ -315,8 +325,9 @@ export default function AdminSystemAiPage() {
                 </div>
                 <div
                   className={cn(
-                    'rounded-lg px-3 py-2.5',
-                    vectorCoverageComplete ? 'bg-white/70' : 'bg-amber-50/70',
+                    MOBILE_FLAT_INSET_CLASS,
+                    'px-3 py-2.5',
+                    vectorCoverageComplete ? 'sm:bg-white/70' : 'sm:bg-amber-50/70',
                   )}
                 >
                   <p className="text-xs font-medium text-slate-700">Операций ИИ</p>
@@ -380,36 +391,36 @@ export default function AdminSystemAiPage() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl sm:col-span-2 xl:col-span-4">
-          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-brand/20 blur-2xl" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 text-brand-muted">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'relative overflow-hidden sm:border-0 sm:bg-gradient-to-br sm:from-slate-900 sm:via-slate-800 sm:to-slate-900 sm:text-white sm:shadow-xl sm:col-span-2 xl:col-span-4')}>
+          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-brand/20 blur-2xl max-sm:hidden" />
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
+            <div className="flex items-center gap-2 text-brand-muted max-sm:text-brand">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs font-semibold uppercase tracking-wider">Всего</span>
             </div>
-            <CardTitle className="text-lg font-medium text-slate-200">
+            <CardTitle className="text-lg font-medium text-slate-900 sm:text-slate-200">
               Суммарные расходы на ИИ
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-brand/80" />
             ) : (
               <>
-                <p className="text-3xl font-bold tabular-nums tracking-tight">
+                <p className="text-3xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-white">
                   {formatUsd(payload?.totalUsd)}
                 </p>
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-slate-500 sm:text-slate-400">
                   Записей в периоде:{' '}
-                  <span className="font-medium text-slate-300">{payload?.requestCount ?? 0}</span>
+                  <span className="font-medium text-slate-700 sm:text-slate-300">{payload?.requestCount ?? 0}</span>
                 </p>
               </>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-md sm:col-span-1">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-sky-200/80 sm:bg-gradient-to-br sm:from-sky-50 sm:via-white sm:to-cyan-50 sm:shadow-md sm:col-span-1')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <div className="flex items-center gap-2 text-sky-700">
               <Bot className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wider">Telegram</span>
@@ -417,7 +428,7 @@ export default function AdminSystemAiPage() {
             <CardTitle className="text-lg text-slate-800">Ленивый Риелтор (TG)</CardTitle>
             <CardDescription className="text-slate-600">Парсер подписей к объявлениям</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
             ) : (
@@ -428,8 +439,8 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 shadow-md sm:col-span-1">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-violet-200/80 sm:bg-gradient-to-br sm:from-violet-50 sm:via-white sm:to-fuchsia-50 sm:shadow-md sm:col-span-1')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <div className="flex items-center gap-2 text-violet-700">
               <Globe className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wider">Web</span>
@@ -437,7 +448,7 @@ export default function AdminSystemAiPage() {
             <CardTitle className="text-lg text-slate-800">Генератор описаний</CardTitle>
             <CardDescription className="text-slate-600">Кабинет партнёра</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             ) : (
@@ -448,8 +459,8 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-brand/5 shadow-md sm:col-span-1">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-emerald-200/80 sm:bg-gradient-to-br sm:from-emerald-50 sm:via-white sm:to-brand/5 sm:shadow-md sm:col-span-1')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <div className="flex items-center gap-2 text-emerald-700">
               <Brain className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wider">Vectors</span>
@@ -457,7 +468,7 @@ export default function AdminSystemAiPage() {
             <CardTitle className="text-lg text-slate-800">Эмбеддинги поиска</CardTitle>
             <CardDescription className="text-slate-600">Индексация объявлений</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
             ) : (
@@ -468,8 +479,8 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-md sm:col-span-1">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-cyan-200/80 sm:bg-gradient-to-br sm:from-cyan-50 sm:via-white sm:to-sky-50 sm:shadow-md sm:col-span-1')}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <div className="flex items-center gap-2 text-cyan-700">
               <Search className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wider">Live</span>
@@ -477,7 +488,7 @@ export default function AdminSystemAiPage() {
             <CardTitle className="text-lg text-slate-800">Живой поиск</CardTitle>
             <CardDescription className="text-slate-600">Запросы пользователей · text-embedding-3-small</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-cyan-600" />
             ) : (
@@ -497,15 +508,15 @@ export default function AdminSystemAiPage() {
         </Card>
       </div>
 
-      <Card className="border-slate-200/80 shadow-sm">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200/80 sm:shadow-sm')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-500" />
             <CardTitle className="text-lg">Последние операции</CardTitle>
           </div>
           <CardDescription>До 20 записей за выбранный период</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
@@ -522,7 +533,10 @@ export default function AdminSystemAiPage() {
                 return (
                   <li
                     key={row.id}
-                    className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    className={cn(
+                      MOBILE_FLAT_INSET_CLASS,
+                      'flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:border-slate-100 sm:bg-slate-50/80',
+                    )}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div

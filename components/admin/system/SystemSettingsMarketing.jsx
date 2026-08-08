@@ -16,6 +16,13 @@ import {
   postReferralPnlMonitorTopup,
   saveAdminSettings,
 } from '@/lib/admin/admin-settings-api-client'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function FieldHint({ children }) {
   return (
@@ -242,8 +249,8 @@ export function SystemSettingsMarketing() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6 text-sm text-slate-500">Загрузка маркетинговых настроек...</CardContent>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-6 text-sm text-slate-500')}>Загрузка маркетинговых настроек...</CardContent>
       </Card>
     )
   }
@@ -251,8 +258,8 @@ export function SystemSettingsMarketing() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
-      <Card className="border-2 border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white">
-        <CardHeader className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-fuchsia-200 sm:bg-gradient-to-br sm:from-fuchsia-50 sm:to-white')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-fuchsia-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <Megaphone className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
@@ -265,7 +272,7 @@ export function SystemSettingsMarketing() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6 p-4 pt-0 lg:px-6 lg:pb-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-1.5">
@@ -372,7 +379,7 @@ export function SystemSettingsMarketing() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-4 text-xs text-slate-700 sm:bg-slate-50')}>
             <p className="font-semibold mb-1">Формула пула</p>
             <p>
               `AdjustedNetProfit = PlatformGross - InsuranceReserve - AcquiringFee - OperationalReserve`.
@@ -395,15 +402,15 @@ export function SystemSettingsMarketing() {
             type="button"
             onClick={handleSave}
             disabled={saving || !settingsSnapshot}
-            className="bg-fuchsia-600 hover:bg-fuchsia-700"
+            className="min-h-[44px] max-sm:w-full bg-fuchsia-600 hover:bg-fuchsia-700"
           >
             {saving ? 'Сохранение...' : 'Сохранить маркетинговую политику'}
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="border border-emerald-200">
-        <CardHeader className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-200')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-emerald-600" />
             <CardTitle className="text-base lg:text-lg">Referral P&L Monitor</CardTitle>
@@ -412,29 +419,29 @@ export function SystemSettingsMarketing() {
             Агрегаты всех начислений из `referral_ledger`.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 lg:px-6 lg:pb-6">
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Earned total</p>
               <p className="font-semibold text-emerald-700">฿{formatThb(monitor?.earnedTotalThb)}</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Pending total</p>
               <p className="font-semibold text-amber-700">฿{formatThb(monitor?.pendingTotalThb)}</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Canceled total</p>
               <p className="font-semibold text-rose-700">฿{formatThb(monitor?.canceledTotalThb)}</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Bonus earned</p>
               <p className="font-semibold">฿{formatThb(monitor?.earnedBonusThb)}</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Cashback earned</p>
               <p className="font-semibold">฿{formatThb(monitor?.earnedCashbackThb)}</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
               <p className="text-slate-500">Ledger rows</p>
               <p className="font-semibold flex items-center gap-1">
                 <Percent className="h-4 w-4 text-slate-400" />
@@ -445,8 +452,8 @@ export function SystemSettingsMarketing() {
         </CardContent>
       </Card>
 
-      <Card className="border border-sky-200">
-        <CardHeader className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-sky-200')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex items-center gap-2">
             <Fuel className="h-5 w-5 text-sky-600" />
             <CardTitle className="text-base lg:text-lg">Marketing Budget (Pool)</CardTitle>
@@ -455,8 +462,8 @@ export function SystemSettingsMarketing() {
             Глобальный маркетинговый пул для Turbo-доплат к реферальным выплатам.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 p-4 pt-0 lg:px-6 lg:pb-6">
-          <div className="rounded-md border p-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3')}>
             <p className="text-slate-500 text-sm">Текущий баланс пула</p>
             <p className="text-2xl font-semibold text-sky-700">฿{formatThb(monitor?.marketingPromoPotThb)}</p>
             <p className="text-xs text-slate-500 mt-1">
@@ -472,18 +479,19 @@ export function SystemSettingsMarketing() {
               value={manualTopupThb}
               onChange={(e) => setManualTopupThb(clamp(e.target.value, 0, 1000000000))}
               placeholder="Сумма пополнения THB"
+              className="min-h-[44px]"
             />
             <Button
               type="button"
               onClick={handleManualTopup}
               disabled={toppingUp}
-              className="bg-sky-600 hover:bg-sky-700"
+              className="min-h-[44px] max-sm:w-full bg-sky-600 hover:bg-sky-700"
             >
               {toppingUp ? 'Пополнение...' : 'Пополнить вручную'}
             </Button>
           </div>
 
-          <div className="flex items-center justify-between rounded-md border p-3">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, 'flex items-center justify-between p-3')}>
             <div>
               <p className="font-medium text-sm flex items-center gap-2">
                 <Rocket className="h-4 w-4 text-fuchsia-600" />
@@ -496,8 +504,8 @@ export function SystemSettingsMarketing() {
         </CardContent>
       </Card>
 
-      <Card className="border border-indigo-200">
-        <CardHeader className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-indigo-200')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex items-center gap-2">
             <Wallet2 className="h-5 w-5 text-indigo-600" />
             <CardTitle className="text-base lg:text-lg">Wallet & Payout Policy</CardTitle>
@@ -506,7 +514,7 @@ export function SystemSettingsMarketing() {
             Политики welcome-бонуса, распределения Turbo Boost и лимита скидки из кошелька.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 p-4 pt-0 lg:px-6 lg:pb-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="welcomeBonusAmount" className="text-sm font-medium">
@@ -646,7 +654,7 @@ export function SystemSettingsMarketing() {
               id="referralBoostAllocationRule"
               value={referralBoostAllocationRule}
               onChange={(e) => setReferralBoostAllocationRule(String(e.target.value))}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+              className="w-full min-h-[44px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
             >
               <option value="100_to_referrer">100% to referrer</option>
               <option value="100_to_referee">100% to referee</option>
@@ -656,14 +664,14 @@ export function SystemSettingsMarketing() {
         </CardContent>
       </Card>
 
-      <Card className="border border-indigo-200">
-        <CardHeader className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-indigo-200')}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-base lg:text-lg">Organic vs Referral Growth</CardTitle>
           <CardDescription className="text-xs lg:text-sm">
             Динамика за последние 6 месяцев (новые пользователи).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 p-4 pt-0 lg:px-6 lg:pb-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           {(monitor?.growthSeries || []).map((row) => {
             const organic = Number(row?.organic || 0)
             const referral = Number(row?.referral || 0)

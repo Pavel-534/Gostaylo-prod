@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { 
   Loader2, RefreshCw, AlertCircle, CheckCircle, 
-  ArrowLeft, Filter, Clock, Search, Download
+  ArrowLeft, Filter, Search, Download
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -21,6 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function ICalLogsPage() {
   const router = useRouter()
@@ -117,7 +123,7 @@ export default function ICalLogsPage() {
       <div className="bg-white border-b sticky app-sticky-below-header z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className="min-h-[44px] min-w-[44px]">
               <Link href="/admin/system/ical">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
@@ -136,6 +142,7 @@ export default function ICalLogsPage() {
                 size="sm"
                 onClick={exportLogs}
                 title="Экспорт CSV"
+                className="min-h-[44px] min-w-[44px]"
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -144,6 +151,7 @@ export default function ICalLogsPage() {
                 size="sm"
                 onClick={loadLogs}
                 disabled={loading}
+                className="min-h-[44px] min-w-[44px]"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -158,8 +166,8 @@ export default function ICalLogsPage() {
 
       <div className="container mx-auto px-4 py-6 space-y-4">
         {/* Filters */}
-        <Card>
-          <CardContent className="py-4">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-4')}>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -167,10 +175,10 @@ export default function ICalLogsPage() {
                   placeholder="Поиск по названию, URL или ошибке..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 min-h-[44px]"
                 />
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 min-h-[44px]">
                 <div className="flex items-center gap-2">
                   <Switch
                     id="errors-only"
@@ -188,25 +196,25 @@ export default function ICalLogsPage() {
         </Card>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="bg-slate-100">
-            <CardContent className="py-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-100')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-3')}>
               <div className="text-center">
                 <p className="text-xl font-bold text-slate-900">{stats.total_24h}</p>
                 <p className="text-xs text-slate-500">Всего за 24ч</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-green-50">
-            <CardContent className="py-3">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-green-50')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-3')}>
               <div className="text-center">
                 <p className="text-xl font-bold text-green-600">{stats.success_24h}</p>
                 <p className="text-xs text-slate-500">Успешно</p>
               </div>
             </CardContent>
           </Card>
-          <Card className={stats.errors_24h > 0 ? 'bg-red-50' : 'bg-slate-100'}>
-            <CardContent className="py-3">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, stats.errors_24h > 0 ? 'sm:bg-red-50' : 'sm:bg-slate-100')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-3')}>
               <div className="text-center">
                 <p className="text-xl font-bold text-red-600">{stats.errors_24h}</p>
                 <p className="text-xs text-slate-500">Ошибок</p>
@@ -216,86 +224,134 @@ export default function ICalLogsPage() {
         </div>
 
         {/* Logs Table */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
             <CardTitle className="text-base">
               История ({filteredLogs.length} записей)
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:p-0 sm:p-0')}>
             {filteredLogs.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 {errorsOnly ? 'Ошибок не найдено' : 'Логи отсутствуют'}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[160px]">Время</TableHead>
-                      <TableHead>Объект</TableHead>
-                      <TableHead className="w-[100px]">Статус</TableHead>
-                      <TableHead className="w-[80px] text-center">События</TableHead>
-                      <TableHead>Ошибка</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map(log => (
-                      <TableRow 
-                        key={log.id}
-                        className={log.status === 'error' ? 'bg-red-50' : ''}
-                      >
-                        <TableCell className="font-mono text-xs text-slate-500">
-                          {new Date(log.synced_at).toLocaleString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit'
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[200px]">
-                            <p className="font-medium text-sm truncate">
-                              {log.listing_title || 'Неизвестный объект'}
-                            </p>
-                            <p className="text-xs text-slate-400 truncate" title={log.source_url}>
-                              {log.source_url?.replace(/https?:\/\//, '').slice(0, 40)}...
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {log.status === 'error' ? (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Ошибка
-                            </Badge>
-                          ) : (
-                            <Badge variant="default" className="bg-green-100 text-green-700 text-xs">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              OK
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className={`font-medium ${log.events_count > 0 ? 'text-brand' : 'text-slate-400'}`}>
-                            {log.events_count || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {log.error_message ? (
-                            <p className="text-xs text-red-600 max-w-[300px] truncate" title={log.error_message}>
-                              {log.error_message}
-                            </p>
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </TableCell>
+              <>
+                <div className="space-y-0 sm:hidden">
+                  {filteredLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className={cn(
+                        'border-b border-slate-100 px-0 py-3 last:border-b-0 space-y-1.5',
+                        log.status === 'error' && 'bg-red-50/40',
+                      )}
+                    >
+                      <p className="font-mono text-xs text-slate-500">
+                        {new Date(log.synced_at).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </p>
+                      <p className="font-medium text-sm text-slate-900">
+                        {log.listing_title || 'Неизвестный объект'}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate" title={log.source_url}>
+                        {log.source_url?.replace(/https?:\/\//, '').slice(0, 40)}...
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {log.status === 'error' ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Ошибка
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="bg-green-100 text-green-700 text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            OK
+                          </Badge>
+                        )}
+                        <span className={`text-xs font-medium ${log.events_count > 0 ? 'text-brand' : 'text-slate-400'}`}>
+                          {log.events_count || 0} событий
+                        </span>
+                      </div>
+                      {log.error_message ? (
+                        <p className="text-xs text-red-600 break-words">{log.error_message}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[160px]">Время</TableHead>
+                        <TableHead>Объект</TableHead>
+                        <TableHead className="w-[100px]">Статус</TableHead>
+                        <TableHead className="w-[80px] text-center">События</TableHead>
+                        <TableHead>Ошибка</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map(log => (
+                        <TableRow 
+                          key={log.id}
+                          className={log.status === 'error' ? 'bg-red-50' : ''}
+                        >
+                          <TableCell className="font-mono text-xs text-slate-500">
+                            {new Date(log.synced_at).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[200px]">
+                              <p className="font-medium text-sm truncate">
+                                {log.listing_title || 'Неизвестный объект'}
+                              </p>
+                              <p className="text-xs text-slate-400 truncate" title={log.source_url}>
+                                {log.source_url?.replace(/https?:\/\//, '').slice(0, 40)}...
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {log.status === 'error' ? (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Ошибка
+                              </Badge>
+                            ) : (
+                              <Badge variant="default" className="bg-green-100 text-green-700 text-xs">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                OK
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={`font-medium ${log.events_count > 0 ? 'text-brand' : 'text-slate-400'}`}>
+                              {log.events_count || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {log.error_message ? (
+                              <p className="text-xs text-red-600 max-w-[300px] truncate" title={log.error_message}>
+                                {log.error_message}
+                              </p>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.65 | 2026-08-08 | Wave 6 storefront redirect debt: `/dashboard`, `/dashboard/renter` — inventory 116/116 | Done |
+| 200.64 | 2026-08-08 | Admin Wave 5F mobile-flat: system, security, health, audit, privacy, settings/legal | Done |
 | 200.63 | 2026-08-08 | Admin Wave 5E-2 mobile-flat: analytics, budget, payouts ops, fraud, ROI, audit | Done |
 | 200.62 | 2026-08-07 | Admin Wave 5E-1 mobile-flat: marketing hub, promos, campaigns, rules, attribution | Done |
 | 200.61 | 2026-08-07 | Admin Wave 5D mobile-flat: categories, location suggestions, staff messages | Done |

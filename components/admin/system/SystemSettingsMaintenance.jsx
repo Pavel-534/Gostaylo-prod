@@ -26,6 +26,13 @@ import {
   EyeOff,
   Key,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 /** Режим обслуживания, iCal, журнал, пароль админа. */
 export function SystemSettingsMaintenance({
@@ -50,8 +57,8 @@ export function SystemSettingsMaintenance({
 }) {
   return (
     <div className="space-y-4">
-      <Card className={`border-2 ${maintenanceMode ? 'border-red-400 bg-red-50' : 'border-brand/40 bg-brand/10'}`}>
-        <CardContent className="p-4 lg:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, maintenanceMode ? 'sm:border-2 sm:border-red-400 sm:bg-red-50' : 'sm:border-2 sm:border-brand/40 sm:bg-brand/10')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 lg:p-6')}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3 min-w-0">
               <div
@@ -86,9 +93,9 @@ export function SystemSettingsMaintenance({
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
-        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
-          <div className="flex items-center justify-between">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-orange-200 sm:bg-gradient-to-br sm:from-orange-50 sm:to-amber-50')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Calendar className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
@@ -107,21 +114,21 @@ export function SystemSettingsMaintenance({
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 text-center sm:bg-white sm:border-orange-200')}>
               <div className="text-2xl font-bold text-orange-600">{icalSyncStatus?.listings_synced || 0}</div>
               <div className="text-xs text-slate-500">Объявлений</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-green-200 text-center">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 text-center sm:bg-white sm:border-green-200')}>
               <div className="text-2xl font-bold text-green-600">{icalSyncStatus?.success_count || 0}</div>
               <div className="text-xs text-slate-500">Успешно</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-red-200 text-center">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 text-center sm:bg-white sm:border-red-200')}>
               <div className="text-2xl font-bold text-red-600">{icalSyncStatus?.error_count || 0}</div>
               <div className="text-xs text-slate-500">Ошибок</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 text-center sm:bg-white sm:border-slate-200')}>
               <div className="text-sm font-medium text-slate-700">
                 {icalSyncStatus?.last_sync
                   ? new Date(icalSyncStatus.last_sync).toLocaleString('ru-RU', {
@@ -136,7 +143,7 @@ export function SystemSettingsMaintenance({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 bg-white rounded-lg p-3 border border-orange-200 sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, 'flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:bg-white sm:border-orange-200')}>
             <div className="flex items-start gap-2 min-w-0">
               <Clock className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -149,7 +156,7 @@ export function SystemSettingsMaintenance({
               </div>
             </div>
             <Select value={icalSyncFrequency} onValueChange={onIcalFrequencyChange}>
-              <SelectTrigger className="w-full sm:w-32 shrink-0 min-h-11">
+              <SelectTrigger className="w-full sm:w-32 shrink-0 min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -166,7 +173,7 @@ export function SystemSettingsMaintenance({
             <Button
               onClick={onGlobalIcalSync}
               disabled={icalSyncing}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+              className="min-h-[44px] flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
             >
               {icalSyncing ? (
                 <>
@@ -180,7 +187,7 @@ export function SystemSettingsMaintenance({
                 </>
               )}
             </Button>
-            <Button onClick={onRefreshIcalStatus} variant="outline" className="border-orange-300">
+            <Button onClick={onRefreshIcalStatus} variant="outline" className="min-h-[44px] min-w-[44px] border-orange-300">
               <Activity className="w-4 h-4" />
             </Button>
           </div>
@@ -196,8 +203,8 @@ export function SystemSettingsMaintenance({
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-slate-200">
-        <CardHeader className="p-4 lg:p-6 pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-slate-200')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <Activity className="w-5 h-5 text-white" />
@@ -208,7 +215,7 @@ export function SystemSettingsMaintenance({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-2">
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {recentActivity.length === 0 ? (
             <div className="text-center py-6 text-slate-500">
               <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
@@ -248,8 +255,8 @@ export function SystemSettingsMaintenance({
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-slate-200">
-        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-slate-200')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
               <Key className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
@@ -260,7 +267,7 @@ export function SystemSettingsMaintenance({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="new-password" className="text-sm font-medium">
@@ -273,12 +280,12 @@ export function SystemSettingsMaintenance({
                   placeholder="Минимум 8 символов"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 min-h-[44px]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -294,6 +301,7 @@ export function SystemSettingsMaintenance({
                 placeholder="Повторите пароль"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                className="min-h-[44px]"
               />
             </div>
           </div>
@@ -308,7 +316,7 @@ export function SystemSettingsMaintenance({
           <Button
             onClick={onPasswordChange}
             disabled={changingPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 8}
-            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+            className="min-h-[44px] max-sm:w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
           >
             {changingPassword ? (
               <>

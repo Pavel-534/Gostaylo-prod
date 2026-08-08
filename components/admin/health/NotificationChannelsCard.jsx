@@ -3,15 +3,22 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Bell, MessageCircle, Smartphone } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function SeverityFrame({ severity, children }) {
   const border =
     severity === 'critical'
-      ? 'border-red-300 bg-red-50/50'
+      ? 'sm:border-red-300 sm:bg-red-50/50'
       : severity === 'warning'
-        ? 'border-amber-300 bg-amber-50/50'
-        : 'border-slate-200 bg-white'
-  return <div className={`rounded-xl border p-3 ${border}`}>{children}</div>
+        ? 'sm:border-amber-300 sm:bg-amber-50/50'
+        : 'sm:border-slate-200 sm:bg-white'
+  return <div className={cn(MOBILE_FLAT_NESTED_PANEL_CLASS, 'p-3', border)}>{children}</div>
 }
 
 function SeverityBadge({ severity }) {
@@ -42,15 +49,17 @@ export function NotificationChannelsCard({ channels }) {
 
   return (
     <Card
-      className={`rounded-2xl border shadow-sm ${
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        'sm:rounded-2xl sm:shadow-sm',
         headline?.severity === 'critical'
-          ? 'border-red-200'
+          ? 'sm:border-red-200'
           : headline?.severity === 'warning'
-            ? 'border-amber-200'
-            : 'border-slate-200'
-      }`}
+            ? 'sm:border-amber-200'
+            : 'sm:border-slate-200',
+      )}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Bell className="h-5 w-5 text-brand" />
@@ -62,7 +71,7 @@ export function NotificationChannelsCard({ channels }) {
           Telegram SLA-напоминания и outbox; FCM — гигиена токенов и сигналы очистки.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2 text-sm">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid gap-4 md:grid-cols-2 text-sm')}>
         <SeverityFrame severity={headline?.severity}>
           <p className="font-medium text-slate-800 flex items-center gap-2 mb-2">
             <MessageCircle className="h-4 w-4 text-sky-600" />

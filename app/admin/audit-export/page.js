@@ -8,6 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -57,9 +63,9 @@ export default function AuditExportPage() {
   const busy = (type, fmt) => !!loading[`${type}_${fmt}`];
 
   return (
-    <div className="container max-w-lg py-6 sm:py-8 px-4">
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="space-y-1 pb-4">
+    <div className="max-w-lg max-sm:px-0 sm:container sm:py-6 sm:py-8 sm:px-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:shadow-sm sm:border-slate-200')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'space-y-1 sm:pb-4')}>
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <FileSpreadsheet className="h-5 w-5 text-brand shrink-0" />
             Выгрузка для разборов
@@ -69,7 +75,7 @@ export default function AuditExportPage() {
             Excel или Google Таблицах. Период — один календарный день по UTC (как на сервере).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
           <div className="space-y-2">
             <Label htmlFor="export-date" className="text-slate-700">
               Дата
@@ -79,12 +85,12 @@ export default function AuditExportPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="text-base h-11"
+              className="text-base min-h-[44px] h-11"
             />
             <p className="text-xs text-slate-500">UTC — то же время, что использует база при фильтрации.</p>
           </div>
 
-          <Separator />
+          <Separator className="max-sm:opacity-40" />
 
           <div className="space-y-3">
             <div>
@@ -92,10 +98,10 @@ export default function AuditExportPage() {
               <p className="text-xs text-slate-500 mb-3">
                 Все записи аудита за выбранный день: кто что менял в бронях и платежах.
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Button
                   variant="outline"
-                  className="gap-2 h-11 justify-center"
+                  className="gap-2 min-h-[44px] h-11 justify-center w-full"
                   disabled={busy('audit_logs', 'csv')}
                   onClick={() => download('audit_logs', 'csv')}
                 >
@@ -103,7 +109,7 @@ export default function AuditExportPage() {
                   {busy('audit_logs', 'csv') ? '…' : 'CSV'}
                 </Button>
                 <Button
-                  className="gap-2 h-11 justify-center "
+                  className="gap-2 min-h-[44px] h-11 justify-center w-full"
                   disabled={busy('audit_logs', 'xlsx')}
                   onClick={() => download('audit_logs', 'xlsx')}
                 >
@@ -114,7 +120,7 @@ export default function AuditExportPage() {
             </div>
           </div>
 
-          <Separator />
+          <Separator className="max-sm:opacity-40" />
 
           <div className="space-y-3">
             <div>
@@ -122,10 +128,10 @@ export default function AuditExportPage() {
               <p className="text-xs text-slate-500 mb-3">
                 Строки, у которых в этот день было создание или изменение (по данным сервера).
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Button
                   variant="outline"
-                  className="gap-2 h-11 justify-center"
+                  className="gap-2 min-h-[44px] h-11 justify-center w-full"
                   disabled={busy('bookings', 'csv')}
                   onClick={() => download('bookings', 'csv')}
                 >
@@ -133,7 +139,7 @@ export default function AuditExportPage() {
                   {busy('bookings', 'csv') ? '…' : 'CSV'}
                 </Button>
                 <Button
-                  className="gap-2 h-11 justify-center "
+                  className="gap-2 min-h-[44px] h-11 justify-center w-full"
                   disabled={busy('bookings', 'xlsx')}
                   onClick={() => download('bookings', 'xlsx')}
                 >

@@ -21,6 +21,14 @@ import {
 import { JobErrorDetails, OpsJobFailureRow } from '@/components/admin/health/JobErrorDetails'
 import { NotificationChannelsCard } from '@/components/admin/health/NotificationChannelsCard'
 import { CriticalSignalsPanel } from '@/components/admin/health/CriticalSignalsPanel'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+  MOBILE_FLAT_NESTED_PANEL_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function formatDt(iso) {
   if (!iso) return '—'
@@ -217,7 +225,7 @@ export default function AdminHealthPage() {
           type="button"
           variant="outline"
           size="sm"
-          className="rounded-xl shrink-0"
+          className="min-h-[44px] max-sm:w-full rounded-xl shrink-0"
           onClick={() => void load()}
           disabled={loading}
         >
@@ -227,8 +235,8 @@ export default function AdminHealthPage() {
       </div>
 
       {error ? (
-        <Card className="rounded-2xl border-red-200 bg-red-50/80">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-red-200 sm:bg-red-50/80")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-red-800 text-base flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
               Доступ или загрузка
@@ -251,8 +259,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {Array.isArray(jobFailures) && jobFailures.length > 0 ? (
-        <Card className="rounded-2xl border-amber-200 bg-amber-50/30 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-amber-200 sm:bg-amber-50/30 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-amber-950">
               <AlertTriangle className="h-5 w-5 text-amber-700" />
               Ошибки cron-джоб (ops_job_runs)
@@ -261,7 +269,7 @@ export default function AdminHealthPage() {
               Последние сбои за окно {data?.windowDays ?? 7} дн. — полный текст в раскрывающемся блоке.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {jobFailures.map((failure) => (
                 <OpsJobFailureRow key={`${failure.jobName}-${failure.startedAt}`} failure={failure} />
@@ -273,8 +281,8 @@ export default function AdminHealthPage() {
 
       {data ? <NotificationChannelsCard channels={notificationChannels} /> : null}
 
-      <Card className={`rounded-2xl border shadow-sm ${hasAdapterProblems ? 'border-red-200' : 'border-emerald-200'}`}>
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:shadow-sm", hasAdapterProblems ? "sm:border-red-200" : "sm:border-emerald-200")}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldAlert className={`h-5 w-5 ${hasAdapterProblems ? 'text-red-600' : 'text-emerald-600'}`} />
             Payment Adapters Health
@@ -283,7 +291,7 @@ export default function AdminHealthPage() {
             Проверка готовности ENV для live-подключения CARD_INTL / MIR_RU
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-3 text-sm")}>
           {adapterHealthError ? (
             <p className="text-red-600">{adapterHealthError}</p>
           ) : null}
@@ -292,7 +300,7 @@ export default function AdminHealthPage() {
           ) : null}
           {adapterHealth ? (
             <>
-              <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+              <div className={cn(MOBILE_FLAT_NESTED_PANEL_CLASS, "p-3 sm:border-slate-200 sm:bg-slate-50")}>
                 <p className="font-medium text-slate-800 flex items-center gap-2">
                   <EnvReadinessBadge ok={Boolean(adapterHealth.global?.ready)} />
                   Global secrets
@@ -304,7 +312,7 @@ export default function AdminHealthPage() {
                 )}
               </div>
               {adapterEntries.map(([key, row]) => (
-                <div key={key} className="rounded-xl border border-slate-200 p-3 bg-white">
+                <div key={key} className={cn(MOBILE_FLAT_NESTED_PANEL_CLASS, "p-3 sm:border-slate-200 sm:bg-white")}>
                   <p className="font-medium text-slate-800 flex items-center gap-2">
                     <EnvReadinessBadge ok={Boolean(row?.ready)} />
                     {key} {row?.mode ? `(${row.mode})` : ''}
@@ -323,13 +331,15 @@ export default function AdminHealthPage() {
 
       {data && referralSystemHealth ? (
         <Card
-          className={`rounded-2xl border shadow-sm ${
+          className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            'sm:rounded-2xl sm:shadow-sm',
             (referralSystemHealth.relationCycleCount ?? 0) > 0
-              ? 'border-red-200 bg-red-50/40'
-              : 'border-sky-100 bg-sky-50/30'
-          }`}
+              ? 'sm:border-red-200 sm:bg-red-50/40'
+              : 'sm:border-sky-100 sm:bg-sky-50/30',
+          )}
         >
-          <CardHeader className="pb-2">
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-sky-950">
               <Activity className="h-5 w-5 text-sky-700" />
               Referral system health
@@ -342,29 +352,31 @@ export default function AdminHealthPage() {
               </Link>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-2 text-sm")}>
             {referralSystemHealth.error ? (
               <p className="text-red-600 text-xs">{referralSystemHealth.error}</p>
             ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <div className="rounded-xl border border-sky-100 bg-white/70 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, "px-3 py-2 sm:border-sky-100 sm:bg-white/70")}>
                 <p className="text-slate-500">Активных FX-локов</p>
                 <p className="text-xl font-bold tabular-nums text-sky-900 mt-1">
                   {referralSystemHealth.activeWithdrawalLocks ?? 0}
                 </p>
               </div>
-              <div className="rounded-xl border border-sky-100 bg-white/70 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, "px-3 py-2 sm:border-sky-100 sm:bg-white/70")}>
                 <p className="text-slate-500">Заморожено в очереди</p>
                 <p className="text-xl font-bold tabular-nums text-sky-900 mt-1">
                   {Number(referralSystemHealth.frozenWithdrawalThb ?? 0).toLocaleString('ru-RU')} ฿
                 </p>
               </div>
               <div
-                className={`rounded-xl border px-3 py-2 ${
+                className={cn(
+                  MOBILE_FLAT_INSET_CLASS,
+                  'px-3 py-2',
                   (referralSystemHealth.relationCycleCount ?? 0) > 0
-                    ? 'border-red-200 bg-red-50/80'
-                    : 'border-sky-100 bg-white/70'
-                }`}
+                    ? 'sm:border-red-200 sm:bg-red-50/80'
+                    : 'sm:border-sky-100 sm:bg-white/70',
+                )}
               >
                 <p className="text-slate-500">Петли в ancestor_path</p>
                 <p
@@ -391,8 +403,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data && referralUnlock ? (
-        <Card className="rounded-2xl border border-amber-100 bg-amber-50/30 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-amber-100 sm:bg-amber-50/30 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-amber-950">
               <Activity className="h-5 w-5 text-amber-700" />
               Referral unlock (холд → кошелёк)
@@ -404,7 +416,7 @@ export default function AdminHealthPage() {
               <code className="text-xs">earned_held</code> после <code className="text-xs">unlock_at</code>.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-2 text-sm")}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-slate-500">Последний прогон</span>
               <StatusBadge status={referralUnlock.lastRun?.status || referralUnlockJob?.lastStatus} />
@@ -414,7 +426,7 @@ export default function AdminHealthPage() {
               Старт: {formatDt(referralUnlock.lastRun?.startedAt || referralUnlockJob?.lastStartedAt)}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-amber-100 bg-white/70 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, "px-3 py-2 sm:border-amber-100 sm:bg-white/70")}>
                 <p className="text-slate-500">За 24 ч</p>
                 <p className="text-slate-800 mt-1">
                   Строк ledger: <strong>{referralUnlock.last24h?.unlockedCount ?? 0}</strong>
@@ -424,7 +436,7 @@ export default function AdminHealthPage() {
                 </p>
                 <p className="text-slate-500 mt-0.5">прогонов: {referralUnlock.last24h?.runCount ?? 0}</p>
               </div>
-              <div className="rounded-xl border border-amber-100 bg-white/70 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, "px-3 py-2 sm:border-amber-100 sm:bg-white/70")}>
                 <p className="text-slate-500">Сегодня (UTC)</p>
                 <p className="text-slate-800 mt-1">
                   Строк ledger: <strong>{referralUnlock.todayUtc?.unlockedCount ?? 0}</strong>
@@ -456,8 +468,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data && referralReconcile ? (
-        <Card className="rounded-2xl border border-violet-100 bg-violet-50/30 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-violet-100 sm:bg-violet-50/30 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-violet-950">
               <ShieldAlert className="h-5 w-5 text-violet-700" />
               Referral reconciliation (FinTech lock)
@@ -469,7 +481,7 @@ export default function AdminHealthPage() {
               CANCELLED/REFUNDED брони.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-2 text-sm")}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-slate-500">Последний прогон (ops_job_runs)</span>
               <StatusBadge status={referralReconcile.lastRun?.status || referralReconcileJob?.lastStatus} />
@@ -488,7 +500,7 @@ export default function AdminHealthPage() {
               ) : null}
             </p>
             {referralReconcile.lastRun?.stats ? (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700 rounded-xl border border-violet-100 bg-white/70 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700 px-3 py-2 sm:border-violet-100 sm:bg-white/70')}>
                 <span>
                   mismatch броней:{' '}
                   <strong>{referralReconcile.lastRun.stats.mismatchBookingCount ?? '—'}</strong>
@@ -530,7 +542,7 @@ export default function AdminHealthPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-lg"
+                className="min-h-[44px] max-sm:w-full rounded-lg"
                 disabled={reconcileBusy || loading}
                 onClick={() => void runReferralReconcileNow()}
               >
@@ -555,8 +567,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data && trustSafety ? (
-        <Card className="rounded-2xl border border-rose-100 bg-rose-50/40 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-rose-100 sm:bg-rose-50/40 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-rose-950">
               <Siren className="h-5 w-5 text-rose-700" />
               Trust &amp; Safety — экстренные вызовы (24 ч)
@@ -566,7 +578,7 @@ export default function AdminHealthPage() {
               броней, обновлённых за последние 24 ч (выборка до 5000 строк).
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-2 text-sm")}>
             <p className="text-slate-800">
               <span className="text-slate-500">Событий за 24 ч:</span>{' '}
               <span className="text-2xl font-bold tabular-nums text-rose-800">{trustSafety.emergencyContacts24h ?? 0}</span>
@@ -602,8 +614,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data ? (
-        <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-brand">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-slate-200 sm:shadow-sm sm:border-l-4 sm:border-l-brand")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <MessageCircleWarning className="h-5 w-5 text-brand" />
@@ -618,7 +630,7 @@ export default function AdminHealthPage() {
               нет).
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-600">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm text-slate-600')}>
             {!slaNudge?.tablePresent ? (
               <p className="text-amber-700">Таблица partner_sla_nudge_events не найдена — примените миграцию 041.</p>
             ) : null}
@@ -666,8 +678,8 @@ export default function AdminHealthPage() {
 
       {data ? (
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-slate-200 sm:shadow-sm")}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <CalendarSync className="h-5 w-5 text-brand" />
@@ -677,7 +689,7 @@ export default function AdminHealthPage() {
               </div>
               <CardDescription>Последний прогон и сумма за окно</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-600">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm text-slate-600')}>
               <p>
                 <span className="text-slate-400">Запусков:</span>{' '}
                 <span className="font-medium text-slate-800">{ical?.runCount ?? 0}</span>
@@ -707,8 +719,8 @@ export default function AdminHealthPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-slate-200 sm:shadow-sm")}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-violet-600" />
@@ -718,7 +730,7 @@ export default function AdminHealthPage() {
               </div>
               <CardDescription>Восстановление зависших пачек push</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-600">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm text-slate-600')}>
               <p>
                 <span className="text-slate-400">Доставлено (сумма за период):</span>{' '}
                 <span className="font-semibold text-brand-hover text-lg">{sweeper?.totals?.delivered ?? 0}</span>
@@ -748,8 +760,8 @@ export default function AdminHealthPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-slate-200 sm:shadow-sm")}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Trash2 className="h-5 w-5 text-slate-600" />
@@ -759,7 +771,7 @@ export default function AdminHealthPage() {
               </div>
               <CardDescription>Очистка мёртвых токенов</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-600">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm text-slate-600')}>
               <p>
                 <span className="text-slate-400">Удалено токенов (сумма):</span>{' '}
                 <span className="font-semibold text-slate-900 text-lg">{hygiene?.totals?.removed ?? 0}</span>
@@ -792,8 +804,8 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data ? (
-        <Card className="rounded-2xl border border-sky-100 bg-sky-50/30 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-sky-100 sm:bg-sky-50/30 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-sky-950">
               <Map className="h-5 w-5 text-sky-700" />
               Geo &amp; Map Operations (Stage 164)
@@ -803,9 +815,9 @@ export default function AdminHealthPage() {
               <code className="text-xs bg-white/80 px-1 rounded">/api/cron/geo-drift-detector</code>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-3 text-sm")}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-sky-100 sm:bg-white/80')}>
                 <p className="text-xs text-slate-500">PostGIS</p>
                 <p className="font-semibold text-slate-900">
                   {spatialStats?.postgis?.postgisSpatialSearch ? 'active' : 'degraded'}
@@ -814,7 +826,7 @@ export default function AdminHealthPage() {
                   GiST: {spatialStats?.gistIndexPresent == null ? '—' : spatialStats.gistIndexPresent ? 'ok' : 'missing'}
                 </p>
               </div>
-              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-sky-100 sm:bg-white/80')}>
                 <p className="text-xs text-slate-500">Coords coverage</p>
                 <p className="font-semibold text-slate-900">
                   {spatialStats?.activeWithCoordinates ?? 0} / {spatialStats?.activeTotal ?? 0}
@@ -823,7 +835,7 @@ export default function AdminHealthPage() {
                   ratio {spatialStats?.coordinatesCoverageRatio ?? 0}
                 </p>
               </div>
-              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-sky-100 sm:bg-white/80')}>
                 <p className="text-xs text-slate-500">Privacy fuzz (runtime)</p>
                 <p className="font-semibold text-slate-900">
                   {(privacyStats?.runtime?.fuzz_ratio ?? 0) * 100}% fuzz
@@ -832,7 +844,7 @@ export default function AdminHealthPage() {
                   reveal {(privacyStats?.runtime?.reveal_rate ?? 0) * 100}%
                 </p>
               </div>
-              <div className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2">
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-sky-100 sm:bg-white/80')}>
                 <p className="text-xs text-slate-500">Map-pins p95</p>
                 <p className="font-semibold text-slate-900">{mapPinsMetrics?.p95_ms ?? 0} ms</p>
                 <p className="text-xs text-slate-500">
@@ -859,7 +871,7 @@ export default function AdminHealthPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="rounded-lg"
+                className="min-h-[44px] max-sm:w-full rounded-lg"
                 disabled={geoDriftBusy || loading}
                 onClick={() => void runGeoDriftScanNow()}
               >
@@ -887,34 +899,34 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data && performanceStats ? (
-        <Card className="rounded-2xl border border-violet-100 bg-violet-50/20 shadow-sm">
-          <CardHeader className="pb-2">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:rounded-2xl sm:border-violet-100 sm:bg-violet-50/20 sm:shadow-sm")}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
             <CardTitle className="text-base flex items-center gap-2 text-violet-950">
               <Activity className="h-5 w-5 text-violet-700" />
               Performance (Stage 166)
             </CardTitle>
             <CardDescription>Latency p95/p99, spatial cache hit ratio, circuit breaker</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm')}>
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-violet-100 sm:bg-white/80')}>
               <p className="text-xs text-slate-500">Search p95 / p99</p>
               <p className="font-semibold">
                 {performanceStats.search?.p95_ms ?? 0} / {performanceStats.search?.p99_ms ?? 0} ms
               </p>
             </div>
-            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-violet-100 sm:bg-white/80')}>
               <p className="text-xs text-slate-500">Map-pins p95 / p99</p>
               <p className="font-semibold">
                 {performanceStats.mapPins?.p95_ms ?? 0} / {performanceStats.mapPins?.p99_ms ?? 0} ms
               </p>
             </div>
-            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-violet-100 sm:bg-white/80')}>
               <p className="text-xs text-slate-500">Spatial cache hit</p>
               <p className="font-semibold">
                 {((performanceStats.spatialCache?.hit_ratio ?? 0) * 100).toFixed(1)}%
               </p>
             </div>
-            <div className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'px-3 py-2 sm:border-violet-100 sm:bg-white/80')}>
               <p className="text-xs text-slate-500">Open circuits</p>
               <p className="font-semibold">
                 {performanceStats.spatialCircuit?.openCircuits?.length ?? 0}

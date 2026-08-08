@@ -11,6 +11,13 @@ import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type,
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { saveAdminSettings } from '@/lib/admin/admin-settings-api-client';
+import { cn } from '@/lib/utils';
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas';
 
 const FEE_SPLIT_PRESETS = {
   russia_fast: {
@@ -188,14 +195,14 @@ export default function SettingsPage() {
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
           <Link
             href="/admin/settings/finances"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-brand/30 bg-brand/5 px-4 py-3 text-sm font-semibold text-brand-hover hover:bg-brand/10"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border-2 border-brand/30 bg-brand/5 px-4 py-3 text-sm font-semibold text-brand-hover hover:bg-brand/10"
           >
             <Landmark className="w-5 h-5 text-brand-hover" />
             FinTech-пульт (касса, пулы, ledger)
           </Link>
           <Link
             href="/admin/settings/legal"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border-2 border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
           >
             <Shield className="w-5 h-5 text-indigo-700" />
             Юридические документы
@@ -204,8 +211,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Homepage Hero Content - Mobile Responsive */}
-      <Card className="shadow-xl border-2 border-indigo-200">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl sm:border-2 sm:border-indigo-200")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Home className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
             Контент главной
@@ -214,7 +221,7 @@ export default function SettingsPage() {
             Hero-секция на главной странице
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-4 sm:space-y-6")}>
           <div>
             <Label htmlFor="heroTitle" className="text-sm sm:text-base flex items-center gap-2">
               <Type className="w-4 h-4" />
@@ -260,8 +267,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Commission Settings - Mobile Responsive */}
-      <Card className="shadow-xl">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             Настройки комиссии
@@ -270,7 +277,7 @@ export default function SettingsPage() {
             Базовая комиссия для партнеров
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-4 sm:space-y-6")}>
           <div className="min-w-0">
             <Label htmlFor="chatInvoiceMult" className="text-sm sm:text-base">
               Розничный курс на витрине + чат (USD, RUB, USDT…)
@@ -318,8 +325,8 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-xl border-2 border-sky-200">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl sm:border-2 sm:border-sky-200")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-sky-700" />
             Settlement Policy & Fee Split
@@ -328,7 +335,7 @@ export default function SettingsPage() {
             Единый центр: кто сколько платит, как формируется резерв и когда отправляется payout.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-5">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-5")}>
           <div>
             <p className="text-sm font-medium text-slate-800 mb-2">Быстрые пресеты</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -337,7 +344,7 @@ export default function SettingsPage() {
                   key={preset.id}
                   type="button"
                   variant={activePresetId === preset.id ? 'default' : 'outline'}
-                  className={`h-auto justify-start px-3 py-3 text-left ${
+                  className={`min-h-[44px] h-auto justify-start px-3 py-3 text-left ${
                     activePresetId === preset.id ? 'bg-sky-700 hover:bg-sky-800' : ''
                   }`}
                   onClick={() => applyPreset(preset.id)}
@@ -458,7 +465,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, "p-4 sm:bg-slate-50")}>
             <p className="text-sm font-semibold text-slate-900">Preview (на примере ฿10,000):</p>
             <p className="text-xs text-slate-600 mt-1">{payoutPolicyHint} Час выплаты: {settings.settlementPayoutHourLocal}:00.</p>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
@@ -478,8 +485,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Безопасность чата: авто-shadowban по страйкам + оценка риска в админке */}
-      <Card className="shadow-xl border-2 border-sky-200">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl sm:border-2 sm:border-sky-200")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Shield className="h-5 w-5 shrink-0 text-sky-700 sm:h-6 sm:w-6" />
             Настройки безопасности чата
@@ -490,8 +497,8 @@ export default function SettingsPage() {
             использует средний чек в THB и курсы из <code className="text-xs">exchange_rates</code> без витринной надбавки.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5 p-4 pt-0 sm:p-6">
-          <div className="flex flex-col gap-3 rounded-lg border border-sky-100 bg-sky-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-5")}>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, "flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:border-sky-100 sm:bg-sky-50/80")}>
             <div>
               <Label htmlFor="autoShadowban" className="text-sm font-semibold text-slate-900">
                 Enable Auto-Shadowban
@@ -538,7 +545,7 @@ export default function SettingsPage() {
               начисляются ADMIN/MODERATOR.
             </p>
           </div>
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-100 bg-amber-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, "flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:border-amber-100 sm:bg-amber-50/80")}>
             <div>
               <Label htmlFor="searchRankPenalty" className="text-sm font-semibold text-slate-900">
                 Понижение в поиске при пороге страйков
@@ -614,8 +621,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Rich Results / Schema.org — телефон только в JSON-LD, не на карточке объекта */}
-      <Card className="shadow-xl border-2 border-slate-200">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl sm:border-2 sm:border-slate-200")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
             Телефон для Google (Rich Results)
@@ -625,7 +632,7 @@ export default function SettingsPage() {
             telephone). На странице объявления для гостей не показывается.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-3")}>
           <div>
             <Label htmlFor="sitePhone" className="text-sm sm:text-base">
               Контактный телефон
@@ -645,8 +652,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Maintenance Mode - Mobile Responsive */}
-      <Card className="shadow-xl border-2 border-orange-200">
-        <CardHeader className="p-4 sm:p-6">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:shadow-xl sm:border-2 sm:border-orange-200")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Power className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
             Режим обслуживания
@@ -655,7 +662,7 @@ export default function SettingsPage() {
             Отключите сайт для пользователей
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-4 sm:space-y-6")}>
           <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-2 border-orange-300 gap-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
@@ -696,14 +703,14 @@ export default function SettingsPage() {
 
       {/* Save Button - Mobile Responsive */}
       <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
-        <Button variant="outline" size="lg" onClick={() => window.location.reload()} className="w-full sm:w-auto">
+        <Button variant="outline" size="lg" onClick={() => window.location.reload()} className="min-h-[44px] w-full sm:w-auto">
           Отменить
         </Button>
         <Button
           size="lg"
           onClick={handleSave}
           disabled={saving}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto"
+          className="min-h-[44px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto"
         >
           {saving ? 'Сохранение...' : '✅ Сохранить'}
         </Button>

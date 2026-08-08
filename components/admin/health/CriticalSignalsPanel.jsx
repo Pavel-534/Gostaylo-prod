@@ -7,6 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ShieldAlert } from 'lucide-react'
 import { CRITICAL_SIGNAL_KEYS, CRITICAL_SIGNAL_LABELS } from '@/lib/admin/critical-signal-keys.js'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function formatDt(iso) {
   if (!iso) return '—'
@@ -47,8 +54,8 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
   const tamperCount = signals.priceTamperingCount ?? signals.countsByKey?.PRICE_TAMPERING ?? 0
 
   return (
-    <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-amber-500">
-      <CardHeader className="pb-2">
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:rounded-2xl sm:border-slate-200 sm:shadow-sm sm:border-l-4 sm:border-l-amber-500')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
         <CardTitle className="text-base flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-amber-600" />
           Critical signals
@@ -59,7 +66,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
           {!signals.tablePresent ? ' (таблица не найдена)' : ''}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="text-3xl font-bold text-slate-900">{tamperCount}</span>
           <span className="text-sm text-slate-500">PRICE_TAMPERING</span>
@@ -73,7 +80,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
 
         <div className="flex flex-col sm:flex-row gap-2">
           <select
-            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800"
+            className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800"
             value={filterKey}
             onChange={(e) => setFilterKey(e.target.value)}
             aria-label="Фильтр по типу сигнала"
@@ -86,7 +93,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
             ))}
           </select>
           <Input
-            className="rounded-xl h-9"
+            className="rounded-xl min-h-[44px]"
             placeholder="Поиск по detail (listing, renter, booking…)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -99,7 +106,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
               key={key}
               type="button"
               onClick={() => setFilterKey(key)}
-              className={`rounded-lg border px-2 py-1 transition-colors ${
+              className={`min-h-[44px] rounded-lg border px-3 py-2 transition-colors ${
                 filterKey === key
                   ? 'border-brand bg-brand/10 text-brand-hover font-medium'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
@@ -111,7 +118,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
         </div>
 
         {events.length > 0 ? (
-          <ul className="space-y-2 text-sm border border-slate-100 rounded-xl p-3 bg-slate-50/80 max-h-80 overflow-y-auto">
+          <ul className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2 text-sm p-3 max-h-80 overflow-y-auto sm:border-slate-100 sm:bg-slate-50/80')}>
             {events.map((row) => (
               <li
                 key={row.id}
@@ -128,7 +135,7 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
                         <Link
                           key={`${row.id}-${link.href}`}
                           href={link.href}
-                          className="text-xs font-medium text-brand hover:underline"
+                          className="text-xs font-medium text-brand hover:underline min-h-[44px] inline-flex items-center"
                         >
                           {link.label} →
                         </Link>
@@ -136,8 +143,8 @@ export function CriticalSignalsPanel({ signals, windowDays = 7 }) {
                     </span>
                   ) : null}
                 </div>
-                <details className="rounded-lg border border-slate-200/80 bg-white/70 px-2 py-1">
-                  <summary className="cursor-pointer text-xs text-slate-600 list-none [&::-webkit-details-marker]:hidden">
+                <details className="rounded-lg border border-slate-200/80 bg-white/70 px-2 py-1 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0">
+                  <summary className="cursor-pointer text-xs text-slate-600 list-none [&::-webkit-details-marker]:hidden min-h-[44px] flex items-center">
                     detail
                   </summary>
                   <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[10px] text-slate-700">

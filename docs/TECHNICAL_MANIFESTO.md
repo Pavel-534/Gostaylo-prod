@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.45 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.63** Admin Wave 5E-2 marketing remainder mobile-flat.
+> **Version**: 13.2.47 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.65** storefront redirect debt closed (inventory 116/116).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,12 +27,25 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 200.65 — Storefront redirect debt (Wave 6)
+
+- Paths: `/dashboard` (role router → `/admin` | `/partner/dashboard` | `/renter/dashboard` | login; `LoadingPageShell` while resolving `/api/v2/auth/me`), `/dashboard/renter` → server `redirect('/renter/dashboard')`.
+- No auth/API contract changes — polish loaders + inventory close-out.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.13.0 — **116/116 (100% Finished)**.
+
+### Stage 200.64 — Admin Wave 5F mobile-flat (system / security / compliance)
+
+- Paths: `/admin/system` (+ ai / ical / ical/logs), `/admin/ai-usage`, `/admin/security`, `/admin/health`, `/admin/marketplace-health`, `/admin/audit`, `/admin/audit-export`, `/admin/privacy/erasure`, `/admin/settings`, `/admin/settings/legal`. Exclude `/admin/test-db`.
+- SSOT: `MOBILE_FLAT_*`; iCal logs / security violators / cities / audit / erasure / legal consents: mobile cards + desktop tables; touch `min-h-[44px]` on Sync / Export / Erasure / Save / ban·strike / publish.
+- Layout/Tailwind only — no iCal sync, AI telemetry, security ban, GDPR, or fee/settlement/FX body changes.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.12.0. Admin panel mobile-flat waves **closed** (5A–5F).
+
 ### Stage 200.63 — Admin Wave 5E-2 mobile-flat (marketing admin remainder)
 
 - Paths: `/admin/marketing/analytics`, `/budget`, `/referral-payouts` (+ `/payouts` redirect), `/fraud-queue`, `/roi` (+ `[campaignSlug]`), `/audit`, `/wallet-audit`.
 - SSOT: `MOBILE_FLAT_*`; fraud/payout/audit/wallet/analytics/ROI tables: mobile cards + desktop tables; touch `min-h-[44px]`; fraud labels Одобр./Блок/Флаг.
 - Layout/Tailwind only — no marketing API, fetch, PATCH, payout/fraud/wallet math changes.
-- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.11.0. Next → Admin system settings / remaining admin.
+- Inventory: [`PRODUCT_UI_INVENTORY.md`](./PRODUCT_UI_INVENTORY.md) v1.11.0. Next → Admin Wave **5F** (§4.4).
 
 ### Stage 200.62 — Admin Wave 5E-1 mobile-flat (marketing admin core)
 

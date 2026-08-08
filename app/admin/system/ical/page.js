@@ -14,6 +14,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function AdminICalPage() {
   const router = useRouter()
@@ -158,7 +165,7 @@ export default function AdminICalPage() {
       <div className="bg-white border-b sticky app-sticky-below-header z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className="min-h-[44px] min-w-[44px]">
               <Link href="/admin/system">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
@@ -178,6 +185,7 @@ export default function AdminICalPage() {
                 size="sm"
                 asChild
                 title="Подробные логи"
+                className="min-h-[44px] min-w-[44px]"
               >
                 <Link href="/admin/system/ical/logs">
                   <Activity className="h-4 w-4" />
@@ -189,6 +197,7 @@ export default function AdminICalPage() {
                 size="sm"
                 onClick={() => loadData()}
                 title="Обновить"
+                className="min-h-[44px] min-w-[44px]"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -199,25 +208,25 @@ export default function AdminICalPage() {
 
       <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:pt-6')}>
               <div className="text-center">
                 <p className="text-2xl font-bold text-slate-900">{stats.total_24h}</p>
                 <p className="text-xs text-slate-500">Всего за 24ч</p>
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-6">
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:pt-6')}>
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">{stats.success_24h}</p>
                 <p className="text-xs text-slate-500">Успешно</p>
               </div>
             </CardContent>
           </Card>
-          <Card className={stats.errors_24h > 0 ? 'border-red-200' : ''}>
-            <CardContent className="pt-6">
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, stats.errors_24h > 0 ? 'sm:border-red-200' : '')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:pt-2 sm:pt-6')}>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">{stats.errors_24h}</p>
                 <p className="text-xs text-slate-500">Ошибок</p>
@@ -228,9 +237,12 @@ export default function AdminICalPage() {
 
         {/* Last Sync Result */}
         {lastSyncResult && (
-          <Card className={lastSyncResult.errors > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
+          <Card className={cn(
+            MOBILE_FLAT_CARD_CLASS,
+            lastSyncResult.errors > 0 ? 'sm:border-amber-200 sm:bg-amber-50' : 'sm:border-green-200 sm:bg-green-50',
+          )}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'py-4')}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   {lastSyncResult.errors > 0 ? (
                     <AlertCircle className="h-5 w-5 text-amber-600" />
@@ -254,9 +266,9 @@ export default function AdminICalPage() {
         )}
 
         {/* Sync All Button */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-3')}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-base">Глобальная синхронизация</CardTitle>
                 <CardDescription>
@@ -267,6 +279,7 @@ export default function AdminICalPage() {
                 onClick={triggerSyncAll}
                 disabled={syncing}
                 variant="brand"
+                className="min-h-[44px] max-sm:w-full"
               >
                 {syncing ? (
                   <>
@@ -285,14 +298,14 @@ export default function AdminICalPage() {
         </Card>
 
         {/* Listings with Sync Enabled */}
-        <Card>
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">Объекты с синхронизацией</CardTitle>
             <CardDescription>
               Листинги с настроенными внешними календарями ({listings.length})
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {listings.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-4">
                 Нет объектов с настроенной синхронизацией
@@ -302,7 +315,7 @@ export default function AdminICalPage() {
                 {listings.map(listing => (
                   <div 
                     key={listing.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                    className={cn(MOBILE_FLAT_INSET_CLASS, 'flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:bg-slate-50')}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{listing.title}</p>
@@ -319,6 +332,7 @@ export default function AdminICalPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => triggerSync(listing.id)}
+                      className="min-h-[44px] max-sm:w-full"
                     >
                       <RefreshCw className="h-3 w-3 mr-1" />
                       Синхр.
@@ -331,15 +345,15 @@ export default function AdminICalPage() {
         </Card>
 
         {/* Recent Logs Preview */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-base">Последние записи</CardTitle>
                 <CardDescription>5 последних синхронизаций</CardDescription>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-2 min-h-[44px]">
                   <Switch
                     id="errors-only"
                     checked={errorsOnly}
@@ -349,7 +363,7 @@ export default function AdminICalPage() {
                     Только ошибки
                   </Label>
                 </div>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="min-h-[44px] max-sm:w-full">
                   <Link href="/admin/system/ical/logs">
                     <List className="h-4 w-4 mr-1" />
                     Все логи
@@ -358,7 +372,7 @@ export default function AdminICalPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             {logs.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 {errorsOnly ? 'Ошибок не найдено' : 'История пуста'}
@@ -368,11 +382,13 @@ export default function AdminICalPage() {
                 {logs.slice(0, 5).map(log => (
                   <div 
                     key={log.id}
-                    className={`p-3 rounded-lg ${
+                    className={cn(
+                      MOBILE_FLAT_INSET_CLASS,
+                      'p-3',
                       log.status === 'error' 
-                        ? 'bg-red-50 border border-red-100' 
-                        : 'bg-slate-50'
-                    }`}
+                        ? 'sm:bg-red-50 sm:border-red-100' 
+                        : 'sm:bg-slate-50',
+                    )}
                   >
                     <div className="flex items-start gap-3">
                       {log.status === 'error' ? (

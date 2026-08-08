@@ -39,6 +39,11 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { AdminLegalVersionCard } from '@/components/admin/legal/AdminLegalVersionCard'
 import { AdminLegalFullPackageCard } from '@/components/admin/legal/AdminLegalFullPackageCard'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const NAVY = '#0F172A'
 
@@ -208,7 +213,7 @@ export default function AdminLegalSettingsPage() {
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               onClick={loadOverview}
               disabled={loading}
             >
@@ -218,7 +223,7 @@ export default function AdminLegalSettingsPage() {
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               asChild
             >
               <a href="/api/admin/settings/legal/pdf" download>
@@ -229,7 +234,7 @@ export default function AdminLegalSettingsPage() {
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               asChild
             >
               <a href="/api/admin/settings/legal/export-zip" download>
@@ -240,7 +245,7 @@ export default function AdminLegalSettingsPage() {
             <Button
               variant="secondary"
               size="sm"
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              className="min-h-[44px] bg-white/10 text-white border-white/20 hover:bg-white/20"
               asChild
             >
               <Link href="/admin/settings/finances">
@@ -287,19 +292,19 @@ export default function AdminLegalSettingsPage() {
 
         <AdminLegalFullPackageCard />
 
-        <Card className="border-slate-200">
-          <CardHeader>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200')}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-base">Быстрый тест: один PDF-акт</CardTitle>
             <CardDescription>
               Только акт на 1 000 ฿ без полной цепочки. Для полной проверки используйте кнопку выше.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3 items-center">
-            <Button variant="outline" onClick={generateTestAct} disabled={testActBusy}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap gap-3 items-center')}>
+            <Button variant="outline" onClick={generateTestAct} disabled={testActBusy} className="min-h-[44px] max-sm:w-full">
               {testActBusy ? 'Генерируем…' : 'Сгенерировать тестовый акт'}
             </Button>
             {testActUrl ? (
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild className="min-h-[44px]">
                 <a href={testActUrl} target="_blank" rel="noopener noreferrer">
                   <Download className="h-4 w-4 mr-1" />
                   Открыть PDF (1 ч)
@@ -310,30 +315,30 @@ export default function AdminLegalSettingsPage() {
         </Card>
 
         {publisher && (
-          <Card>
-            <CardHeader>
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle className="text-base">Оператор на сайте</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-1">
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'text-sm text-muted-foreground space-y-1')}>
               <p>{publisher.companyName}</p>
               <p>ИНН {publisher.inn}</p>
             </CardContent>
           </Card>
         )}
 
-        <Card>
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-lg">Актуальные документы на сайте</CardTitle>
             <CardDescription>Откройте страницу и сверьте текст перед публикацией версии</CardDescription>
           </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-2">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'grid sm:grid-cols-2 gap-2')}>
             {documents.map((d) => (
               <a
                 key={d.id}
                 href={d.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm hover:bg-slate-50"
+                className="flex min-h-[44px] items-center justify-between rounded-lg border px-3 py-2.5 text-sm hover:bg-slate-50"
               >
                 <span>{d.label}</span>
                 <ExternalLink className="h-4 w-4 text-brand shrink-0" />
@@ -342,17 +347,17 @@ export default function AdminLegalSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className={MOBILE_FLAT_CARD_CLASS}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
             <CardTitle className="text-lg">Последние согласия</CardTitle>
             <CardDescription>Кто и когда принял условия</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-end">
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <div className="space-y-1">
                 <Label>Тип</Label>
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="min-h-[44px] w-full sm:w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -369,46 +374,62 @@ export default function AdminLegalSettingsPage() {
                   placeholder="2026-05-18-v1"
                   value={filterVersion}
                   onChange={(e) => setFilterVersion(e.target.value)}
+                  className="min-h-[44px]"
                 />
               </div>
-              <Button variant="outline" onClick={loadConsents} disabled={consentLoading}>
+              <Button variant="outline" onClick={loadConsents} disabled={consentLoading} className="min-h-[44px] max-sm:w-full">
                 <RefreshCw className={cn('h-4 w-4 mr-1', consentLoading && 'animate-spin')} />
                 Применить
               </Button>
             </div>
 
-            <div className="rounded-lg border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left">
-                  <tr>
-                    <th className="p-2 font-medium">Тип</th>
-                    <th className="p-2 font-medium">Когда</th>
-                    <th className="p-2 font-medium">Версия</th>
-                    <th className="p-2 font-medium">Контакт / ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {consents.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                        {consentLoading ? 'Загрузка…' : 'Нет записей по фильтру'}
-                      </td>
-                    </tr>
-                  ) : (
-                    consents.map((row, i) => (
-                      <tr key={`${row.kind}-${row.userId || row.bookingId}-${i}`} className="border-t">
-                        <td className="p-2">
-                          <Badge variant="secondary">{kindLabel(row.kind)}</Badge>
-                        </td>
-                        <td className="p-2 whitespace-nowrap">{fmtDate(row.acceptedAt)}</td>
-                        <td className="p-2 font-mono text-xs">{row.version || '—'}</td>
-                        <td className="p-2 text-xs">{row.email || row.bookingId || row.userId}</td>
+            {consents.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {consentLoading ? 'Загрузка…' : 'Нет записей по фильтру'}
+              </p>
+            ) : (
+              <>
+                <div className="space-y-0 sm:hidden">
+                  {consents.map((row, i) => (
+                    <div
+                      key={`${row.kind}-${row.userId || row.bookingId}-${i}`}
+                      className="border-b border-slate-100 py-3 last:border-0 space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="secondary">{kindLabel(row.kind)}</Badge>
+                        <span className="text-xs text-slate-500">{fmtDate(row.acceptedAt)}</span>
+                      </div>
+                      <p className="font-mono text-xs text-slate-900">{row.version || '—'}</p>
+                      <p className="text-xs text-slate-600 break-all">{row.email || row.bookingId || row.userId}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-left">
+                      <tr>
+                        <th className="p-2 font-medium">Тип</th>
+                        <th className="p-2 font-medium">Когда</th>
+                        <th className="p-2 font-medium">Версия</th>
+                        <th className="p-2 font-medium">Контакт / ID</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {consents.map((row, i) => (
+                        <tr key={`${row.kind}-${row.userId || row.bookingId}-${i}`} className="border-t">
+                          <td className="p-2">
+                            <Badge variant="secondary">{kindLabel(row.kind)}</Badge>
+                          </td>
+                          <td className="p-2 whitespace-nowrap">{fmtDate(row.acceptedAt)}</td>
+                          <td className="p-2 font-mono text-xs">{row.version || '—'}</td>
+                          <td className="p-2 text-xs">{row.email || row.bookingId || row.userId}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -423,10 +444,11 @@ export default function AdminLegalSettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={Boolean(busyDoc)}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={Boolean(busyDoc)} className="min-h-[44px] max-sm:w-full">Отмена</AlertDialogCancel>
             <AlertDialogAction
               disabled={Boolean(busyDoc)}
               onClick={() => publishConfirm && publish(publishConfirm)}
+              className="min-h-[44px] max-sm:w-full"
             >
               {busyDoc ? 'Публикуем…' : 'Опубликовать'}
             </AlertDialogAction>

@@ -1,68 +1,61 @@
 /**
- * GoStayLo - Dashboard Router
- * Redirects to appropriate dashboard based on user role
+ * Role-based dashboard router (legacy `/dashboard` entry).
+ * Stage 200.65 — LoadingPageShell while resolving `/api/v2/auth/me`.
  */
 
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 
 export default function DashboardRouter() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const router = useRouter()
 
   useEffect(() => {
-    checkRoleAndRedirect();
-  }, []);
+    let cancelled = false
 
-  async function checkRoleAndRedirect() {
-    try {
-      const res = await fetch('/api/v2/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const payload = await res.json().catch(() => ({}));
+    async function checkRoleAndRedirect() {
+      try {
+        const res = await fetch('/api/v2/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const payload = await res.json().catch(() => ({}))
 
-      if (res.status === 401 || !payload?.success || !payload?.user) {
-        router.push('/auth/login');
-        return;
+        if (cancelled) return
+
+        if (res.status === 401 || !payload?.success || !payload?.user) {
+          router.replace('/auth/login')
+          return
+        }
+
+        const role = String(payload.user.role || 'RENTER').toUpperCase()
+
+        switch (role) {
+          case 'ADMIN':
+          case 'MODERATOR':
+            router.replace('/admin')
+            break
+          case 'PARTNER':
+            router.replace('/partner/dashboard')
+            break
+          case 'RENTER':
+          default:
+            router.replace('/renter/dashboard')
+            break
+        }
+      } catch (error) {
+        console.error('[DASHBOARD] Error:', error)
+        if (!cancelled) router.replace('/')
       }
-
-      const role = String(payload.user.role || 'RENTER').toUpperCase();
-
-      switch (role) {
-        case 'ADMIN':
-        case 'MODERATOR':
-          router.push('/admin');
-          break;
-        case 'PARTNER':
-          router.push('/partner/dashboard');
-          break;
-        case 'RENTER':
-        default:
-          router.push('/renter/dashboard');
-          break;
-      }
-    } catch (error) {
-      console.error('[DASHBOARD] Error:', error);
-      router.push('/');
-    } finally {
-      setLoading(false);
     }
-  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto" />
-          <p className="mt-2 text-slate-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+    void checkRoleAndRedirect()
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
-  return null;
+  return <LoadingPageShell label="Перенаправление…" />
 }

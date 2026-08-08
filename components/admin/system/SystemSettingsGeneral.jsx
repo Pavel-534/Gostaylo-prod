@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Palmtree, Sparkles, ChevronRight, Shield, Bot, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_CARD_CONTENT_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /** Overview: title row, AI dashboard shortcut, quick health cards. */
 export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
@@ -25,9 +27,9 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
         </Badge>
       </div>
 
-      <Link href="/admin/system/ai" className="block group">
-        <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 transition-shadow hover:shadow-lg">
-          <CardContent className="p-4 lg:p-6">
+      <Link href="/admin/system/ai" className="block group min-h-[44px]">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-violet-200 sm:bg-gradient-to-br sm:from-violet-50 sm:via-white sm:to-indigo-50 transition-shadow hover:shadow-lg')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4 lg:p-6')}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-[1.02] transition-transform">
@@ -40,7 +42,7 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-violet-700 font-medium text-sm self-end sm:self-auto">
+              <div className="flex items-center gap-1 text-violet-700 font-medium text-sm self-end sm:self-auto min-h-[44px]">
                 Открыть дашборд
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -50,8 +52,8 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
       </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="bg-gradient-to-br from-brand/10 to-cyan-50 border-brand/25">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-brand/10 sm:to-cyan-50 sm:border-brand/25')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4')}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-brand font-medium">Статус системы</p>
@@ -64,8 +66,8 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-blue-50 sm:to-indigo-50 sm:border-blue-200')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4')}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-blue-600 font-medium">Статус бота</p>
@@ -80,8 +82,8 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-          <CardContent className="p-4">
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-purple-50 sm:to-pink-50 sm:border-purple-200')}>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'p-4')}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-purple-600 font-medium">В очереди</p>

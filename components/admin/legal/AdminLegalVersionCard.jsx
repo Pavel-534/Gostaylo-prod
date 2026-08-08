@@ -15,6 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 const MINT = '#0D9488'
 
@@ -60,15 +66,15 @@ export function AdminLegalVersionCard({
 
   return (
     <>
-      <Card className="border-brand/20 shadow-sm">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:border-brand/20 sm:shadow-sm")}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, "pb-2")}>
           <CardTitle className="text-lg flex items-center gap-2">
             <Icon className="h-5 w-5" style={{ color: MINT }} />
             {title}
           </CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-4")}>
           <div>
             <p className="text-xs text-muted-foreground">Активная версия (для акцептов)</p>
             <p className="text-xl font-semibold font-mono">{slice?.currentVersion || '…'}</p>
@@ -108,7 +114,7 @@ export function AdminLegalVersionCard({
           <div className="flex flex-col gap-2">
             <Button
               variant="outline"
-              className="w-full"
+              className="min-h-[44px] w-full"
               disabled={busy}
               onClick={() =>
                 onSaveDraft(docKey, {
@@ -122,7 +128,7 @@ export function AdminLegalVersionCard({
             </Button>
             <Button
               variant="secondary"
-              className="w-full"
+              className="min-h-[44px] w-full"
               disabled={!draft}
               onClick={() => setPreviewOpen(true)}
             >
@@ -130,7 +136,7 @@ export function AdminLegalVersionCard({
               Превью изменений
             </Button>
             <Button
-              className="w-full"
+              className="min-h-[44px] w-full"
               style={{ backgroundColor: MINT }}
               disabled={busy || !draft}
               onClick={() => onPublish(docKey)}

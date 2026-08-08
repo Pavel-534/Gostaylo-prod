@@ -1,6 +1,6 @@
 # Product UI Inventory — экраны App Router
 
-> **Version**: 1.11.0 | **Updated**: 2026-08-08 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
+> **Version**: 1.13.0 | **Updated**: 2026-08-08 | **Source**: `app/**/page.{js,jsx}` (116 route pages)  
 > **Purpose:** SSOT-инвентаризация UI-страниц (mobile-flat waves после Stage **200.52**).  
 > **Tokens:** [`lib/ui/mobile-flat-canvas.js`](../lib/ui/mobile-flat-canvas.js) (`MOBILE_FLAT_*` / alias `MOBILE_FLAT_CANVAS`) · product shell — `components/product/*` · [`PRODUCT_UI_SYSTEM.md`](./PRODUCT_UI_SYSTEM.md).  
 > **Не путать с API:** маршруты `app/api/**` сюда не входят.
@@ -23,6 +23,8 @@
 | `[x] Finished (Admin Wave 5D / 200.61)` | Categories, location suggestions, staff messages |
 | `[x] Finished (Admin Wave 5E-1 / 200.62)` | Marketing admin hub: overview, promos, campaigns, rules, settings, attribution |
 | `[x] Finished (Admin Wave 5E-2 / 200.63)` | Marketing admin remainder: analytics, budget, payouts ops, fraud, ROI, audit |
+| `[x] Finished (Admin Wave 5F / 200.64)` | System / security / compliance / health / settings / legal |
+| `[x] Finished (Wave 6 / 200.65)` | Storefront redirect debt: `/dashboard`, `/dashboard/renter` |
 | `[ ] Pending Flattening` | Нужен рефактор под mobile-flat / единый product shell |
 | `redirect` | Нет UI — только redirect; не входит в visual polish |
 
@@ -118,7 +120,15 @@
 - Tables: desktop `hidden sm:block`; mobile card stacks (`sm:hidden`) for fraud queue, payout tabs, tank/wallet ledgers, analytics leaderboard/cohorts, ROI campaigns/bookings.
 - Touch: `min-h-[44px]`; fraud actions short labels Одобр./Блок/Флаг; TabsTrigger / dialog footers / PAID·FAILED·Approve·Reject full-width on max-sm.
 - **Не трогать:** fetch / PATCH / payout / fraud / wallet calculation bodies — layout/Tailwind only.
-- **Next:** Admin system settings / remaining §4.4 admin.
+- **Next:** Admin Wave **5F** (§4.4 system / security / compliance) — Done (200.64).
+
+**Уточнения ТЗ (Wave 5F — Admin system / security / compliance):**
+
+- Scope (13 product routes): **`/admin/system`** (+ ai / ical / ical/logs panels), **`/admin/ai-usage`**, **`/admin/security`**, **`/admin/health`**, **`/admin/marketplace-health`**, **`/admin/audit`**, **`/admin/audit-export`**, **`/admin/privacy/erasure`**, **`/admin/settings`**, **`/admin/settings/legal`**.
+- **Exclude:** `/admin/test-db` (dev gate — not product flatten).
+- Tables: desktop `hidden sm:block`; mobile cards `sm:hidden` for iCal logs, security violators, marketplace cities, audit, erasure queue, legal consents.
+- Touch: `min-h-[44px]` on Sync / Healthcheck / Export / Purge·Erasure / Save / ban·strike / publish.
+- **Не трогать:** iCal sync hooks, AI telemetry PATCH/reindex bodies, security ban APIs, GDPR `process_now` payloads, fee/settlement/FX formulas.
 
 ---
 
@@ -127,12 +137,12 @@
 | Домен | Страниц | Finished | Pending |
 |-------|--------:|---------:|--------:|
 | Partner Hub | 14 | **14** | 0 |
-| Storefront / Renter (+ Chat) | 29 | **27** | 2 |
+| Storefront / Renter (+ Chat) | 29 | **29** | 0 |
 | Auth & System (+ Marketing, demo) | 21 | **21** | 0 |
-| Admin Panel | 52 | **40** | 12 |
-| **Итого** | **116** | **102** | **14** |
+| Admin Panel | 52 | **52** | 0 |
+| **Итого** | **116** | **116** | **0** |
 
-**Wave 1–4 closed.** **Wave 5A–5E-2 (200.58–200.63):** Admin core + people/cases + FinTech + content/support + full marketing admin. Next → Admin system settings / remaining admin.
+**100% Finished (116/116).** Waves 1–6 closed (Hub → Guest → Chat → Auth → Admin 5A–5F → storefront redirect debt **200.65**).
 
 ---
 
@@ -143,14 +153,14 @@
 2b. **Guest secondary (Wave 2B)** — **Done (200.55)** — favorites, profile/wallet/settings, `/u/[id]`, reviews.
 3. **Chat** (`/messages*`) — **Done (200.56)** — hall + thread; lg+ two-column preserved.
 4. **Auth & marketing/legal** — **Done (200.57)** — AuthPageShell + LegalDocShell + public marketing.
-5. **Admin** — **5A Done (200.58)** core ops; **5B Done (200.59)** people/cases; **5C Done (200.60)** FinTech; **5D Done (200.61)** categories/locations/staff messages; **5E-1 Done (200.62)** marketing core; **5E-2 Done (200.63)** marketing remainder; next Admin system / §4.4.
+5. **Admin** — **5A–5F Done (200.58–200.64)** — core ops → people/cases → FinTech → content/support → marketing → system/security/compliance. Admin inventory closed.
+6. **Storefront redirect debt** — **Done (200.65)** — `/dashboard` (role router + `LoadingPageShell`), `/dashboard/renter` → `/renter/dashboard`.
 
 **Замечания / долг:**
 
-- Дубли маршрутов бронирований: `/my-bookings`, `/renter/bookings`, возможно legacy `/dashboard/*` — кандидаты на canonical redirect SSOT (не смешивать flattening с редиректом в одном PR без ADR).
-- Legacy `/login` рядом с каноном `/auth/login` — зафиксировать один entry.
-- Shared overlays (cancel booking, review modal, partner apply, sheets) — не `page.js`, но входят в UX-контракт; см. §5.
-- Admin system subtree (§4.4) — next flatten wave.
+- Дубли броней: `/my-bookings` канон; `/renter/bookings` и `/dashboard*` — redirect SSOT (закрыто visual-inventory).
+- Legacy `/login` → `/auth/login` (Wave 4); overlays — UX-контракт §5, не page-счётчик.
+- `/admin/test-db` / `/test-db` / `/demo/*` — exclude / gate (не product polish).
 
 ---
 
@@ -223,8 +233,8 @@
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/dashboard` | `…/dashboard/page.js` | Role-based redirect |
-| [ ] | `/dashboard/renter` | `…/dashboard/renter/page.js` | Legacy renter entry |
+| [x] | `/dashboard` | `…/dashboard/page.js` | **Wave 6 / 200.65** — redirect (role → admin / partner / renter; `LoadingPageShell`) |
+| [x] | `/dashboard/renter` | `…/dashboard/renter/page.js` | **Wave 6 / 200.65** — redirect → `/renter/dashboard` |
 | [x] | `/login` | `…/login/page.js` | **redirect** → `/auth/login` (Wave 4) |
 | [x] | `/reset-password` | `…/reset-password/page.js` | **Auth Wave 4 / 200.57** |
 
@@ -344,20 +354,20 @@ Staff: `app/admin/*` (52 pages). Flatten last; prefer card-stack `&lt;md` for ta
 
 | Status | Path | Source | Notes |
 |:------:|------|--------|-------|
-| [ ] | `/admin/system` | `…/system/page.js` | System hub |
-| [ ] | `/admin/system/ai` | `…/system/ai/page.js` | AI system |
-| [ ] | `/admin/system/ical` | `…/system/ical/page.js` | iCal ops |
-| [ ] | `/admin/system/ical/logs` | `…/system/ical/logs/page.js` | iCal logs |
-| [ ] | `/admin/ai-usage` | `…/ai-usage/page.js` | AI usage |
-| [ ] | `/admin/security` | `…/security/page.js` | Security |
-| [ ] | `/admin/health` | `…/health/page.jsx` | Health |
-| [ ] | `/admin/marketplace-health` | `…/marketplace-health/page.js` | Marketplace health |
-| [ ] | `/admin/audit` | `…/audit/page.jsx` | Audit log |
-| [ ] | `/admin/audit-export` | `…/audit-export/page.js` | Audit export |
-| [ ] | `/admin/privacy/erasure` | `…/privacy/erasure/page.jsx` | GDPR erasure |
-| [ ] | `/admin/settings` | `…/settings/page.js` | Admin settings |
-| [ ] | `/admin/settings/legal` | `…/settings/legal/page.js` | Legal docs admin |
-| [ ] | `/admin/test-db` | `…/test-db/page.js` | Dev — gate / skip product wave |
+| [x] | `/admin/system` | `…/system/page.js` | **Admin Wave 5F / 200.64** (hub + `SystemSettings*` panels) |
+| [x] | `/admin/system/ai` | `…/system/ai/page.js` | **Admin Wave 5F / 200.64** |
+| [x] | `/admin/system/ical` | `…/system/ical/page.js` | **Admin Wave 5F / 200.64** (Sync All / per-listing 44px) |
+| [x] | `/admin/system/ical/logs` | `…/system/ical/logs/page.js` | **Admin Wave 5F / 200.64** (table↔cards) |
+| [x] | `/admin/ai-usage` | `…/ai-usage/page.js` | **Admin Wave 5F / 200.64** |
+| [x] | `/admin/security` | `…/security/page.js` | **Admin Wave 5F / 200.64** (violators table↔cards) |
+| [x] | `/admin/health` | `…/health/page.jsx` | **Admin Wave 5F / 200.64** (+ health panels) |
+| [x] | `/admin/marketplace-health` | `…/marketplace-health/page.js` | **Admin Wave 5F / 200.64** (cities table↔cards) |
+| [x] | `/admin/audit` | `…/audit/page.jsx` | **Admin Wave 5F / 200.64** (table↔cards) |
+| [x] | `/admin/audit-export` | `…/audit-export/page.js` | **Admin Wave 5F / 200.64** |
+| [x] | `/admin/privacy/erasure` | `…/privacy/erasure/page.jsx` | **Admin Wave 5F / 200.64** (queue table↔cards; 44px actions) |
+| [x] | `/admin/settings` | `…/settings/page.js` | **Admin Wave 5F / 200.64** (layout only — fees untouched) |
+| [x] | `/admin/settings/legal` | `…/settings/legal/page.js` | **Admin Wave 5F / 200.64** (consents table↔cards) |
+| [x] | `/admin/test-db` | `…/test-db/page.js` | **exclude** / gate — out of Wave 5F |
 
 **Shell / errors:** `app/admin/layout.js`, `app/admin/error.jsx`, `app/admin/marketing/layout.js`.
 

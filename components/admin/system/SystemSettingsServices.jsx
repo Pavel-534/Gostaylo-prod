@@ -16,6 +16,13 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function WebhookStatusBadge({ webhookStatus }) {
   if (!webhookStatus?.isActive) {
@@ -56,8 +63,8 @@ export function SystemSettingsServices({
 }) {
   return (
     <div className="space-y-4">
-      <Card className="border-2 border-slate-200">
-        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-slate-200')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -71,22 +78,22 @@ export function SystemSettingsServices({
             <WebhookStatusBadge webhookStatus={webhookStatus} />
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-slate-100 p-3 rounded-lg">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 sm:bg-slate-100')}>
               <Label className="text-xs text-slate-500 uppercase">URL вебхука</Label>
               <p className="text-xs font-mono mt-1 break-all leading-relaxed">
                 {webhookStatus?.url || 'Не настроен'}
               </p>
             </div>
-            <div className="bg-slate-100 p-3 rounded-lg">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 sm:bg-slate-100')}>
               <Label className="text-xs text-slate-500 uppercase">Ожидающие обновления</Label>
               <p className="text-2xl font-bold text-slate-900 mt-1">{webhookStatus?.pendingUpdates || 0}</p>
             </div>
           </div>
 
           {webhookStatus?.lastError ? (
-            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:p-0">
               <div className="flex items-center gap-2 text-amber-700 mb-1">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                 <span className="font-medium text-sm">Последняя ошибка</span>
@@ -98,12 +105,12 @@ export function SystemSettingsServices({
             </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
             <Button
               onClick={onRelinkWebhook}
               disabled={webhookLoading}
               size="sm"
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs"
+              className="min-h-[44px] max-sm:w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs"
             >
               {webhookLoading ? (
                 <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
@@ -117,7 +124,7 @@ export function SystemSettingsServices({
               disabled={testingConnection}
               size="sm"
               variant="outline"
-              className="border-purple-500 text-purple-700 hover:bg-purple-50 text-xs"
+              className="min-h-[44px] max-sm:w-full border-purple-500 text-purple-700 hover:bg-purple-50 text-xs"
             >
               {testingConnection ? (
                 <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
@@ -126,17 +133,17 @@ export function SystemSettingsServices({
               )}
               Тест связи
             </Button>
-            <Button onClick={onSendAloha} size="sm" variant="outline" className="border-brand text-brand-hover hover:bg-brand/10 text-xs">
+            <Button onClick={onSendAloha} size="sm" variant="outline" className="min-h-[44px] max-sm:w-full border-brand text-brand-hover hover:bg-brand/10 text-xs">
               <Palmtree className="w-3 h-3 mr-1" />
               Отправить &quot;Aloha&quot;
             </Button>
-            <Button onClick={onRefreshWebhook} size="sm" variant="outline" className="text-xs">
+            <Button onClick={onRefreshWebhook} size="sm" variant="outline" className="min-h-[44px] max-sm:w-full text-xs">
               <Activity className="w-3 h-3 mr-1" />
               Обновить
             </Button>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700">
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:p-0">
             <p className="font-medium mb-1">💡 Диагностика:</p>
             <ul className="list-disc list-inside space-y-0.5 text-blue-600">
               <li>502 ошибка = сервер перезапускается (подождите 30 сек)</li>
@@ -147,8 +154,8 @@ export function SystemSettingsServices({
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-slate-50">
-        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-2 sm:border-violet-200 sm:bg-gradient-to-br sm:from-violet-50 sm:to-slate-50')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2 lg:pb-4')}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <MessageSquare className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
@@ -166,9 +173,9 @@ export function SystemSettingsServices({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 lg:p-6 pt-0 space-y-3">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
           {outboxStats?.counts ? (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 rounded-lg border border-violet-100 bg-white/70 p-3 text-[11px] sm:text-xs">
+            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'grid grid-cols-2 sm:grid-cols-5 gap-2 p-3 text-[11px] sm:text-xs sm:border-violet-100 sm:bg-white/70')}>
               {[
                 { key: 'pending', label: 'Ожидают' },
                 { key: 'processing', label: 'В работе' },
@@ -176,7 +183,7 @@ export function SystemSettingsServices({
                 { key: 'permanent_failure', label: 'Фатально' },
                 { key: 'sent', label: 'Отправлено' },
               ].map(({ key, label }) => (
-                <div key={key} className="rounded-md bg-violet-50/80 px-2 py-2 text-center">
+                <div key={key} className="rounded-md bg-violet-50/80 px-2 py-2 text-center max-sm:rounded-none max-sm:bg-transparent">
                   <div className="font-medium text-violet-950 tabular-nums text-sm sm:text-base">
                     {outboxStats.counts[key] ?? 0}
                   </div>
@@ -193,7 +200,7 @@ export function SystemSettingsServices({
             type="button"
             onClick={onProcessOutbox}
             disabled={outboxWorkerLoading}
-            className="bg-violet-600 hover:bg-violet-700 text-white"
+            className="min-h-[44px] max-sm:w-full bg-violet-600 hover:bg-violet-700 text-white"
           >
             {outboxWorkerLoading ? (
               <RefreshCw className="w-4 h-4 mr-2 animate-spin inline" />

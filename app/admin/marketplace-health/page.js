@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Globe2, AlertCircle, ClipboardList, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_BRAND_CARD_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 function pctColor(p) {
   if (p == null || Number.isNaN(p)) return 'bg-slate-200'
@@ -70,6 +77,20 @@ function MarketingRoiBlock({ roi }) {
   )
 }
 
+function CityVerifiedBar({ p }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-20 rounded-full bg-slate-200 overflow-hidden shrink-0">
+        <div
+          className={`h-full rounded-full ${pctColor(p)}`}
+          style={{ width: `${Math.min(100, Math.max(0, p))}%` }}
+        />
+      </div>
+      <span className="font-semibold tabular-nums text-slate-900">{p}%</span>
+    </div>
+  )
+}
+
 export default function MarketplaceHealthPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
@@ -110,7 +131,7 @@ export default function MarketplaceHealthPage() {
   const auditOk = payload?.auditLogAvailable !== false
 
   return (
-    <div className="p-4 lg:p-8 max-w-5xl space-y-6">
+    <div className="p-4 lg:p-8 max-w-5xl space-y-6 max-sm:px-0">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Globe2 className="h-7 w-7 text-brand" aria-hidden />
@@ -122,8 +143,8 @@ export default function MarketplaceHealthPage() {
         </p>
       </div>
 
-      <Card className="border-brand/20 bg-gradient-to-br from-brand/10 to-white">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:border-brand/20 sm:bg-gradient-to-br sm:from-brand/10 sm:to-white')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-lg">Pulse — верификации за {pulseDays} дней</CardTitle>
           <CardDescription>
             Счётчик из таблицы <code className="text-xs bg-white/80 px-1 rounded border">catalog_verified_snapshots</code>{' '}
@@ -131,7 +152,7 @@ export default function MarketplaceHealthPage() {
             <code className="text-xs bg-white/80 px-1 rounded border">SYSTEM_AUTO_VERIFICATION</code>), если журнал доступен.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loading ? (
             <div className="flex items-center gap-2 text-slate-500 py-2">
               <Loader2 className="h-5 w-5 animate-spin shrink-0" />
@@ -158,8 +179,8 @@ export default function MarketplaceHealthPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 to-white">
-        <CardHeader className="pb-2">
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-emerald-200/80 sm:bg-gradient-to-br sm:from-emerald-50/90 sm:to-white')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'pb-2')}>
           <CardTitle className="text-lg">Marketing Efficiency</CardTitle>
           <CardDescription>
             ROI реферальной воронки: валовая маржа платформы (комиссии с броней приглашённых гостей) к выплаченным
@@ -169,7 +190,7 @@ export default function MarketplaceHealthPage() {
             <code className="text-xs">PAID | PAID_ESCROW | CHECKED_IN | COMPLETED</code>.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loading ? (
             <div className="flex items-center gap-2 text-slate-500 py-2">
               <Loader2 className="h-5 w-5 animate-spin shrink-0" />
@@ -181,8 +202,8 @@ export default function MarketplaceHealthPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-brand-hover" aria-hidden />
             Последние действия персонала
@@ -192,7 +213,7 @@ export default function MarketplaceHealthPage() {
             и ручная верификация в карточке пользователя. Доступно ролям ADMIN и MODERATOR с правом на эту страницу.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loading ? (
             <div className="flex items-center gap-2 text-slate-500 py-6 justify-center">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -235,15 +256,15 @@ export default function MarketplaceHealthPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle>Верификация по «городам»</CardTitle>
           <CardDescription>
             Ниже — агрегаты из <code className="text-xs bg-slate-100 px-1 rounded">catalog_verified_snapshots</code>.
             Низкий % помогает увидеть «белые пятна» на карте доверия.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {loading ? (
             <div className="flex items-center gap-2 text-slate-500 py-8 justify-center">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -259,54 +280,78 @@ export default function MarketplaceHealthPage() {
               Пока нет записей в окне: либо миграция не применена, либо не было поисков с majority Verified.
             </p>
           ) : (
-            <div className="overflow-x-auto -mx-2 sm:mx-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-slate-500">
-                    <th className="py-2 pr-4 font-medium">Подсказка (where_hint)</th>
-                    <th className="py-2 pr-4 font-medium whitespace-nowrap">Ср. % Verified</th>
-                    <th className="py-2 pr-4 font-medium whitespace-nowrap">Снимков</th>
-                    <th className="py-2 font-medium whitespace-nowrap">Последняя запись (UTC)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cities.map((row) => {
-                    const p = Number(row.avgVerifiedPercent)
-                    return (
-                      <tr key={row.whereHint} className="border-b border-slate-100 hover:bg-slate-50/80">
-                        <td className="py-2.5 pr-4 align-middle max-w-[min(52vw,28rem)] truncate" title={row.whereHint}>
-                          {row.whereHint}
-                        </td>
-                        <td className="py-2.5 pr-4 align-middle">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-20 rounded-full bg-slate-200 overflow-hidden shrink-0">
-                              <div
-                                className={`h-full rounded-full ${pctColor(p)}`}
-                                style={{ width: `${Math.min(100, Math.max(0, p))}%` }}
-                              />
-                            </div>
-                            <span className="font-semibold tabular-nums text-slate-900">{p}%</span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 pr-4 align-middle tabular-nums text-slate-700">
-                          {row.snapshotCount}
-                        </td>
-                        <td className="py-2.5 align-middle text-slate-600 whitespace-nowrap text-xs">
-                          {row.lastRecordedAt
-                            ? new Date(row.lastRecordedAt).toISOString().replace('T', ' ').slice(0, 19)
-                            : '—'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <>
+              <div className="space-y-0 sm:hidden">
+                {cities.map((row) => {
+                  const p = Number(row.avgVerifiedPercent)
+                  return (
+                    <div
+                      key={row.whereHint}
+                      className="border-b border-slate-100 px-0 py-3 last:border-b-0 space-y-2"
+                    >
+                      <p className="font-medium text-sm text-slate-900 break-words" title={row.whereHint}>
+                        {row.whereHint}
+                      </p>
+                      <CityVerifiedBar p={p} />
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                        <div>
+                          <p className="text-slate-400">Снимков</p>
+                          <p className="mt-0.5 tabular-nums">{row.snapshotCount}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Последняя (UTC)</p>
+                          <p className="mt-0.5">
+                            {row.lastRecordedAt
+                              ? new Date(row.lastRecordedAt).toISOString().replace('T', ' ').slice(0, 19)
+                              : '—'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-slate-500">
+                      <th className="py-2 pr-4 font-medium">Подсказка (where_hint)</th>
+                      <th className="py-2 pr-4 font-medium whitespace-nowrap">Ср. % Verified</th>
+                      <th className="py-2 pr-4 font-medium whitespace-nowrap">Снимков</th>
+                      <th className="py-2 font-medium whitespace-nowrap">Последняя запись (UTC)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cities.map((row) => {
+                      const p = Number(row.avgVerifiedPercent)
+                      return (
+                        <tr key={row.whereHint} className="border-b border-slate-100 hover:bg-slate-50/80">
+                          <td className="py-2.5 pr-4 align-middle max-w-[min(52vw,28rem)] truncate" title={row.whereHint}>
+                            {row.whereHint}
+                          </td>
+                          <td className="py-2.5 pr-4 align-middle">
+                            <CityVerifiedBar p={p} />
+                          </td>
+                          <td className="py-2.5 pr-4 align-middle tabular-nums text-slate-700">
+                            {row.snapshotCount}
+                          </td>
+                          <td className="py-2.5 align-middle text-slate-600 whitespace-nowrap text-xs">
+                            {row.lastRecordedAt
+                              ? new Date(row.lastRecordedAt).toISOString().replace('T', ' ').slice(0, 19)
+                              : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
               {payload?.truncated ? (
                 <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2 mt-4">
                   Достигнут лимит выборки ({payload.maxRows} строк); агрегаты могут быть неполными.
                 </p>
               ) : null}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>

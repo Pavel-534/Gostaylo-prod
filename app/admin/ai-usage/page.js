@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sparkles, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+  MOBILE_FLAT_INSET_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 
 export default function AdminAiUsagePage() {
   const [loading, setLoading] = useState(true)
@@ -31,17 +38,17 @@ export default function AdminAiUsagePage() {
   }, [])
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-3xl">
+    <div className="space-y-4 sm:space-y-6 max-w-3xl max-sm:px-0 sm:p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Расходы OpenAI</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Расходы OpenAI</h1>
         <p className="text-sm text-slate-600 mt-1">
           Оценка по логам <code className="text-xs bg-slate-100 px-1 rounded">ai_usage_logs</code> за текущий
           календарный месяц (UTC). Видно только администраторам.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className={MOBILE_FLAT_CARD_CLASS}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-violet-600" />
             Сводка за месяц {month ? `(${month})` : ''}
@@ -51,22 +58,22 @@ export default function AdminAiUsagePage() {
             <code className="text-xs">OPENAI_PRICE_*</code>).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           {loading ? (
-            <div className="flex items-center gap-2 text-slate-600">
+            <div className="flex items-center gap-2 text-slate-600 min-h-[44px]">
               <Loader2 className="h-5 w-5 animate-spin" />
               Загрузка…
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 sm:p-4')}>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                     Сумма (USD), оценка
                   </p>
                   <p className="text-2xl font-bold text-slate-900 mt-1">${totalUsd.toFixed(4)}</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className={cn(MOBILE_FLAT_INSET_CLASS, 'p-3 sm:p-4')}>
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                     Записей в логе
                   </p>

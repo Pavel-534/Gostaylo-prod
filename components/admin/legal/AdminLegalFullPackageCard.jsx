@@ -14,6 +14,11 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
 import { postLegalTestFullPackage } from '@/lib/admin/admin-fintech-api-client'
 
 function fmtMs(ms) {
@@ -62,8 +67,8 @@ export function AdminLegalFullPackageCard() {
 
   return (
     <>
-      <Card className="border-2 border-brand/30 bg-gradient-to-br from-brand/10 to-white shadow-md">
-        <CardHeader>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, "sm:border-2 sm:border-brand/30 sm:bg-gradient-to-br sm:from-brand/10 sm:to-white sm:shadow-md")}>
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
           <CardTitle className="text-xl flex items-center gap-2 text-brand">
             <Package className="h-6 w-6 text-brand" />
             Тест перед первой выплатой
@@ -73,10 +78,10 @@ export function AdminLegalFullPackageCard() {
             ZIP для банка → акты в кабинете партнёра. Данные помечены как тестовые.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, "space-y-4")}>
           <Button
             size="lg"
-            className="w-full sm:w-auto h-14 text-base px-8 bg-brand hover:bg-brand-hover"
+            className="min-h-[44px] w-full sm:w-auto h-14 text-base px-8 bg-brand hover:bg-brand-hover"
             onClick={runFullPackage}
             disabled={busy}
           >
@@ -144,11 +149,11 @@ export function AdminLegalFullPackageCard() {
 
           {ctx.batchId ? (
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild className="min-h-[44px]">
                 <Link href="/admin/settings/finances">Финансовый пульт</Link>
               </Button>
               {ctx.bankPackageUrl ? (
-                <Button size="sm" asChild>
+                <Button size="sm" asChild className="min-h-[44px]">
                   <a href={ctx.bankPackageUrl} target="_blank" rel="noopener noreferrer">
                     <Download className="h-4 w-4 mr-1" />
                     Скачать ZIP пакета

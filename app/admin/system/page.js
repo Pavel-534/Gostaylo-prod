@@ -26,19 +26,19 @@ export default function SystemControlPage() {
     <div className="space-y-4 lg:space-y-6 max-w-full overflow-hidden px-1">
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 p-1 bg-slate-100/90">
-          <TabsTrigger value="general" className="text-xs sm:text-sm">
+          <TabsTrigger value="general" className="min-h-[44px] text-xs sm:text-sm">
             Обзор
           </TabsTrigger>
-          <TabsTrigger value="finance" className="text-xs sm:text-sm">
+          <TabsTrigger value="finance" className="min-h-[44px] text-xs sm:text-sm">
             Финансы
           </TabsTrigger>
-          <TabsTrigger value="marketing" className="text-xs sm:text-sm">
+          <TabsTrigger value="marketing" className="min-h-[44px] text-xs sm:text-sm">
             Маркетинг
           </TabsTrigger>
-          <TabsTrigger value="services" className="text-xs sm:text-sm">
+          <TabsTrigger value="services" className="min-h-[44px] text-xs sm:text-sm">
             Сервисы
           </TabsTrigger>
-          <TabsTrigger value="maintenance" className="text-xs sm:text-sm">
+          <TabsTrigger value="maintenance" className="min-h-[44px] text-xs sm:text-sm">
             Обслуживание
           </TabsTrigger>
         </TabsList>
