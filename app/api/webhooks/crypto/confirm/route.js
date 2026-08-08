@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase'
-import { verifyTronTransaction, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service'
+import { verifyTronTransaction, getCryptoReceiveWallet, thbToUsdt } from '@/lib/services/tron.service'
 import { getExpectedUsdtForBooking } from '@/lib/booking-price-integrity'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service'
@@ -227,7 +227,7 @@ export async function POST(request) {
       )
     }
 
-    if (targetWallet && String(targetWallet) !== String(GOSTAYLO_WALLET)) {
+    if (targetWallet && String(targetWallet) !== String(getCryptoReceiveWallet())) {
       return NextResponse.json(
         { success: false, verified: false, error: 'targetWallet does not match platform wallet' },
         { status: 400 },

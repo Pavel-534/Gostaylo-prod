@@ -9,7 +9,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service'
+import { verifyTronTransaction, getStatusBadge, getCryptoReceiveWallet, thbToUsdt } from '@/lib/services/tron.service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
@@ -176,7 +176,7 @@ export async function POST(request) {
             success: true,
             status: 'CONFIRMED',
             badge: getStatusBadge('CONFIRMED'),
-            expectedWallet: GOSTAYLO_WALLET,
+            expectedWallet: getCryptoReceiveWallet(),
             paymentSettled: paymentSettledFromSettleResult(idem),
             ...idem,
           })
@@ -228,7 +228,7 @@ export async function POST(request) {
               success: true,
               status: 'CONFIRMED',
               badge: getStatusBadge('CONFIRMED'),
-              expectedWallet: GOSTAYLO_WALLET,
+              expectedWallet: getCryptoReceiveWallet(),
               paymentSettled: paymentSettledFromSettleResult(healed),
               idempotent: Boolean(healed.idempotent || healed.alreadyProcessed),
               bookingId: String(bookingId),
@@ -240,7 +240,7 @@ export async function POST(request) {
               status: 'ERROR',
               error: healed.error,
               code: healed.code,
-              expectedWallet: GOSTAYLO_WALLET,
+              expectedWallet: getCryptoReceiveWallet(),
               paymentSettled: paymentSettledFromSettleResult(healed),
             }, { status: healed.httpStatus || 500 })
           }
@@ -304,7 +304,7 @@ export async function POST(request) {
         badge,
         data: result.data,
         error: result.error,
-        expectedWallet: GOSTAYLO_WALLET,
+        expectedWallet: getCryptoReceiveWallet(),
         paymentSettled,
         amountVerification: result.data
           ? {
@@ -363,7 +363,7 @@ export async function GET(request) {
       badge,
       data: result.data,
       error: result.error,
-      expectedWallet: GOSTAYLO_WALLET,
+      expectedWallet: getCryptoReceiveWallet(),
       amountVerification: result.data
         ? {
             received: result.data.amount,

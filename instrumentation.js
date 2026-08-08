@@ -1,6 +1,7 @@
 /**
- * Next.js instrumentation — runs once on Node server start (Stage 200.42 C3).
- * Fail-closed: never boot production with PAYMENT_ALLOW_CLIENT_CONFIRM=1.
+ * Next.js instrumentation — runs once on Node server start (Stage 200.42 C3 / 200.75).
+ * Fail-closed: never boot production with PAYMENT_ALLOW_CLIENT_CONFIRM=1
+ * or without crypto receive wallet env.
  */
 
 export async function register() {
@@ -14,5 +15,12 @@ export async function register() {
     throw new Error(
       'CRITICAL: PAYMENT_ALLOW_CLIENT_CONFIRM is enabled in production. Unset the env var and redeploy.',
     )
+  }
+
+  if (isProduction) {
+    const { assertCryptoReceiveWalletConfigured } = await import(
+      '@/lib/config/crypto-receive-wallet.js'
+    )
+    assertCryptoReceiveWalletConfigured()
   }
 }
