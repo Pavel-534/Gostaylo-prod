@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.49 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.68** PWA chat haptic + messages PTR edge fixes.
+> **Version**: 13.2.50 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.69** crypto settle SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.69 — Crypto settle SSOT & idempotency
+
+- SSOT: `lib/payment/settle-crypto-payment.js` — PENDING/CONFIRMED heal + intent `markPaid` → `moveToEscrow` (ledger RPC unchanged).
+- `POST /api/v2/payments/verify-tron`: amount via `getExpectedUsdtForBooking` when `bookingId` present (ignore client USDT); intent-primary settle (no `no_pending_payment` dead-end); same-booking replay → 200 + `idempotent`.
+- `POST /api/webhooks/crypto/confirm`: booking escrowed check before replay; same-booking heal → 2xx; cross-booking txid → still 409; prod secret **header-only** (`isProductionPaymentEnvironment`).
 
 ### Stage 200.68 — PWA edge micro-fixes
 

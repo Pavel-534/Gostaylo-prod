@@ -1,26 +1,32 @@
 /**
- * GoStayLo - TRON Transaction Verification API v2.0
+ * TRON Transaction Verification API v2.0
  * POST /api/v2/payments/verify-tron
  * GET /api/v2/payments/verify-tron?txid=[TXID]&expectedAmount=[USDT]
  *
- * Ожидаемая сумма USDT: из `bookingId` — **тот же гостевой итог THB**, что и чекаут (`getGuestPayableRoundedThb` + `pricing_snapshot`), Stage 51.0.
- * `expectedAmountThb` без `bookingId` — полный гостевой payable THB (не умножать на «сервисный %» на клиенте).
+ * Stage 200.69 — with `bookingId`, expected USDT is SSOT `getExpectedUsdtForBooking` (same as crypto webhook).
+ * Client `expectedAmountUsdt` is ignored when `bookingId` is present.
+ * Settlement: PaymentsV3 PENDING/CONFIRMED heal or intent-primary markPaid → moveToEscrow via settleCryptoPayment.
  */
 
-import { NextResponse } from 'next/server';
-import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET } from '@/lib/services/tron.service';
-import { supabaseAdmin } from '@/lib/supabase';
-import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
-import { getSessionPayload } from '@/lib/services/session-service';
-import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
-import { guestPayableRoundedThbFromBooking } from '@/lib/booking-price-integrity';
-import { getExpectedUsdtForBooking } from '@/lib/booking-price-integrity';
-import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
-import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js';
+import { NextResponse } from 'next/server'
+import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getSessionPayload } from '@/lib/services/session-service'
+import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
+import { guestPayableRoundedThbFromBooking, getExpectedUsdtForBooking } from '@/lib/booking-price-integrity'
+import { withCorrelationFromRequest } from '@/lib/request-correlation.js'
+import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js'
+import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js'
+import { normalizeCryptoTxid } from '@/lib/payment/crypto-txid-replay-guard.js'
+import {
+  buildCryptoIdempotentSettledResult,
+  classifyCryptoTxidReplay,
+  settleCryptoPayment,
+} from '@/lib/payment/settle-crypto-payment.js'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR']);
+const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR'])
 
 /**
  * @param {{ renter_id?: string | null }} booking
@@ -28,18 +34,18 @@ const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR']);
  */
 function assertBookingTronAmountAccess(booking, session) {
   if (!booking?.renter_id) {
-    const role = String(session?.role || '').toUpperCase();
-    if (STAFF_ROLES.has(role)) return { ok: true };
-    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' };
+    const role = String(session?.role || '').toUpperCase()
+    if (STAFF_ROLES.has(role)) return { ok: true }
+    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' }
   }
-  const uid = session?.userId ? String(session.userId) : '';
+  const uid = session?.userId ? String(session.userId) : ''
   if (!uid) {
-    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' };
+    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' }
   }
-  const role = String(session?.role || '').toUpperCase();
-  if (STAFF_ROLES.has(role)) return { ok: true };
-  if (String(booking.renter_id) === uid) return { ok: true };
-  return { ok: false, status: 403, error: 'Access denied', code: 'FORBIDDEN' };
+  const role = String(session?.role || '').toUpperCase()
+  if (STAFF_ROLES.has(role)) return { ok: true }
+  if (String(booking.renter_id) === uid) return { ok: true }
+  return { ok: false, status: 403, error: 'Access denied', code: 'FORBIDDEN' }
 }
 
 async function resolveExpectedUsdtFromBooking(bookingId) {
@@ -47,164 +53,309 @@ async function resolveExpectedUsdtFromBooking(bookingId) {
     .from('bookings')
     .select('price_thb, commission_thb, rounding_diff_pot, pricing_snapshot, renter_id, currency')
     .eq('id', bookingId)
-    .single();
+    .single()
 
   if (error || !booking) {
-    return { ok: false, error: 'Booking not found', status: 404 };
+    return { ok: false, error: 'Booking not found', status: 404 }
   }
 
-  const session = await getSessionPayload();
-  const gate = assertBookingTronAmountAccess(booking, session);
+  const session = await getSessionPayload()
+  const gate = assertBookingTronAmountAccess(booking, session)
   if (!gate.ok) {
     return {
       ok: false,
       error: gate.error,
       status: gate.status,
       code: gate.code,
-    };
+    }
   }
 
-  const totalThb = guestPayableRoundedThbFromBooking(booking);
+  const totalThb = guestPayableRoundedThbFromBooking(booking)
   if (!Number.isFinite(totalThb) || totalThb <= 0) {
-    return { ok: false, error: 'Booking has no payable amount', status: 400 };
+    return { ok: false, error: 'Booking has no payable amount', status: 400 }
   }
 
-  const expectedAmount = await getExpectedUsdtForBooking(booking);
-  if (expectedAmount == null) {
-    return { ok: false, error: 'Could not resolve USDT amount', status: 400 };
+  const expectedAmount = await getExpectedUsdtForBooking(booking)
+  if (expectedAmount == null || !Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+    return { ok: false, error: 'Could not resolve USDT amount', status: 400 }
   }
-  return { ok: true, expectedAmount, guestPayableThb: totalThb };
+  return { ok: true, expectedAmount, guestPayableThb: totalThb }
+}
+
+function paymentSettledFromSettleResult(settled) {
+  if (!settled) return null
+  if (settled.success) {
+    return {
+      success: true,
+      idempotent: Boolean(settled.idempotent || settled.alreadyProcessed),
+      alreadyProcessed: Boolean(settled.alreadyProcessed),
+      alreadyConfirmed: Boolean(settled.alreadyConfirmed),
+      escrowHealed: Boolean(settled.escrowHealed),
+      paymentId: settled.paymentId,
+      intentId: settled.intentId,
+    }
+  }
+  return {
+    success: false,
+    error: settled.error || 'settle_failed',
+    code: settled.code,
+  }
 }
 
 export async function POST(request) {
   return withCorrelationFromRequest(request, async () => {
-  try {
-    const body = await request.json();
-    const { txid, bookingId, expectedAmountUsdt, expectedAmountThb } = body;
+    try {
+      const body = await request.json()
+      const { txid: rawTxid, bookingId, expectedAmountThb } = body
+      const txid = normalizeCryptoTxid(rawTxid)
+
+      if (!txid) {
+        return NextResponse.json(
+          { success: false, error: 'TXID is required', status: 'INVALID' },
+          { status: 400 },
+        )
+      }
+
+      const paymentGate = await assertGuestPaymentOperationsAllowed()
+      if (!paymentGate.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: paymentGate.message,
+            code: paymentGate.code,
+            status: 'BLOCKED',
+          },
+          { status: 403 },
+        )
+      }
+
+      let expectedAmount = null
+      let bookingForSettlement = null
+
+      if (bookingId) {
+        const { data: bookingRow, error: bookingReadErr } = await supabaseAdmin
+          .from('bookings')
+          .select(
+            'id, status, renter_id, price_thb, commission_thb, rounding_diff_pot, pricing_snapshot, currency',
+          )
+          .eq('id', String(bookingId))
+          .maybeSingle()
+
+        if (bookingReadErr) {
+          return NextResponse.json(
+            { success: false, error: bookingReadErr.message, status: 'ERROR' },
+            { status: 500 },
+          )
+        }
+        if (!bookingRow?.id) {
+          return NextResponse.json(
+            { success: false, error: 'Booking not found', status: 'NOT_FOUND' },
+            { status: 404 },
+          )
+        }
+
+        const session = await getSessionPayload()
+        const access = assertBookingTronAmountAccess(bookingRow, session)
+        if (!access.ok) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: access.error,
+              status: access.code || 'FORBIDDEN',
+              code: access.code,
+            },
+            { status: access.status || 403 },
+          )
+        }
+        bookingForSettlement = bookingRow
+
+        // Already escrowed → 2xx idempotent (no chain re-verify required)
+        if (isPaymentAcquiringWebhookIdempotentBookingStatus(bookingRow.status)) {
+          const idem = buildCryptoIdempotentSettledResult(bookingRow)
+          return NextResponse.json({
+            success: true,
+            status: 'CONFIRMED',
+            badge: getStatusBadge('CONFIRMED'),
+            expectedWallet: GOSTAYLO_WALLET,
+            paymentSettled: paymentSettledFromSettleResult(idem),
+            ...idem,
+          })
+        }
+
+        // Same booking + txid already recorded → heal / idempotent 2xx
+        const replay = await classifyCryptoTxidReplay(supabaseAdmin, {
+          txid,
+          bookingId: String(bookingId),
+        })
+        if (replay.kind === 'foreign_booking') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: replay.error || 'already_processed',
+              code: replay.code || 'TXID_ALREADY_USED',
+              status: 'CONFLICT',
+              existingBookingId: replay.existingBookingId || null,
+            },
+            { status: 409 },
+          )
+        }
+        if (replay.kind === 'idempotent_same_booking') {
+          const consentEarly = await ensureProfileLegalConsentForPayment(
+            session?.userId ? String(session.userId) : null,
+            body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
+            String(bookingId),
+          )
+          if (!consentEarly.ok) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: consentEarly.error,
+                status: consentEarly.code || 'LEGAL_CONSENT_REQUIRED',
+                code: consentEarly.code,
+              },
+              { status: consentEarly.status || 403 },
+            )
+          }
+          const healed = await settleCryptoPayment({
+            bookingId: String(bookingId),
+            booking: bookingRow,
+            txid,
+            tronData: null,
+            source: 'verify_tron_api',
+          })
+          if (healed.success) {
+            return NextResponse.json({
+              success: true,
+              status: 'CONFIRMED',
+              badge: getStatusBadge('CONFIRMED'),
+              expectedWallet: GOSTAYLO_WALLET,
+              paymentSettled: paymentSettledFromSettleResult(healed),
+              idempotent: Boolean(healed.idempotent || healed.alreadyProcessed),
+              bookingId: String(bookingId),
+            })
+          }
+          if (healed.code !== 'NO_PAYMENT_TARGET') {
+            return NextResponse.json({
+              success: false,
+              status: 'ERROR',
+              error: healed.error,
+              code: healed.code,
+              expectedWallet: GOSTAYLO_WALLET,
+              paymentSettled: paymentSettledFromSettleResult(healed),
+            }, { status: healed.httpStatus || 500 })
+          }
+        }
+
+        // AUDIT / Stage 200.69: ignore client expectedAmountUsdt when bookingId present
+        expectedAmount = await getExpectedUsdtForBooking(bookingRow)
+        if (expectedAmount == null || !Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+          return NextResponse.json(
+            { success: false, error: 'Could not resolve expected USDT amount', status: 'INVALID' },
+            { status: 400 },
+          )
+        }
+      } else if (expectedAmountThb != null && expectedAmountThb !== '') {
+        const rawThb = parseFloat(expectedAmountThb)
+        if (Number.isFinite(rawThb) && rawThb > 0) {
+          expectedAmount = await thbToUsdt(rawThb)
+        }
+      } else if (body?.expectedAmountUsdt != null && body.expectedAmountUsdt !== '') {
+        // Tools-only path without bookingId
+        const parsed = parseFloat(body.expectedAmountUsdt)
+        if (Number.isFinite(parsed)) expectedAmount = parsed
+      }
+
+      const result = await verifyTronTransaction(txid, expectedAmount)
+      const badge = getStatusBadge(result.status)
+
+      let paymentSettled = null
+      if (bookingId && result.success && bookingForSettlement) {
+        const session = await getSessionPayload()
+        const consent = await ensureProfileLegalConsentForPayment(
+          session?.userId ? String(session.userId) : null,
+          body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
+          String(bookingId),
+        )
+        if (!consent.ok) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: consent.error,
+              status: consent.code || 'LEGAL_CONSENT_REQUIRED',
+              code: consent.code,
+            },
+            { status: consent.status || 403 },
+          )
+        }
+
+        const settled = await settleCryptoPayment({
+          bookingId: String(bookingId),
+          booking: bookingForSettlement,
+          txid,
+          tronData: result.data,
+          source: 'verify_tron_api',
+        })
+        paymentSettled = paymentSettledFromSettleResult(settled)
+      }
+
+      return NextResponse.json({
+        success: result.success,
+        status: result.status,
+        badge,
+        data: result.data,
+        error: result.error,
+        expectedWallet: GOSTAYLO_WALLET,
+        paymentSettled,
+        amountVerification: result.data
+          ? {
+              received: result.data.amount,
+              expected: result.data.expectedAmount,
+              difference: result.data.amountDifference,
+              percentage: result.data.amountPercentage,
+              status: result.data.amountStatus,
+              sufficient: result.data.isAmountSufficient,
+            }
+          : null,
+      })
+    } catch (error) {
+      console.error('[VERIFY TRON API ERROR]', error)
+      return NextResponse.json(
+        { success: false, error: error.message, status: 'ERROR' },
+        { status: 500 },
+      )
+    }
+  })
+}
+
+export async function GET(request) {
+  return withCorrelationFromRequest(request, async () => {
+    const { searchParams } = new URL(request.url)
+    const txid = searchParams.get('txid')
+    const expectedAmountParam = searchParams.get('expectedAmount')
+    const bookingId = searchParams.get('bookingId')
 
     if (!txid) {
-      return NextResponse.json(
-        { success: false, error: 'TXID is required', status: 'INVALID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'TXID query parameter is required' }, { status: 400 })
     }
 
-    const paymentGate = await assertGuestPaymentOperationsAllowed();
-    if (!paymentGate.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: paymentGate.message,
-          code: paymentGate.code,
-          status: 'BLOCKED',
-        },
-        { status: 403 },
-      );
-    }
+    let expectedUsdt =
+      expectedAmountParam != null && expectedAmountParam !== '' ? parseFloat(expectedAmountParam) : null
+    if (expectedUsdt != null && !Number.isFinite(expectedUsdt)) expectedUsdt = null
 
-    let expectedAmount = expectedAmountUsdt != null && expectedAmountUsdt !== '' ? parseFloat(expectedAmountUsdt) : null;
-    if (expectedAmount != null && !Number.isFinite(expectedAmount)) expectedAmount = null;
-
-    let bookingForSettlement = null;
     if (bookingId) {
-      const { data: bookingRow, error: bookingReadErr } = await supabaseAdmin
-        .from('bookings')
-        .select('id, renter_id, price_thb, commission_thb, rounding_diff_pot, pricing_snapshot')
-        .eq('id', String(bookingId))
-        .maybeSingle();
-
-      if (bookingReadErr) {
+      // Prefer booking SSOT over query expectedAmount when bookingId present
+      const resolved = await resolveExpectedUsdtFromBooking(String(bookingId))
+      if (!resolved.ok) {
         return NextResponse.json(
-          { success: false, error: bookingReadErr.message, status: 'ERROR' },
-          { status: 500 },
-        );
+          { success: false, error: resolved.error, status: resolved.code || 'ERROR' },
+          { status: resolved.status || 500 },
+        )
       }
-      if (!bookingRow?.id) {
-        return NextResponse.json(
-          { success: false, error: 'Booking not found', status: 'NOT_FOUND' },
-          { status: 404 },
-        );
-      }
-
-      const session = await getSessionPayload();
-      const access = assertBookingTronAmountAccess(bookingRow, session);
-      if (!access.ok) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: access.error,
-            status: access.code || 'FORBIDDEN',
-            code: access.code,
-          },
-          { status: access.status || 403 },
-        );
-      }
-      bookingForSettlement = bookingRow;
-
-      if (expectedAmount == null) {
-        const totalThb = getGuestPayableRoundedThb(bookingRow);
-        if (!Number.isFinite(totalThb) || totalThb <= 0) {
-          return NextResponse.json(
-            { success: false, error: 'Booking has no payable amount', status: 'INVALID' },
-            { status: 400 },
-          );
-        }
-        expectedAmount = await thbToUsdt(totalThb);
-      }
+      expectedUsdt = resolved.expectedAmount
     }
 
-    if (expectedAmount == null && expectedAmountThb != null && expectedAmountThb !== '') {
-      const rawThb = parseFloat(expectedAmountThb);
-      if (Number.isFinite(rawThb) && rawThb > 0) {
-        expectedAmount = await thbToUsdt(rawThb);
-      }
-    }
-
-    const result = await verifyTronTransaction(txid, expectedAmount);
-    const badge = getStatusBadge(result.status);
-
-    let paymentSettled = null;
-    if (bookingId && result.success && bookingForSettlement) {
-      const session = await getSessionPayload();
-      const consent = await ensureProfileLegalConsentForPayment(
-        session?.userId ? String(session.userId) : null,
-        body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
-        String(bookingId),
-      );
-      if (!consent.ok) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: consent.error,
-            status: consent.code || 'LEGAL_CONSENT_REQUIRED',
-            code: consent.code,
-          },
-          { status: consent.status || 403 },
-        );
-      }
-
-      const { data: pendingPay } = await supabaseAdmin
-        .from('payments')
-        .select('id')
-        .eq('booking_id', bookingId)
-        .eq('status', 'PENDING')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (pendingPay?.id) {
-        const conf = await PaymentsV3Service.confirmPayment(pendingPay.id, {
-          source: 'verify_tron_api',
-          txid,
-          tron: result.data,
-        });
-        paymentSettled = {
-          success: conf?.success === true,
-          error: conf?.success ? undefined : conf?.error,
-        };
-      } else {
-        paymentSettled = { success: false, error: 'no_pending_payment' };
-      }
-    }
+    const result = await verifyTronTransaction(txid, expectedUsdt)
+    const badge = getStatusBadge(result.status)
 
     return NextResponse.json({
       success: result.success,
@@ -213,7 +364,6 @@ export async function POST(request) {
       data: result.data,
       error: result.error,
       expectedWallet: GOSTAYLO_WALLET,
-      paymentSettled,
       amountVerification: result.data
         ? {
             received: result.data.amount,
@@ -224,63 +374,6 @@ export async function POST(request) {
             sufficient: result.data.isAmountSufficient,
           }
         : null,
-    });
-  } catch (error) {
-    console.error('[VERIFY TRON API ERROR]', error);
-    return NextResponse.json(
-      { success: false, error: error.message, status: 'ERROR' },
-      { status: 500 }
-    );
-  }
-  })
-}
-
-export async function GET(request) {
-  return withCorrelationFromRequest(request, async () => {
-  const { searchParams } = new URL(request.url);
-  const txid = searchParams.get('txid');
-  const expectedAmountParam = searchParams.get('expectedAmount');
-  const bookingId = searchParams.get('bookingId');
-
-  if (!txid) {
-    return NextResponse.json({ success: false, error: 'TXID query parameter is required' }, { status: 400 });
-  }
-
-  let expectedUsdt =
-    expectedAmountParam != null && expectedAmountParam !== '' ? parseFloat(expectedAmountParam) : null;
-  if (expectedUsdt != null && !Number.isFinite(expectedUsdt)) expectedUsdt = null;
-
-  if (bookingId && expectedUsdt == null) {
-    const resolved = await resolveExpectedUsdtFromBooking(String(bookingId));
-    if (!resolved.ok) {
-      return NextResponse.json(
-        { success: false, error: resolved.error, status: resolved.code || 'ERROR' },
-        { status: resolved.status || 500 },
-      );
-    }
-    expectedUsdt = resolved.expectedAmount;
-  }
-
-  const result = await verifyTronTransaction(txid, expectedUsdt);
-  const badge = getStatusBadge(result.status);
-
-  return NextResponse.json({
-    success: result.success,
-    status: result.status,
-    badge,
-    data: result.data,
-    error: result.error,
-    expectedWallet: GOSTAYLO_WALLET,
-    amountVerification: result.data
-      ? {
-          received: result.data.amount,
-          expected: result.data.expectedAmount,
-          difference: result.data.amountDifference,
-          percentage: result.data.amountPercentage,
-          status: result.data.amountStatus,
-          sufficient: result.data.isAmountSufficient,
-        }
-      : null,
-  });
+    })
   })
 }
