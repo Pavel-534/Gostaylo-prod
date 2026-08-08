@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 189.32 | 2026-08-09 | iOS standalone tabbar safe pad trim -6px → -10px | Done |
 | 189.31 | 2026-08-09 | PWA iOS polish: Home Screen/share title = brand; iOS standalone tabbar -6px safe pad | Done |
 | 200.75 | 2026-08-08 | Pre-launch: crypto wallet fail-closed; root error/404 shells; acquiring 10s timeouts | Done |
 | 200.74 | 2026-08-08 | Notification registry hygiene: wire orphans / dead marks; email HTML escape; outbox verify | Done |

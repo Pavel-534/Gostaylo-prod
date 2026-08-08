@@ -30,7 +30,7 @@
 ### Stage 189.31 — PWA iOS polish (Home Screen name + tab bar)
 
 - Document / Share / A2HS title: **`getPublicBrandDisplayName()`** → **Airento** (`app/layout.js`, home `generateMetadata`, `app/manifest.js`). Tagline stays in **description** / OG (`Airento — Аренда`), not in `<title>`, so iOS Share no longer shows bare «аренда по всему миру».
-- Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **6px**. Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
+- Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **10px** (189.32; was 6px in 189.31). Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
 - Listing card EN titles when UI is RU: partner-authored single `listings.title` — no auto-i18n; out of scope for this polish.
 
 ### Stage 200.75 — Pre-launch hardening (crypto wallet, shells, acquiring timeouts)
