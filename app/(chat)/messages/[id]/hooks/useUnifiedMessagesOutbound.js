@@ -55,9 +55,13 @@ export function useUnifiedMessagesOutbound({
       setNewMessage('')
       setSending(true)
       try {
-        await sendMessageText(text)
-        haptic.success()
-        afterOutbound()
+        const sent = await sendMessageText(text)
+        if (sent) {
+          haptic.success()
+          afterOutbound()
+        } else {
+          haptic.error()
+        }
       } catch {
         haptic.error()
       } finally {

@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
 import { ConversationList } from '@/components/chat/ConversationList'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
 import {
   INBOX_TAB_HOSTING,
@@ -100,12 +101,15 @@ export default function UnifiedMessagesHallPage() {
   )
 
   const [inboxScrollEl, setInboxScrollEl] = useState(null)
+  const isMobile = useIsMobile()
   const handleInboxRefresh = useCallback(() => {
     inbox.refresh()
   }, [inbox])
   const { indicator: pullIndicator } = usePullToRefresh({
     onRefresh: handleInboxRefresh,
     scrollEl: inboxScrollEl,
+    // Stage 200.68 — wait for scroller mount; never bind document/window fallback on hall.
+    enabled: isMobile && Boolean(inboxScrollEl),
   })
 
   const flowT = (key) => getUIText(key, language)

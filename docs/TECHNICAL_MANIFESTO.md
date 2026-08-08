@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.48 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.67** PWA haptic + pull-to-refresh hooks.
+> **Version**: 13.2.49 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.68** PWA chat haptic + messages PTR edge fixes.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.68 — PWA edge micro-fixes
+
+- Chat send haptic: `success` / `afterOutbound` only when `sendMessageText` returns a message; `error` on `null`/throw.
+- `/messages` PTR: `enabled: isMobile && Boolean(inboxScrollEl)` — no document/window touch bind before list scroller mounts.
 
 ### Stage 200.67 — PWA native haptic + pull-to-refresh
 
