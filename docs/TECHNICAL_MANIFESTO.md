@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.51 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.70** acquiring fail-closed + Mandarin verify.
+> **Version**: 13.2.52 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.71** SEO apex + soft-404 fix.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.71 — SEO soft-404 & apex canonical
+
+- PDP `bootstrap.kind === 'not_found'` → `notFound()` (HTTP 404); `buildListingNotFoundOgMetadata` → `robots: { index: false, follow: false }` (moderation stub unchanged; no `notFound` on moderation / PENDING+crawler).
+- Canonical apex via `getPublicSiteUrl()`: home `generateMetadata` on `app/(storefront)/page.js` only; PDP `alternates.canonical` in `buildListingDetailOgMetadata`.
+- `app/sitemap.ts` / `app/robots.ts`: origin only `getPublicSiteUrl()`; robots disallow adds `/auth`, `/my-bookings` (plus existing private zones).
 
 ### Stage 200.70 — Acquiring fail-closed & Mandarin parity
 

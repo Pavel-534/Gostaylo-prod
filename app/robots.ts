@@ -1,27 +1,21 @@
 import type { MetadataRoute } from 'next'
-import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getPublicSiteUrl } from '@/lib/site-url'
-
-async function baseUrl(): Promise<string> {
-  try {
-    return await getRequestSiteUrl()
-  } catch {
-    return getPublicSiteUrl()
-  }
-}
 
 /**
  * Системный robots.txt (Next.js Metadata API).
- * Не попадает под matcher в middleware.ts — только /admin, /partner, /renter, /messages.
+ * Stage 200.71 — apex via getPublicSiteUrl(); expanded disallow for guest/auth private zones.
  */
-export default async function robots(): Promise<MetadataRoute.Robots> {
-  const origin = await baseUrl()
+export default function robots(): MetadataRoute.Robots {
+  const origin = getPublicSiteUrl().replace(/\/$/, '')
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
         disallow: [
+          '/auth',
+          '/login',
+          '/my-bookings',
           '/profile',
           '/partner',
           '/admin',

@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.46 | **Last Updated**: 2026-08-08 | **Stage 200.70** acquiring/Mandarin; **200.69** crypto settle.  
+> **Version**: 13.2.47 | **Last Updated**: 2026-08-08 | **Stage 200.71** SEO apex/canonical; **200.70** acquiring/Mandarin.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -11,7 +11,7 @@
 
 | Поверхность | Маршруты / зона | Кто |
 |-------------|-----------------|-----|
-| Storefront | `/`, `/listings`, PDP | Renter / guest |
+| Storefront | `/`, `/listings`, PDP — Stage 200.71: apex canonical + true 404; `sitemap.xml`/`robots.txt` via `getPublicSiteUrl()` | Renter / guest |
 | Checkout | `/checkout/[bookingId]` | Renter |
 | Chat | `/messages` | Renter ↔ Partner (+ staff) |
 | Renter hub | `/my-bookings`, `/profile`, favorites | Renter |

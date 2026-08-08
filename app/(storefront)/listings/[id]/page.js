@@ -7,14 +7,12 @@
  */
 
 import { cookies, headers } from 'next/headers'
+import { notFound } from 'next/navigation'
 import { getLangFromRequest } from '@/lib/translations'
 import { getCachedListingPdpBootstrap } from '@/lib/listing/get-cached-listing-pdp-bootstrap.js'
 import { buildListingPdpDehydratedState } from '@/lib/query-prefetch/prefetch-listing-pdp-queries'
 import { ListingPdpHydrationBoundary } from '@/components/listing/pdp/ListingPdpHydrationBoundary'
-import {
-  ListingPdpModerationView,
-  ListingPdpNotFoundView,
-} from './ListingPdpGateViews'
+import { ListingPdpModerationView } from './ListingPdpGateViews'
 
 export default async function ListingDetailPage({ params }) {
   const { id } = await params
@@ -30,8 +28,9 @@ export default async function ListingDetailPage({ params }) {
     return <ListingPdpModerationView lang={lang} />
   }
 
+  // Stage 200.71 — true HTTP 404 (no indexable soft-404)
   if (bootstrap.kind === 'not_found') {
-    return <ListingPdpNotFoundView lang={lang} />
+    notFound()
   }
 
   const dehydratedState = await buildListingPdpDehydratedState(listingId, bootstrap.listing)

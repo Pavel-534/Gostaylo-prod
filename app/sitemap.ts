@@ -1,17 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getPublicSiteUrl } from '@/lib/site-url'
 
 const PAGE_SIZE = 1000
-
-async function resolveBaseUrl(): Promise<string> {
-  try {
-    return await getRequestSiteUrl()
-  } catch {
-    return getPublicSiteUrl()
-  }
-}
 
 type ListingRow = { id: string; updated_at: string | null }
 
@@ -48,13 +39,12 @@ async function fetchAllActiveListings(): Promise<ListingRow[]> {
 
 /**
  * Динамический sitemap.xml.
- * Не попадает под matcher в middleware.ts.
+ * Stage 200.71 — always apex via getPublicSiteUrl() (never preview Host).
  *
  * TODO: Добавить фильтрацию по категориям для разделения приоритетов (property, vehicles, services)
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = await resolveBaseUrl()
-  const origin = base.replace(/\/$/, '')
+  const origin = getPublicSiteUrl().replace(/\/$/, '')
 
   const entries: MetadataRoute.Sitemap = [
     {
