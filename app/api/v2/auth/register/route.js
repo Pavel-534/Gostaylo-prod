@@ -28,6 +28,8 @@ import {
   AUTH_PASSWORD_COMPLEXITY_RE,
 } from '@/lib/auth/password-policy';
 import { EmailService } from '@/lib/services/email.service.js';
+import { escapeHtml } from '@/lib/email/premium-email-html';
+import { NotificationService } from '@/lib/services/notification.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +57,8 @@ function generateVerificationToken(userId, email, jwtSecret) {
 async function sendVerificationEmail(user, token) {
   const verifyUrl = `${getPublicSiteUrl()}/api/v2/auth/verify?token=${token}`;
   const siteName = getSiteDisplayName();
+  const safeBrand = escapeHtml(siteName);
+  const safeFirst = user.first_name ? escapeHtml(String(user.first_name)) : '';
   const subject = `Подтвердите ваш email - ${siteName}`;
   const html = `
           <!DOCTYPE html>
@@ -70,7 +74,7 @@ async function sendVerificationEmail(user, token) {
                   <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${siteName}</h1>
+                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${safeBrand}</h1>
                       </td>
                     </tr>
                     <tr>
@@ -79,13 +83,13 @@ async function sendVerificationEmail(user, token) {
                           Подтвердите ваш email
                         </h2>
                         <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Привет${user.first_name ? `, ${user.first_name}` : ''}! Для завершения регистрации нажмите кнопку ниже:
+                          Привет${safeFirst ? `, ${safeFirst}` : ''}! Для завершения регистрации нажмите кнопку ниже:
                         </p>
                         <a href="${verifyUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
                           Подтвердить email
                         </a>
                         <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
-                          Ссылка действительна 24 часа. Если вы не регистрировались на ${siteName}, просто проигнорируйте это письмо.
+                          Ссылка действительна 24 часа. Если вы не регистрировались на ${safeBrand}, просто проигнорируйте это письмо.
                         </p>
                       </td>
                     </tr>
@@ -317,6 +321,19 @@ export async function POST(request) {
   
   // Send verification email
   const emailResult = await sendVerificationEmail(user, verificationToken);
+
+  // Stage 200.74 — welcome via registry (outbox-aware); non-blocking
+  void NotificationService.dispatch('USER_WELCOME', {
+    user: {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      role: user.role,
+      phone: null,
+    },
+    lang: 'ru',
+  }).catch((err) => console.warn('[REGISTER] USER_WELCOME dispatch:', err?.message || err));
   
   // Send Telegram notification (non-blocking)
   sendTelegramNotification(user).catch(() => {});

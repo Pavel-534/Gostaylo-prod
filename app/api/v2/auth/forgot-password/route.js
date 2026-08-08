@@ -14,6 +14,7 @@ import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 import { EmailService } from '@/lib/services/email.service.js';
+import { escapeHtml } from '@/lib/email/premium-email-html';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,8 @@ export async function POST(request) {
   
   const resetUrl = `${getPublicSiteUrl()}/reset-password?token=${resetToken}`;
   const siteName = getSiteDisplayName();
+  const safeBrand = escapeHtml(siteName);
+  const safeFirst = user.first_name ? escapeHtml(String(user.first_name)) : '';
   const subject = `Сброс пароля - ${siteName}`;
   const html = `
           <!DOCTYPE html>
@@ -96,7 +99,7 @@ export async function POST(request) {
                   <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${siteName}</h1>
+                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${safeBrand}</h1>
                       </td>
                     </tr>
                     <tr>
@@ -105,7 +108,7 @@ export async function POST(request) {
                           Сброс пароля
                         </h2>
                         <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Привет${user.first_name ? `, ${user.first_name}` : ''}! Вы запросили сброс пароля.
+                          Привет${safeFirst ? `, ${safeFirst}` : ''}! Вы запросили сброс пароля.
                           Нажмите кнопку ниже, чтобы создать новый пароль:
                         </p>
                         <a href="${resetUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">

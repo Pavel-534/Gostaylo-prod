@@ -3,11 +3,14 @@
  * Guest check-in marker only — CHECKED_IN ≠ THAWED (see `lib/booking/status-transitions.js`).
  * Does NOT release escrow; thaw remains `POST /api/cron/escrow-thaw`.
  * Stage 200.72 — API honesty: never report fundsReleased while escrow still holds funds.
+ * Stage 200.74 — dispatch CHECK_IN_CONFIRMED (escrow-held copy via notify SSOT).
  */
 
 import { NextResponse } from 'next/server';
 import { validateAccess } from '@/lib/api/api-guard';
 import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
+import { supabaseAdmin } from '@/lib/supabase'
+import { NotificationService } from '@/lib/services/notification.service.js'
 export const dynamic = 'force-dynamic';
 
 export async function POST(request, { params }) {
@@ -19,7 +22,7 @@ export async function POST(request, { params }) {
   
   try {
     const access = await validateAccess(request, bookingId, ['renter', 'partner', 'staff'], {
-      select: 'id,status,renter_id,partner_id,price_thb,commission_thb,partner_earnings_thb,metadata',
+      select: 'id,status,renter_id,partner_id,price_thb,commission_thb,partner_earnings_thb,check_in,check_out,listing_id,metadata',
     });
     if (!access.ok) return access.response;
     const { booking, session } = access;
@@ -78,6 +81,43 @@ export async function POST(request, { params }) {
     console.log(`  Total: ฿${priceThb.toLocaleString()}`);
     console.log(`  Guest Service Fee: ฿${guestServiceFeeThb.toLocaleString()}`);
     console.log(`  Partner Earnings (pending thaw): ฿${partnerEarnings.toLocaleString()}`);
+
+    // Stage 200.74 — structured notify (funds remain in escrow per copy SSOT)
+    void (async () => {
+      try {
+        let listing = null
+        let partner = null
+        if (booking.listing_id && supabaseAdmin) {
+          const { data: listingRow } = await supabaseAdmin
+            .from('listings')
+            .select('id, title')
+            .eq('id', String(booking.listing_id))
+            .maybeSingle()
+          listing = listingRow
+        }
+        if (booking.partner_id && supabaseAdmin) {
+          const { data: partnerRow } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, first_name, last_name, telegram_id, language, preferred_language')
+            .eq('id', String(booking.partner_id))
+            .maybeSingle()
+          partner = partnerRow
+        }
+        await NotificationService.dispatch('CHECK_IN_CONFIRMED', {
+          booking: {
+            id: booking.id,
+            check_in: booking.check_in,
+            check_out: booking.check_out,
+            price_thb: booking.price_thb,
+            partner_id: booking.partner_id,
+          },
+          listing,
+          partner,
+        })
+      } catch (err) {
+        console.warn('[CHECK-IN] CHECK_IN_CONFIRMED dispatch:', err?.message || err)
+      }
+    })()
     
     return NextResponse.json({
       success: true,

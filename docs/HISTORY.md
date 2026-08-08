@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.74 | 2026-08-08 | Notification registry hygiene: wire orphans / dead marks; email HTML escape; outbox verify | Done |
 | 200.73 | 2026-08-08 | Guest i18n SSOT: checkout credits, ask-provider placeholders, booking RU/EN ternaries | Done |
 | 200.72 | 2026-08-08 | Resend via EmailService (auth/admin); emergency SMS honesty; check-in escrow copy | Done |
 | 200.71 | 2026-08-08 | SEO: PDP true 404 + noindex; apex canonical home/PDP; sitemap/robots getPublicSiteUrl | Done |

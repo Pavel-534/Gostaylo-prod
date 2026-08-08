@@ -12,6 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service, PaymentMethod } from '@/lib/services/payments-v3.service';
 import { getSessionPayload, getUserIdFromSession } from '@/lib/services/session-service';
 import { authErrorJson, AuthErrorCode } from '@/lib/auth/auth-error-codes';
+import { NotificationService } from '@/lib/services/notification.service.js';
 
 const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR']);
 
@@ -80,6 +81,47 @@ export async function POST(request) {
         { status },
       );
     }
+
+    // Stage 200.74 — ops FINANCE topic via PAYMENT_SUBMITTED (outbox-aware)
+    void (async () => {
+      try {
+        const { data: fullBooking } = await supabaseAdmin
+          .from('bookings')
+          .select('id, guest_name, price_thb, partner_id, listing_id, status')
+          .eq('id', String(bookingId))
+          .maybeSingle()
+        let listing = null
+        let partner = null
+        if (fullBooking?.listing_id) {
+          const { data: listingRow } = await supabaseAdmin
+            .from('listings')
+            .select('id, title')
+            .eq('id', String(fullBooking.listing_id))
+            .maybeSingle()
+          listing = listingRow
+        }
+        if (fullBooking?.partner_id) {
+          const { data: partnerRow } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, telegram_id, first_name, language')
+            .eq('id', String(fullBooking.partner_id))
+            .maybeSingle()
+          partner = partnerRow
+        }
+        await NotificationService.dispatch('PAYMENT_SUBMITTED', {
+          booking: fullBooking || { id: bookingId },
+          payment: {
+            ...(result.payment || {}),
+            txid: txid,
+            payment_method: paymentMethod,
+          },
+          listing,
+          partner,
+        })
+      } catch (err) {
+        console.warn('[SUBMIT TXID] PAYMENT_SUBMITTED dispatch:', err?.message || err)
+      }
+    })()
 
     return NextResponse.json({
       success: true,

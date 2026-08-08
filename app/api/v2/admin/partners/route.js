@@ -11,7 +11,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordSystemAutoVerification } from '@/lib/services/audit/system-auto-verification';
-import { EmailService } from '@/lib/services/email.service.js';
+import { NotificationService } from '@/lib/services/notification.service.js';
+import { escapeTelegramHtmlText } from '@/lib/services/notifications/formatting.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,13 +24,6 @@ async function verifyPartnerAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { userId: String(access.profile?.id || ''), profile: access.profile };
-}
-
-/** Stage 200.72 — EmailService + resend-transport-guard (no raw Resend fetch). */
-async function sendEmail(to, subject, html) {
-  const result = await EmailService.sendEmail(to, { subject, html });
-  console.log('[EMAIL] admin/partners', { to, success: Boolean(result?.success), mock: Boolean(result?.mock) });
-  return Boolean(result?.success);
 }
 
 // Send Telegram message to user
@@ -216,33 +210,24 @@ export async function POST(request) {
       source: 'partner_application_approved',
       extra: { reviewedByRole: auth.profile?.role ?? null },
     });
-    
-    // Send approval notifications
-    const brand = getSiteDisplayName();
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #0d9488;">🎉 Добро пожаловать в ${brand}!</h1>
-        <p>Ваша заявка на партнёрство одобрена!</p>
-        <p>Теперь вы можете:</p>
-        <ul>
-          <li>Добавлять объекты недвижимости</li>
-          <li>Управлять бронированиями</li>
-          <li>Получать выплаты</li>
-        </ul>
-        <p>
-          <a href="${APP_URL}/partner/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">
-            Перейти в панель партнёра
-          </a>
-        </p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда ${brand}</p>
-      </div>
-    `;
-    
-    await sendEmail(user.email, '🎉 Ваша заявка на партнёрство одобрена!', emailHtml);
+
+    // Stage 200.74 — registry email (PARTNER_VERIFIED); Telegram stays in-route
+    void NotificationService.dispatch('PARTNER_VERIFIED', {
+      partner: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        name: user.first_name,
+        language: user.language || user.preferred_language || 'ru',
+        telegram_id: user.telegram_id,
+      },
+    }).catch((err) => console.warn('[ADMIN-PARTNERS] PARTNER_VERIFIED:', err?.message || err));
     
     if (user.telegram_id) {
+      const brandSafe = escapeTelegramHtmlText(getSiteDisplayName());
       await sendTelegramToUser(user.telegram_id, 
-        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в ${getSiteDisplayName()} одобрена!\n\n` +
+        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в ${brandSafe} одобрена!\n\n` +
         `Теперь вы можете добавлять объекты и принимать бронирования.\n\n` +
         `<a href="${APP_URL}/partner/dashboard">Перейти в панель партнёра</a>`
       );
@@ -273,28 +258,23 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: appError.message }, { status: 500 });
     }
     
-    // Note: Don't modify verification_status on rejection - it's an enum
-    // The partner_applications table already tracks the rejection
-    
-    // Send rejection notifications
-    const rejectBrand = getSiteDisplayName();
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #64748b;">Заявка на партнёрство</h1>
-        <p>К сожалению, ваша заявка на партнёрство не была одобрена.</p>
-        <p><strong>Причина:</strong> ${rejectionReason}</p>
-        <p>Вы можете подать новую заявку позже, учтя указанные замечания.</p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда ${rejectBrand}</p>
-      </div>
-    `;
-    
-    await sendEmail(user.email, 'Заявка на партнёрство - решение', emailHtml);
+    // Stage 200.74 — registry rejection email
+    void NotificationService.dispatch('PARTNER_REJECTED', {
+      partner: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        language: user.language || user.preferred_language || 'ru',
+      },
+      reason: rejectionReason,
+    }).catch((err) => console.warn('[ADMIN-PARTNERS] PARTNER_REJECTED:', err?.message || err));
     
     if (user.telegram_id) {
       await sendTelegramToUser(user.telegram_id, 
         `📋 <b>Заявка на партнёрство</b>\n\n` +
         `К сожалению, ваша заявка не была одобрена.\n\n` +
-        `<b>Причина:</b> ${rejectionReason}\n\n` +
+        `<b>Причина:</b> ${escapeTelegramHtmlText(rejectionReason)}\n\n` +
         `Вы можете подать новую заявку позже.`
       );
     }

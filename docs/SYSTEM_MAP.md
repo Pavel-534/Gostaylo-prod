@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.49 | **Last Updated**: 2026-08-08 | **Stage 200.73** guest i18n; **200.72** Resend/check-in.  
+> **Version**: 13.2.50 | **Last Updated**: 2026-08-08 | **Stage 200.74** notification hygiene; **200.73** guest i18n.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -219,7 +219,7 @@ PaymentsV3Service       → initiate / confirm / adapters
 EscrowService           → PAID_ESCROW + thaw + balance sync
 LedgerService           → double-entry capture / settle / refund
 PayoutBatchService      → Concierge pools (Mon/Thu or manual)
-NotificationService     → email / Telegram / FCM dispatch
+NotificationService     → registry + optional NOTIFICATION_OUTBOX enqueue; drain cron
 PushService             → FCM templates + quiet policy
 ReputationService       → partner trust / health
 ```

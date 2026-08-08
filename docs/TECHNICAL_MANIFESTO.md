@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.54 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.73** guest i18n SSOT.
+> **Version**: 13.2.55 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.74** notification hygiene.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.74 — Notification registry hygiene & email HTML escaping
+
+- Registry: wire `USER_WELCOME`, `PARTNER_VERIFIED`/`PARTNER_REJECTED`, `CHECK_IN_CONFIRMED`, `PAYMENT_SUBMITTED`, `DRAFT_DIGEST_REMINDER`; mark `PAYMENT_SUCCESS`/`PAYMENT_CONFIRMED`/`PAYOUT_REJECTED` as `intentionallyDead`.
+- Plain→HTML: `textToHtml` escapes every line; auth forgot-password / register HTML escape brand + name; chat message TG HTML escaped.
+- Outbox: `NOTIFICATION_OUTBOX=1` → JSON-serializable enqueue (`notification_outbox`) + sync fallback; drain restores `correlation_id` via `process-notification-outbox.js`.
 
 ### Stage 200.73 — Guest i18n SSOT (checkout credits + PDP booking)
 
