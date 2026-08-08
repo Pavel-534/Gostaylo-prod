@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.50 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.69** crypto settle SSOT.
+> **Version**: 13.2.51 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.70** acquiring fail-closed + Mandarin verify.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.70 — Acquiring fail-closed & Mandarin parity
+
+- `verifyWebhookPaidAmount`: paid path fail-closed on missing amount (`AMOUNT_MISSING` → HTTP 400); no `{ skipped: true }` by default.
+- CARD_INTL webhook: `getMandarinPayment` + metadata/amount verify before `markPaid` (`lib/payments/mandarin.js`); smoke `smoke-md-*`; mock bypass when unconfigured + `allowMockAcquiringSessions`; rollback `MANDARIN_PAYMENT_VERIFY=0`.
+- Mandarin createSession: stable Idempotency-Key `pi-{intentId}` persisted as `metadata.mandarin_idempotency_key` (no `randomUUID` per attempt).
 
 ### Stage 200.69 — Crypto settle SSOT & idempotency
 

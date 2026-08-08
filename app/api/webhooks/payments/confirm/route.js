@@ -39,6 +39,12 @@ import { ADAPTER_KEYS } from '@/lib/services/payment-adapters/constants';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 import { formatRubAmountValue, getPayment } from '@/lib/payments/yookassa.js';
+import {
+  getMandarinConfig,
+  getMandarinPayment,
+  isMandarinPaymentVerifyEnabled,
+} from '@/lib/payments/mandarin.js';
+import { allowMockAcquiringSessions } from '@/lib/payment/payment-production-guard.js';
 import { touchControlledLiveMirFirstPaymentAlert, touchControlledLiveMirSoftLimit } from '@/lib/payment/controlled-live-mir-guard.js';
 import { logPaymentWebhookFailure } from '@/lib/payment/payment-webhook-failure-log.js';
 import { logStructured } from '@/lib/critical-telemetry.js';
@@ -236,6 +242,130 @@ function isSmokeYookassaGatewayRef(gatewayRef) {
   return (
     process.env.SMOKE_FINANCIAL_RUN === '1' && String(gatewayRef || '').startsWith('smoke-yk-')
   );
+}
+
+function isSmokeMandarinGatewayRef(gatewayRef) {
+  return (
+    process.env.SMOKE_FINANCIAL_RUN === '1' && String(gatewayRef || '').startsWith('smoke-md-')
+  );
+}
+
+/**
+ * Stage 200.70 — Mandarin/CARD_INTL: GET payment verify + metadata + amount (parity with YooKassa).
+ */
+async function verifyMandarinGatewayPayment({
+  gatewayRef,
+  bookingId,
+  intentIdFromPayload,
+  paymentIdFromPayload,
+  booking,
+  webhookAmount,
+  webhookCurrency,
+}) {
+  if (!gatewayRef) {
+    return { ok: false, error: 'MANDARIN_VERIFY_FAILED', code: 'missing_gateway_ref' };
+  }
+
+  const expectedBookingId = String(bookingId);
+  const expectedIntentId = String(intentIdFromPayload || '');
+  if (!expectedIntentId) {
+    return {
+      ok: false,
+      error: 'MANDARIN_VERIFY_FAILED',
+      code: 'missing_payment_intent_id',
+    };
+  }
+
+  const smokeGateway = isSmokeMandarinGatewayRef(gatewayRef);
+  const { configured } = getMandarinConfig();
+  const verifyEnabled = isMandarinPaymentVerifyEnabled();
+
+  let verified = null;
+  let amountForCheck = webhookAmount;
+  let currencyForCheck = webhookCurrency;
+
+  if (!smokeGateway && verifyEnabled) {
+    if (!configured) {
+      if (allowMockAcquiringSessions()) {
+        // Dev/smoke without Mandarin API: fall through to webhook body amount (still fail-closed if missing).
+      } else {
+        return {
+          ok: false,
+          error: 'MANDARIN_VERIFY_FAILED',
+          code: 'MANDARIN_NOT_CONFIGURED',
+        };
+      }
+    } else {
+      verified = await getMandarinPayment(gatewayRef);
+      if (!verified.ok || !verified.paid) {
+        return {
+          ok: false,
+          error: 'MANDARIN_VERIFY_FAILED',
+          code: verified.code || 'payment_not_succeeded',
+          verified,
+        };
+      }
+
+      const md = verified.metadata || {};
+      const metaBookingId = String(md.booking_id || md.bookingId || '');
+      const metaIntentId = String(md.payment_intent_id || md.paymentIntentId || '');
+
+      if (!metaBookingId || metaBookingId !== expectedBookingId) {
+        return {
+          ok: false,
+          error: 'MANDARIN_VERIFY_FAILED',
+          code: 'metadata_booking_mismatch',
+          expected: { booking_id: expectedBookingId },
+          received: { booking_id: metaBookingId },
+        };
+      }
+      if (!metaIntentId || metaIntentId !== expectedIntentId) {
+        return {
+          ok: false,
+          error: 'MANDARIN_VERIFY_FAILED',
+          code: 'metadata_intent_mismatch',
+          expected: { payment_intent_id: expectedIntentId },
+          received: { payment_intent_id: metaIntentId },
+        };
+      }
+
+      if (Number.isFinite(Number(verified.amount)) && Number(verified.amount) > 0) {
+        amountForCheck = Number(verified.amount);
+      }
+      if (verified.currency) {
+        currencyForCheck = verified.currency;
+      }
+    }
+  }
+
+  const { intent, error: intentResolveError } = await resolvePaymentIntentForWebhook({
+    bookingId,
+    intentIdFromPayload: expectedIntentId,
+    paymentIdFromPayload,
+  });
+  if (intentResolveError) {
+    return { ok: false, error: intentResolveError, code: 'intent_resolve' };
+  }
+
+  const amountCheck = verifyWebhookPaidAmount({
+    receivedAmount: amountForCheck,
+    receivedCurrency: currencyForCheck,
+    booking,
+    intent,
+    adapterKey: ADAPTER_KEYS.CARD_INTL,
+    requireAmount: true,
+  });
+  if (!amountCheck.ok) {
+    return {
+      ok: false,
+      error: amountCheck.error === 'AMOUNT_MISSING' ? 'MANDARIN_AMOUNT_MISSING' : 'MANDARIN_AMOUNT_MISMATCH',
+      code: amountCheck.error,
+      expected: amountCheck.expected,
+      received: amountCheck.received,
+    };
+  }
+
+  return { ok: true, intent, verified, smokeGateway: Boolean(smokeGateway) };
 }
 
 async function verifyYookassaGatewayPayment({
@@ -532,6 +662,44 @@ async function handlePaymentConfirmWebhook({ json, adapterKey }) {
     }
   }
 
+  if (adapterKey === ADAPTER_KEYS.CARD_INTL) {
+    const mdVerify = await verifyMandarinGatewayPayment({
+      gatewayRef,
+      bookingId,
+      intentIdFromPayload: intentId,
+      paymentIdFromPayload: paymentId,
+      booking,
+      webhookAmount: amount,
+      webhookCurrency: currency,
+    });
+    if (!mdVerify.ok) {
+      logPaymentWebhookFailure({
+        error: mdVerify.error || 'mandarin_verify_failed',
+        bookingId,
+        adapterKey,
+        gatewayRef,
+        intentId,
+        paymentId,
+        stage: 'mandarin_verify',
+        context: `code=${mdVerify.code || ''} expected=${JSON.stringify(mdVerify.expected || {})} received=${JSON.stringify(mdVerify.received || {})}`,
+        httpStatus: 400,
+      });
+      void notifySystemAlert(
+        `💳 <b>Webhook Mandarin</b> — verify failed\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n<code>${escapeSystemAlertHtml(String(mdVerify.code || mdVerify.error || ''))}</code>`,
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: mdVerify.error,
+          code: mdVerify.code || null,
+          expected: mdVerify.expected || null,
+          received: mdVerify.received || null,
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   let payId = paymentId;
   if (!payId && !intentId) {
     const { data: pay } = await supabaseAdmin
@@ -546,8 +714,6 @@ async function handlePaymentConfirmWebhook({ json, adapterKey }) {
   }
 
   const isLegacyPaymentsPath = !!(payId && !String(payId).startsWith('pi-') && !intentId);
-
-  let resolvedIntentForEscrow = null;
 
   if (isLegacyPaymentsPath) {
     // AUDIT_03 W3.6 — visible deprecation; keep path for compatibility
@@ -620,6 +786,7 @@ async function handlePaymentConfirmWebhook({ json, adapterKey }) {
     booking,
     intent: intentForAmount,
     adapterKey,
+    requireAmount: true,
   });
   if (!amountCheck.ok) {
     void notifySystemAlert(
@@ -766,6 +933,15 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     message: 'POST JSON with adapter signature (x-mandarin-signature | x-yookassa-signature | x-webhook-signature)',
-    env: ['MANDARIN_WEBHOOK_SECRET', 'YOOKASSA_WEBHOOK_SECRET', 'PAYMENT_ACQUIRING_WEBHOOK_SECRET'],
+    env: [
+      'MANDARIN_WEBHOOK_SECRET',
+      'MANDARIN_API_KEY',
+      'MANDARIN_CARD_INTL_ENDPOINT',
+      'MANDARIN_API_BASE',
+      'MANDARIN_PAYMENT_GET_URL',
+      'MANDARIN_PAYMENT_VERIFY',
+      'YOOKASSA_WEBHOOK_SECRET',
+      'PAYMENT_ACQUIRING_WEBHOOK_SECRET',
+    ],
   });
 }

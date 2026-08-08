@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.70 | 2026-08-08 | Acquiring fail-closed amount; Mandarin GET verify parity; stable CARD_INTL Idempotency-Key | Done |
 | 200.69 | 2026-08-08 | Crypto settle SSOT: verify-tron + webhook share settleCryptoPayment; 2xx same-booking replay; prod header-only secret | Done |
 | 200.68 | 2026-08-08 | PWA edge fixes: chat haptic only on successful send; messages PTR enabled after scroll ref | Done |
 | 200.67 | 2026-08-08 | PWA native UX: useHaptic + usePullToRefresh; wired on moderation, partner approve, checkout, chat, bookings/messages feeds | Done |

@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.45 | **Last Updated**: 2026-08-08 | **Stage 200.69** crypto settle SSOT; **200.68** PWA edge.  
+> **Version**: 13.2.46 | **Last Updated**: 2026-08-08 | **Stage 200.70** acquiring/Mandarin; **200.69** crypto settle.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -169,7 +169,7 @@
 | Path |
 |------|
 | `POST /api/webhooks/telegram` |
-| `POST /api/webhooks/payments/confirm` |
+| `POST /api/webhooks/payments/confirm` — Stage 200.70: amount fail-closed; CARD_INTL Mandarin GET verify |
 | `POST /api/webhooks/crypto/confirm` — Stage 200.69: header secret (prod); `settle-crypto-payment.js` |
 | `POST /api/v2/payments/verify-tron` — Stage 200.69: `getExpectedUsdtForBooking` + same settle SSOT |
 | `POST /api/v2/payments/submit-txid` |
