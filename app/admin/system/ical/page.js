@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { 
-  Loader2, RefreshCw, AlertCircle, CheckCircle, 
-  Calendar, ArrowLeft, Filter, Clock, ExternalLink,
-  Activity, Play, List
+import {
+  Loader2, RefreshCw, AlertCircle, CheckCircle,
+  ArrowLeft, Clock,
+  Activity, Play, List,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -33,38 +33,12 @@ export default function AdminICalPage() {
   const [user, setUser] = useState(null)
   const [lastSyncResult, setLastSyncResult] = useState(null)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('gostaylo_user')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setUser(parsed)
-      if (parsed.role !== 'ADMIN') {
-        router.push('/')
-      } else {
-        loadData()
-      }
-    } else {
-      router.push('/')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (user?.role === 'ADMIN') {
-      loadLogs()
-    }
-  }, [errorsOnly, user])
-
-  const loadData = useCallback(async () => {
-    await Promise.all([loadLogs(), loadListings()])
-    setLoading(false)
-  }, [])
-
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     try {
       const url = `/api/v2/admin/ical?limit=50${errorsOnly ? '&errors_only=true' : ''}`
       const res = await fetch(url, { credentials: 'include' })
       const result = await res.json()
-      
+
       if (result.success) {
         setLogs(result.logs || [])
         setStats(result.stats || { total_24h: 0, success_24h: 0, errors_24h: 0 })
@@ -72,25 +46,57 @@ export default function AdminICalPage() {
     } catch (error) {
       console.error('Failed to load logs:', error)
     }
-  }
+  }, [errorsOnly])
 
-  async function loadListings() {
+  const loadListings = useCallback(async () => {
     try {
       const res = await fetch('/api/v2/admin/ical', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'get_sync_enabled' })
+        body: JSON.stringify({ action: 'get_sync_enabled' }),
       })
       const result = await res.json()
-      
+
       if (result.success) {
         setListings(result.listings || [])
       }
     } catch (error) {
       console.error('Failed to load listings:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('gostaylo_user')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (parsed.role !== 'ADMIN') {
+        router.push('/')
+        return
+      }
+      setUser(parsed)
+    } else {
+      router.push('/')
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      await loadListings()
+      if (!cancelled) setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user, loadListings])
+
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return
+    void loadLogs()
+  }, [user, loadLogs])
 
   async function triggerSyncAll() {
     setSyncing(true)
@@ -195,7 +201,9 @@ export default function AdminICalPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => loadData()}
+                onClick={() => {
+                  void Promise.all([loadLogs(), loadListings()])
+                }}
                 title="Обновить"
                 className="min-h-[44px] min-w-[44px]"
               >

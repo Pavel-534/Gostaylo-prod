@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { resolveBatchStatusLabel, resolvePayoutRailLabel } from '@/lib/admin/fintech-ui-labels'
 import { cn } from '@/lib/utils'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
-import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 
 /**
  * @param {object} props

@@ -110,7 +110,7 @@ export default function SecurityPage() {
         setNewWallet({ address: '', reason: '' })
         loadBlacklist()
       }
-    } catch (error) {
+    } catch {
       toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
     }
   }
@@ -135,7 +135,7 @@ export default function SecurityPage() {
         setNewPhone({ number: '', reason: '' })
         loadBlacklist()
       }
-    } catch (error) {
+    } catch {
       toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
     }
   }

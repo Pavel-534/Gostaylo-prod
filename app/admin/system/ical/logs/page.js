@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,34 +37,13 @@ export default function ICalLogsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [user, setUser] = useState(null)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('gostaylo_user')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setUser(parsed)
-      if (parsed.role !== 'ADMIN') {
-        router.push('/')
-      } else {
-        loadLogs()
-      }
-    } else {
-      router.push('/')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (user?.role === 'ADMIN') {
-      loadLogs()
-    }
-  }, [errorsOnly, user])
-
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     setLoading(true)
     try {
       const url = `/api/v2/admin/ical?limit=100${errorsOnly ? '&errors_only=true' : ''}`
       const res = await fetch(url, { credentials: 'include' })
       const result = await res.json()
-      
+
       if (result.success) {
         setLogs(result.logs || [])
         setStats(result.stats || { total_24h: 0, success_24h: 0, errors_24h: 0 })
@@ -74,7 +53,26 @@ export default function ICalLogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [errorsOnly])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('gostaylo_user')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (parsed.role !== 'ADMIN') {
+        router.push('/')
+        return
+      }
+      setUser(parsed)
+    } else {
+      router.push('/')
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return
+    void loadLogs()
+  }, [user, loadLogs])
 
   // Filter logs by search query
   const filteredLogs = logs.filter(log => {
