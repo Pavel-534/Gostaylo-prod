@@ -10,11 +10,10 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
-import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { PricingService } from '@/lib/services/pricing.service';
-import { LegalVersionsService } from '@/lib/services/legal-versions.service.js'
+import { LegalVersionsService } from '@/lib/services/legal-versions.service.js';
 import ReferralGuardService, {
   resolveClientIpFromRequest,
 } from '@/lib/services/marketing/referral-guard.service';
@@ -28,6 +27,7 @@ import {
   AUTH_PASSWORD_MIN_LENGTH,
   AUTH_PASSWORD_COMPLEXITY_RE,
 } from '@/lib/auth/password-policy';
+import { EmailService } from '@/lib/services/email.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,34 +51,12 @@ function generateVerificationToken(userId, email, jwtSecret) {
   );
 }
 
-// Send verification email via Resend
+/** Stage 200.72 — verification mail via EmailService (resend-transport-guard). */
 async function sendVerificationEmail(user, token) {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const EMAIL_FROM = getTransactionalFromAddress();
-  
-  if (!RESEND_API_KEY) {
-    console.error('[EMAIL] RESEND_API_KEY not configured');
-    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED };
-  }
-  
   const verifyUrl = `${getPublicSiteUrl()}/api/v2/auth/verify?token=${token}`;
   const siteName = getSiteDisplayName();
-
-  try {
-    console.log('[EMAIL] Sending verification to:', hashPiiForLog(user.email));
-    console.log('[EMAIL] From:', EMAIL_FROM);
-    
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: EMAIL_FROM,
-        to: user.email,
-        subject: `Подтвердите ваш email - ${siteName}`,
-        html: `
+  const subject = `Подтвердите ваш email - ${siteName}`;
+  const html = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -117,23 +95,19 @@ async function sendVerificationEmail(user, token) {
             </table>
           </body>
           </html>
-        `
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      console.log('[EMAIL] Verification email sent:', result.id);
-      return { success: true };
-    } else {
-      console.error('[EMAIL] Resend error:', JSON.stringify(result));
-      return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
-    }
-  } catch (error) {
-    console.error('[EMAIL] Exception:', error.message);
-    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
+        `;
+
+  console.log('[EMAIL] Sending verification to:', hashPiiForLog(user.email));
+  const result = await EmailService.sendEmail(user.email, { subject, html });
+  if (result?.success) {
+    return { success: true, mock: Boolean(result.mock) };
   }
+  if (result?.error === 'API key not configured') {
+    console.error('[EMAIL] RESEND_API_KEY not configured');
+    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED };
+  }
+  console.error('[EMAIL] send failed:', result?.error || 'unknown');
+  return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
 }
 
 // Send Telegram notification

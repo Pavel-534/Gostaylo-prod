@@ -9,66 +9,27 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
-import { getNoreplyFromAddress } from '@/lib/email-env';
-import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordSystemAutoVerification } from '@/lib/services/audit/system-auto-verification';
+import { EmailService } from '@/lib/services/email.service.js';
 
 export const dynamic = 'force-dynamic';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = getPublicSiteUrl();
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 /** Stage 90.1 — staff может одобрять заявки (тот же контур, что **`/api/admin/**`**). */
-async function verifyPartnerAdmin() {
+async function verifyPartnerAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { userId: String(access.profile?.id || ''), profile: access.profile };
 }
 
-// Send email via Resend
+/** Stage 200.72 — EmailService + resend-transport-guard (no raw Resend fetch). */
 async function sendEmail(to, subject, html) {
-  if (!RESEND_API_KEY) {
-    console.log('[EMAIL] Resend not configured');
-    return false;
-  }
-  
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: getNoreplyFromAddress(),
-        to: [to],
-        subject,
-        html
-      })
-    });
-    
-    const result = await res.json();
-    console.log('[EMAIL] Sent to:', to, result);
-    if (!res.ok) {
-      void notifySystemAlert(
-        `📧 <b>Resend: ошибка</b> (admin/partners)\n` +
-          `subject: <code>${escapeSystemAlertHtml(subject)}</code>\n` +
-          `to: <code>${escapeSystemAlertHtml(String(to).slice(0, 120))}</code>\n` +
-          `<code>${escapeSystemAlertHtml(result?.message || JSON.stringify(result).slice(0, 600))}</code>`,
-      )
-    }
-    return res.ok;
-  } catch (e) {
-    console.error('[EMAIL] Error:', e.message);
-    void notifySystemAlert(
-      `📧 <b>Resend: исключение</b> (admin/partners)\n` +
-        `subject: <code>${escapeSystemAlertHtml(subject)}</code>\n` +
-        `<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
-    )
-    return false;
-  }
+  const result = await EmailService.sendEmail(to, { subject, html });
+  console.log('[EMAIL] admin/partners', { to, success: Boolean(result?.success), mock: Boolean(result?.mock) });
+  return Boolean(result?.success);
 }
 
 // Send Telegram message to user
@@ -96,7 +57,7 @@ async function sendTelegramToUser(telegramId, message) {
  * GET - List pending partner applications from partner_applications table
  */
 export async function GET(request) {
-  const auth = await verifyPartnerAdmin();
+  const auth = await verifyPartnerAdmin(request);
   if (auth.error) {
     return auth.error;
   }
@@ -165,7 +126,7 @@ export async function GET(request) {
  * Updates both partner_applications and profiles tables
  */
 export async function POST(request) {
-  const auth = await verifyPartnerAdmin();
+  const auth = await verifyPartnerAdmin(request);
   if (auth.error) {
     return auth.error;
   }

@@ -9,11 +9,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
-import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
+import { EmailService } from '@/lib/services/email.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,28 +81,8 @@ export async function POST(request) {
   
   const resetUrl = `${getPublicSiteUrl()}/reset-password?token=${resetToken}`;
   const siteName = getSiteDisplayName();
-
-  // Send email via Resend
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const EMAIL_FROM = getTransactionalFromAddress();
-  
-  if (!RESEND_API_KEY) {
-    console.error('[FORGOT-PASSWORD] RESEND_API_KEY not configured');
-    return authErrorJson(AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED, 500);
-  }
-  
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: EMAIL_FROM,
-        to: user.email,
-        subject: `Сброс пароля - ${siteName}`,
-        html: `
+  const subject = `Сброс пароля - ${siteName}`;
+  const html = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -142,20 +122,20 @@ export async function POST(request) {
             </table>
           </body>
           </html>
-        `
-      })
-    });
-    
-    if (response.ok) {
-      console.log('[FORGOT-PASSWORD] Reset email sent to:', hashPiiForLog(user.email));
-    } else {
-      const error = await response.text();
-      console.error('[FORGOT-PASSWORD] Resend error:', error);
-    }
-  } catch (error) {
-    console.error('[FORGOT-PASSWORD] Email error:', error.message);
+        `;
+
+  // Stage 200.72 — EmailService + transport guard (never raw Resend)
+  const result = await EmailService.sendEmail(user.email, { subject, html });
+  if (result?.error === 'API key not configured') {
+    console.error('[FORGOT-PASSWORD] RESEND_API_KEY not configured');
+    return authErrorJson(AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED, 500);
   }
-  
+  if (result?.success) {
+    console.log('[FORGOT-PASSWORD] Reset email sent to:', hashPiiForLog(user.email));
+  } else {
+    console.error('[FORGOT-PASSWORD] Email error:', result?.error || 'unknown');
+  }
+
   return NextResponse.json({ success: true });
 }
 

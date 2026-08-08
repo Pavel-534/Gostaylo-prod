@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.52 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.71** SEO apex + soft-404 fix.
+> **Version**: 13.2.53 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.72** Resend guard + check-in honesty.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.72 — Resend guard & check-in / emergency honesty
+
+- Auth register / forgot-password and admin partners email: only `EmailService.sendEmail` (resend-transport-guard); no raw `api.resend.com` fetch.
+- Emergency SMS: `sendEmergencySMS` → `dispatchSms`; returns `smsSent` / `ops_fallback` (push + admin Telegram); never claims SMS sent on miss/unconfigured.
+- Check-in confirm: `fundsReleased: false`, `escrowHeld: true`; CHECK_IN_CONFIRMED email/TG/admin copy — funds remain in escrow (thaw notify stays on PARTNER_FUNDS_THAWED).
 
 ### Stage 200.71 — SEO soft-404 & apex canonical
 

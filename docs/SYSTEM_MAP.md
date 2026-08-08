@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.47 | **Last Updated**: 2026-08-08 | **Stage 200.71** SEO apex/canonical; **200.70** acquiring/Mandarin.  
+> **Version**: 13.2.48 | **Last Updated**: 2026-08-08 | **Stage 200.72** Resend/check-in honesty; **200.71** SEO.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -102,8 +102,8 @@
 | `POST /api/v2/bookings/[id]/payment/confirm` |
 | `GET|POST /api/v2/bookings/[id]/payment-intent` |
 | `POST /api/v2/bookings/[id]/apply-promo` |
-| `GET|PATCH /api/v2/bookings/[id]/emergency-contact` · `emergency-context` · `emergency-support-ticket` |
-| `POST /api/v2/bookings/[id]/check-in/confirm` |
+| `GET|PATCH /api/v2/bookings/[id]/emergency-contact` · `emergency-context` · `emergency-support-ticket` — Stage 200.72: SMS via `dispatchSms` or ops_fallback |
+| `POST /api/v2/bookings/[id]/check-in/confirm` — Stage 200.72: `fundsReleased: false` / `escrowHeld: true` |
 | `POST /api/v2/bookings/[id]/cancel` |
 | `POST /api/v2/promo-codes/validate` |
 | `POST /api/v2/push` |

@@ -1,7 +1,8 @@
 /**
- * POST /api/bookings/[id]/check-in/confirm
+ * POST /api/v2/bookings/[id]/check-in/confirm
  * Guest check-in marker only — CHECKED_IN ≠ THAWED (see `lib/booking/status-transitions.js`).
  * Does NOT release escrow; thaw remains `POST /api/cron/escrow-thaw`.
+ * Stage 200.72 — API honesty: never report fundsReleased while escrow still holds funds.
  */
 
 import { NextResponse } from 'next/server';
@@ -30,6 +31,8 @@ export async function POST(request, { params }) {
           bookingId,
           status: 'CHECKED_IN',
           alreadyCheckedIn: true,
+          fundsReleased: false,
+          escrowHeld: true,
         },
       });
     }
@@ -54,8 +57,6 @@ export async function POST(request, { params }) {
         metadata: {
           ...(booking.metadata || {}),
           checkedInAt,
-          /** legacy key: не означает реальную разморозку эскроу */
-          fundsReleasedAt: checkedInAt,
           checkInConfirmedBy: session.userId,
         },
       },
@@ -65,7 +66,6 @@ export async function POST(request, { params }) {
       throw new Error(statusRes.error || 'BOOKING_STATUS_TRANSITION_FAILED')
     }
     
-    // Log funds release (in production, this would trigger actual fund transfer)
     const priceThb = parseFloat(booking.price_thb) || 0;
     const guestServiceFeeThb = parseFloat(booking.commission_thb) || 0;
     const partnerEarnings =
@@ -73,18 +73,19 @@ export async function POST(request, { params }) {
         ? parseFloat(booking.partner_earnings_thb)
         : priceThb;
     
-    console.log(`[CHECK-IN CONFIRMED] Booking ${bookingId}`);
+    console.log(`[CHECK-IN CONFIRMED] Booking ${bookingId} (escrow still held; thaw via cron)`);
     console.log(`  Partner: ${booking.partner_id}`);
     console.log(`  Total: ฿${priceThb.toLocaleString()}`);
     console.log(`  Guest Service Fee: ฿${guestServiceFeeThb.toLocaleString()}`);
-    console.log(`  Partner Earnings: ฿${partnerEarnings.toLocaleString()}`);
+    console.log(`  Partner Earnings (pending thaw): ฿${partnerEarnings.toLocaleString()}`);
     
     return NextResponse.json({
       success: true,
       data: {
         bookingId,
         status: 'CHECKED_IN',
-        fundsReleased: true,
+        fundsReleased: false,
+        escrowHeld: true,
         partnerEarnings,
         checkedInAt
       }

@@ -121,6 +121,32 @@ export async function POST(request, { params }) {
       abuse: { marked: false, marked_at: null, marked_by: null },
     })
 
+    let smsDelivery = null
+    if (checklist.health_or_safety === true) {
+      const { data: partnerRow } = await supabaseAdmin
+        .from('profiles')
+        .select('phone')
+        .eq('id', partnerId)
+        .maybeSingle()
+      // Stage 200.72 — honest SMS status (dispatchSms or ops_fallback; never fake "sent")
+      smsDelivery = await sendEmergencySMS({
+        partnerPhone: partnerRow?.phone != null ? String(partnerRow.phone) : null,
+        bookingId,
+        listingTitle: String(listingTitle),
+      })
+      events[events.length - 1] = {
+        ...events[events.length - 1],
+        sms: {
+          smsSent: Boolean(smsDelivery?.smsSent),
+          channel: smsDelivery?.channel || 'ops_fallback',
+          mocked: Boolean(smsDelivery?.mocked),
+          provider: smsDelivery?.provider || null,
+          reason: smsDelivery?.reason || null,
+          error_code: smsDelivery?.error_code || null,
+        },
+      }
+    }
+
     const nextMeta = { ...prevMeta, emergency_contact_events: events }
 
     const { error: metaErr } = await supabaseAdmin
@@ -139,18 +165,18 @@ export async function POST(request, { params }) {
       checklist,
     }).catch((err) => console.error('[emergency-contact] admin telegram', err?.message || err))
 
-    if (checklist.health_or_safety === true) {
-      const { data: partnerRow } = await supabaseAdmin
-        .from('profiles')
-        .select('phone')
-        .eq('id', partnerId)
-        .maybeSingle()
-      sendEmergencySMS({
-        partnerPhone: partnerRow?.phone != null ? String(partnerRow.phone) : null,
-      })
-    }
-
-    return NextResponse.json({ success: true, push: pushDelivery })
+    return NextResponse.json({
+      success: true,
+      push: pushDelivery,
+      ...(smsDelivery
+        ? {
+            sms: {
+              smsSent: Boolean(smsDelivery.smsSent),
+              channel: smsDelivery.channel,
+            },
+          }
+        : {}),
+    })
   } catch (e) {
     console.error('[emergency-contact]', e)
     return NextResponse.json({ success: false, error: e?.message || 'error' }, { status: 500 })
