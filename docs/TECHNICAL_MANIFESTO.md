@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.53 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.72** Resend guard + check-in honesty.
+> **Version**: 13.2.54 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.73** guest i18n SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.73 — Guest i18n SSOT (checkout credits + PDP booking)
+
+- Checkout platform credits: `checkout_credits*` keys (not crypto `checkout_wallet*`); no mixed RU/EN hardcode in `CheckoutSummary`.
+- Ask-in-chat: `listingDetail_askPartnerChat` + `{provider*}` via `getGuestBookingLabelPlaceholders` (EN/ZH/TH templates fixed); continue chat → `listingDetail_continueChat`; unavailable dates use same ask key (no «хозяин» hardcode).
+- Booking widgets: RU/EN ternaries → `getUIText` (availability, spots, duration discount, chat preview, reviews empty/count, yacht/tour titles).
+- `applyGuestBookingLabelPlaceholders` also runs when only `wizardProfile` is set.
 
 ### Stage 200.72 — Resend guard & check-in / emergency honesty
 

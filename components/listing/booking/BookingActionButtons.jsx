@@ -6,9 +6,16 @@ import { ArrowRight, Clock, MessageCircle, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BookingTrustSignals } from '@/components/listing/booking/BookingTrustSignals'
 
-function ChatPreviewBadge({ preview, hasUnread, language }) {
+function ChatPreviewBadge({ preview, hasUnread, language, listingCategorySlug, wizardProfile }) {
   if (!preview) return null
   const label = preview.length > 55 ? `${preview.slice(0, 55)}…` : preview
+  const ctx =
+    listingCategorySlug || wizardProfile
+      ? { listingCategorySlug: listingCategorySlug || undefined, wizardProfile: wizardProfile || undefined }
+      : undefined
+  const prefix = hasUnread
+    ? getUIText('listingDetail_chatPreviewNewReply', language, ctx)
+    : getUIText('listingDetail_chatPreviewLast', language, ctx)
   return (
     <div
       className={`flex items-start gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${
@@ -19,7 +26,7 @@ function ChatPreviewBadge({ preview, hasUnread, language }) {
     >
       {hasUnread && <span className="mt-px h-2 w-2 shrink-0 rounded-full bg-amber-500" />}
       <span className="leading-tight">
-        {hasUnread ? (language === 'ru' ? 'Новый ответ: ' : 'New reply: ') : language === 'ru' ? 'Последнее: ' : 'Last: '}
+        {prefix}
         <span className="font-medium">{label}</span>
       </span>
     </div>
@@ -78,6 +85,15 @@ export function BookingActionButtons({
   wizardProfile = null,
 }) {
   const sharedMode = bookingUiMode === 'shared'
+  const uiCtx =
+    listingCategorySlug || wizardProfile
+      ? {
+          listingCategorySlug: listingCategorySlug || undefined,
+          wizardProfile: wizardProfile || undefined,
+        }
+      : undefined
+  const askLabel =
+    askPartnerLabel || getUIText('listingDetail_askPartnerChat', language, uiCtx)
 
   return (
     <>
@@ -94,12 +110,14 @@ export function BookingActionButtons({
             }`}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
-            {askPartnerLabel}
+            {askLabel}
           </Button>
           <ChatPreviewBadge
             preview={lastMessagePreview}
             hasUnread={hasUnreadFromHost}
             language={language}
+            listingCategorySlug={listingCategorySlug}
+            wizardProfile={wizardProfile}
           />
         </div>
       )}
@@ -114,11 +132,7 @@ export function BookingActionButtons({
         data-testid="listing-book-now"
         className="w-full h-12 text-base"
       >
-        {exclusiveDatesUnavailable
-          ? language === 'ru'
-            ? 'Даты недоступны'
-            : 'Dates unavailable'
-          : tx('bookNow')}
+        {exclusiveDatesUnavailable ? tx('listingDetail_datesUnavailable') : tx('bookNow')}
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
 
@@ -140,9 +154,7 @@ export function BookingActionButtons({
               onClick={onPrivateTripClick}
               disabled={!dateRange?.from || !dateRange?.to}
             >
-              {language === 'ru'
-                ? 'Запросить приватный тур / индивидуальную цену'
-                : 'Request private trip / individual price'}
+              {tx('listingDetail_privateTrip')}
             </Button>
           )}
           {onSpecialPriceClick && (
@@ -153,7 +165,7 @@ export function BookingActionButtons({
               onClick={onSpecialPriceClick}
               disabled={!dateRange?.from || !dateRange?.to}
             >
-              {language === 'ru' ? 'Запросить особую цену' : 'Request special price'}
+              {tx('listingDetail_specialPrice')}
             </Button>
           )}
         </div>
@@ -169,7 +181,7 @@ export function BookingActionButtons({
           data-testid="booking-contact-host-unavailable"
         >
           <MessageCircle className="mr-2 h-4 w-4" />
-          {language === 'ru' ? 'Спросить у хозяина в чате' : getUIText('listingDetail_askPartnerChat', language)}
+          {getUIText('listingDetail_askPartnerChat', language, uiCtx)}
         </Button>
       )}
 

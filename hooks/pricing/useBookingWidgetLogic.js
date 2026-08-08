@@ -19,6 +19,7 @@ export function useBookingWidgetLogic({
   askPartnerLoading = false,
 }) {
   const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
+  const wizardProfile = listing?.wizardProfile || listing?.category?.wizard_profile || null
 
   const rentalPeriodMode = useMemo(
     () => getListingRentalPeriodMode(listingCategorySlug),
@@ -30,19 +31,25 @@ export function useBookingWidgetLogic({
   const remaining = availabilitySnapshot?.remaining_spots
   const sharedMode = bookingUiMode === 'shared'
   const wholeVessel = isWholeVesselListing(listing?.categorySlug, listing?.metadata)
-  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
+  const uiListingCtx =
+    listingCategorySlug || wizardProfile
+      ? {
+          listingCategorySlug: listingCategorySlug || undefined,
+          wizardProfile: wizardProfile || undefined,
+        }
+      : undefined
   const tx = (key) => getUIText(key, language, uiListingCtx)
 
+  // Stage 200.73 — continue vs ask uses SSOT keys; ask path gets provider placeholders via uiListingCtx
   const askPartnerLabel = askPartnerLoading
     ? tx('loading')
     : hasExistingConversation
-      ? language === 'ru'
-        ? 'Продолжить диалог'
-        : 'Continue chat'
-      : tx('askListingQuestion')
+      ? tx('listingDetail_continueChat')
+      : tx('listingDetail_askPartnerChat')
 
   return {
     listingCategorySlug,
+    wizardProfile,
     rentalPeriodMode,
     maxGuests,
     maxCap,

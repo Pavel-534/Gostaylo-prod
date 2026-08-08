@@ -131,7 +131,7 @@ export function ListingCardSpecsRow({
       {vertical === 'yacht' && cabins > 0 && (
         <div
           className="flex items-center gap-2"
-          title={language === 'ru' ? 'Кают' : 'Cabins'}
+          title={getUIText('listingInfo_cabinsTitle', language)}
         >
           <Ship className={iconCls} aria-hidden />
           <span>
@@ -149,7 +149,7 @@ export function ListingCardSpecsRow({
         </div>
       )}
       {vertical === 'tour' && durationHours > 0 && (
-        <div className="flex items-center gap-2" title={language === 'ru' ? 'Часы' : 'Hours'}>
+        <div className="flex items-center gap-2" title={getUIText('listingInfo_hoursTitle', language)}>
           <Clock className={iconCls} aria-hidden />
           <span className="tabular-nums">
             {isPdp

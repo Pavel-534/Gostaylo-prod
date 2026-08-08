@@ -208,17 +208,13 @@ export function DesktopBookingWidget({
               {availabilityLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {language === 'ru' ? 'Проверяем доступность…' : 'Checking availability…'}
+                  {tx('listingDetail_checkingAvailability')}
                 </span>
               ) : availabilitySnapshot != null ? (
                 <span>
                   {availabilitySnapshot.available
-                    ? language === 'ru'
-                      ? 'Судно свободно на выбранные даты'
-                      : 'Vessel available for these dates'
-                    : language === 'ru'
-                      ? 'Судно недоступно на эти даты'
-                      : 'Vessel not available for these dates'}
+                    ? tx('listingDetail_vesselAvailable')
+                    : tx('listingDetail_vesselUnavailable')}
                 </span>
               ) : null}
             </div>
@@ -229,11 +225,11 @@ export function DesktopBookingWidget({
               {availabilityLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {language === 'ru' ? 'Проверяем места…' : 'Checking availability…'}
+                  {tx('listingDetail_checkingSpots')}
                 </span>
               ) : remaining != null ? (
                 <span>
-                  {language === 'ru' ? 'Свободных мест' : 'Spots remaining'}:{' '}
+                  {tx('listingDetail_spotsLabel')}:{' '}
                   <strong>{remaining}</strong>
                   {maxCap > 1 ? ` / ${maxCap}` : ''}
                 </span>
@@ -243,7 +239,7 @@ export function DesktopBookingWidget({
 
           {exclusiveDatesUnavailable && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900">
-              {language === 'ru' ? 'Выбранные даты заняты.' : 'These dates are unavailable.'}
+              {tx('listingDetail_datesUnavailable')}
             </div>
           )}
 

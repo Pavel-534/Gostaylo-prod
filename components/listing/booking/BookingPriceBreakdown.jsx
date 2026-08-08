@@ -14,28 +14,15 @@ function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
   const pct = priceCalc.durationDiscountPercent
   if (!min || !pct) {
-    return language === 'ru' ? 'Скидка за длительность' : 'Length-of-stay discount'
+    return getUIText('listingBooking_durationDiscount', language)
   }
-  const unit =
-    rentalPeriodMode === 'day'
-      ? language === 'ru'
-        ? 'суток'
-        : language === 'zh'
-          ? '天'
-          : language === 'th'
-            ? 'วัน'
-            : 'days'
-      : language === 'ru'
-        ? 'ночей'
-        : language === 'zh'
-          ? '晚'
-          : language === 'th'
-            ? 'คืน'
-            : 'nights'
-  if (language === 'ru') return `Скидка за ${min}+ ${unit}`
-  if (language === 'zh') return `${min}+${unit}折扣`
-  if (language === 'th') return `ส่วนลด ${min}+ ${unit}`
-  return `Discount (${min}+ ${unit})`
+  const unit = getUIText(
+    rentalPeriodMode === 'day' ? 'listingBooking_unitDays' : 'listingBooking_unitNights',
+    language,
+  )
+  return getUIText('listingBooking_durationDiscountMin', language)
+    .replace(/\{min\}/g, String(min))
+    .replace(/\{unit\}/g, unit)
 }
 
 export function BookingPriceBreakdown({
@@ -88,11 +75,12 @@ export function BookingPriceBreakdown({
           .replace(/\{\{unit\}\}/g, fmt(formulaUnitThb))
           .replace(/\{\{nights\}\}/g, String(nights))
           .replace(/\{\{period\}\}/g, periodWord)
-      : rentalPeriodMode === 'day'
-        ? getUIText('breakdownBaseTimesDays', language)
-        : language === 'ru'
-          ? 'База × ночей'
-          : 'Base rate × nights'
+      : getUIText(
+          rentalPeriodMode === 'day'
+            ? 'listingBooking_baseTimesDaysShort'
+            : 'listingBooking_baseTimesNightsShort',
+          language,
+        )
 
   const taxLabel =
     taxAmount > 0

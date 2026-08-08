@@ -59,7 +59,14 @@ export function ListingMobileActions({ chat }) {
   } = useListingBooking()
 
   const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
-  const uiCtx = listingCategorySlug ? { listingCategorySlug } : undefined
+  const wizardProfile = listing?.wizardProfile || listing?.category?.wizard_profile || null
+  const uiCtx =
+    listingCategorySlug || wizardProfile
+      ? {
+          listingCategorySlug: listingCategorySlug || undefined,
+          wizardProfile: wizardProfile || undefined,
+        }
+      : undefined
   const tx = (k) => getUIText(k, language, uiCtx)
 
   const mobileBarProps = useMemo(

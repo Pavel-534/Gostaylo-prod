@@ -41,6 +41,7 @@ const ALLOW_LINE = [
   /partnerDashboard/,
   /partnerBookings/,
   /partnerNav/,
+  /userMenu_switchToPartnerCabinet/,
   /renterApplicationApproved/,
   /Partner portal/,
   /合作伙伴后台/,

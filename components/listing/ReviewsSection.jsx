@@ -97,7 +97,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
               <span className="text-3xl font-semibold">{(Number(listing?.rating) || 0).toFixed(1)}</span>
             </div>
             <span className="text-slate-500">
-              · {listing.reviewsCount} {language === 'ru' ? 'отзывов' : 'reviews'}
+              · {listing.reviewsCount} {getUIText('listingDetail_reviewsWord', language)}
             </span>
           </div>
 
@@ -197,7 +197,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
         </div>
       ) : (
         <p className="text-slate-500">
-          {language === 'ru' ? 'Пока нет отзывов' : 'No reviews yet'}
+          {getUIText('listingDetail_noReviewsYet', language)}
         </p>
       )}
     </div>

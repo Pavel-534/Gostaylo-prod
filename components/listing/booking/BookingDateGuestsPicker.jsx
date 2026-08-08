@@ -47,13 +47,13 @@ export function BookingDateGuestsPicker({
         <div className="grid grid-cols-2 gap-2">
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">
-              {language === 'ru' ? 'Время начала' : 'Start time'}
+              {tx('bookingModal_startTime')}
             </Label>
             <TimeSelect value={vehicleStartTime} onChange={onVehicleStartTimeChange} className="h-9" />
           </div>
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">
-              {language === 'ru' ? 'Время окончания' : 'End time'}
+              {tx('bookingModal_endTime')}
             </Label>
             <TimeSelect value={vehicleEndTime} onChange={onVehicleEndTimeChange} className="h-9" />
           </div>

@@ -112,26 +112,32 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-amber-900">
-                  Internal credits: {Math.round(p.walletBalanceThb || 0)} THB
+                  {getUIText('checkout_creditsBalance', c.language, {
+                    amount: Math.round(p.walletBalanceThb || 0),
+                  })}
                 </p>
                 <Switch
                   checked={Boolean(p.useWalletBonuses)}
                   onCheckedChange={p.setUseWalletBonuses}
                   disabled={p.walletLoading || Number(p.walletBalanceThb || 0) <= 0}
-                  aria-label="Use wallet bonuses"
+                  aria-label={getUIText('checkout_creditsToggleAria', c.language)}
                 />
               </div>
               <p className="text-xs text-amber-800">
-                Использовать internal credits для скидки? Лимит {Math.round(p.walletMaxDiscountPercent || 0)}% от суммы заказа.
+                {getUIText('checkout_creditsHint', c.language, {
+                  percent: Math.round(p.walletMaxDiscountPercent || 0),
+                })}
               </p>
               {Number(c.serviceFee || 0) > 0 && Number(c.walletAppliedThb || 0) >= Math.round(Number(c.serviceFee || 0)) ? (
                 <p className="text-xs font-semibold text-emerald-700">
-                  Бонусы покроют 100% комиссии за этот заказ.
+                  {getUIText('checkout_creditsCoversFee', c.language)}
                 </p>
               ) : null}
               {Number(c.walletAppliedThb || 0) > 0 ? (
                 <p className="text-xs font-semibold text-emerald-700">
-                  Применено из кошелька: -{Math.round(c.walletAppliedThb)} THB (только платформа)
+                  {getUIText('checkout_creditsApplied', c.language, {
+                    amount: Math.round(c.walletAppliedThb),
+                  })}
                 </p>
               ) : null}
             </div>

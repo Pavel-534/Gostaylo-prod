@@ -19,7 +19,12 @@ export function ListingChatPreview({
   if (!showContactPartner) return null
 
   const slug = listing?.categorySlug || listing?.category?.slug || ''
-  const tx = (k) => getUIText(k, language, slug ? { listingCategorySlug: slug } : undefined)
+  const wizardProfile = listing?.wizardProfile || listing?.category?.wizard_profile || null
+  const uiCtx =
+    slug || wizardProfile
+      ? { listingCategorySlug: slug || undefined, wizardProfile: wizardProfile || undefined }
+      : undefined
+  const tx = (k) => getUIText(k, language, uiCtx)
   const hint = tx('listingPdp_chatInfoHint')
   const owner = listing?.owner
   const avatarUrl = owner?.avatar ? resolveAvatarDisplaySrc(owner.avatar) : null
@@ -50,7 +55,7 @@ export function ListingChatPreview({
                   hasUnreadFromHost ? 'text-amber-900 font-medium' : 'text-slate-600'
                 }`}
               >
-                {hasUnreadFromHost ? `${language === 'ru' ? 'Новое: ' : 'New: '}` : ''}
+                {hasUnreadFromHost ? tx('listingDetail_chatPreviewNew') : ''}
                 {lastMessagePreview}
               </p>
             ) : null}
