@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
@@ -15,14 +16,11 @@ import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
-import { ForYouRail } from '@/components/recommendations/ForYouRail'
-import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
 import { RECENTLY_VIEWED_MIN_HOME } from '@/lib/recommendations/constants'
 import { useAuth } from '@/contexts/auth-context'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
-import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
@@ -30,6 +28,19 @@ import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityW
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+
+const ForYouRail = dynamic(
+  () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
+  { ssr: false, loading: () => null },
+)
+const RecentlyViewedRail = dynamic(
+  () => import('@/components/recommendations/RecentlyViewedRail').then((m) => m.RecentlyViewedRail),
+  { ssr: false, loading: () => null },
+)
+const CatalogMobileSearchSheet = dynamic(
+  () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
+  { ssr: false, loading: () => null },
+)
 
 export function PlatformHomeContent() {
   const { user } = useAuth()

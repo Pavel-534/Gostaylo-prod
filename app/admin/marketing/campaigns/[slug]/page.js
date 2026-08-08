@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -26,9 +27,9 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { ChartSkeleton } from '@/components/admin/charts/ChartSkeleton';
 import { CampaignBudgetAlertBanner } from '@/components/admin/referral/CampaignBudgetAlertBanner';
 import { CampaignStatusBadge } from '@/components/admin/referral/CampaignStatusBadge';
-import { ReferralFunnelPanel } from '@/components/admin/referral/ReferralFunnelPanel';
 import { formatDaysUntilExpiry } from '@/lib/admin/referral-campaign-ui';
 import { roiToneClass } from '@/lib/admin/referral-monetary-kpi';
 import {
@@ -37,6 +38,17 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas';
 import { cn } from '@/lib/utils';
+
+const ReferralFunnelPanel = dynamic(
+  () =>
+    import('@/components/admin/referral/ReferralFunnelPanel').then((m) => ({
+      default: m.ReferralFunnelPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton />,
+  },
+);
 
 
 function defaultDateFrom() {

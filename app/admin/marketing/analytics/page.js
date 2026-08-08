@@ -1,18 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  CartesianGrid,
-  ComposedChart,
-  Legend,
-  Bar,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { ArrowLeft, RefreshCw, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { ChartSkeleton } from '@/components/admin/charts/ChartSkeleton';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -27,6 +18,14 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas';
 import { cn } from '@/lib/utils';
+
+const MarketingAnalyticsCohortChart = dynamic(
+  () => import('@/components/admin/marketing/MarketingAnalyticsCohortChart'),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton className="min-h-[340px]" />,
+  },
+);
 
 function formatThb(value) {
   const n = Number(value);
@@ -348,53 +347,7 @@ export default function MarketingAnalyticsPage() {
                 />
               ) : (
                 <>
-                  <div className="h-[340px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={cohortChartRows} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200" />
-                        <XAxis dataKey="cohortMonth" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatThb(v)} />
-                        <Tooltip
-                          formatter={(value, name) => [formatThb(value), name]}
-                          labelFormatter={(label) => `Cohort ${label}`}
-                        />
-                        <Legend />
-                        <Bar dataKey="bonusCostThb" name="Bonus cost (THB)" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                        <Line
-                          type="monotone"
-                          dataKey="commissionM0"
-                          name="Commission M0"
-                          stroke="#0ea5e9"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="commissionM1"
-                          name="Commission M1"
-                          stroke="#6366f1"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="commissionM3"
-                          name="Commission M3"
-                          stroke="#a855f7"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="commissionM6"
-                          name="Commission M6"
-                          stroke="#059669"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <MarketingAnalyticsCohortChart cohortChartRows={cohortChartRows} formatThb={formatThb} />
                   <div className="sm:hidden space-y-0">
                     {[...cohortChartRows].reverse().map((row) => (
                       <div key={row.cohortMonth} className="border-b border-slate-100 py-4 last:border-0 space-y-1">

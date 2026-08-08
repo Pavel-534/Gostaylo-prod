@@ -16,8 +16,6 @@ import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
-import { CatalogMobileMapSheet } from '@/components/search/CatalogMobileMapSheet'
-import { CatalogMobileSearchSheet } from '@/components/search/CatalogMobileSearchSheet'
 import { CatalogSearchSummaryBar } from '@/components/search/mobile/CatalogSearchSummaryBar'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -43,7 +41,7 @@ import { bboxCenter } from '@/lib/geo/catalog-sort-centers'
 import { useWhereGeoViewport } from '@/lib/hooks/use-where-geo-viewport'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
-import { ForYouRail } from '@/components/recommendations/ForYouRail'
+import dynamic from 'next/dynamic'
 import { useFavoritesBatch } from '@/hooks/use-favorites-batch'
 import {
   CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
@@ -54,6 +52,19 @@ import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-lo
 import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
 import { listingsCatalogScrollKey } from '@/lib/navigation/route-scroll-memory'
 import { useRouteScrollMemory } from '@/hooks/use-route-scroll-memory'
+
+const ForYouRail = dynamic(
+  () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
+  { ssr: false, loading: () => null },
+)
+const CatalogMobileMapSheet = dynamic(
+  () => import('@/components/search/CatalogMobileMapSheet').then((m) => m.CatalogMobileMapSheet),
+  { ssr: false, loading: () => null },
+)
+const CatalogMobileSearchSheet = dynamic(
+  () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
+  { ssr: false, loading: () => null },
+)
 
 const ITEMS_PER_PAGE = 12
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -12,23 +13,11 @@ import {
   ChevronRight,
   Download,
   HelpCircle,
-  LineChart,
   RefreshCw,
   Megaphone,
   RotateCcw,
   X,
 } from 'lucide-react';
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-  ComposedChart,
-  Bar,
-} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -60,6 +49,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { toast } from 'sonner';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { AdminStatusPill } from '@/components/admin/AdminStatusPill';
+import { ChartSkeleton } from '@/components/admin/charts/ChartSkeleton';
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 import { FinTechMarginBar } from '@/components/admin/finances/FinTechMarginBar';
 import {
@@ -77,10 +67,36 @@ import {
 } from '@/lib/ui/mobile-flat-canvas';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  ReferralFunnelPanel,
-  ReferrerPersonalFunnel,
-} from '@/components/admin/referral/ReferralFunnelPanel';
+
+const ReferralFunnelPanel = dynamic(
+  () =>
+    import('@/components/admin/referral/ReferralFunnelPanel').then((m) => ({
+      default: m.ReferralFunnelPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton />,
+  },
+);
+
+const ReferrerPersonalFunnel = dynamic(
+  () =>
+    import('@/components/admin/referral/ReferralFunnelPanel').then((m) => ({
+      default: m.ReferrerPersonalFunnel,
+    })),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton className="min-h-[120px]" />,
+  },
+);
+
+const AttributionFunnelTrendChart = dynamic(
+  () => import('@/components/admin/marketing/AttributionFunnelTrendChart'),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton />,
+  },
+);
 
 const FINTECH_NAVY = '#0f172a';
 
@@ -915,32 +931,7 @@ export default function ReferralAttributionAdminPage() {
           </CardContent>
         </Card>
 
-        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-violet-200/60 sm:bg-gradient-to-br sm:from-violet-50/40 sm:to-white sm:shadow-sm')}>
-          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <LineChart className="h-4 w-4 text-brand" />
-              Динамика воронки
-            </CardTitle>
-          </CardHeader>
-          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'h-[240px]')}>
-            {!chartRows.length ? (
-              <FinTechEmptyState title="Нет данных" description="Появятся после кликов." />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartRows}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="clicks" name="Клики" fill="#7c3aed" opacity={0.35} barSize={8} />
-                  <Line yAxisId="right" type="monotone" dataKey="earnedThb" name="Earned" stroke="#d97706" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+        <AttributionFunnelTrendChart chartRows={chartRows} />
 
         <Card className="border-slate-200/80 shadow-sm">
           <CardHeader className="cursor-pointer select-none" onClick={() => setShowClicksJournal((v) => !v)}>

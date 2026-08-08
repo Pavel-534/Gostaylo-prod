@@ -1,4 +1,4 @@
-import FinancialIntelligenceDashboard from '@/components/admin/finance-intelligence/FinancialIntelligenceDashboard';
+import IntelligenceClient from './intelligence-client';
 
 export const metadata = {
   title: 'Financial Intelligence — Admin',
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function FinanceIntelligencePage() {
-  return <FinancialIntelligenceDashboard />;
+  return <IntelligenceClient />;
 }

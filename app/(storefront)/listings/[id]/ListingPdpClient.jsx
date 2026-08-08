@@ -22,7 +22,7 @@ import {
   ListingPdpModerationView,
   ListingPdpNotFoundView,
 } from './ListingPdpGateViews'
-import { GalleryModal } from '@/components/listing/GalleryModal'
+import dynamic from 'next/dynamic'
 import { getUIText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
@@ -42,6 +42,11 @@ import {
   useListingPdpGalleryClickHandler,
 } from '@/components/listing/pdp/ListingPdpDetailsColumn'
 import { I18nSliceBootstrap } from '@/components/i18n/I18nSliceBootstrap'
+
+const GalleryModal = dynamic(
+  () => import('@/components/listing/GalleryModal').then((m) => m.GalleryModal),
+  { ssr: false, loading: () => null },
+)
 
 /**
  * Post-inquiry banner — reads booking context inside provider.

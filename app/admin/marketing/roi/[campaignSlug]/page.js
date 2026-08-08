@@ -1,4 +1,4 @@
-import { ReferralCampaignRoiDetail } from '@/components/admin/marketing/ReferralCampaignRoiDetail';
+import CampaignRoiClient from './campaign-roi-client';
 
 export const metadata = {
   title: 'Кампания — Referral ROI | Admin',
@@ -8,5 +8,5 @@ export const metadata = {
  * @param {{ params: { campaignSlug: string } }} props
  */
 export default function ReferralCampaignRoiPage({ params }) {
-  return <ReferralCampaignRoiDetail campaignSlugParam={params.campaignSlug} />;
+  return <CampaignRoiClient campaignSlugParam={params.campaignSlug} />;
 }
