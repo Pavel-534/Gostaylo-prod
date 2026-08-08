@@ -2,8 +2,9 @@
  * Mobile Bottom Navigation Bar (ADR-100 / Stage 189.3 + Stage 200.13 optimistic tabs).
  *
  * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
- * (height already includes safe-area padding on the nav itself — do not add inset again in shell).
+ * (height includes .mobile-bottom-nav-safe / safe-area — do not add inset again in shell).
  * Hidden while soft keyboard is open (visualViewport).
+ * Stage 189.31 — iOS standalone trims ~6px of safe-area pad via CSS (Android unchanged).
  */
 
 'use client';
@@ -193,7 +194,7 @@ export function MobileBottomNav() {
   return (
     <nav
       ref={navRef}
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 rounded-t-2xl shadow-[0_-4px_12px_rgba(0,102,102,0.04)] safe-area-pb"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 rounded-t-2xl shadow-[0_-4px_12px_rgba(0,102,102,0.04)] mobile-bottom-nav-safe"
       aria-label="Mobile navigation"
     >
       <div className="flex h-16 items-center justify-around px-2 min-[375px]:h-20 min-[375px]:px-3">

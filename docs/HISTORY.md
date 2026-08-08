@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 189.31 | 2026-08-09 | PWA iOS polish: Home Screen/share title = brand; iOS standalone tabbar -6px safe pad | Done |
+| 200.75 | 2026-08-08 | Pre-launch: crypto wallet fail-closed; root error/404 shells; acquiring 10s timeouts | Done |
 | 200.74 | 2026-08-08 | Notification registry hygiene: wire orphans / dead marks; email HTML escape; outbox verify | Done |
 | 200.73 | 2026-08-08 | Guest i18n SSOT: checkout credits, ask-provider placeholders, booking RU/EN ternaries | Done |
 | 200.72 | 2026-08-08 | Resend via EmailService (auth/admin); emergency SMS honesty; check-in escrow copy | Done |

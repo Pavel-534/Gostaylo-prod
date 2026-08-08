@@ -5,23 +5,24 @@ import { HomePageSkeleton } from '@/components/home-page-skeleton'
 import { getCachedHomeBootstrap } from '@/lib/listing/get-cached-home-bootstrap.js'
 import { buildHomeDehydratedState } from '@/lib/query-prefetch/prefetch-home-queries'
 import { HomeHydrationBoundary } from '@/components/home/HomeHydrationBoundary'
-import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url'
+import { getPublicBrandDisplayName, getPublicSiteUrl } from '@/lib/site-url'
 import { cookies, headers } from 'next/headers'
 import { getLangFromRequest } from '@/lib/translations'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 
 /**
  * Stage 200.71 — home-only canonical on apex (do not set on root layout — would leak to all routes).
+ * Stage 189.31 — `<title>` = brand only so iOS Share / A2HS do not show the lowercase tagline.
  */
 export async function generateMetadata() {
   const apex = getPublicSiteUrl().replace(/\/$/, '')
   const canonical = `${apex}/`
-  const brand = getSiteDisplayName()
+  const brand = getPublicBrandDisplayName()
   const cookieStore = await cookies()
   const headersList = await headers()
   const lang = getLangFromRequest(cookieStore, headersList)
-  const title =
-    lang === 'ru' ? `${brand} — аренда по всему миру` : `${brand} - Rentals Worldwide`
+  const title = brand
+  const ogTitle = lang === 'ru' ? `${brand} — Аренда` : `${brand} - Rentals`
   const description =
     lang === 'ru'
       ? `${brand} — бронирование жилья, транспорта, яхт и туров с онлайн-предоплатой и защитой эскроу до заселения.`
@@ -38,12 +39,12 @@ export async function generateMetadata() {
       canonical,
     },
     openGraph: {
-      title,
+      title: ogTitle,
       description: ogDescription,
       url: canonical,
       siteName: brand,
       type: 'website',
-      images: buildOgImageMetadata(null, apex, title),
+      images: buildOgImageMetadata(null, apex, ogTitle),
     },
   }
 }

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.55 | **Last Updated**: 2026-08-08 | **Tip of tree:** Stage **203**; **200.74** notification hygiene.
+> **Version**: 13.2.57 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.31** PWA iOS name + tabbar polish.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,18 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 189.31 — PWA iOS polish (Home Screen name + tab bar)
+
+- Document / Share / A2HS title: **`getPublicBrandDisplayName()`** → **Airento** (`app/layout.js`, home `generateMetadata`, `app/manifest.js`). Tagline stays in **description** / OG (`Airento — Аренда`), not in `<title>`, so iOS Share no longer shows bare «аренда по всему миру».
+- Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **6px**. Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
+- Listing card EN titles when UI is RU: partner-authored single `listings.title` — no auto-i18n; out of scope for this polish.
+
+### Stage 200.75 — Pre-launch hardening (crypto wallet, shells, acquiring timeouts)
+
+- Crypto receive wallet: `getCryptoReceiveWallet()` / `assertCryptoReceiveWalletConfigured()` — no hardcoded prod fallback; boot check in `instrumentation.js`; `payment-intent` CRYPTO payload uses same SSOT.
+- Root UI: `app/not-found.js`, `app/error.js`, `app/global-error.js`, `app/(storefront)/checkout/error.js` — no stack traces to users.
+- Acquiring: YooKassa / Mandarin / CARD_INTL create-session `AbortSignal.timeout(10000)` with timeout/network error codes.
 
 ### Stage 200.74 — Notification registry hygiene & email HTML escaping
 

@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.50 | **Last Updated**: 2026-08-08 | **Stage 200.74** notification hygiene; **200.73** guest i18n.  
+> **Version**: 13.2.52 | **Last Updated**: 2026-08-09 | **Stage 189.31** PWA iOS name + tabbar; **200.75** pre-launch hardening.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

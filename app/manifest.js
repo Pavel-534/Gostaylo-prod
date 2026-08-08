@@ -1,18 +1,18 @@
-import { getSiteDisplayName } from '@/lib/site-url'
+import { getPublicBrandDisplayName } from '@/lib/site-url'
 
 /**
- * PWA manifest (Stage 155.3 / 169.4 / 200.4).
- * Splash / home-screen title: brand only (no long EN tagline — Android shows `name` under the icon).
+ * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31).
+ * Splash / home-screen / share title: brand only (`Airento`) — no long tagline
+ * (iOS Share sheet and Add to Home Screen otherwise pick up page title leftovers).
  * Icons: generated from public/brand/airento-mark.png via scripts/generate-pwa-icons.mjs
  */
 export default function manifest() {
-  const brand = getSiteDisplayName()
-  const defaultName = brand === 'Platform' ? 'Airento' : brand
-  const defaultShort = defaultName.length > 12 ? defaultName.slice(0, 12) : defaultName
+  const brand = getPublicBrandDisplayName()
+  const shortName = brand.length > 12 ? brand.slice(0, 12) : brand
   return {
-    name: defaultName,
-    short_name: defaultShort,
-    description: `${defaultName} — аренда жилья, транспорта, яхт и туров по миру. Онлайн-бронирование и эскроу.`,
+    name: brand,
+    short_name: shortName,
+    description: `${brand} — аренда жилья, транспорта, яхт и туров по миру. Онлайн-бронирование и эскроу.`,
     start_url: '/',
     display: 'standalone',
     background_color: '#0f172a',

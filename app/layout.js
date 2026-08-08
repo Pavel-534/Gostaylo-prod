@@ -1,7 +1,7 @@
 import { inter, cormorant } from '@/lib/theme/app-fonts'
 import { RootClientProviders } from '@/components/providers/RootClientProviders'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
-import { getSiteDisplayName } from '@/lib/site-url'
+import { getPublicBrandDisplayName } from '@/lib/site-url'
 import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { cookies, headers } from 'next/headers'
@@ -20,12 +20,13 @@ export const viewport = {
 
 export async function generateMetadata() {
   const siteUrl = await getRequestSiteUrl()
-  const brand = getSiteDisplayName()
+  /** Stage 189.31 — document/share title = brand only (iOS Share / A2HS picks this up). */
+  const brand = getPublicBrandDisplayName()
   const cookieStore = await cookies()
   const headersList = await headers()
   const lang = getLangFromRequest(cookieStore, headersList)
-  const title =
-    lang === 'ru' ? `${brand} — аренда по всему миру` : `${brand} - Rentals Worldwide`
+  const title = brand
+  const ogTitle = lang === 'ru' ? `${brand} — Аренда` : `${brand} - Rentals`
   const description =
     lang === 'ru'
       ? `${brand} — бронирование жилья, транспорта, яхт и туров с онлайн-предоплатой и защитой эскроу до заселения.`
@@ -42,19 +43,19 @@ export async function generateMetadata() {
       'бронирование, аренда жилья, транспорт, яхты, онлайн оплата, эскроу, rentals, villas, yachts, booking, escrow',
     authors: [{ name: brand }],
     openGraph: {
-      title,
+      title: ogTitle,
       description: ogDescription,
       url: siteUrl,
       siteName: brand,
       locale: 'en_US',
       type: 'website',
-      images: buildOgImageMetadata(null, siteUrl, title),
+      images: buildOgImageMetadata(null, siteUrl, ogTitle),
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: ogTitle,
       description: ogDescription,
-      images: buildOgImageMetadata(null, siteUrl, title).map((i) => i.url),
+      images: buildOgImageMetadata(null, siteUrl, ogTitle).map((i) => i.url),
     },
     appleWebApp: {
       capable: true,
@@ -68,7 +69,7 @@ export async function generateMetadata() {
 }
 
 export default async function RootLayout({ children }) {
-  const appleTitle = getSiteDisplayName()
+  const appleTitle = getPublicBrandDisplayName()
   const cookieStore = await cookies()
   const headersList = await headers()
   const initialIsRussia = getIsRussiaFromRequest({

@@ -138,6 +138,22 @@ code {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/**
+ * Stage 189.31 — bottom tab bar only.
+ * Default: full safe-area. iOS standalone: trim ~6px so the dock feels less empty,
+ * without removing home-indicator clearance (Android unchanged).
+ */
+.mobile-bottom-nav-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) {
+    .mobile-bottom-nav-safe {
+      padding-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - 6px));
+    }
+  }
+}
+
 /* Чат: композер не прилипает к home indicator (минимум 1rem + inset) */
 .pb-safe-chat-composer {
   padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
