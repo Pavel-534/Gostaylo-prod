@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.62 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.80** PENDING SLA calm deadline.
+> **Version**: 13.2.63 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.34** mobile platforms audit+plan (docs).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 189.34 — Mobile platforms audit + 2–4w plan (docs only)
+
+- Audit: [`docs/AUDIT_MOBILE_PLATFORMS.md`](./AUDIT_MOBILE_PLATFORMS.md) → archive PWA/TWA/Cap fact pass (DAL SSOT break for TWA; Cap scaffold-only; Stage 189 smoke still WAITING).
+- Plan: [`docs/MOBILE_PLATFORMS_PLAN.md`](./MOBILE_PLATFORMS_PLAN.md) — P0 smoke+DAL+AAB; P1 push scope; P2 Cap gated. **No product code in this stage.**
 
 ### Stage 189.31 — PWA iOS polish (Home Screen name + tab bar)
 

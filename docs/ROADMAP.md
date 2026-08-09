@@ -50,19 +50,21 @@
 
 ---
 
-## 4. Capacitor / native shell
+## 4. Capacitor / native shell / TWA
 
 | Фаза | Содержание | Статус |
 |------|------------|--------|
-| Scaffold | `capacitor.config.ts`, `lib/capacitor/*`, AASA/assetlinks templates | В репо; ветка `feature/capacitor-shell` |
+| **Audit + 2–4w plan (2026-08-09)** | Deep audit PWA/TWA/Cap + plan | [`AUDIT_MOBILE_PLATFORMS.md`](./AUDIT_MOBILE_PLATFORMS.md), [`MOBILE_PLATFORMS_PLAN.md`](./MOBILE_PLATFORMS_PLAN.md) |
+| Scaffold Cap | `capacitor.config.ts`, `lib/capacitor/*`, AASA/assetlinks **templates** | В репо на `main`; **нет** `@capacitor/*` / `ios`/`android` |
+| TWA Android | `mobile/android-twa` (`ru.airento.app`, targetSdk 35) | Gradle есть; **DAL on main broken** (points at Cap id) — P0 in plan |
 | **Phase A** | Apple/Google developer, Team ID, APNs, Play SHA, staging URL | Owner blockers |
-| **Phase B** | TestFlight MVP: WebView + deep links + push → chat/checkout | Engineering; **не** смешивать с main PWA |
+| **Phase B Cap** | TestFlight MVP: WebView + deep links + push → chat/checkout | Gated; **не** смешивать с main PWA / finance |
 | **Phase C** | Cookie/SameSite, badge parity, CI `cap sync`, store vs PWA decision | Post-TestFlight |
-| PWA iOS polish backlog | `STAGE_189_PWA_IOS_BACKLOG.md`, smoke matrix | Параллельно; Cap не стартует до измеренного smoke |
+| PWA iOS smoke | Matrix + backlog | Fill [`STAGE_189_IOS_SMOKE_RESULTS`](./archive/stages/STAGE_189_IOS_SMOKE_RESULTS.md) before Cap B |
 
 **Инвариант:** никакой второй pricing/escrow/math в native-слое.
 
-См. `docs/CAPACITOR_SHELL_PREP.md`, `docs/STAGE_189_CAPACITOR_INTEGRATION_PLAN.md`.
+См. `docs/CAPACITOR_SHELL_PREP.md`, `docs/STAGE_189_CAPACITOR_INTEGRATION_PLAN.md`, `mobile/android-twa/RELEASE.md`.
 
 ---
 

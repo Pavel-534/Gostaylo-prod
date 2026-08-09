@@ -15,6 +15,9 @@
 | `PRODUCTION_ENV.md` | Env registry (без секретов) |
 | `FINANCIAL_SMOKE_E2E.md` / `SMOKE_CHECK_GUIDE.md` | Smoke |
 | `AUDIT_02_REGRESSION_E2E.md` | AUDIT_02 Concierge / invoice / referral regression (`npm run smoke:audit02`) |
+| `PWA_IOS_REAL_DEVICE_SMOKE.md` | iOS PWA smoke checklist (owner) |
+| `../AUDIT_MOBILE_PLATFORMS.md` | Deep audit PWA + TWA + Capacitor (2026-08-09) |
+| `../MOBILE_PLATFORMS_PLAN.md` | 2–4 week mobile platforms plan (after audit) |
 | `AUTH_GATEWAY_OAUTH.md` | Auth gateway notes |
 | `PARTNER_KYC_LIFECYCLE_E2E.md` | Partner KYC E2E |
 
