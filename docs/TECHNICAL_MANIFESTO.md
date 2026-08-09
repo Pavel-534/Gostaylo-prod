@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.60 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.78** booking funnel UX P0.
+> **Version**: 13.2.61 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.79** Instant×iCal guard + checkout trust.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -30,8 +30,14 @@
 ### Stage 189.31 — PWA iOS polish (Home Screen name + tab bar)
 
 - Document / Share / A2HS title: **`getPublicBrandDisplayName()`** → **Airento** (`app/layout.js`, home `generateMetadata`, `app/manifest.js`). Tagline stays in **description** / OG (`Airento — Аренда`), not in `<title>`, so iOS Share no longer shows bare «аренда по всему миру».
-- Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **10px** (189.32; was 6px in 189.31). Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
+- Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **16px** (189.33; was 10px in 189.32, 6px in 189.31). Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
 - Listing card EN titles when UI is RU: partner-authored single `listings.title` — no auto-i18n; out of scope for this polish.
+
+### Stage 200.79 — Instant×iCal hybrid guard + checkout trust + soft-hold audit
+
+- Instant Book without enabled iCal requires metadata `exclusive_manual_calendar` ack (wizard checkbox); save gated.
+- Cron `ical-sync`: partner feed errors → `instant_booking=false` + partner TG; platform write errors → system alert. Policy helpers: `lib/ical/instant-booking-ical-policy.js`; breaker: `instant-booking-ical-guard.js`. Audit: `docs/runbooks/SOFT_HOLD_TIMER_AUDIT.md`.
+- Checkout: `CheckoutTrustBlock` above payment methods (escrow / receipt / refund link).
 
 ### Stage 200.78 — P0 booking funnel UX (no payment-core change)
 

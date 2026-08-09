@@ -4,7 +4,7 @@
  * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
  * (height includes .mobile-bottom-nav-safe / safe-area — do not add inset again in shell).
  * Hidden while soft keyboard is open (visualViewport).
- * Stage 189.31 / 189.32 — iOS standalone trims 10px of safe-area pad via CSS (Android unchanged).
+ * Stage 189.31–189.33 — iOS standalone trims 16px of safe-area pad via CSS (Android unchanged).
  */
 
 'use client';

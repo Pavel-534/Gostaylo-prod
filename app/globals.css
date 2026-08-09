@@ -139,8 +139,8 @@ code {
 }
 
 /**
- * Stage 189.31 / 189.32 — bottom tab bar only.
- * Default: full safe-area. iOS standalone: trim 10px so the dock feels less empty,
+ * Stage 189.31–189.33 — bottom tab bar only.
+ * Default: full safe-area. iOS standalone: trim 16px so the dock feels less empty,
  * without removing home-indicator clearance (Android unchanged).
  */
 .mobile-bottom-nav-safe {
@@ -149,7 +149,7 @@ code {
 @media (display-mode: standalone) {
   @supports (-webkit-touch-callout: none) {
     .mobile-bottom-nav-safe {
-      padding-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - 10px));
+      padding-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - 16px));
     }
   }
 }
