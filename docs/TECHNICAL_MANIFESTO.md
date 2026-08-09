@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.63 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.34** mobile platforms audit+plan (docs).
+> **Version**: 13.2.64 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.35** TWA Digital Asset Links restore.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 189.35 — Digital Asset Links for TWA
+
+- `public/.well-known/assetlinks.json`: primary statement **`ru.airento.app`** with historical SHA-256 restored from pre-`9ca405ba`; second statement **`app.airento.shell`** placeholder for future Cap.
+- Owner must confirm fingerprint vs upload keystore / Play App Signing (`mobile/android-twa/RELEASE.md` §1 / §7).
 
 ### Stage 189.34 — Mobile platforms audit + 2–4w plan (docs only)
 
