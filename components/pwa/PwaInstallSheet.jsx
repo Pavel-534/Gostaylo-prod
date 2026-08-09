@@ -5,9 +5,22 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 
+/**
+ * @param {{
+ *   open: boolean,
+ *   platform?: string,
+ *   installBucket?: string,
+ *   language?: string,
+ *   onInstall?: () => void,
+ *   onSnooze?: (reason?: string) => void,
+ *   onNever?: () => void,
+ *   onBackdropClick?: () => void,
+ * }} props
+ */
 export function PwaInstallSheet({
   open,
   platform = 'android',
+  installBucket = 'android_manual',
   language = 'ru',
   onInstall,
   onSnooze,
@@ -16,7 +29,11 @@ export function PwaInstallSheet({
 }) {
   if (!open) return null
 
-  const isIos = platform === 'ios'
+  const bucket = installBucket || (platform === 'ios' ? 'ios_safari' : 'android_manual')
+  const isIosSafari = bucket === 'ios_safari'
+  const isIosOther = bucket === 'ios_other'
+  const isAndroidNative = bucket === 'android_native'
+  const isAndroidManual = bucket === 'android_manual'
 
   return (
     <>
@@ -32,6 +49,7 @@ export function PwaInstallSheet({
         aria-modal="true"
         aria-label={getUIText('pwaInstall_title', language)}
         data-testid="pwa-install-sheet"
+        data-install-bucket={bucket}
         className={cn(
           'fixed inset-x-0 bottom-0 z-[101] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
@@ -57,7 +75,7 @@ export function PwaInstallSheet({
           <button
             type="button"
             onClick={() => onSnooze?.('backdrop')}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 min-h-[44px] min-w-[44px]"
             aria-label={getUIText('pwaInstall_notNow', language)}
           >
             <X className="h-5 w-5" />
@@ -79,7 +97,7 @@ export function PwaInstallSheet({
           </li>
         </ul>
 
-        {isIos ? (
+        {isIosSafari ? (
           <div className="mt-4 px-5">
             <p className="mb-3 text-sm font-semibold text-slate-800">
               {getUIText('pwaInstall_iosTitle', language)}
@@ -95,22 +113,48 @@ export function PwaInstallSheet({
           </div>
         ) : null}
 
+        {isIosOther ? (
+          <div className="mt-4 px-5 space-y-2">
+            <p className="text-sm font-semibold text-slate-800">
+              {getUIText('pwaInstall_iosOtherTitle', language)}
+            </p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              {getUIText('pwaInstall_iosOtherBody', language)}
+            </p>
+          </div>
+        ) : null}
+
+        {isAndroidManual ? (
+          <div className="mt-4 px-5 space-y-2">
+            <p className="text-sm font-semibold text-slate-800">
+              {getUIText('pwaInstall_androidManualTitle', language)}
+            </p>
+            <ol className="space-y-2 text-sm text-slate-600 list-decimal list-inside">
+              <li>{getUIText('pwaInstall_androidManualStep1', language)}</li>
+              <li>{getUIText('pwaInstall_androidManualStep2', language)}</li>
+              <li>{getUIText('pwaInstall_androidManualStep3', language)}</li>
+            </ol>
+          </div>
+        ) : null}
+
         <div className="mt-5 flex flex-col gap-2 px-5 pb-2">
           <Button
             type="button"
             variant="brand"
-            className="h-11 w-full rounded-2xl"
+            className="h-11 w-full rounded-2xl min-h-[44px]"
             onClick={onInstall}
             data-testid="pwa-install-accept"
           >
-            {isIos
-              ? getUIText('pwaInstall_iosGotIt', language)
-              : getUIText('pwaInstall_install', language)}
+            {isAndroidNative
+              ? getUIText('pwaInstall_install', language)
+              : isAndroidManual
+                ? getUIText('pwaInstall_androidManualCta', language)
+                : getUIText('pwaInstall_iosGotIt', language)}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full rounded-2xl border-slate-200"
+            className="h-11 w-full rounded-2xl border-slate-200 min-h-[44px]"
             onClick={() => onSnooze?.('snooze')}
             data-testid="pwa-install-snooze"
           >
@@ -118,7 +162,7 @@ export function PwaInstallSheet({
           </Button>
           <button
             type="button"
-            className="py-2 text-center text-xs text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+            className="min-h-[44px] py-2 text-center text-xs text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
             onClick={onNever}
             data-testid="pwa-install-never"
           >

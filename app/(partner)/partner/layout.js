@@ -54,6 +54,8 @@ import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
 import { PartnerMobileBottomNav } from '@/components/partner/PartnerMobileBottomNav'
+import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
+import { PwaInstallProvider } from '@/hooks/use-pwa-install'
 import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
   PARTNER_SIDEBAR_PREFETCH_PATHS,
@@ -257,6 +259,7 @@ export default function PartnerLayout({ children }) {
   }
 
   return (
+    <PwaInstallProvider>
     <PartnerNotificationProvider>
       <PartnerForegroundNotifications />
       <div className="min-h-screen bg-brand-surface flex flex-col">
@@ -536,6 +539,8 @@ export default function PartnerLayout({ children }) {
         />
       ) : null}
     </div>
+    <PwaInstallChrome />
     </PartnerNotificationProvider>
+    </PwaInstallProvider>
   )
 }

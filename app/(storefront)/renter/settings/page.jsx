@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PrivacyDataRightsCard } from '@/components/renter/PrivacyDataRightsCard'
+import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -328,6 +330,8 @@ export default function RenterSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PwaInstallSettingsCard />
 
       <PrivacyDataRightsCard />
 

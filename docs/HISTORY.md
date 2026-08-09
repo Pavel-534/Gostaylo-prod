@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.81 | 2026-08-09 | PWA install UX: 5d/30d soft snooze, settings (renter+partner), CLS banner, airento_pwa_* migrate | Done |
 | 189.35 | 2026-08-09 | DAL: restore `ru.airento.app` SHA + keep Cap second statement in assetlinks.json | Done |
 | 189.34 | 2026-08-09 | Docs: mobile platforms deep audit (PWA/TWA/Cap) + 2–4w plan (no code) | Done |
 | 200.80 | 2026-08-09 | PENDING partner-SLA calm deadline copy (no live ticker) on guest next-steps | Done |

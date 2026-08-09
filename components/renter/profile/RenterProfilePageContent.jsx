@@ -32,6 +32,7 @@ import { getUIText } from '@/lib/translations'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationModal'
+import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
 import { useRenterProfilePage } from '@/hooks/renter/use-renter-profile-page'
 import { roleUiKey } from '@/lib/renter/profile-completion'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
@@ -428,6 +429,8 @@ export default function RenterProfilePageContent() {
         </CardContent>
       </Card>
       
+      <PwaInstallSettingsCard />
+
       {/* Quick Actions */}
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>

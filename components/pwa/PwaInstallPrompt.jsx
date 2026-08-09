@@ -6,7 +6,7 @@ import { PwaInstallSheet } from '@/components/pwa/PwaInstallSheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 /**
- * Global smart PWA install prompt (Stage 169.4) — mobile only.
+ * Global smart PWA install prompt (Stage 169.4 / 200.81) — mobile only.
  */
 export function PwaInstallPrompt() {
   const isMobile = useIsMobile()
@@ -14,6 +14,7 @@ export function PwaInstallPrompt() {
   const {
     isOpen,
     platform,
+    installBucket,
     install,
     dismissSnooze,
     dismissForever,
@@ -25,6 +26,7 @@ export function PwaInstallPrompt() {
     <PwaInstallSheet
       open={isOpen}
       platform={platform}
+      installBucket={installBucket}
       language={language}
       onInstall={install}
       onSnooze={dismissSnooze}

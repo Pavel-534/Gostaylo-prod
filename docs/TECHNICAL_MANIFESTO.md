@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.64 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.35** TWA Digital Asset Links restore.
+> **Version**: 13.2.65 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.81** PWA install UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,15 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.81 — PWA install UX (soft snooze + settings + platform buckets)
+
+- Auto banner + sheet share never/snooze/session gates; «Не сейчас» = **5d**; «Не напоминать месяц» = soft **30d** (not forever).
+- Manual entry: `PwaInstallSettingsCard` on renter settings + profile **and** partner settings (`openManualPrompt` bypasses auto gates); partner shell mounts `PwaInstallProvider` + chrome.
+- Buckets: `android_native` / `android_manual` / `ios_safari` / `ios_other` — sheet copy/steps; standalone shows «already installed».
+- Home banner: CLS-safe `pending` reserve (`md:hidden`); dismiss = short snooze; respects long-snooze.
+- Storage keys: canonical **`airento_pwa_*`** with one-shot migrate from legacy **`gostaylo_pwa_*`**.
+- Single auto-sheet scheduler in `use-pwa-install` (no double timer).
 
 ### Stage 189.35 — Digital Asset Links for TWA
 
