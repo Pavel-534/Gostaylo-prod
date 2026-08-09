@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.65 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.81** PWA install UX.
+> **Version**: 13.2.66 | **Last Updated**: 2026-08-10 | **Tip of tree:** Stage **203**; **200.82** M1.1 push after login.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.82 — M1.1 Push after login (storefront + partner)
+
+- `PushClientInit` mounted in `StorefrontAppShell` + partner layout (chat keeps mount for direct `/messages` entry); idempotent register for same uid+token.
+- Permission: `granted` → getToken/register; `denied` → no-op; `default` → **no** auto `requestPermission` — Soft CTA `PushEnableSettingsCard` (settings) + `gostaylo:push-enable` event.
+- Logout: `unregisterCurrentWebPushToken` before cookie clear; API `action: unregister` (current device only); clear `gostaylo_fcm_*` storage.
+- Soft CTA: `PushEnableSettingsCard` on renter settings + profile + partner settings (gesture-first; no mount auto-prompt).
 
 ### Stage 200.81 — PWA install UX (soft snooze + settings + platform buckets)
 

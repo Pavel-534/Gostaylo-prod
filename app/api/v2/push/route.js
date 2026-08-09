@@ -59,6 +59,19 @@ export async function POST(request) {
       return NextResponse.json(result)
     }
 
+    // Stage M1.1 — current device only (session user + token)
+    if (action === 'unregister') {
+      const session = await requireSession()
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+      if (!token) {
+        return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
+      }
+      const result = await PushService.unregisterToken(session.userId, token)
+      return NextResponse.json(result)
+    }
+
     // Action: send - only admin
     if (action === 'send') {
       const session = await requireSession()
@@ -91,7 +104,7 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Invalid action. Use: register, ping, send, or test' },
+      { success: false, error: 'Invalid action. Use: register, ping, unregister, send, or test' },
       { status: 400 },
     )
   } catch (error) {
@@ -121,6 +134,8 @@ export async function GET() {
       register:
         'POST /api/v2/push { action: "register", token: "...", deviceInfo?: {...}, update?: true }',
       ping: 'POST /api/v2/push { action: "ping", token: "..." } — last_seen для Smart Push',
+      unregister:
+        'POST /api/v2/push { action: "unregister", token: "..." } — current device only (M1.1)',
       send: 'POST /api/v2/push { action: "send", targetUserId: "...", templateKey: "...", data: {...} }',
       test: 'POST /api/v2/push { action: "test", token: "..." }',
     },

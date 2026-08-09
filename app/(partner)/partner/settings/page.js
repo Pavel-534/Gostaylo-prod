@@ -17,6 +17,7 @@ import { getUIText } from '@/lib/translations'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
+import { PushEnableSettingsCard } from '@/components/push/PushEnableSettingsCard'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_BRAND_CARD_CLASS,
@@ -601,6 +602,8 @@ function PartnerSettingsContent() {
       </Card>
 
       <PwaInstallSettingsCard />
+
+      <PushEnableSettingsCard />
 
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>

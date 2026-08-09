@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.59 | **Last Updated**: 2026-08-09 | **200.81** PWA install UX (5d/30d snooze, settings, buckets); **189.34** mobile audit.  
+> **Version**: 13.2.60 | **Last Updated**: 2026-08-10 | **200.82** M1.1 push after login; **200.81** PWA install UX.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -20,7 +20,7 @@
 | Concierge ops | treasury / payouts UI + runbooks | Ops |
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
-| PWA / push | SW + FCM; install UX **200.81** (`lib/pwa/*`, settings card); haptic `hooks/use-haptic.js`; PTR `hooks/use-pull-to-refresh.js` | Clients |
+| PWA / push | SW + FCM; **M1.1** `PushClientInit` on storefront+partner (+ chat); Soft CTA settings; `unregister` on logout; install UX **200.81** | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
 

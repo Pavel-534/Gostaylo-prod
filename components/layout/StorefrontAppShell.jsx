@@ -2,7 +2,7 @@
 
 /**
  * Guest storefront shell — Query, analytics, nav chrome (Stage 171.25 route group).
- * Chat Realtime / Push / full ChatProvider — only in `(chat)` layout.
+ * Stage M1.1 — PushClientInit here (and partner layout); chat layout keeps a copy for direct /messages entry.
  */
 
 import { Suspense } from 'react'
@@ -14,6 +14,7 @@ import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
+import { PushClientInit } from '@/components/push-client-init'
 import { ChatUnreadBadgeProvider } from '@/lib/context/ChatUnreadBadgeContext'
 import { I18nSliceBootstrap } from '@/components/i18n/I18nSliceBootstrap'
 import { UnpaidCheckoutNudgeBanner } from '@/components/guest/UnpaidCheckoutNudgeBanner'
@@ -27,6 +28,7 @@ export function StorefrontAppShell({ children }) {
           <Suspense fallback={null}>
             <ProductAnalyticsInit />
           </Suspense>
+          <PushClientInit />
           <AppHeader />
           <MainContent>{children}</MainContent>
           <UnpaidCheckoutNudgeBanner />

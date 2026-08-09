@@ -33,6 +33,7 @@ import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationModal'
 import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
+import { PushEnableSettingsCard } from '@/components/push/PushEnableSettingsCard'
 import { useRenterProfilePage } from '@/hooks/renter/use-renter-profile-page'
 import { roleUiKey } from '@/lib/renter/profile-completion'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
@@ -430,6 +431,8 @@ export default function RenterProfilePageContent() {
       </Card>
       
       <PwaInstallSettingsCard />
+
+      <PushEnableSettingsCard />
 
       {/* Quick Actions */}
       <Card className={MOBILE_FLAT_CARD_CLASS}>

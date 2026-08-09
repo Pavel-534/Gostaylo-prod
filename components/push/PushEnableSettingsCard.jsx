@@ -1,0 +1,112 @@
+'use client'
+
+/**
+ * Stage M1.1 — Soft CTA for Notification permission (gesture-first).
+ * Shown when permission is `default`; triggers PUSH_ENABLE_EVENT after grant.
+ */
+
+import { useCallback, useEffect, useState } from 'react'
+import { Bell, BellOff, CheckCircle2 } from 'lucide-react'
+import { useI18n } from '@/contexts/i18n-context'
+import { useAuth } from '@/contexts/auth-context'
+import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import {
+  MOBILE_FLAT_CARD_CLASS,
+  MOBILE_FLAT_CARD_CONTENT_CLASS,
+  MOBILE_FLAT_CARD_HEADER_CLASS,
+} from '@/lib/ui/mobile-flat-canvas'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { PUSH_ENABLE_EVENT } from '@/lib/push/web-push-client-state.js'
+
+function readPermission() {
+  if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'
+  return Notification.permission
+}
+
+export function PushEnableSettingsCard({ className }) {
+  const { language } = useI18n()
+  const { user } = useAuth()
+  const [permission, setPermission] = useState('unsupported')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setPermission(readPermission())
+  }, [])
+
+  const enable = useCallback(async () => {
+    if (!user?.id || typeof window === 'undefined' || !('Notification' in window)) return
+    setBusy(true)
+    try {
+      const next = await Notification.requestPermission()
+      setPermission(next)
+      if (next === 'granted') {
+        window.dispatchEvent(new CustomEvent(PUSH_ENABLE_EVENT))
+      }
+    } catch {
+      setPermission(readPermission())
+    } finally {
+      setBusy(false)
+    }
+  }, [user?.id])
+
+  if (!user?.id) return null
+  if (permission === 'unsupported') return null
+
+  if (permission === 'granted') {
+    return (
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, className)} data-testid="push-enable-granted">
+        <CardContent
+          className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex items-center gap-3 py-4')}
+        >
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900">
+              {getUIText('pushEnable_grantedTitle', language)}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {getUIText('pushEnable_grantedHint', language)}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (permission === 'denied') {
+    return (
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, className)} data-testid="push-enable-denied">
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BellOff className="h-4 w-4 text-slate-400" aria-hidden />
+            {getUIText('pushEnable_deniedTitle', language)}
+          </CardTitle>
+          <CardDescription>{getUIText('pushEnable_deniedHint', language)}</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, className)} data-testid="push-enable-card">
+      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+        <CardTitle className="text-base">{getUIText('pushEnable_title', language)}</CardTitle>
+        <CardDescription>{getUIText('pushEnable_body', language)}</CardDescription>
+      </CardHeader>
+      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+        <Button
+          type="button"
+          variant="brand"
+          className="w-full min-h-[44px] rounded-2xl"
+          disabled={busy}
+          onClick={() => void enable()}
+          data-testid="push-enable-cta"
+        >
+          <Bell className="h-4 w-4 mr-2" aria-hidden />
+          {getUIText('pushEnable_cta', language)}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}

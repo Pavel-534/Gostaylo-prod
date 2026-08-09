@@ -14,6 +14,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PrivacyDataRightsCard } from '@/components/renter/PrivacyDataRightsCard'
 import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
+import { PushEnableSettingsCard } from '@/components/push/PushEnableSettingsCard'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { cn } from '@/lib/utils'
 import {
@@ -332,6 +333,8 @@ export default function RenterSettingsPage() {
       </Card>
 
       <PwaInstallSettingsCard />
+
+      <PushEnableSettingsCard />
 
       <PrivacyDataRightsCard />
 
