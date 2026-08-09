@@ -25,6 +25,7 @@ import {
 } from '@/lib/listing/listing-base-price-canon.js';
 import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
 import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
+import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js';
 
 export async function GET(request) {
   try {
@@ -185,6 +186,23 @@ export async function POST(request) {
         : instantBooking === false || instant_booking === false
           ? false
           : partner.instant_booking === true;
+
+    const ibGate = assertInstantBookingCalendarPolicy({
+      instantBooking: instantBookingValue,
+      metadata: metadata || {},
+      syncSettings: null,
+    })
+    if (!ibGate.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Instant booking without iCal requires exclusive/manual calendar confirmation.',
+          code: ibGate.code,
+        },
+        { status: 400 },
+      )
+    }
 
     const { insertRow, locationCapture } = applyListingGeoSnapshotToInsertRow(
       {

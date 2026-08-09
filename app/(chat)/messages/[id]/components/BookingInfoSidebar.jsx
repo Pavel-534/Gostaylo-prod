@@ -41,6 +41,7 @@ export function BookingInfoSidebar({ listing, booking, language, isHosting = fal
           bookingId={booking?.id}
           status={booking.status}
           checkIn={booking?.check_in || booking?.checkIn}
+          createdAt={booking?.created_at || booking?.createdAt || null}
           language={language}
           categorySlug={categorySlug}
           wizardProfile={wizardProfile}

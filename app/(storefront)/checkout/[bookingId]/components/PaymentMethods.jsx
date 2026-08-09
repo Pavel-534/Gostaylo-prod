@@ -21,6 +21,7 @@ import {
   MOBILE_FLAT_NESTED_PANEL_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 import { resolveCryptoCheckoutDisplay } from '@/lib/checkout/resolve-crypto-checkout-display.js'
+import { CheckoutTrustBlock } from '@/components/checkout/CheckoutTrustBlock'
 
 function PaymentMethodOptionRow({ opt }) {
   const Icon = opt.icon
@@ -81,6 +82,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
           )}
         </CardHeader>
         <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+          <CheckoutTrustBlock language={c.language} />
           <RadioGroup value={p.paymentMethod} onValueChange={p.setPaymentMethod} className="space-y-4">
             {ruOptions.length > 0 ? (
               <section

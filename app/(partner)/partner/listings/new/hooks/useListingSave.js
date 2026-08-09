@@ -25,6 +25,7 @@ import {
 import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
 import { ensureProvisionalCityCode } from '@/lib/geo/wizard-ensure-provisional'
+import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js'
 
 function showListingModerationToast(t) {
   toast.success(t('partnerEdit_statusPending'), {
@@ -88,6 +89,19 @@ function assertSoftPublishQualityGate(w, t) {
   return false
 }
 
+function assertInstantBookingGate(w, t) {
+  const syncSettings =
+    w.serverListing?.sync_settings || w.serverListing?.syncSettings || w.formData?.sync_settings || null
+  const gate = assertInstantBookingCalendarPolicy({
+    instantBooking: w.formData?.instantBooking === true,
+    metadata: w.formData?.metadata,
+    syncSettings,
+  })
+  if (gate.ok) return true
+  toast.error(t('partnerListing_instantBookingBlocked'), { duration: 10000 })
+  return false
+}
+
 /** Stage 200.36 — upsert provisional city_code before write when label-only. */
 async function resolveFormDataWithProvisionalCity(formData, setFormData, t) {
   const result = await ensureProvisionalCityCode(formData)
@@ -139,6 +153,7 @@ export function useListingSave() {
 
   const savePatchForEdit = useCallback(async () => {
     if (!editId) return
+    if (!assertInstantBookingGate({ formData, serverListing }, t)) return
     setPatching(true)
     try {
       const geoForm = await resolveFormDataWithProvisionalCity(formData, setFormData, t)
@@ -222,10 +237,12 @@ export function useListingSave() {
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
+    serverListing,
     t,
   ])
 
   const publishFromDraft = useCallback(async ({ soft = false } = {}) => {
+    if (!assertInstantBookingGate({ formData, serverListing }, t)) return
     if (soft) {
       if (!assertSoftPublishQualityGate(w, t)) return
     } else if (!assertPublishQualityGate(w, t)) {
@@ -346,6 +363,7 @@ export function useListingSave() {
     if (wizardMode === 'edit' && isEditMode) {
       return publishFromDraft({ soft: true })
     }
+    if (!assertInstantBookingGate({ formData, serverListing }, t)) return
     if (!assertSoftPublishQualityGate(w, t)) return
     setPublishing(true)
     try {
@@ -601,6 +619,7 @@ export function useListingSave() {
       }
       return savePatchForEdit()
     }
+    if (!assertInstantBookingGate({ formData, serverListing }, t)) return
     if (!assertPublishQualityGate(w, t)) return
     setLoading(true)
     try {

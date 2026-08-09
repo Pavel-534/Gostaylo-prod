@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Clock, CreditCard, KeyRound, MessageCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_BRAND_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 import { resolveGuestNextStepsStep } from '@/lib/guest/resolve-guest-next-steps'
+import {
+  formatPartnerResponseDeadlineLabel,
+  resolvePartnerResponseExpiresAtIso,
+} from '@/lib/booking/partner-response-sla.js'
 
 const TONE_CLASS = {
   amber: 'sm:border-amber-200/80 sm:bg-gradient-to-br sm:from-amber-50/90 sm:via-white sm:to-white',
@@ -29,12 +33,13 @@ function dismissStorageKey(bookingId) {
 }
 
 /**
- * Stage 155.3 / 155.4 / 196.0-D — guest «Что дальше?» (INQUIRY → pay → day-of access + chat).
+ * Stage 155.3 / 155.4 / 196.0-D / 200.80 — guest «Что дальше?» (+ calm PENDING SLA deadline).
  */
 export function GuestBookingNextStepsCard({
   bookingId = null,
   status,
   checkIn = null,
+  createdAt = null,
   accessPackVisible = false,
   language = 'ru',
   categorySlug = null,
@@ -55,6 +60,26 @@ export function GuestBookingNextStepsCard({
   const [dismissedForStatus, setDismissedForStatus] = useState(null)
   const shownTrackedRef = useRef(false)
   const dismissToken = step ? `${step.key}:${normalized}` : null
+  /** Client clock after mount — avoids TZ hydration mismatch on deadline label. */
+  const [nowMs, setNowMs] = useState(null)
+  const [deadlineLabel, setDeadlineLabel] = useState(null)
+
+  const partnerSlaEndsAt = useMemo(() => {
+    if (normalized !== 'PENDING' && normalized !== 'INQUIRY') return null
+    return resolvePartnerResponseExpiresAtIso(createdAt)
+  }, [createdAt, normalized])
+
+  useEffect(() => {
+    if (!partnerSlaEndsAt) {
+      setDeadlineLabel(null)
+      setNowMs(null)
+      return undefined
+    }
+    setNowMs(Date.now())
+    setDeadlineLabel(formatPartnerResponseDeadlineLabel(partnerSlaEndsAt, language))
+    const id = setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [partnerSlaEndsAt, language])
 
   useEffect(() => {
     if (!storageKey) {
@@ -86,6 +111,23 @@ export function GuestBookingNextStepsCard({
   const Icon = ICONS[step.icon] || MessageCircle
   const message = getUIText(step.messageKey, language, uiCtx)
   const title = getUIText('guestNextSteps_title', language)
+  const slaExpired =
+    partnerSlaEndsAt && nowMs != null
+      ? nowMs >= Date.parse(partnerSlaEndsAt)
+      : false
+  const slaUsual = partnerSlaEndsAt
+    ? getUIText('guestNextSteps_pendingSlaUsual', language, uiCtx)
+    : null
+  const slaUntil =
+    partnerSlaEndsAt && deadlineLabel && !slaExpired
+      ? getUIText('guestNextSteps_pendingSlaUntil', language, uiCtx).replace(
+          /\{deadline\}/g,
+          deadlineLabel,
+        )
+      : null
+  const slaEnded = partnerSlaEndsAt
+    ? getUIText('guestNextSteps_pendingSlaEnded', language, uiCtx)
+    : null
 
   const showPay = step.showPay && payHref
   const showChat = step.showChat && chatHref
@@ -130,6 +172,22 @@ export function GuestBookingNextStepsCard({
             {title}
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
+          {partnerSlaEndsAt && slaUsual ? (
+            <p
+              className="text-xs leading-relaxed text-slate-500"
+              data-testid="guest-pending-sla-hint"
+              role="status"
+            >
+              {slaExpired ? (
+                slaEnded
+              ) : (
+                <>
+                  {slaUsual}
+                  {slaUntil ? ` ${slaUntil}` : null}
+                </>
+              )}
+            </p>
+          ) : null}
           {showPay || showChat ? (
             <div
               className={cn(

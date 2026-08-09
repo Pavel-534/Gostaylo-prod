@@ -33,6 +33,7 @@ import {
   LEGACY_INVOICE_EXPIRY_MINUTES,
   resolveInvoicePaymentExpiresAtIso,
 } from '@/lib/booking/payment-window-policy.js';
+import { PARTNER_RESPONSE_SLA_HOURS } from '@/lib/booking/partner-response-sla.js';
 import {
   draftCleanupCandidateCutoffIso,
   isListingDraftMetadata,
@@ -54,7 +55,6 @@ const { emptyDays: DRAFT_EMPTY_DAYS, contentfulDays: DRAFT_CONTENTFUL_DAYS } =
 const DISPUTE_EVIDENCE_RETENTION_DAYS = 180;
 const DISPUTE_EVIDENCE_BUCKET = 'dispute-evidence';
 const TERMINAL_DISPUTE_STATUSES = ['RESOLVED', 'REJECTED', 'CLOSED'];
-const PARTNER_RESPONSE_SLA_HOURS = 24;
 
 const INVOICE_EXPIRE_CANCEL_STATUSES = new Set([
   'INQUIRY',

@@ -648,6 +648,7 @@ export function useListingBookingFlow({
               bookingId: bookingId || null,
               status: String(bookingStatus || 'PENDING').toUpperCase(),
               conversationId: cid || null,
+              createdAt: data.booking?.created_at || data.booking?.createdAt || new Date().toISOString(),
             })
             if (cid && bookingModalIntent === 'contact') {
               router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })

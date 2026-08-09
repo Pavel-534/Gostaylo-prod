@@ -69,6 +69,7 @@ export function OrderCardMainSections({
         <GuestBookingNextStepsCard
           status={status}
           checkIn={checkIn}
+          createdAt={booking?.created_at || booking?.createdAt || null}
           accessPackVisible={accessPackVisible}
           bookingId={bookingId}
           language={language}

@@ -30,6 +30,7 @@ import { mapSeasonalRowForPartnerUi } from '@/lib/listing/listing-seasonal-price
 import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
 import { assertListingFinancialEditAllowed, checkListingFinancialLock } from '@/lib/listing/listing-financial-lock.js';
 import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
+import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -196,7 +197,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, base_currency, category_id, country_code, region_code, city_code, max_capacity, bedrooms_count, categories(slug, name, wizard_profile)')
+    .select('owner_id, metadata, instant_booking, sync_settings, title, description, images, latitude, longitude, district, base_price_thb, base_currency, category_id, country_code, region_code, city_code, max_capacity, bedrooms_count, categories(slug, name, wizard_profile)')
     .eq('id', listingId)
     .single();
   
@@ -270,6 +271,28 @@ export async function PATCH(request, context) {
   }
   if (body.sync_settings !== undefined) {
     updateData.sync_settings = body.sync_settings;
+  }
+
+  {
+    const nextInstant = Object.prototype.hasOwnProperty.call(updateData, 'instant_booking')
+      ? updateData.instant_booking === true
+      : existing.instant_booking === true
+    const ibGate = assertInstantBookingCalendarPolicy({
+      instantBooking: nextInstant,
+      metadata: updateData.metadata ?? existing.metadata,
+      syncSettings: updateData.sync_settings ?? existing.sync_settings,
+    })
+    if (!ibGate.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Instant booking without iCal requires exclusive/manual calendar confirmation.',
+          code: ibGate.code,
+        },
+        { status: 400 },
+      )
+    }
   }
 
   const { updateData: geoPatchedData, locationCapture } = applyListingGeoSnapshotToUpdateData(

@@ -74,6 +74,7 @@ function ListingPdpPostInquiryBanner({ language, listing }) {
     <GuestBookingNextStepsCard
       bookingId={bookingId}
       status={status}
+      createdAt={postInquiryBooking.createdAt || null}
       language={language}
       categorySlug={listing?.categorySlug}
       chatHref={postInquiryChatHref}

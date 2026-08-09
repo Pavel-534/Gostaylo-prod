@@ -21,6 +21,12 @@ import {
   upsertSystemSetting,
 } from '@/lib/admin/system-settings-store.js'
 import { resolveIcalPlatformSyncPolicy } from '@/lib/ical/ical-platform-sync-interval.js'
+import {
+  ICAL_INSTANT_BREAKER_STALE_MS,
+  isPartnerIcalFeedError,
+  isPlatformIcalSyncError,
+  tripInstantBookingIcalCircuitBreaker,
+} from '@/lib/ical/instant-booking-ical-guard.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -81,7 +87,7 @@ async function runSync() {
 
   const { data: listings, error } = await supabase
     .from('listings')
-    .select('id, sync_settings')
+    .select('id, owner_id, title, instant_booking, metadata, sync_settings')
     .not('sync_settings', 'is', null)
     .in('status', ICAL_SYNC_LISTING_STATUSES)
 
@@ -111,6 +117,7 @@ async function runSync() {
 
   /** @type {{ listing_id: string, source_url: string, error_message: string|null }[]} */
   const failedSamples = []
+  let instantBreakers = 0
 
   for (const listing of toSync) {
     if (Date.now() - startTime > MAX_RUNTIME) {
@@ -121,6 +128,8 @@ async function runSync() {
 
     const sources = listing.sync_settings?.sources || []
     let listingSuccesses = 0
+    /** @type {{ source_url: string, error_message: string|null, partnerFeed: boolean, platform: boolean }[]} */
+    const listingErrors = []
 
     for (const source of sources) {
       if (!isIcalSyncSourceEnabled(source)) continue
@@ -134,6 +143,13 @@ async function runSync() {
         results.synced++
       } else {
         results.errors++
+        const errMsg = result.error_message || 'unknown'
+        listingErrors.push({
+          source_url: result.source_url || source.url || '',
+          error_message: errMsg,
+          partnerFeed: isPartnerIcalFeedError(errMsg),
+          platform: isPlatformIcalSyncError(errMsg),
+        })
         if (failedSamples.length < 8) {
           failedSamples.push({
             listing_id: listing.id,
@@ -154,11 +170,48 @@ async function runSync() {
           },
         })
         .eq('id', listing.id)
+    } else if (
+      listing.instant_booking === true &&
+      listingErrors.length > 0 &&
+      listingErrors.some((e) => e.partnerFeed)
+    ) {
+      const sample = listingErrors.find((e) => e.partnerFeed) || listingErrors[0]
+      const lastSyncMs = listing.sync_settings?.last_sync
+        ? Date.parse(String(listing.sync_settings.last_sync))
+        : 0
+      const stale =
+        !Number.isFinite(lastSyncMs) ||
+        lastSyncMs <= 0 ||
+        Date.now() - lastSyncMs >= ICAL_INSTANT_BREAKER_STALE_MS
+      // Trip on partner feed error; stale last_sync reinforces broken/outdated file case.
+      if (stale || listingErrors.every((e) => e.partnerFeed)) {
+        const trip = await tripInstantBookingIcalCircuitBreaker(supabase, {
+          listingId: listing.id,
+          ownerId: listing.owner_id,
+          listingTitle: listing.title,
+          sourceUrl: sample.source_url,
+          errorMessage: sample.error_message,
+          priorMetadata: listing.metadata,
+        })
+        if (trip.tripped) instantBreakers++
+      }
+    }
+
+    const platformErrs = listingErrors.filter((e) => e.platform && !e.partnerFeed)
+    if (platformErrs.length > 0) {
+      void notifySystemAlert(
+        `⏰ <b>Cron: ical-sync</b> — сбой платформы (не вина фида партнёра)\n` +
+          `<code>${escapeSystemAlertHtml(listing.id)}</code>\n` +
+          platformErrs
+            .slice(0, 3)
+            .map((e) => `• ${escapeSystemAlertHtml(e.error_message || '')}`)
+            .join('\n'),
+      )
     }
   }
 
   const duration = Date.now() - startTime
-  console.log(`[ICAL-SYNC] Completed in ${duration}ms:`, results)
+  console.log(`[ICAL-SYNC] Completed in ${duration}ms:`, { ...results, instantBreakers })
 
   if (failedSamples.length > 0) {
     const lines = failedSamples
@@ -179,6 +232,7 @@ async function runSync() {
       success_count: results.synced,
       error_count: results.errors,
       skipped: results.skipped,
+      instant_booking_breakers: instantBreakers,
     })
   } catch (e) {
     console.warn('[ICAL-SYNC] system_settings status:', e?.message || e)
@@ -187,6 +241,7 @@ async function runSync() {
   return {
     success: true,
     duration,
+    instant_booking_breakers: instantBreakers,
     ...results,
   }
 }

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
@@ -28,6 +29,11 @@ import {
   WIZARD_STEP_TITLE_CLASS,
   WIZARD_MOBILE_FLAT_INSET_CLASS,
 } from './wizard-step-layout'
+import {
+  EXCLUSIVE_MANUAL_CALENDAR_META_KEY,
+  listingHasEnabledIcalSources,
+} from '@/lib/ical/instant-booking-ical-policy.js'
+import { getSiteDisplayName } from '@/lib/site-url.js'
 
 function StepPricingInner() {
   const w = useListingWizard()
@@ -49,11 +55,15 @@ function StepPricingInner() {
     dayPickerLocale,
     language,
     stepFieldErrors,
+    serverListing,
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
   const { formatInListingBase } = useStorefrontDisplayFx()
   const currencySymbol = getCurrencySymbol(baseCurrency)
   const errPrice = wizardFieldHasError(stepFieldErrors, 'basePriceThb')
+  const hasIcal = listingHasEnabledIcalSources(serverListing?.sync_settings || serverListing?.syncSettings)
+  const exclusiveAck = formData.metadata?.[EXCLUSIVE_MANUAL_CALENDAR_META_KEY] === true
+  const brand = getSiteDisplayName()
 
   const periodLabel = useMemo(() => {
     if (transportWizard) return t('wizardPriceCalcPeriodBookingDay')
@@ -100,11 +110,44 @@ function StepPricingInner() {
           <Switch
             id="partner-instant-booking"
             checked={formData.instantBooking === true}
-            onCheckedChange={(checked) => updateField('instantBooking', checked === true)}
+            onCheckedChange={(checked) => {
+              const on = checked === true
+              updateField('instantBooking', on)
+              if (!on) {
+                updateMetadata(EXCLUSIVE_MANUAL_CALENDAR_META_KEY, false)
+              }
+            }}
             className="mt-1 shrink-0 data-[state=checked]:bg-brand"
             aria-label={t('partnerListing_instantBookingTitle')}
           />
         </div>
+
+        {formData.instantBooking === true && !hasIcal ? (
+          <div
+            className={cn(
+              WIZARD_MOBILE_FLAT_INSET_CLASS,
+              'flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4',
+            )}
+            data-testid="partner-listing-exclusive-calendar-ack"
+          >
+            <Checkbox
+              id="partner-exclusive-calendar"
+              checked={exclusiveAck}
+              onCheckedChange={(v) =>
+                updateMetadata(EXCLUSIVE_MANUAL_CALENDAR_META_KEY, v === true)
+              }
+              className="mt-1 min-h-[44px] min-w-[44px] data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+            />
+            <div className="min-w-0 space-y-1">
+              <Label htmlFor="partner-exclusive-calendar" className="text-sm font-semibold text-slate-900">
+                {tr('partnerListing_exclusiveCalendarAck', { brand })}
+              </Label>
+              <p className="text-xs leading-relaxed text-slate-600">
+                {t('partnerListing_exclusiveCalendarHint')}
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div

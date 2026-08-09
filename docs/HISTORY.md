@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.80 | 2026-08-09 | PENDING partner-SLA calm deadline copy (no live ticker) on guest next-steps | Done |
 | 189.33 | 2026-08-09 | iOS standalone tabbar safe pad trim -10px → -16px | Done |
 | 200.79 | 2026-08-09 | P1: Instant×iCal guard + exclusive ack; soft-hold audit; checkout trust block | Done |
 | 200.78 | 2026-08-09 | P0 booking funnel UX: CONFIRMED next-steps Pay; partner Instant toggle; confirm TG/push checkout; MIR default | Done |

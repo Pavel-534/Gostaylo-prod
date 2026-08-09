@@ -6,6 +6,7 @@
 |----------|------|
 | `CRON_EXTERNAL_FINANCIAL.md` | Hourly money jobs (cron-job.org) |
 | `CRON_SCHEDULING.md` | Общая схема cron |
+| `SOFT_HOLD_TIMER_AUDIT.md` | Soft-hold / checkout timer audit (200.79) |
 | `OWNER_CHECKLIST_GO_LIVE.md` | Чеклист владельца перед live |
 | `CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md` | Concierge / treasury |
 | `CONTROLLED_LIVE_RUNBOOK.md` | Controlled live |

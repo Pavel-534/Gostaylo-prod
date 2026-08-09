@@ -9,8 +9,20 @@ function pad2(n) {
 }
 
 /**
- * Live countdown until `endsAt` (ISO). Flash Sale / checkout hold / etc.
- * @param {{ endsAt: string, language?: string, variant?: 'default'|'compact', prefixKey?: string, endedKey?: string, className?: string }} props
+ * Live countdown until `endsAt` (ISO). Flash Sale / checkout hold / partner SLA / etc.
+ * Hydration-safe: first paint uses `--:--:--` until mount (no client/server clock mismatch).
+ *
+ * @param {{
+ *   endsAt: string,
+ *   language?: string,
+ *   variant?: 'default'|'compact',
+ *   prefixKey?: string,
+ *   endedKey?: string,
+ *   prefix?: string|null,
+ *   endedLabel?: string|null,
+ *   uiCtx?: object,
+ *   className?: string,
+ * }} props
  */
 export function UrgencyTimer({
   endsAt,
@@ -18,6 +30,9 @@ export function UrgencyTimer({
   variant = 'default',
   prefixKey = 'promo_urgency_countdown_prefix',
   endedKey = 'promo_urgency_ended',
+  prefix = null,
+  endedLabel = null,
+  uiCtx,
   className,
 }) {
   const endMs = useMemo(() => {
@@ -25,26 +40,38 @@ export function UrgencyTimer({
     return Number.isFinite(t) ? t : NaN
   }, [endsAt])
 
-  const [tick, setTick] = useState(() => Date.now())
+  /** null until mounted — avoids SSR/client Date.now() hydration drift on digits */
+  const [nowMs, setNowMs] = useState(null)
 
   useEffect(() => {
     if (!Number.isFinite(endMs)) return undefined
-    const id = setInterval(() => setTick(Date.now()), 1000)
+    setNowMs(Date.now())
+    const id = setInterval(() => setNowMs(Date.now()), 1000)
     return () => clearInterval(id)
   }, [endMs])
 
   if (!Number.isFinite(endMs)) return null
 
-  const sec = Math.max(0, Math.floor((endMs - tick) / 1000))
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  const s = sec % 60
-  const time = `${pad2(h)}:${pad2(m)}:${pad2(s)}`
+  const prefixText =
+    prefix != null && String(prefix).trim() !== ''
+      ? String(prefix)
+      : getUIText(prefixKey, language, uiCtx)
+  const endedText =
+    endedLabel != null && String(endedLabel).trim() !== ''
+      ? String(endedLabel)
+      : getUIText(endedKey, language, uiCtx)
 
-  if (sec <= 0) {
+  const live = nowMs != null
+  const sec = live ? Math.max(0, Math.floor((endMs - nowMs) / 1000)) : null
+  const time =
+    sec == null
+      ? '--:--:--'
+      : `${pad2(Math.floor(sec / 3600))}:${pad2(Math.floor((sec % 3600) / 60))}:${pad2(sec % 60)}`
+
+  if (live && sec <= 0) {
     return (
       <div className={cn('text-xs font-medium text-slate-500', className)} role="status">
-        {getUIText(endedKey, language)}
+        {endedText}
       </div>
     )
   }
@@ -58,8 +85,10 @@ export function UrgencyTimer({
       )}
       role="status"
       aria-live="polite"
+      data-testid="urgency-timer"
+      data-hydrated={live ? 'true' : 'false'}
     >
-      <span className="font-semibold text-orange-950">{getUIText(prefixKey, language)}</span>{' '}
+      <span className="font-semibold text-orange-950">{prefixText}</span>{' '}
       <span className="tabular-nums font-bold tracking-tight text-orange-600">{time}</span>
     </div>
   )
