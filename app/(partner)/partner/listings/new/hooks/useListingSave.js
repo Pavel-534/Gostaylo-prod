@@ -183,6 +183,7 @@ export function useListingSave() {
         coverImage,
         metadata,
         cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
+        instantBooking: geoForm.instantBooking === true,
         ...tourBd,
       }
       const res = await fetch(`/api/v2/partner/listings/${editId}`, {
@@ -290,6 +291,7 @@ export function useListingSave() {
             listingCategoryWizardProfile,
           ),
           cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
+          instantBooking: geoForm.instantBooking === true,
           ...tourBd,
         }),
       })
@@ -410,6 +412,7 @@ export function useListingSave() {
           softPublish: true,
           metadata: publishMeta,
           cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          instantBooking: formData.instantBooking === true,
           ...bookingDaysPayload,
         }),
       })
@@ -544,6 +547,7 @@ export function useListingSave() {
           baseCurrency: geoForm.baseCurrency || 'THB',
           images: geoForm.images || [],
           metadata: draftMeta,
+          instantBooking: geoForm.instantBooking === true,
         }
         const res = await fetch('/api/v2/partner/listings', {
           method: 'POST',
@@ -677,6 +681,7 @@ export function useListingSave() {
           softPublish: false,
           metadata: payload.metadata,
           cancellationPolicy: geoForm.cancellationPolicy || 'moderate',
+          instantBooking: geoForm.instantBooking === true,
           ...bookingDaysPayload,
         }),
       })

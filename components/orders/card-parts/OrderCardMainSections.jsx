@@ -57,9 +57,15 @@ export function OrderCardMainSections({
   return (
     <>
       {normalizedRole === 'renter' &&
-      ['PENDING', 'INQUIRY', 'AWAITING_PAYMENT', 'PAID_ESCROW', 'CHECKED_IN', 'PAID'].includes(
-        String(status || '').toUpperCase(),
-      ) ? (
+      [
+        'PENDING',
+        'INQUIRY',
+        'CONFIRMED',
+        'AWAITING_PAYMENT',
+        'PAID_ESCROW',
+        'CHECKED_IN',
+        'PAID',
+      ].includes(String(status || '').toUpperCase()) ? (
         <GuestBookingNextStepsCard
           status={status}
           checkIn={checkIn}

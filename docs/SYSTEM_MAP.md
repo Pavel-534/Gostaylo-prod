@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.54 | **Last Updated**: 2026-08-09 | **Stage 200.77** invoice breakdown + notify claim; **200.76** checkout UX.  
+> **Version**: 13.2.55 | **Last Updated**: 2026-08-09 | **Stage 200.78** booking funnel UX P0; **200.77** invoice/notify.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.59 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.77** invoice checkout + notify claim.
+> **Version**: 13.2.60 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.78** booking funnel UX P0.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -32,6 +32,13 @@
 - Document / Share / A2HS title: **`getPublicBrandDisplayName()`** → **Airento** (`app/layout.js`, home `generateMetadata`, `app/manifest.js`). Tagline stays in **description** / OG (`Airento — Аренда`), not in `<title>`, so iOS Share no longer shows bare «аренда по всему миру».
 - Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **10px** (189.32; was 6px in 189.31). Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
 - Listing card EN titles when UI is RU: partner-authored single `listings.title` — no auto-i18n; out of scope for this polish.
+
+### Stage 200.78 — P0 booking funnel UX (no payment-core change)
+
+- Guest next-steps: `CONFIRMED` → `showPay: true` + my-bookings allowlist; OrderCard hides duplicate Pay when next-steps owns it.
+- Partner listing wizard Step Pricing: Instant Book toggle → `instant_booking` (default false).
+- `BOOKING_CONFIRMED`: guest FCM `link=/checkout/{id}` + TG inline Pay button when `isBookingPayable`.
+- Checkout UI default selected method **MIR**; options order MIR → CARD → CRYPTO (groups unchanged RU-first).
 
 ### Stage 200.77 — Invoice checkout honesty + payable/notify hardening
 

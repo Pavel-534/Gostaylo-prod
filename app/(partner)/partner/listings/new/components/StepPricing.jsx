@@ -9,6 +9,7 @@ import { getSeasonColor } from '@/lib/price-calculator'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
@@ -76,6 +77,33 @@ function StepPricingInner() {
         <div className="space-y-2">
           <h2 className={WIZARD_STEP_TITLE_CLASS}>{t('pricingAndBooking')}</h2>
           <p className={`leading-relaxed ${WIZARD_STEP_SUBTITLE_CLASS}`}>{t('setRates')}</p>
+        </div>
+
+        <div
+          className={cn(
+            WIZARD_MOBILE_FLAT_INSET_CLASS,
+            'flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:border-slate-200/90',
+          )}
+          data-testid="partner-listing-instant-booking"
+        >
+          <div className="min-w-0 flex-1 space-y-1">
+            <Label
+              htmlFor="partner-instant-booking"
+              className="text-base font-semibold text-slate-900"
+            >
+              {t('partnerListing_instantBookingTitle')}
+            </Label>
+            <p className="text-sm leading-relaxed text-slate-600">
+              {t('partnerListing_instantBookingHint')}
+            </p>
+          </div>
+          <Switch
+            id="partner-instant-booking"
+            checked={formData.instantBooking === true}
+            onCheckedChange={(checked) => updateField('instantBooking', checked === true)}
+            className="mt-1 shrink-0 data-[state=checked]:bg-brand"
+            aria-label={t('partnerListing_instantBookingTitle')}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

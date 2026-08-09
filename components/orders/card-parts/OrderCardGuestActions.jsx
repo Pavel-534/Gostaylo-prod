@@ -25,8 +25,11 @@ export function OrderCardGuestActions({
   showCheckIn,
   showReview,
   showRepeat,
+  /** When true, Pay primary lives on GuestBookingNextStepsCard — keep Details only. */
+  preferNextStepsPay = false,
 }) {
-  const showPayNow = Boolean(bookingId && isBookingPayable(status))
+  const payable = Boolean(bookingId && isBookingPayable(status))
+  const showPayNow = payable && !preferNextStepsPay
   const checkoutHref = bookingId ? `/checkout/${encodeURIComponent(bookingId)}` : null
   const repeatHref = listingId ? `/listings/${encodeURIComponent(String(listingId))}` : null
 

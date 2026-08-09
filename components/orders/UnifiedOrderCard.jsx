@@ -15,6 +15,7 @@ import { OrderCardAdminActions } from '@/components/orders/card-parts/OrderCardA
 import { OrderCardHelpDialogs } from '@/components/orders/card-parts/OrderCardHelpDialogs'
 import { OrderCardLightboxPortal } from '@/components/orders/card-parts/OrderCardLightboxPortal'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 
 export default function UnifiedOrderCard({
   booking,
@@ -224,6 +225,7 @@ export default function UnifiedOrderCard({
               showCheckIn={u.showRenterCheckIn}
               showReview={u.showRenterReview}
               showRepeat={u.showRepeatBooking}
+              preferNextStepsPay={Boolean(u.bookingId && isBookingPayable(u.status))}
             />
           ) : null}
 

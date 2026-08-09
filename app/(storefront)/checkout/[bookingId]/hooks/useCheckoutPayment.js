@@ -28,7 +28,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
   const [paymentReturnVerifying, setPaymentReturnVerifying] = useState(isPaymentReturn)
   const [chatConversationId, setChatConversationId] = useState(null)
   const [paymentIntent, setPaymentIntent] = useState(null)
-  const [paymentMethod, setPaymentMethod] = useState('CARD')
+  /** Stage P0 funnel — RU primary selection; invoice/pm query may override in pricing hook. */
+  const [paymentMethod, setPaymentMethod] = useState('MIR')
   const [allowedMethods, setAllowedMethods] = useState(DEFAULT_ALLOWED_METHODS)
   const [payment, setPayment] = useState(null)
   const [processing, setProcessing] = useState(false)

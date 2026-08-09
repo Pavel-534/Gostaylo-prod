@@ -64,7 +64,8 @@ export function useCheckoutPricing({
   useEffect(() => {
     if (!Array.isArray(allowedMethods) || allowedMethods.length === 0) return
     if (!allowedMethods.includes(paymentMethod)) {
-      setPaymentMethod(allowedMethods[0])
+      const ruPrimary = allowedMethods.includes('MIR') ? 'MIR' : allowedMethods[0]
+      setPaymentMethod(ruPrimary)
     }
   }, [allowedMethods, paymentMethod, setPaymentMethod])
 

@@ -96,15 +96,8 @@ function CheckoutPageInner({ params: paramsProp }) {
     return () => window.clearTimeout(t)
   }, [searchParams, p.loading, authLoading, p.booking, p.paymentSuccess, p.paymentFailed])
 
+  /** Display order aligned with RU-first groups (MIR → CARD → CRYPTO). */
   const paymentMethodOptions = [
-    {
-      value: 'CARD',
-      id: 'card',
-      icon: CreditCard,
-      iconClassName: 'text-slate-600',
-      title: getUIText('checkout_methodCard', c.language),
-      description: getUIText('checkout_methodCardDesc', c.language),
-    },
     {
       value: 'MIR',
       id: 'mir',
@@ -112,6 +105,14 @@ function CheckoutPageInner({ params: paramsProp }) {
       iconClassName: 'text-blue-600',
       title: getUIText('checkout_methodMir', c.language),
       description: getUIText('checkout_methodMirDesc', c.language),
+    },
+    {
+      value: 'CARD',
+      id: 'card',
+      icon: CreditCard,
+      iconClassName: 'text-slate-600',
+      title: getUIText('checkout_methodCard', c.language),
+      description: getUIText('checkout_methodCardDesc', c.language),
     },
     {
       value: 'CRYPTO',

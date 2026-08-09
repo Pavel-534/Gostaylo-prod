@@ -124,6 +124,8 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
       cancellationPolicy: listing.cancellationPolicy || listing.cancellation_policy || 'moderate',
       status: listing.status,
       available: Boolean(listing.available),
+      instantBooking:
+        listing.instantBooking === true || listing.instant_booking === true,
       metadata: {
         ...getDefaultWizardFormData().metadata,
         ...metaForForm,

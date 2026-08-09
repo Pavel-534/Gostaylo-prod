@@ -56,5 +56,7 @@ export function getDefaultWizardFormData() {
     cancellationPolicy: 'moderate',
     status: 'INACTIVE',
     available: false,
+    /** Listing Instant Book — default false (Request-to-book). */
+    instantBooking: false,
   }
 }
