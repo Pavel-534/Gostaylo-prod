@@ -9,9 +9,12 @@ import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
-/** Reserved mobile strip height — matches py-2.5 + 36px icon row (CLS guard). */
+/**
+ * Reserved mobile strip — py-2 + 44px controls ≈ 60px (CLS guard).
+ * Keep in sync with row padding / control height below.
+ */
 const BANNER_RESERVE_CLASS =
-  'block md:hidden min-h-[53px] border-b border-slate-200/80 bg-white shadow-sm'
+  'block md:hidden min-h-[60px] border-b border-slate-200/80 bg-white shadow-sm'
 
 /**
  * Home-page mobile install strip (Stage 200.81).
@@ -43,7 +46,7 @@ export function MobileSmartInstallBanner() {
       aria-hidden={phase === 'pending' ? true : undefined}
     >
       {phase === 'show' ? (
-        <div className="mx-auto flex max-w-7xl items-center gap-2.5 px-3 py-2.5 sm:px-4">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2 sm:px-4">
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl ring-1 ring-slate-200/90">
             <Image
               src="/icons/icon-192x192.png"
@@ -60,7 +63,7 @@ export function MobileSmartInstallBanner() {
           <Button
             type="button"
             variant="brand"
-            className="h-auto shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium min-h-[44px]"
+            className="h-11 shrink-0 rounded-xl px-3 text-xs font-medium min-h-11 min-w-[44px]"
             onClick={() => void install({ direct: true })}
             data-testid="pwa-smart-install-cta"
           >
@@ -69,8 +72,8 @@ export function MobileSmartInstallBanner() {
           <button
             type="button"
             className={cn(
-              'flex shrink-0 items-center justify-center rounded-full text-slate-500',
-              'min-h-[44px] min-w-[44px] hover:bg-slate-100 hover:text-slate-700',
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500',
+              'min-h-11 min-w-11 hover:bg-slate-100 hover:text-slate-700',
             )}
             aria-label={getUIText('pwaInstall_notNow', language)}
             data-testid="pwa-smart-install-dismiss"

@@ -17,6 +17,7 @@ export function PwaInstallPrompt() {
     installBucket,
     install,
     dismissSnooze,
+    dismissSession,
     dismissForever,
   } = usePwaInstall()
 
@@ -31,7 +32,7 @@ export function PwaInstallPrompt() {
       onInstall={install}
       onSnooze={dismissSnooze}
       onNever={dismissForever}
-      onBackdropClick={() => dismissSnooze('backdrop')}
+      onBackdropClick={() => dismissSession('backdrop')}
     />
   )
 }

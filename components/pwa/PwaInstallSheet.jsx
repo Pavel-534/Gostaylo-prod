@@ -74,8 +74,8 @@ export function PwaInstallSheet({
           </div>
           <button
             type="button"
-            onClick={() => onSnooze?.('backdrop')}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 min-h-[44px] min-w-[44px]"
+            onClick={() => onSnooze?.('sheet_close')}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
             aria-label={getUIText('pwaInstall_notNow', language)}
           >
             <X className="h-5 w-5" />

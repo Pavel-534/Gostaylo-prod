@@ -303,6 +303,19 @@ export function usePwaInstallController() {
     [buildAnalyticsProps, closePrompt],
   )
 
+  /** Accidental backdrop — session only, no 5d snooze. */
+  const dismissSession = useCallback(
+    (reason = 'session') => {
+      markPwaPromptShownThisSession()
+      void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_DISMISSED, {
+        ...buildAnalyticsProps(),
+        reason,
+      })
+      closePrompt()
+    },
+    [buildAnalyticsProps, closePrompt],
+  )
+
   const dismissForever = useCallback(() => {
     setPwaPromptNever()
     void trackProductEvent(ProductAnalyticsEvents.PWA_PROMPT_DISMISSED, {
@@ -323,6 +336,7 @@ export function usePwaInstallController() {
     isStandalone,
     install,
     dismissSnooze,
+    dismissSession,
     dismissForever,
     closePrompt,
     openManualPrompt,
