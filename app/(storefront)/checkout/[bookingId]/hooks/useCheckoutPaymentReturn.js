@@ -12,10 +12,12 @@ import {
 
 const POLL_MS = 2500
 const FAST_POLL_MS = 1000
-const MAX_POLLS = 12
+/** ~2 minutes — webhook capture can lag after PSP redirect (Stage 200.76). */
+const MAX_POLLS = 48
 
 /**
- * Stage 130.3 / 138.2 / 198 — return from YooKassa redirect (?payment=return&intent=pi-*).
+ * Stage 130.3 / 138.2 / 198 / 200.76 — return from acquirer (?payment=return&intent=pi-*).
+ * Strict Mode safe: do not latch "handled" until success/fail (cleanup must allow remount poll).
  */
 export function useCheckoutPaymentReturn({
   bookingId,
@@ -30,19 +32,23 @@ export function useCheckoutPaymentReturn({
 }) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const handledRef = useRef(false)
+  /** Only skip re-entry after a terminal finish for this return session. */
+  const finishedSessionRef = useRef(null)
 
   useEffect(() => {
-    if (handledRef.current) return
     if (searchParams.get('payment') !== 'return') return
 
-    handledRef.current = true
+    const intentHint = String(searchParams.get('intent') || '').trim()
+    const sessionKey = `${bookingId}|${intentHint}|return`
+    if (finishedSessionRef.current === sessionKey) return
+
     setPaymentReturnVerifying(true)
     setPaymentFailed(false)
     if (typeof setPaymentFailReason === 'function') setPaymentFailReason(null)
 
     let polls = 0
     let cancelled = false
+    let timeoutId = null
 
     const stripReturnQuery = () => {
       try {
@@ -57,6 +63,7 @@ export function useCheckoutPaymentReturn({
 
     const finishSuccess = () => {
       if (cancelled) return
+      finishedSessionRef.current = sessionKey
       setPaymentReturnVerifying(false)
       setPaymentSuccess(true)
       toast.success(getUIText('checkout_toast_paymentOk', language))
@@ -65,6 +72,7 @@ export function useCheckoutPaymentReturn({
 
     const finishFailed = (intentStatus, { timedOut = false } = {}) => {
       if (cancelled) return
+      finishedSessionRef.current = sessionKey
       const copy = resolveGuestPayReturnFailureCopy(intentStatus, { timedOut })
       if (typeof setPaymentFailReason === 'function') setPaymentFailReason(copy.reason)
       setPaymentReturnVerifying(false)
@@ -123,13 +131,15 @@ export function useCheckoutPaymentReturn({
         return
       }
       const delay = polls === 1 ? FAST_POLL_MS : POLL_MS
-      setTimeout(poll, delay)
+      timeoutId = setTimeout(poll, delay)
     }
 
     void poll()
 
     return () => {
       cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
+      // Remount (Strict Mode): allow a fresh poll; only terminal finish latches session.
       setPaymentReturnVerifying(false)
     }
   }, [

@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useHaptic } from '@/hooks/use-haptic'
 import { interpolateTemplate } from '../hooks/interpolate.js'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
+
+const TXID_SETTLE_POLL_MS = 3000
+const TXID_SETTLE_MAX_POLLS = 40
 
 export function useCheckoutConfirmFlow({
   bookingId,
@@ -24,7 +27,59 @@ export function useCheckoutConfirmFlow({
   const [confirmations, setConfirmations] = useState(0)
   const [verifying, setVerifying] = useState(false)
   const [txidSubmitted, setTxidSubmitted] = useState(false)
+  const [txidSettlePolling, setTxidSettlePolling] = useState(false)
   const [liveVerification, setLiveVerification] = useState(null)
+  const settlePollCancelRef = useRef(false)
+
+  useEffect(() => {
+    return () => {
+      settlePollCancelRef.current = true
+    }
+  }, [])
+
+  const startTxidSettlePoll = useCallback(() => {
+    settlePollCancelRef.current = false
+    setTxidSettlePolling(true)
+    let polls = 0
+
+    const tick = async () => {
+      if (settlePollCancelRef.current) return
+      polls += 1
+      try {
+        const result = await loadPaymentStatus()
+        const st = String(result?.booking?.status || '').toUpperCase()
+        if (st === 'PAID_ESCROW' || st === 'PAID' || st === 'COMPLETED') {
+          setTxidSettlePolling(false)
+          void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
+            booking_id: bookingId,
+            method: 'CRYPTO',
+          })
+          toast.success(getUIText('checkout_toast_escrowUpdated', language))
+          setPaymentSuccess(true)
+          setCryptoModalOpen(false)
+          void refreshWalletEverywhere()
+          return
+        }
+      } catch {
+        /* keep polling */
+      }
+      if (polls >= TXID_SETTLE_MAX_POLLS) {
+        setTxidSettlePolling(false)
+        toast.info(getUIText('checkout_toast_txidAwaitingOps', language))
+        return
+      }
+      setTimeout(tick, TXID_SETTLE_POLL_MS)
+    }
+
+    void tick()
+  }, [
+    bookingId,
+    language,
+    loadPaymentStatus,
+    refreshWalletEverywhere,
+    setCryptoModalOpen,
+    setPaymentSuccess,
+  ])
 
   const handleConfirmPayment = useCallback(
     async (transactionId = null, gatewayRef = null) => {
@@ -148,9 +203,18 @@ export function useCheckoutConfirmFlow({
   )
 
   const copyToClipboard = useCallback(
-    (text) => {
-      navigator.clipboard.writeText(text)
-      toast.success(getUIText('checkout_copySuccess', language))
+    async (text) => {
+      const value = String(text ?? '').trim()
+      if (!value) {
+        toast.error(getUIText('checkout_toast_copyEmpty', language))
+        return
+      }
+      try {
+        await navigator.clipboard.writeText(value)
+        toast.success(getUIText('checkout_copySuccess', language))
+      } catch {
+        toast.error(getUIText('checkout_toast_copyFail', language))
+      }
     },
     [language],
   )
@@ -246,6 +310,8 @@ export function useCheckoutConfirmFlow({
       if (data.success) {
         toast.success(getUIText('checkout_toast_txSubmitOk', language))
         setTxidSubmitted(true)
+        // Stage 200.76 — poll booking until PAID_ESCROW (ops verify / webhook), not dead-end UI
+        startTxidSettlePoll()
       } else {
         toast.error(data.error || getUIText('checkout_toast_txSubmitFail', language))
       }
@@ -255,7 +321,7 @@ export function useCheckoutConfirmFlow({
     } finally {
       setVerifying(false)
     }
-  }, [bookingId, txId, language])
+  }, [bookingId, txId, language, startTxidSettlePoll])
 
   return {
     txId,
@@ -264,6 +330,7 @@ export function useCheckoutConfirmFlow({
     confirmations,
     verifying,
     txidSubmitted,
+    txidSettlePolling,
     liveVerification,
     setLiveVerification,
     handleConfirmPayment,

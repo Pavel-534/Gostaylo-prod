@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.77 | 2026-08-09 | Checkout invoice guest breakdown (honest lines); PDP isBookingPayable; PAYMENT_RECEIVED claim | Done |
+| 200.76 | 2026-08-09 | Checkout payment UX: USDT SSOT amount/wallet, return-poll Strict Mode, TXID settle poll | Done |
 | 189.32 | 2026-08-09 | iOS standalone tabbar safe pad trim -6px → -10px | Done |
 | 189.31 | 2026-08-09 | PWA iOS polish: Home Screen/share title = brand; iOS standalone tabbar -6px safe pad | Done |
 | 200.75 | 2026-08-08 | Pre-launch: crypto wallet fail-closed; root error/404 shells; acquiring 10s timeouts | Done |

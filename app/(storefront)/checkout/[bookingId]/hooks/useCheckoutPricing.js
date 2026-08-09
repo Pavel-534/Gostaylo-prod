@@ -12,6 +12,7 @@ import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-def
 import { interpolateTemplate } from './interpolate.js'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
+import { buildInvoiceGuestBreakdown } from '@/lib/checkout/build-invoice-guest-breakdown.js'
 
 /**
  * Курсы, комиссия, промокод и производные суммы для чекаута.
@@ -239,6 +240,11 @@ export function useCheckoutPricing({
             totalThb: totalWithFee,
           })
 
+    const invoiceGuestBreakdown =
+      hasInvoiceCheckout && invoice
+        ? buildInvoiceGuestBreakdown(invoice, booking)
+        : null
+
     return {
       discountAmount,
       priceAfterDiscount,
@@ -251,6 +257,7 @@ export function useCheckoutPricing({
       payableText,
       payableSecondaryText,
       guestCheckoutBreakdown,
+      invoiceGuestBreakdown,
       walletAppliedThb,
       serviceFeeBeforeWallet,
       serviceFeeAfterWallet,
@@ -287,6 +294,7 @@ export function useCheckoutPricing({
     payableText,
     payableSecondaryText,
     guestCheckoutBreakdown,
+    invoiceGuestBreakdown,
     walletAppliedThb,
     serviceFeeBeforeWallet,
     serviceFeeAfterWallet,

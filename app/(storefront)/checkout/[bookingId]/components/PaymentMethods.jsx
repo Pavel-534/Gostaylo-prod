@@ -20,6 +20,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_NESTED_PANEL_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { resolveCryptoCheckoutDisplay } from '@/lib/checkout/resolve-crypto-checkout-display.js'
 
 function PaymentMethodOptionRow({ opt }) {
   const Icon = opt.icon
@@ -51,6 +52,15 @@ function PaymentMethodOptionRow({ opt }) {
 export function PaymentMethods({ p, c, paymentMethodOptions }) {
   const ruOptions = paymentMethodOptions.filter((opt) => RU_PAYMENT_METHODS.has(opt.value))
   const intlOptions = paymentMethodOptions.filter((opt) => INTL_PAYMENT_METHODS.has(opt.value))
+  const cryptoDisplay = resolveCryptoCheckoutDisplay({
+    payment: p.payment,
+    fallbackWallet: p.GOSTAYLO_WALLET,
+    totalWithFeeThb: c.totalWithFee,
+    thbPerUsdt: c.thbPerUsdt,
+  })
+  const cryptoWallet = cryptoDisplay.wallet
+  const cryptoAmountText =
+    cryptoDisplay.amountUsdt != null ? String(cryptoDisplay.amountUsdt) : ''
 
   return (
     <div className="md:col-span-2 space-y-6">
@@ -236,7 +246,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
             <div className="flex flex-col items-center">
               <div className="bg-white p-4 rounded-xl border-2 border-slate-200 shadow-sm">
                 <QRCodeSVG
-                  value={p.GOSTAYLO_WALLET}
+                  value={cryptoWallet || ' '}
                   size={180}
                   level="H"
                   includeMargin={true}
@@ -255,7 +265,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
               </Label>
               <div className="flex items-center gap-2">
                 <Input
-                  value={p.GOSTAYLO_WALLET}
+                  value={cryptoWallet}
                   readOnly
                   className="font-mono text-sm bg-slate-50"
                   data-testid="usdt-wallet-address"
@@ -263,9 +273,9 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => p.copyToClipboard(p.GOSTAYLO_WALLET)}
+                  onClick={() => p.copyToClipboard(cryptoWallet)}
                   data-testid="copy-wallet-btn"
-                  className="flex items-center gap-1"
+                  className="flex min-h-11 min-w-11 items-center gap-1"
                 >
                   <Copy className="h-4 w-4" />
                   {getUIText('checkout_copy', c.language)}
@@ -286,11 +296,22 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
                 {getUIText('checkout_amountLabel', c.language)}
               </Label>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
-                  {p.payment?.metadata?.amount ??
-                    (c.thbPerUsdt ? Math.ceil((c.totalWithFee / c.thbPerUsdt) * 100) / 100 : '—')}{' '}
-                  USDT
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
+                    {cryptoAmountText || '—'} USDT
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!cryptoAmountText}
+                    onClick={() => p.copyToClipboard(cryptoAmountText)}
+                    data-testid="copy-usdt-amount-btn"
+                    className="flex min-h-11 min-w-11 shrink-0 items-center gap-1"
+                  >
+                    <Copy className="h-4 w-4" />
+                    {getUIText('checkout_copy', c.language)}
+                  </Button>
+                </div>
                 <p className="text-sm text-amber-700 mt-1">≈ {c.formatDisplayPrice(c.totalWithFee, 'THB')}</p>
               </div>
             </div>
@@ -298,12 +319,20 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
             {p.txidSubmitted && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                  {p.txidSettlePolling ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-green-600 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                  )}
                   <div>
                     <p className="font-semibold text-green-900">
                       {getUIText('checkout_txidSentTitle', c.language)}
                     </p>
-                    <p className="text-sm text-green-700 mt-1">{getUIText('checkout_txidSentBody', c.language)}</p>
+                    <p className="text-sm text-green-700 mt-1">
+                      {p.txidSettlePolling
+                        ? getUIText('checkout_txidPollingBody', c.language)
+                        : getUIText('checkout_txidSentBody', c.language)}
+                    </p>
                     <p className="text-xs text-green-600 mt-2 font-mono break-all">TXID: {p.txId}</p>
                   </div>
                 </div>

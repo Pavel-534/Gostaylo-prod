@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.57 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **189.31** PWA iOS name + tabbar polish.
+> **Version**: 13.2.59 | **Last Updated**: 2026-08-09 | **Tip of tree:** Stage **203**; **200.77** invoice checkout + notify claim.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -32,6 +32,18 @@
 - Document / Share / A2HS title: **`getPublicBrandDisplayName()`** → **Airento** (`app/layout.js`, home `generateMetadata`, `app/manifest.js`). Tagline stays in **description** / OG (`Airento — Аренда`), not in `<title>`, so iOS Share no longer shows bare «аренда по всему миру».
 - Tab bar: class **`.mobile-bottom-nav-safe`** — full `env(safe-area-inset-bottom)` by default; **iOS standalone only** (`display-mode: standalone` + `-webkit-touch-callout`) trims **10px** (189.32; was 6px in 189.31). Touch targets stay `min-h-12` (≥44px). Android unchanged. Measured `--app-bottom-nav-height` follows ResizeObserver (no double safe-area in shell).
 - Listing card EN titles when UI is RU: partner-authored single `listings.title` — no auto-i18n; out of scope for this polish.
+
+### Stage 200.77 — Invoice checkout honesty + payable/notify hardening
+
+- Invoice checkout lines: `buildInvoiceGuestBreakdown` — SSOT total = `invoice.amount`; nights/description context; cleaning/deposit only if present on invoice and sum cleanly; **no** platform fee line; **no** invented nightly rate.
+- PDP post-inquiry Pay CTA: `isBookingPayable` (`CONFIRMED` | `AWAITING_PAYMENT`), same as chat/my-bookings.
+- `PAYMENT_RECEIVED`: claim → dispatch → `payment_received_at`; clear claim on hard fail so reconcile can retry.
+
+### Stage 200.76 — Checkout payment UX (crypto SSOT + return/TXID poll)
+
+- Crypto modal: display amount from initiate `metadata.amount_usdt` (not live FX); wallet from `metadata.wallet_address`; copy amount + safer clipboard.
+- Acquirer return (`?payment=return`): Strict Mode–safe poll; window ~2 min (`MAX_POLLS=48`).
+- After submit-TXID: client polls booking until `PAID_ESCROW` then success screen.
 
 ### Stage 200.75 — Pre-launch hardening (crypto wallet, shells, acquiring timeouts)
 

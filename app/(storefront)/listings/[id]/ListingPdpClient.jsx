@@ -42,6 +42,7 @@ import {
   useListingPdpGalleryClickHandler,
 } from '@/components/listing/pdp/ListingPdpDetailsColumn'
 import { I18nSliceBootstrap } from '@/components/i18n/I18nSliceBootstrap'
+import { isBookingPayable } from '@/lib/booking/booking-status-rules.js'
 
 const GalleryModal = dynamic(
   () => import('@/components/listing/GalleryModal').then((m) => m.GalleryModal),
@@ -63,9 +64,9 @@ function ListingPdpPostInquiryBanner({ language, listing }) {
   const postInquiryChatHref = postInquiryBooking.conversationId
     ? `/messages/${encodeURIComponent(String(postInquiryBooking.conversationId))}`
     : null
-  // Same checkout contract as chat `BookingInfoSidebar` / my-bookings next-steps.
+  // Same checkout contract as chat `BookingInfoSidebar` / my-bookings next-steps (Stage 200.77).
   const payHref =
-    bookingId && status === 'AWAITING_PAYMENT'
+    bookingId && isBookingPayable(status)
       ? `/checkout/${encodeURIComponent(bookingId)}`
       : null
 

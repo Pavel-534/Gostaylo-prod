@@ -149,6 +149,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     confirmations: confirmFlow.confirmations,
     verifying: confirmFlow.verifying,
     txidSubmitted: confirmFlow.txidSubmitted,
+    txidSettlePolling: confirmFlow.txidSettlePolling,
     liveVerification: confirmFlow.liveVerification,
     setLiveVerification: confirmFlow.setLiveVerification,
     chatConversationId,

@@ -14,6 +14,20 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { getNightsLabel } from '@/lib/utils/booking-logic.js'
+import { interpolateTemplate } from '../hooks/interpolate.js'
+
+function invoiceLineLabel(line, language) {
+  if (line.type === 'cleaning') return getUIText('checkout_invoiceCleaning', language)
+  if (line.type === 'deposit') return getUIText('checkout_invoiceDeposit', language)
+  if (line.type === 'invoice_total') return getUIText('checkout_invoiceAmountDue', language)
+  if (line.nights > 0) {
+    return interpolateTemplate(getUIText('checkout_invoiceStay', language), {
+      nightsLabel: getNightsLabel(line.nights, language),
+    })
+  }
+  return getUIText('checkout_invoiceStayPlain', language)
+}
 
 function canRenterCancelCheckout(status) {
   return !RENTER_CHECKOUT_NO_CANCEL_STATUSES.has(String(status || '').toUpperCase())
@@ -162,22 +176,39 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
               </div>
             ) : null}
             {c.hasInvoiceCheckout ? (
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>{getUIText('checkout_total', c.language)}</span>
-                <span
-                  className="text-teal-600"
-                  data-test-raw-value={String(c.invoiceAmount)}
-                  data-test-total-thb={String(
-                    Math.round(Number(p.invoice?.amount_thb || c.totalWithFee) || 0),
-                  )}
-                >
-                  <span className="block">{c.payableText}</span>
-                  {c.payableSecondaryText ? (
-                    <span className="block text-sm font-medium text-slate-600">
-                      {c.payableSecondaryText}
+              <div
+                className="space-y-2"
+                data-test-checkout-invoice-breakdown
+                data-test-raw-value={String(c.invoiceAmount)}
+                data-test-total-thb={String(
+                  Math.round(Number(p.invoice?.amount_thb || c.totalWithFee) || 0),
+                )}
+              >
+                {c.invoiceGuestBreakdown?.description ? (
+                  <p className="text-sm text-slate-600">{c.invoiceGuestBreakdown.description}</p>
+                ) : null}
+                {(c.invoiceGuestBreakdown?.lines || []).map((line, idx) => (
+                  <div
+                    key={`${line.type}-${idx}`}
+                    className="flex justify-between gap-3 text-sm text-slate-700"
+                  >
+                    <span>{invoiceLineLabel(line, c.language)}</span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {c.formatDisplayPrice(line.amount, c.invoiceCurrency || 'THB')}
                     </span>
-                  ) : null}
-                </span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>{getUIText('checkout_total', c.language)}</span>
+                  <span className="text-teal-600">
+                    <span className="block">{c.payableText}</span>
+                    {c.payableSecondaryText ? (
+                      <span className="block text-sm font-medium text-slate-600">
+                        {c.payableSecondaryText}
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
               </div>
             ) : null}
             {!c.hasInvoiceCheckout ? (
