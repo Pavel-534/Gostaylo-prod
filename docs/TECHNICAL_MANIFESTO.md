@@ -87,10 +87,15 @@
 
 - Auto banner + sheet share never/snooze/session gates; «Не сейчас» = **5d**; «Не напоминать месяц» = soft **30d** (not forever).
 - Manual entry: `PwaInstallSettingsCard` on renter settings + profile **and** partner settings (`openManualPrompt` bypasses auto gates); partner shell mounts `PwaInstallProvider` + chrome.
-- Buckets: `android_native` / `android_manual` / `ios_safari` / `ios_other` — sheet copy/steps; standalone shows «already installed».
+- Buckets: `android_native` / `android_manual` / `ios_safari` / `ios_other` — sheet copy/steps; standalone shows «Приложение установлено» (Stage 189.36 copy).
 - Home banner: CLS-safe `pending` reserve (`md:hidden`); dismiss = short snooze; respects long-snooze.
 - Storage keys: canonical **`airento_pwa_*`** with one-shot migrate from legacy **`gostaylo_pwa_*`**.
 - Single auto-sheet scheduler in `use-pwa-install` (no double timer).
+
+### Stage 189.36 — Profile PWA copy + push settings CTA
+
+- Standalone card (`PwaInstallSettingsCard` via `isStandalone`): «Приложение установлено» / «Вы можете открывать {brand} с домашнего экрана» (no «вкладка» / «открыто как»).
+- `PushEnableSettingsCard`: default / granted / denied copy aligned (app closed, not tab); denied → **Открыть настройки** (`lib/push/open-notification-settings.js` Android intent best-effort + platform guide); refresh permission on focus.
 
 ### Stage 189.35 — Digital Asset Links for TWA
 
