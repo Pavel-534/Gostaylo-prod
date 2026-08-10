@@ -1,12 +1,12 @@
 /**
- * GET /api/v2/geocode/suggest?q=...&country=TH
- * Catalog-first autocomplete (geo_locations + synonyms) + Nominatim via GeoService.
- * Alias of resolveFromQuery for map-first wizard (Stage 200.36).
+ * GET /api/v2/geocode/suggest?q=...&country=TH&lang=ru&viewbox=...&bounded=1
+ * Catalog-first autocomplete + Nominatim via GeoService (Stage 200.36 / 200.84).
  */
 
 import { NextResponse } from 'next/server'
 import { rateLimitCheck } from '@/lib/rate-limit'
 import { GeoService } from '@/lib/services/geo/geo.service'
+import { normalizeNominatimLang } from '@/lib/geo/nominatim-lang'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +20,12 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')
     const country = searchParams.get('country') || searchParams.get('country_code') || undefined
+    const lang = normalizeNominatimLang(searchParams.get('lang'))
+    const viewbox = searchParams.get('viewbox') || undefined
+    const bounded =
+      searchParams.get('bounded') === '1' ||
+      searchParams.get('bounded') === 'true' ||
+      searchParams.get('bounded') === 'yes'
     if (!q || q.trim().length < 3) {
       return NextResponse.json(
         { success: false, error: 'Query too short (min 3 chars)' },
@@ -27,7 +33,11 @@ export async function GET(request) {
       )
     }
 
-    const results = await GeoService.resolveFromQuery(q, country)
+    const results = await GeoService.resolveFromQuery(q, country, {
+      lang,
+      viewbox,
+      bounded,
+    })
     return NextResponse.json({ success: true, data: results })
   } catch (error) {
     console.error('[GEOCODE SUGGEST]', error)

@@ -1,11 +1,12 @@
 /**
- * Reverse geocoding via GeoService (Stage 200.35) — Nominatim + cache.
- * GET /api/v2/geocode/reverse?lat=&lon=
+ * Reverse geocoding via GeoService (Stage 200.35 / 200.84) — Nominatim + cache.
+ * GET /api/v2/geocode/reverse?lat=&lon=&lang=ru
  */
 
 import { NextResponse } from 'next/server'
 import { rateLimitCheck } from '@/lib/rate-limit'
 import { GeoService } from '@/lib/services/geo/geo.service'
+import { formatListingStreetAddress, normalizeNominatimLang } from '@/lib/geo/nominatim-lang'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const lat = parseFloat(searchParams.get('lat'))
     const lon = parseFloat(searchParams.get('lon'))
+    const lang = normalizeNominatimLang(searchParams.get('lang'))
     if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
       return NextResponse.json(
         { success: false, error: 'Valid lat and lon required' },
@@ -26,7 +28,7 @@ export async function GET(request) {
       )
     }
 
-    const resolved = await GeoService.resolveFromPin(lat, lon)
+    const resolved = await GeoService.resolveFromPin(lat, lon, { lang })
     if (!resolved.ok && resolved.degraded) {
       return NextResponse.json({
         success: true,
@@ -43,27 +45,33 @@ export async function GET(request) {
       })
     }
 
+    const streetLine = formatListingStreetAddress(resolved.address, resolved.displayName)
+
     return NextResponse.json({
       success: true,
       data: {
         displayName: resolved.displayName || '',
+        streetAddress: streetLine,
         district: resolved.district || '',
         city: resolved.city_name || '',
         country: resolved.address?.country || '',
         countryCode: resolved.country_code || null,
-        state: resolved.address?.state || resolved.region_code || null,
+        // Prefer human state / catalog region label — never dump region_code as state
+        state: resolved.address?.state || resolved.region_label || null,
         address: resolved.address || {},
-        // Stage 200.35 extras (backward-compatible; clients may ignore)
         regionCode: resolved.region_code || null,
+        regionLabel: resolved.region_label || null,
         cityCode: resolved.city_code || null,
         timezone: resolved.timezone || null,
         currencyCode: resolved.currency_code || null,
         geoSource: resolved.geo_source || null,
+        lang: resolved.lang || lang,
       },
     })
   } catch (error) {
     console.error('[REVERSE GEOCODE ERROR]', error)
-    const status = error?.code === 'GEO_INVALID_COORDS' ? 400 : error?.code === 'NOMINATIM_UNAVAILABLE' ? 502 : 500
+    const status =
+      error?.code === 'GEO_INVALID_COORDS' ? 400 : error?.code === 'NOMINATIM_UNAVAILABLE' ? 502 : 500
     return NextResponse.json({ success: false, error: error.message }, { status })
   }
 }

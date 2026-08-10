@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.84 | 2026-08-11 | Wizard geo: Nominatim UI lang + street/house→pin (city viewbox); Irkutsk seed; partner map hints | Done |
 | 200.83 | 2026-08-10 | Wizard location UX: derived region (no hub Select), street suggest→pin, district optional, RU-ZAB/Chita seed | Done |
 | 189.37 | 2026-08-10 | Push resume: throttled re-check + FCM sync if granted after OS settings | Done |
 | 189.36 | 2026-08-10 | Profile PWA: «Приложение установлено» + push block CTA/settings after deny | Done |

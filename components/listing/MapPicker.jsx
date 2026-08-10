@@ -87,10 +87,13 @@ function normalizeGeocodeForForm(data, privacyMode) {
   const address = data.address && typeof data.address === 'object' ? data.address : null
   const extras = {
     regionCode: data.regionCode || null,
+    regionLabel: data.regionLabel || null,
     cityCode: data.cityCode || null,
     timezone: data.timezone || null,
     currencyCode: data.currencyCode || null,
     geoSource: data.geoSource || null,
+    streetAddress: data.streetAddress || null,
+    lang: data.lang || null,
   }
   // Keep district as suburb/neighbourhood only — never join city into district.
   const districtClean =
@@ -124,6 +127,8 @@ function normalizeGeocodeForForm(data, privacyMode) {
  *   language?: string
  *   cooperativeTouch?: boolean | 'auto'
  *   countryCode?: string|null
+ *   mapCenter?: [number, number]|null
+ *   partnerPlaceHints?: boolean — partner wizard: exact place-pin copy (not guest privacy)
  * }} props
  */
 export default function MapPicker({
@@ -143,6 +148,7 @@ export default function MapPicker({
   countryCode = null,
   /** Optional [lat,lng] override from geo_locations.centroid (Stage 200.36). */
   mapCenter = null,
+  partnerPlaceHints = false,
 }) {
   const t = (key) => getUIText(key, language)
   const coarsePointer = useCoarsePointer()
@@ -153,6 +159,8 @@ export default function MapPicker({
   const [position, setPosition] = useState(null)
   const [mapGestureActive, setMapGestureActive] = useState(() => !coopEnabled)
   const privacyMode = isPrivacyLocationMode({ categorySlug, categoryId })
+  /** Partner wizard: always show exact place-pin copy (guest privacy stays on storefront). */
+  const placeHintPrivacy = partnerPlaceHints ? false : privacyMode
 
   const hasInitialPin =
     latitude != null && longitude != null && !isNaN(Number(latitude)) && !isNaN(Number(longitude))
@@ -189,7 +197,7 @@ export default function MapPicker({
       let geo = null
       if (fetchAddressOnClick) {
         try {
-          const { ok, data } = await fetchReverseGeocode(lat, lng)
+          const { ok, data } = await fetchReverseGeocode(lat, lng, { lang: language })
           if (ok && data) geo = normalizeGeocodeForForm(data, privacyMode)
         } catch (e) {
           console.warn('[MapPicker] Reverse geocode failed:', e)
@@ -197,7 +205,7 @@ export default function MapPicker({
       }
       onSelect?.(lat, lng, geo)
     },
-    [fetchAddressOnClick, onSelect, privacyMode],
+    [fetchAddressOnClick, onSelect, privacyMode, language],
   )
 
   const handleMapClick = (lat, lng) => {
@@ -267,7 +275,7 @@ export default function MapPicker({
           </Button>
           <p className="text-xs text-slate-500">
             {unlocked
-              ? privacyMode
+              ? placeHintPrivacy
                 ? t('mapPicker_hintUnlockPrivacy')
                 : t('mapPicker_hintUnlockExact')
               : t('mapPicker_hintLocked')}
@@ -275,7 +283,7 @@ export default function MapPicker({
         </div>
       ) : lockable && !position ? (
         <p className="text-xs text-slate-600" data-testid="map-picker-place-hint">
-          {privacyMode ? t('mapPicker_hintPlacePrivacy') : t('mapPicker_hintPlaceExact')}
+          {placeHintPrivacy ? t('mapPicker_hintPlacePrivacy') : t('mapPicker_hintPlaceExact')}
         </p>
       ) : null}
 

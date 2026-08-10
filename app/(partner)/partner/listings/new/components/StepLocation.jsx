@@ -174,8 +174,9 @@ function StepLocationInner() {
       setGeocoding(true)
       try {
         const country = formData.country ? `&country=${encodeURIComponent(formData.country)}` : ''
+        const lang = `&lang=${encodeURIComponent(language || 'ru')}`
         const res = await fetch(
-          `/api/v2/geocode/suggest?q=${encodeURIComponent(query)}${country}`,
+          `/api/v2/geocode/suggest?q=${encodeURIComponent(query)}${country}${lang}`,
         )
         const data = await res.json()
         if (res.ok && data.success && data.data?.length) {
@@ -194,7 +195,7 @@ function StepLocationInner() {
         setGeocoding(false)
       }
     },
-    [formData.country, setGeocodeResults, setGeocoding],
+    [formData.country, language, setGeocodeResults, setGeocoding],
   )
 
   const onGeocodeQueryChange = (value) => {
@@ -210,7 +211,7 @@ function StepLocationInner() {
       displayName: r.displayName,
       countryCode: r.address?.country_code || null,
       country: r.address?.country || null,
-      city: r.address?.city || r.address?.town || r.address?.municipality || r.labelEn || null,
+      city: r.address?.city || r.address?.town || r.address?.municipality || r.labelRu || r.labelEn || null,
       state: r.address?.state || null,
       district: r.address?.suburb || r.address?.neighbourhood || null,
       address: r.address || null,
@@ -218,10 +219,11 @@ function StepLocationInner() {
       cityCode: r.cityCode || null,
       cityTimezone: r.timezone || null,
       geoSource: r.source || 'suggest',
+      lang: language,
     })
     try {
       const rev = await fetch(
-        `/api/v2/geocode/reverse?lat=${r.lat}&lon=${r.lon}`,
+        `/api/v2/geocode/reverse?lat=${r.lat}&lon=${r.lon}&lang=${encodeURIComponent(language || 'ru')}`,
         { cache: 'no-store' },
       )
       const json = await rev.json()
@@ -231,6 +233,7 @@ function StepLocationInner() {
       if (json.success && json.data) {
         handleMapSelect(r.lat, r.lon, {
           displayName: json.data.displayName || r.displayName,
+          streetAddress: json.data.streetAddress,
           district: json.data.district,
           city: json.data.city,
           country: json.data.country,
@@ -238,10 +241,12 @@ function StepLocationInner() {
           state: json.data.state,
           address: json.data.address,
           regionCode: json.data.regionCode || r.regionCode || null,
+          regionLabel: json.data.regionLabel || null,
           cityCode: json.data.cityCode || r.cityCode || null,
           timezone: json.data.timezone,
           currencyCode: json.data.currencyCode,
           geoSource: json.data.geoSource,
+          lang: json.data.lang || language,
         })
         if (json.data.district) {
           setCustomDistricts((prev) =>
@@ -253,6 +258,42 @@ function StepLocationInner() {
       setGeoUnavailable(true)
     }
   }
+
+  const streetValue = useMemo(() => {
+    const fromMeta = String(formData.metadata?.street || '').trim()
+    if (fromMeta) return fromMeta
+    const addr = String(formData.address || '').trim()
+    if (!addr) return ''
+    // Legacy: single address field without metadata.street
+    if (!formData.metadata?.house_number) return addr.split(',')[0]?.trim() || addr
+    return addr.split(',')[0]?.trim() || ''
+  }, [formData.address, formData.metadata?.street, formData.metadata?.house_number])
+
+  const houseValue = useMemo(() => {
+    const fromMeta = String(formData.metadata?.house_number || '').trim()
+    if (fromMeta) return fromMeta
+    const addr = String(formData.address || '').trim()
+    if (!addr || formData.metadata?.street) return ''
+    const parts = addr.split(',').map((p) => p.trim()).filter(Boolean)
+    return parts.length > 1 ? parts.slice(1).join(', ') : ''
+  }, [formData.address, formData.metadata?.street, formData.metadata?.house_number])
+
+  const syncStreetHouse = (street, house) => {
+    updateMetadata('street', street)
+    updateMetadata('house_number', house)
+    const composed = [street, house]
+      .map((s) => String(s || '').trim())
+      .filter(Boolean)
+      .join(', ')
+    updateField('address', composed)
+  }
+
+  const cityViewportLat =
+    mapCenter?.[0] ??
+    (Number.isFinite(Number(formData.latitude)) ? Number(formData.latitude) : null)
+  const cityViewportLon =
+    mapCenter?.[1] ??
+    (Number.isFinite(Number(formData.longitude)) ? Number(formData.longitude) : null)
 
   const applyCountrySideEffects = (code, meta = {}) => {
     setFormData((prev) =>
@@ -409,9 +450,12 @@ function StepLocationInner() {
     try {
       const lat = Number(formData.latitude)
       const lon = Number(formData.longitude)
-      const rev = await fetch(`/api/v2/geocode/reverse?lat=${lat}&lon=${lon}`, {
-        cache: 'no-store',
-      })
+      const rev = await fetch(
+        `/api/v2/geocode/reverse?lat=${lat}&lon=${lon}&lang=${encodeURIComponent(language || 'ru')}`,
+        {
+          cache: 'no-store',
+        },
+      )
       const json = await rev.json().catch(() => ({}))
       if (json.success && json.data) {
         handleMapSelect(lat, lon, {
@@ -570,6 +614,7 @@ function StepLocationInner() {
                 valueLabel={cityLabel}
                 disabled={!formData.country}
                 hasError={errCity}
+                language={language}
                 placeholder={
                   formData.country
                     ? t('wizardGeo_cityTypeaheadPh')
@@ -610,19 +655,19 @@ function StepLocationInner() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium">{t('wizardGeo_addressLabel')}</Label>
-          <p className="mt-0.5 text-xs text-slate-500">{t('wizardGeo_addressSuggestHint')}</p>
-          <div className="mt-1.5">
-            <WizardStreetTypeahead
-              countryCode={formData.country || ''}
-              cityLabel={cityLabel}
-              value={formData.address || ''}
-              placeholder={t('wizardGeo_addressPh')}
-              t={t}
-              onChangeText={(v) => updateField('address', v)}
-              onSelectResult={selectGeocodeResult}
-            />
-          </div>
+          <WizardStreetTypeahead
+            countryCode={formData.country || ''}
+            cityLabel={cityLabel}
+            cityLat={cityViewportLat}
+            cityLon={cityViewportLon}
+            language={language}
+            street={streetValue}
+            house={houseValue}
+            t={t}
+            onStreetChange={(v) => syncStreetHouse(v, houseValue)}
+            onHouseChange={(v) => syncStreetHouse(streetValue, v)}
+            onSelectResult={selectGeocodeResult}
+          />
         </div>
 
         <div data-wizard-field="district">
@@ -768,6 +813,7 @@ function StepLocationInner() {
             countryCode={formData.country || null}
             mapCenter={mapCenter}
             cooperativeTouch="auto"
+            partnerPlaceHints
           />
         </div>
         {errCoords ? (

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.67 | **Last Updated**: 2026-08-10 | **Tip of tree:** Stage **203**; **200.83** wizard location UX.
+> **Version**: 13.2.68 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.84** wizard geo lang + street/house.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.84 — Wizard geo language + street/house → pin
+
+- Nominatim reverse/search: UI `lang` (`Accept-Language` + cache key); catalog city/region labels by UI lang (not hard `label_en`).
+- Suggest: optional `viewbox`+`bounded` around city centroid; street+house fields compose query → pin; short `listings.address` line from OSM road/house.
+- Partner MapPicker: `partnerPlaceHints` (exact place copy, not guest privacy); seed `RU-IRK`/`irkutsk`.
+- SSOT unchanged: codes + lat/lng for search; labels display-only (`lib/geo/nominatim-lang.js`).
 
 ### Stage 200.83 — Wizard location UX (professional address flow)
 

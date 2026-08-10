@@ -43,6 +43,7 @@ function resultLabel(r) {
  *   onSelectResult: (result: object) => void | Promise<void>,
  *   onSelectManual: (label: string) => void,
  *   onClear?: () => void,
+ *   language?: string,
  * }} props
  */
 export function WizardCityTypeahead({
@@ -57,6 +58,7 @@ export function WizardCityTypeahead({
   onSelectResult,
   onSelectManual,
   onClear,
+  language = 'ru',
 }) {
   const [query, setQuery] = useState(() => valueLabel || '')
   const [open, setOpen] = useState(false)
@@ -88,7 +90,7 @@ export function WizardCityTypeahead({
     setLoading(true)
     try {
       const res = await fetch(
-        `/api/v2/geocode/suggest?q=${encodeURIComponent(needle)}&country=${encodeURIComponent(countryCode)}`,
+        `/api/v2/geocode/suggest?q=${encodeURIComponent(needle)}&country=${encodeURIComponent(countryCode)}&lang=${encodeURIComponent(language || 'ru')}`,
         { cache: 'no-store' },
       )
       const json = await res.json().catch(() => ({}))

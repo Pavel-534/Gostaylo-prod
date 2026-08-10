@@ -701,6 +701,7 @@ export function useListingWizardActions(state, derived) {
           lon: lng,
           geo,
           baseCurrencyLocked,
+          lang: geo?.lang,
         }),
       )
       const dist = geo?.district
