@@ -1,11 +1,12 @@
 'use client'
 
 /**
- * Stage M1.1 — Web Push (FCM) bootstrap after login on any shell that mounts this.
+ * Stage M1.1 / 189.37 — Web Push (FCM) bootstrap after login on any shell that mounts this.
  * - Runs only when `user?.id` is present.
  * - `permission === granted` → getToken + register (idempotent across storefront/chat remounts).
  * - `default` → no auto `requestPermission` (gesture / Soft CTA via PUSH_ENABLE_EVENT).
  * - `denied` → silent no-op.
+ * - App resume (focus / visible): if permission flipped to granted and session has no token → sync once (throttled).
  */
 
 import { useEffect, useRef } from 'react'
@@ -19,6 +20,7 @@ import {
   PUSH_REGISTERED_UID_KEY,
   getSessionPushSync,
   setSessionPushSync,
+  shouldSyncPushOnResume,
 } from '@/lib/push/web-push-client-state.js'
 
 /** Cross-mount in-flight guard (same uid). */
@@ -199,12 +201,23 @@ export function PushClientInit() {
       void run({ forceRefresh: true })
     }
 
+    /** After OS settings flip denied→granted; skip if already synced (no getToken spam). */
+    const onResume = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      if (!shouldSyncPushOnResume(user.id)) return
+      void run({ forceRefresh: true })
+    }
+
     void run()
     window.addEventListener(PUSH_ENABLE_EVENT, onEnable)
+    window.addEventListener('focus', onResume)
+    document.addEventListener('visibilitychange', onResume)
 
     return () => {
       aliveRef.current = false
       window.removeEventListener(PUSH_ENABLE_EVENT, onEnable)
+      window.removeEventListener('focus', onResume)
+      document.removeEventListener('visibilitychange', onResume)
       clearMessagingSide()
     }
   }, [user?.id])

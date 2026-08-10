@@ -1,8 +1,10 @@
 'use client'
 
 /**
- * Stage M1.1 / 189.36 — Soft CTA for Notification permission (gesture-first).
+ * Stage M1.1 / 189.36 / 189.37 — Soft CTA for Notification permission (gesture-first).
  * States: default → enable; granted → status; denied → open settings / guide.
+ * Resume: re-read permission on focus/visibility; transition to granted → PUSH_ENABLE_EVENT
+ * (FCM subscribe-on-resume SSOT is PushClientInit + shouldSyncPushOnResume).
  */
 
 import { useCallback, useEffect, useState } from 'react'

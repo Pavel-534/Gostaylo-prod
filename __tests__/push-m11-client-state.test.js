@@ -12,6 +12,9 @@ import {
   clearWebPushClientStorage,
   getSessionPushSync,
   setSessionPushSync,
+  shouldSyncPushOnResume,
+  resetPushResumeThrottleForTests,
+  PUSH_RESUME_THROTTLE_MS,
 } from '@/lib/push/web-push-client-state.js'
 
 describe('M1.1 web-push-client-state', () => {
@@ -20,6 +23,7 @@ describe('M1.1 web-push-client-state', () => {
   beforeEach(() => {
     store.clear()
     clearSessionPushSync()
+    resetPushResumeThrottleForTests()
     globalThis.localStorage = {
       getItem: (k) => (store.has(k) ? store.get(k) : null),
       setItem: (k, v) => store.set(k, String(v)),
@@ -38,6 +42,7 @@ describe('M1.1 web-push-client-state', () => {
     delete globalThis.sessionStorage
     delete globalThis.window
     clearSessionPushSync()
+    resetPushResumeThrottleForTests()
   })
 
   it('exports enable event and storage keys', () => {
@@ -61,5 +66,23 @@ describe('M1.1 web-push-client-state', () => {
     assert.equal(store.has(PUSH_FCM_TOKEN_KEY), false)
     assert.equal(store.has(`s:${PUSH_REGISTERED_UID_KEY}`), false)
     assert.deepEqual(getSessionPushSync(), { uid: null, token: null })
+  })
+
+  it('shouldSyncPushOnResume only when granted and not yet session-synced', () => {
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'denied', now: 1000 }), false)
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'default', now: 1000 }), false)
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 1000 }), true)
+    // throttle
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 1000 + 100 }), false)
+    assert.equal(
+      shouldSyncPushOnResume('u1', {
+        permission: 'granted',
+        now: 1000 + PUSH_RESUME_THROTTLE_MS,
+      }),
+      true,
+    )
+    setSessionPushSync('u1', 'tok')
+    resetPushResumeThrottleForTests()
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 50_000 }), false)
   })
 })

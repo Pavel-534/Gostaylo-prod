@@ -92,6 +92,12 @@
 - Storage keys: canonical **`airento_pwa_*`** with one-shot migrate from legacy **`gostaylo_pwa_*`**.
 - Single auto-sheet scheduler in `use-pwa-install` (no double timer).
 
+### Stage 189.37 — Push resume sync after OS permission flip
+
+- **Needed:** 189.36 updated profile UI on focus, but FCM subscribe lived only on Soft CTA / mount — returning from system settings on home (or without re-prompt) could leave `granted` without token.
+- `PushClientInit`: `focus` + `visibilitychange` → `shouldSyncPushOnResume` (8s throttle; only if `permission === granted` and no session token) → existing `run({ forceRefresh: true })`. Never re-prompts when `denied`.
+- Profile card keeps UI refresh + `PUSH_ENABLE_EVENT` on denied→granted (189.36).
+
 ### Stage 189.36 — Profile PWA copy + push settings CTA
 
 - Standalone card (`PwaInstallSettingsCard` via `isStandalone`): «Приложение установлено» / «Вы можете открывать {brand} с домашнего экрана» (no «вкладка» / «открыто как»).

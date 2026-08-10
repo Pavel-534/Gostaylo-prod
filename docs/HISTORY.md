@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 189.37 | 2026-08-10 | Push resume: throttled re-check + FCM sync if granted after OS settings | Done |
 | 189.36 | 2026-08-10 | Profile PWA: «Приложение установлено» + push block CTA/settings after deny | Done |
 | 210.71 | 2026-08-10 | ADR-210 Slice 7.1: Concierge UX polish (fences, mapping select, checklist, existing-partner notify) | Done |
 | 210.7 | 2026-08-10 | ADR-210 Slice 7: admin `/admin/concierge` import UI + batch journal | Done |
