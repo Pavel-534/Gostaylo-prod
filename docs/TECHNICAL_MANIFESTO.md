@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.66 | **Last Updated**: 2026-08-10 | **Tip of tree:** Stage **203**; **200.82** M1.1 push after login.
+> **Version**: 13.2.67 | **Last Updated**: 2026-08-10 | **Tip of tree:** Stage **203**; **200.83** wizard location UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.83 — Wizard location UX (professional address flow)
+
+- Region is **derived** (city catalog / pin reverse) — no Select of unrelated launch hubs (IMG_0014: Krasnodar while city=Чита).
+- Street field: `WizardStreetTypeahead` → suggest + place pin; district optional (auto from reverse suburb); MapPicker lock UI only after pin.
+- Seed: `RU-ZAB` + `chita` (+ synonyms); ops: `node --env-file=.env.local scripts/seed-geo-locations.mjs`.
 
 ### Stage 210.71 — Concierge Supply Slice 7.1 (UX polish)
 

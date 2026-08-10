@@ -5,12 +5,11 @@
  * listing pin only via map (anti-coerce). Create and edit share the same handlers/SSOT.
  */
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Loader2, MapPin, AlertTriangle, Search } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
@@ -25,9 +24,14 @@ import {
 } from '@/lib/geo/wizard-pin-country-conflict'
 import {
   applyWizardCountryCascadeReset,
-  applyWizardRegionCascadeReset,
   applyWizardCityCascadeSelect,
 } from '@/lib/geo/wizard-geo-cascade-reset'
+import {
+  findLaunchGeoByCode,
+  launchGeoLabel,
+  matchLaunchGeoByLabel,
+  resolveLaunchCityCascade,
+} from '@/lib/geo/launch-geo-index'
 import { getIsoCountryLabel } from '@/lib/geo/iso-countries-catalog'
 import { getCountryMapViewportCentroid } from '@/lib/geo/country-map-viewport'
 import {
@@ -39,22 +43,12 @@ import {
 } from './wizard-step-layout'
 import { WizardCountryTypeahead } from './WizardCountryTypeahead'
 import { WizardCityTypeahead } from './WizardCityTypeahead'
+import { WizardStreetTypeahead } from './WizardStreetTypeahead'
 import { cn } from '@/lib/utils'
-import { wizardFieldErrorClass, wizardFieldHasError } from '../lib/wizard-field-errors'
+import { wizardFieldHasError } from '../lib/wizard-field-errors'
 import { getCurrencySymbol } from '@/lib/currency'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
-
-async function fetchGeoNodes({ level, parent, lang }) {
-  const params = new URLSearchParams()
-  if (level) params.set('level', level)
-  if (parent) params.set('parent', parent)
-  if (lang) params.set('lang', lang)
-  const res = await fetch(`/api/v2/geo/locations?${params}`, { cache: 'no-store' })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok || !json.success) return []
-  return Array.isArray(json.data) ? json.data : []
-}
 
 function hasValidPin(formData) {
   const lat = Number(formData?.latitude)
@@ -88,13 +82,11 @@ function StepLocationInner() {
     baseCurrencyLocked,
   } = w
 
-  const errDistrict = wizardFieldHasError(stepFieldErrors, 'district')
   const errCountry = wizardFieldHasError(stepFieldErrors, 'country')
   const errCoords = wizardFieldHasError(stepFieldErrors, 'coordinates')
   const errCity = wizardFieldHasError(stepFieldErrors, 'city')
   const errPinConflict = wizardFieldHasError(stepFieldErrors, 'pinCountryConflict')
 
-  const [regions, setRegions] = useState([])
   const [geoUnavailable, setGeoUnavailable] = useState(false)
   const [addressSearchOpen, setAddressSearchOpen] = useState(false)
   const [pinConflictBusy, setPinConflictBusy] = useState(false)
@@ -105,6 +97,15 @@ function StepLocationInner() {
   const cityUnmatched =
     formData.metadata?.geo_city_unmatched === true ||
     (!formData.city && Boolean(cityLabel.trim()))
+
+  const regionDisplay = useMemo(() => {
+    const metaLabel = String(formData.metadata?.region_label || '').trim()
+    if (metaLabel) return metaLabel
+    const code = String(formData.region || '').trim()
+    if (!code) return ''
+    const seed = findLaunchGeoByCode(code)
+    return launchGeoLabel(language, seed, code)
+  }, [formData.region, formData.metadata?.region_label, language])
 
   const launchOk = !formData.country || LAUNCH_MARKETS.has(String(formData.country).toUpperCase())
 
@@ -162,25 +163,6 @@ function StepLocationInner() {
     )
     return Array.from(set)
   }, [customDistricts, formData.district])
-
-  // Regions when country changes (optional hub cascade)
-  useEffect(() => {
-    const cc = formData.country
-    if (!cc) {
-      setRegions([])
-      return undefined
-    }
-    let cancelled = false
-    ;(async () => {
-      const rows = await fetchGeoNodes({ parent: cc, lang: language })
-      if (!cancelled) {
-        setRegions(rows.filter((r) => r.level === 'region' || !r.level))
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [formData.country, language])
 
   const runGeocodeSearch = useCallback(
     async (q) => {
@@ -316,31 +298,46 @@ function StepLocationInner() {
     }
   }
 
-  const handleRegionChange = (code) => {
-    const row = regions.find((r) => r.code === code)
-    setFormData((prev) =>
-      applyWizardRegionCascadeReset(prev, {
-        regionCode: code,
-        regionTimezone: row?.timezone || null,
-        viewportLat: row?.centroidLat,
-        viewportLon: row?.centroidLng,
-      }),
-    )
-    setGeocodeQuery('')
-    setGeocodeResults([])
-    if (row?.centroidLat != null && row?.centroidLng != null) {
-      setMapCenter([row.centroidLat, row.centroidLng])
-    }
-  }
-
   const handleCitySuggestSelect = (r) => {
     const label = normalizeGeoPlaceName(
       r._normalizedLabel || r.labelRu || r.labelEn || r.address?.city || r.displayName,
     )
     const lat = Number(r.lat)
     const lon = Number(r.lon)
-    const cityCode = r.cityCode || (r.level === 'city' || r.level === 'neighborhood' ? r.code : null)
-    const regionCode = r.regionCode || null
+    let cityCode = r.cityCode || (r.level === 'city' || r.level === 'neighborhood' ? r.code : null)
+    let regionCode = r.regionCode || null
+    let regionLabel = r.address?.state || null
+
+    // Seed / catalog resolve (Чита → RU-ZAB) even when Nominatim returns free-text
+    if (!cityCode) {
+      const seedCity = matchLaunchGeoByLabel(label, {
+        countryCode: formData.country,
+        levels: ['city', 'neighborhood'],
+      })
+      if (seedCity) {
+        cityCode = seedCity.code
+        const cascade = resolveLaunchCityCascade(seedCity.code)
+        regionCode = cascade?.region_code || regionCode
+        const regionRow = findLaunchGeoByCode(regionCode)
+        regionLabel = launchGeoLabel(language, regionRow, regionLabel || '')
+      }
+    } else if (!regionCode) {
+      const cascade = resolveLaunchCityCascade(cityCode)
+      regionCode = cascade?.region_code || null
+    }
+    if (!regionCode && regionLabel) {
+      const seedRegion = matchLaunchGeoByLabel(regionLabel, {
+        countryCode: formData.country,
+        levels: ['region'],
+      })
+      if (seedRegion) {
+        regionCode = seedRegion.code
+        regionLabel = launchGeoLabel(language, seedRegion, regionLabel)
+      }
+    }
+    if (regionCode && !regionLabel) {
+      regionLabel = launchGeoLabel(language, findLaunchGeoByCode(regionCode), regionCode)
+    }
 
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
       setMapCenter([lat, lon])
@@ -352,8 +349,9 @@ function StepLocationInner() {
         cityCode,
         cityLabel: label,
         regionCode,
+        regionLabel,
         unmatched: !cityCode,
-        cityTimezone: r.timezone || null,
+        cityTimezone: r.timezone || findLaunchGeoByCode(cityCode)?.timezone || null,
         viewportLat: Number.isFinite(lat) ? lat : null,
         viewportLon: Number.isFinite(lon) ? lon : null,
         clearPin: true,
@@ -366,11 +364,23 @@ function StepLocationInner() {
 
   const handleCityManualSelect = (label) => {
     const normalized = normalizeGeoPlaceName(label)
+    const seedCity = matchLaunchGeoByLabel(normalized, {
+      countryCode: formData.country,
+      levels: ['city', 'neighborhood'],
+    })
+    const cascade = seedCity ? resolveLaunchCityCascade(seedCity.code) : null
+    const regionCode = cascade?.region_code || null
+    const regionLabel = regionCode
+      ? launchGeoLabel(language, findLaunchGeoByCode(regionCode), '')
+      : ''
     setFormData((prev) =>
       applyWizardCityCascadeSelect(prev, {
-        cityCode: '',
+        cityCode: seedCity?.code || '',
         cityLabel: normalized,
-        unmatched: true,
+        regionCode,
+        regionLabel,
+        unmatched: !seedCity,
+        cityTimezone: seedCity?.timezone || null,
         clearPin: true,
         clearAddress: true,
       }),
@@ -381,8 +391,10 @@ function StepLocationInner() {
 
   const handleCityClear = () => {
     updateField('city', '')
+    updateField('region', '')
     updateMetadata('city_label', '')
     updateMetadata('city', '')
+    updateMetadata('region_label', '')
     updateMetadata('geo_city_unmatched', false)
   }
 
@@ -578,39 +590,46 @@ function StepLocationInner() {
           </div>
         </div>
 
-        {regions.length > 0 ? (
-          <div>
-            <Label className="text-sm font-medium">{t('region') || 'Region'}</Label>
-            <p className="mt-0.5 text-xs text-slate-500">{t('wizardGeo_regionOptionalHint')}</p>
-            <Select
-              value={formData.region || undefined}
-              onValueChange={handleRegionChange}
-              disabled={!formData.country}
-            >
-              <SelectTrigger className="mt-1.5 h-11 w-full">
-                <SelectValue placeholder={t('wizardGeo_selectRegion')} />
-              </SelectTrigger>
-              <SelectContent>
-                {regions.map((r) => (
-                  <SelectItem key={r.code} value={r.code}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
+        <div>
+          <Label className="text-sm font-medium">{t('region') || 'Region'}</Label>
+          {regionDisplay ? (
+            <>
+              <div
+                className="mt-1.5 flex min-h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800"
+                data-testid="wizard-region-derived"
+              >
+                {regionDisplay}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_regionDerivedHint')}</p>
+            </>
+          ) : (
+            <p className="mt-1.5 text-xs text-slate-500" data-testid="wizard-region-pending">
+              {t('wizardGeo_regionPendingHint')}
+            </p>
+          )}
+        </div>
 
-        <div
-          data-wizard-field="district"
-          data-wizard-field-error={errDistrict ? 'true' : undefined}
-        >
-          <Label className={cn('text-base font-medium', errDistrict && 'text-red-700')}>
-            {t('selectDistrict')}
-          </Label>
+        <div>
+          <Label className="text-sm font-medium">{t('wizardGeo_addressLabel')}</Label>
+          <p className="mt-0.5 text-xs text-slate-500">{t('wizardGeo_addressSuggestHint')}</p>
+          <div className="mt-1.5">
+            <WizardStreetTypeahead
+              countryCode={formData.country || ''}
+              cityLabel={cityLabel}
+              value={formData.address || ''}
+              placeholder={t('wizardGeo_addressPh')}
+              t={t}
+              onChangeText={(v) => updateField('address', v)}
+              onSelectResult={selectGeocodeResult}
+            />
+          </div>
+        </div>
+
+        <div data-wizard-field="district">
+          <Label className="text-base font-medium">{t('selectDistrict')}</Label>
           <Input
             data-testid="wizard-district-input"
-            className={cn('mt-2 h-12 min-h-[44px]', wizardFieldErrorClass(stepFieldErrors, 'district'))}
+            className="mt-2 h-12 min-h-[44px]"
             list="wizard-district-suggestions"
             value={formData.district || ''}
             onChange={(e) => {
@@ -621,30 +640,13 @@ function StepLocationInner() {
               }
             }}
             placeholder={t('selectDistrictPlaceholder')}
-            aria-invalid={errDistrict || undefined}
           />
           <datalist id="wizard-district-suggestions">
             {districtOptions.map((d) => (
               <option key={d} value={d} />
             ))}
           </datalist>
-          {errDistrict ? (
-            <p className="mt-1.5 text-xs font-medium text-red-600">
-              {tr ? tr('wizardBlocker_district') : t('wizardBlocker_district')}
-            </p>
-          ) : (
-            <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_districtHint')}</p>
-          )}
-        </div>
-
-        <div>
-          <Label className="text-sm font-medium">{t('wizardGeo_addressLabel')}</Label>
-          <Input
-            className="mt-1.5 h-11 w-full"
-            value={formData.address || ''}
-            onChange={(e) => updateField('address', e.target.value)}
-            placeholder={t('wizardGeo_addressPh')}
-          />
+          <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_districtHint')}</p>
         </div>
 
         <div

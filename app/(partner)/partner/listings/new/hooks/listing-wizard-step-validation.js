@@ -83,9 +83,7 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
       if (!hasCity) {
         blockers.push({ i18nKey: 'wizardBlocker_city', field: 'city' })
       }
-      if (!String(formData?.district || '').trim()) {
-        blockers.push({ i18nKey: 'wizardBlocker_district', field: 'district' })
-      }
+      // Stage 200.83 — district is optional micro-label (auto from pin / free text)
       // Stage 200.46 — pin vs country conflict blocks Next until resolved/dismissed
       const conflict = detectPinCountryConflict({
         country: formData?.country,
@@ -141,9 +139,7 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
       ) {
         blockers.push({ i18nKey: 'wizardBlocker_city', field: 'city' })
       }
-      if (!String(formData?.district || '').trim()) {
-        blockers.push({ i18nKey: 'wizardBlocker_district', field: 'district' })
-      }
+      // Stage 200.83 — district optional on preview gate (city + pin suffice)
       if (photos < LISTING_SOFT_MIN_PHOTOS) {
         blockers.push({
           i18nKey: 'wizardBlocker_photos',

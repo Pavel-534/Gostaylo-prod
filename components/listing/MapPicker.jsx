@@ -241,7 +241,7 @@ export default function MapPicker({
 
   return (
     <div className="space-y-2">
-      {lockable ? (
+      {lockable && position ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -273,6 +273,10 @@ export default function MapPicker({
               : t('mapPicker_hintLocked')}
           </p>
         </div>
+      ) : lockable && !position ? (
+        <p className="text-xs text-slate-600" data-testid="map-picker-place-hint">
+          {privacyMode ? t('mapPicker_hintPlacePrivacy') : t('mapPicker_hintPlaceExact')}
+        </p>
       ) : null}
 
       <div

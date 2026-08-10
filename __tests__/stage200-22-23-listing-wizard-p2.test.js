@@ -144,10 +144,14 @@ describe('Stage 200.23 — soft publish + AI translate', () => {
       categoryId: 'cat-1',
       title: 'Ok villa',
       description: 'Y'.repeat(40),
+      country: 'TH',
+      city: 'phuket-city',
       district: 'Kata',
+      latitude: 7.89,
+      longitude: 98.39,
       images: ['https://example.com/a.jpg'],
       basePriceThb: '100',
-      metadata: {},
+      metadata: { city_label: 'Phuket' },
     }
     assert.equal(computeWizardCanProceed(1, form, true, {}), true)
     assert.equal(computeWizardCanProceed(3, form, true, {}), true)

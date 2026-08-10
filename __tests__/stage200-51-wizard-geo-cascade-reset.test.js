@@ -122,11 +122,13 @@ describe('Stage 200.51 — StepLocation wiring', () => {
     const src = read('app/(partner)/partner/listings/new/components/StepLocation.jsx')
     assert.match(src, /applyWizardCountryCascadeReset/)
     assert.match(src, /applyWizardCityCascadeSelect/)
-    assert.match(src, /applyWizardRegionCascadeReset/)
+    assert.doesNotMatch(src, /applyWizardRegionCascadeReset/)
     assert.doesNotMatch(
       src,
       /!hasValidPin\(formData\) && Number\.isFinite\(lat\).*handleMapSelect/s,
     )
     assert.match(src, /Camera follows city; pin cleared/)
+    assert.match(src, /WizardStreetTypeahead/)
+    assert.match(src, /wizard-region-derived|wizard-region-pending/)
   })
 })
