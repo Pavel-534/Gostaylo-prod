@@ -105,7 +105,12 @@ export async function POST(request) {
   const role = String(user.role || 'RENTER').toUpperCase();
   const staffRole = role === 'ADMIN' || role === 'MODERATOR';
 
-  if (!user.is_verified && !staffRole) {
+  // ADR-210: claimed Concierge partners keep is_verified=false until payout KYC,
+  // but must be able to re-login after magic claim (shadow_claimed_at set).
+  const claimedConciergePartner =
+    role === 'PARTNER' && Boolean(user.shadow_claimed_at) && user.is_shadow !== true;
+
+  if (!user.is_verified && !staffRole && !claimedConciergePartner) {
     return NextResponse.json(
       {
         success: false,
@@ -121,10 +126,22 @@ export async function POST(request) {
 
   const token = signJwtForProfile(user, jwtSecret);
 
-  const redirectTo = safeInternalPath(
+  let redirectTo = safeInternalPath(
     requestedRedirect || ROLE_REDIRECTS[role] || '/',
     ROLE_REDIRECTS[role] || '/',
   );
+
+  // ADR-210 Slice 7.1: existing partner with pending Concierge drafts → welcome banner
+  if (role === 'PARTNER') {
+    const pending = user.metadata?.concierge_welcome_pending;
+    if (pending && typeof pending === 'object') {
+      const defaultPartner = ROLE_REDIRECTS.PARTNER;
+      const req = String(requestedRedirect || '').trim();
+      if (!req || req === defaultPartner || req.startsWith('/partner/dashboard')) {
+        redirectTo = '/partner/listings?concierge_welcome=true';
+      }
+    }
+  }
 
   const response = NextResponse.json({
     success: true,

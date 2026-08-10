@@ -28,6 +28,8 @@ import {
   WIZARD_MOBILE_FLAT_SHELL_CONTENT_CLASS,
 } from './wizard-step-layout'
 import { PartnerReferralWizardBanner } from '@/components/partner/PartnerReferralWizardBanner'
+import { ConciergeWizardReviewBanner } from '@/components/partner/listings/ConciergeWizardReviewBanner'
+import { isConciergeImportListing } from '@/lib/partner/concierge-listing-ui.js'
 import { LISTING_WIZARD_STEP_COUNT } from '../wizard-constants'
 import { useWorkspaceScrollTrigger, findWorkspaceScrollRoot } from '@/lib/hooks/use-workspace-scroll-trigger'
 import { LISTING_WIZARD_STICKY_TOP_EXPANDED } from '@/lib/layout/workspace-shell'
@@ -87,6 +89,8 @@ export function ListingWizardPageInner() {
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
+  const showConciergeReviewHint =
+    isEditRoute && isDraft && isConciergeImportListing(serverListing)
   const headerTitle = isEditRoute
     ? isDraft
       ? t('partnerEdit_fillDraft')
@@ -171,6 +175,7 @@ export function ListingWizardPageInner() {
             onCreateNew={startFreshWizard}
           />
         ) : null}
+        {showConciergeReviewHint ? <ConciergeWizardReviewBanner t={t} /> : null}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card className={WIZARD_MOBILE_FLAT_SHELL_CARD_CLASS}>

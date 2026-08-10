@@ -26,6 +26,7 @@ import { clearWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
 import { ensureProvisionalCityCode } from '@/lib/geo/wizard-ensure-provisional'
 import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js'
+import { isConciergeImportListing } from '@/lib/partner/concierge-listing-ui.js'
 
 function showListingModerationToast(t) {
   toast.success(t('partnerEdit_statusPending'), {
@@ -270,6 +271,7 @@ export function useListingSave() {
         published_at: new Date().toISOString(),
         ...(soft ? { soft_publish: true } : { soft_publish: false, quality_incomplete: false }),
         ...(prevMeta.source === 'TELEGRAM_LAZY_REALTOR' ? { submitted_from: 'telegram' } : {}),
+        ...(isConciergeImportListing(serverListing) ? { concierge_stage: 'submitted' } : {}),
       }
       const tourBd =
         categorySlug &&

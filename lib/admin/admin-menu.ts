@@ -92,6 +92,7 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
       { id: 'ops-messages', label: 'Сообщения', kind: 'link', href: '/admin/messages/', variant: 'outline' },
       { id: 'ops-disputes', label: 'Споры', kind: 'link', href: '/admin/disputes', variant: 'outline' },
       { id: 'ops-review-mod', label: 'Отзывы (flagged)', kind: 'link', href: '/admin/reviews', variant: 'outline' },
+      { id: 'ops-concierge', label: 'Concierge Supply', kind: 'link', href: '/admin/concierge', variant: 'outline', allowedRoles: ['ADMIN'] },
     ],
     items: [
       {
@@ -141,6 +142,12 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         href: '/admin/locations/suggestions',
         icon: 'MapPin',
         allowedRoles: ['ADMIN', 'MODERATOR'],
+      },
+      {
+        title: 'Concierge Supply',
+        href: '/admin/concierge',
+        icon: 'Sparkles',
+        allowedRoles: ['ADMIN'],
       },
     ],
   },

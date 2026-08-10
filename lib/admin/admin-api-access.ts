@@ -21,6 +21,8 @@ export type AdminApiAccessRule = {
 const ADMIN_API_EXTRA_RULES: AdminApiAccessRule[] = [
   /** ADR-203 Phase 1 — read-only shadow compare (ops visibility). */
   { prefix: '/api/v2/admin/partner-ledger-shadow', allowedRoles: ['ADMIN', 'MODERATOR'] },
+  /** ADR-210 Concierge Supply — shadow provision + ingest (ADMIN only). */
+  { prefix: '/api/v2/admin/concierge', allowedRoles: ['ADMIN'] },
   { prefix: '/api/admin/smoke', allowedRoles: ['ADMIN'] },
   { prefix: '/api/admin/clean-test-data', allowedRoles: ['ADMIN'] },
   { prefix: '/api/admin/blacklist', allowedRoles: ['ADMIN'] },

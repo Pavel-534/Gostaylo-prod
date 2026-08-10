@@ -39,6 +39,8 @@ import {
 } from '@/components/partner/PartnerListingStatusBadge'
 import { PartnerListingBasePriceDisplay } from '@/components/partner/listings/partner-listing-base-price-display'
 import { PartnerListingCardActions } from '@/components/partner/listings/PartnerListingCardActions'
+import { PartnerConciergeWelcomeBanner } from '@/components/partner/listings/PartnerConciergeWelcomeBanner'
+import { ConciergePartnerChecklist } from '@/components/partner/listings/ConciergePartnerChecklist'
 import { WORKSPACE_SCROLL_STICKY_CLASS } from '@/lib/layout/workspace-shell'
 import {
   usePartnerListings,
@@ -47,6 +49,11 @@ import {
 } from '@/lib/hooks/use-partner-listings'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
 import { evaluateCalendarFreshness } from '@/lib/partner/calendar-freshness.js'
+import {
+  countConciergeDraftListings,
+  isConciergeDraftListing,
+  isConciergeImportListing,
+} from '@/lib/partner/concierge-listing-ui.js'
 
 function isPartnerHiddenMetadata(metadata) {
   const v = metadata?.partner_hidden
@@ -85,17 +92,39 @@ export default function PartnerListings() {
   )
   const [visibilityBusyId, setVisibilityBusyId] = useState(null)
   const [qualityModalListing, setQualityModalListing] = useState(null)
+  const [showConciergeWelcome, setShowConciergeWelcome] = useState(false)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const q = new URLSearchParams(window.location.search).get('filter')
-        if (q === 'draft') setListFilter('draft')
-      } catch {
-        /* ignore */
+    if (typeof window === 'undefined') return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const filterQ = params.get('filter')
+      if (filterQ === 'draft') setListFilter('draft')
+      if (params.get('concierge_welcome') === 'true') {
+        setShowConciergeWelcome(true)
+        setListFilter('draft')
       }
+    } catch {
+      /* ignore */
     }
   }, [])
+
+  function dismissConciergeWelcome() {
+    setShowConciergeWelcome(false)
+    if (typeof window === 'undefined') return
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('concierge_welcome')
+      const qs = url.searchParams.toString()
+      window.history.replaceState({}, '', qs ? `${url.pathname}?${qs}` : url.pathname)
+    } catch {
+      /* ignore */
+    }
+    fetch('/api/v2/partner/concierge-welcome/ack', {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => {})
+  }
 
   function getPublishChecklist(listing) {
     return buildListingPublishQualityChecklist(listingQualityInputFromPartnerListing(listing))
@@ -121,6 +150,7 @@ export default function PartnerListings() {
             is_draft: false,
             needs_review: true,
             submitted_at: new Date().toISOString(),
+            ...(isConciergeImportListing(listing) ? { concierge_stage: 'submitted' } : {}),
           },
         },
         optimisticPatch: (row) => ({
@@ -130,6 +160,7 @@ export default function PartnerListings() {
             is_draft: false,
             needs_review: true,
             submitted_at: new Date().toISOString(),
+            ...(isConciergeImportListing(listing) ? { concierge_stage: 'submitted' } : {}),
           },
         }),
       })
@@ -237,6 +268,7 @@ export default function PartnerListings() {
     drafts: listings.filter(
       (l) => l.metadata?.is_draft === true || l.metadata?.is_draft === 'true',
     ).length,
+    conciergeDrafts: countConciergeDraftListings(listings),
     views: listings.reduce((sum, l) => sum + (l.views || 0), 0),
     bookings: listings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
   }
@@ -381,7 +413,31 @@ export default function PartnerListings() {
         </p>
       </div>
 
-      {stats.drafts > 0 && listFilter !== 'draft' ? (
+      {showConciergeWelcome ? (
+        <PartnerConciergeWelcomeBanner
+          count={stats.conciergeDrafts}
+          t={t}
+          onDismiss={dismissConciergeWelcome}
+          onReviewDrafts={() => {
+            setListFilter('draft')
+            dismissConciergeWelcome()
+          }}
+        />
+      ) : null}
+
+      {!showConciergeWelcome && listFilter === 'draft' && stats.conciergeDrafts > 0 ? (
+        <div
+          className="mx-4 mb-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:mx-0 max-sm:rounded-none max-sm:border-x-0"
+          data-testid="concierge-drafts-checklist-strip"
+        >
+          <p className="text-sm font-semibold text-slate-900">
+            {t('partnerListings_conciergeWelcomeTitle')}
+          </p>
+          <ConciergePartnerChecklist t={t} />
+        </div>
+      ) : null}
+
+      {stats.drafts > 0 && listFilter !== 'draft' && !showConciergeWelcome ? (
         <div className="mx-4 mb-2 flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-800">
             {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
@@ -451,6 +507,8 @@ export default function PartnerListings() {
             const status = getStatus(listing)
             const statusLabel = statusLabels[status] || statusLabels.INACTIVE
             const isDraftListing = status === 'DRAFT'
+            const isConcierge = isConciergeImportListing(listing)
+            const isConciergeDraft = isConciergeDraftListing(listing)
             const showPublishCta =
               !isDraftListing && (status === 'INACTIVE' || status === 'REJECTED')
             const publishChecklist = getPublishChecklist(listing)
@@ -538,6 +596,15 @@ export default function PartnerListings() {
                             Telegram
                           </Badge>
                         )}
+                        {isConcierge ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 h-5 border-brand/30 bg-brand/10 text-brand"
+                            data-testid={`concierge-badge-${listing.id}`}
+                          >
+                            {t('partnerListings_conciergeBadge')}
+                          </Badge>
+                        ) : null}
                         {(listing.metadata?.quality_incomplete === true ||
                           listing.metadata?.quality_incomplete === 'true' ||
                           listing.metadata?.soft_publish === true ||
@@ -608,7 +675,8 @@ export default function PartnerListings() {
                   listing={listing}
                   t={t}
                   showPublishCta={showPublishCta}
-                  showContinueDraft={isDraftListing}
+                  showContinueDraft={isDraftListing && !isConciergeDraft}
+                  showConciergeReviewCta={isConciergeDraft}
                   ready={ready}
                   publishingId={publishingId}
                   visibilityBusyId={visibilityBusyId}

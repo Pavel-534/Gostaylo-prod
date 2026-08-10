@@ -33,6 +33,7 @@ export function PartnerListingCardActions({
   t,
   showPublishCta,
   showContinueDraft = false,
+  showConciergeReviewCta = false,
   ready,
   publishingId,
   visibilityBusyId,
@@ -48,7 +49,17 @@ export function PartnerListingCardActions({
   const isPublishing = publishingId === listing.id
   const isVisibilityBusy = visibilityBusyId === listing.id
 
-  const primaryVisibility = showContinueDraft ? (
+  const primaryVisibility = showConciergeReviewCta ? (
+    <Button variant="brand" className="min-h-11 min-h-[44px] flex-1 text-sm" asChild>
+      <Link
+        href={`/partner/listings/${listing.id}`}
+        data-testid={`concierge-review-btn-${listing.id}`}
+      >
+        <Send className="mr-1 h-4 w-4" />
+        <span className="truncate">{t('partnerListings_conciergeReviewCta')}</span>
+      </Link>
+    </Button>
+  ) : showContinueDraft ? (
     <Button variant="brand" className="min-h-11 min-h-[44px] flex-1 text-sm" asChild>
       <Link
         href={`/partner/listings/${listing.id}`}
@@ -182,10 +193,14 @@ export function PartnerListingCardActions({
             <Button variant="outline" className="min-h-11 w-full justify-start" asChild>
               <Link href={`/partner/listings/${listing.id}`} onClick={() => setMoreOpen(false)}>
                 <Edit className="mr-2 h-4 w-4" />
-                {showContinueDraft ? t('partnerListings_continueDraft') : t('partnerListings_edit')}
+                {showConciergeReviewCta
+                  ? t('partnerListings_conciergeReviewCta')
+                  : showContinueDraft
+                    ? t('partnerListings_continueDraft')
+                    : t('partnerListings_edit')}
               </Link>
             </Button>
-            {showContinueDraft ? (
+            {showContinueDraft || showConciergeReviewCta ? (
               <Button
                 variant="outline"
                 className="min-h-11 w-full justify-start"

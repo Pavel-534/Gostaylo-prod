@@ -58,11 +58,52 @@ describe('Stage 200.22 — draft cleanup policy', () => {
     assert.equal(cutoff, new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString())
   })
 
+  it('ADR-210 skips Concierge-protected drafts from GC', async () => {
+    const { shouldDeleteExpiredDraft, isConciergeProtectedDraft } = await import(
+      '../lib/partner/draft-cleanup-policy.js'
+    )
+    const now = Date.parse('2026-08-04T12:00:00.000Z')
+    const stale = {
+      title: 'Halo JU208',
+      description: 'A'.repeat(80),
+      images: ['https://example.com/a.jpg'],
+      metadata: { is_draft: true },
+      updated_at: new Date(now - 40 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+    assert.equal(shouldDeleteExpiredDraft(stale, { nowMs: now }), true)
+    assert.equal(
+      isConciergeProtectedDraft({
+        ...stale,
+        metadata: { is_draft: true, concierge_protected: true },
+      }),
+      true,
+    )
+    assert.equal(
+      shouldDeleteExpiredDraft(
+        { ...stale, metadata: { is_draft: true, concierge_protected: true } },
+        { nowMs: now },
+      ),
+      false,
+    )
+    assert.equal(
+      shouldDeleteExpiredDraft(
+        { ...stale, import_platform: 'concierge_pdf' },
+        { nowMs: now },
+      ),
+      false,
+    )
+    assert.equal(
+      shouldDeleteExpiredDraft({ ...stale, import_platform: 'airbnb' }, { nowMs: now }),
+      true,
+    )
+  })
+
   it('cron route wires SSOT policy', () => {
     const src = read('app/api/cron/cleanup-drafts/route.js')
     assert.match(src, /shouldDeleteExpiredDraft/)
     assert.match(src, /draftCleanupCandidateCutoffIso/)
     assert.match(src, /isListingDraftMetadata/)
+    assert.match(src, /import_platform/)
   })
 })
 

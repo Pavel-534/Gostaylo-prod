@@ -27,6 +27,55 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 210.71 — Concierge Supply Slice 7.1 (UX polish)
+
+- Admin import: strip LLM \`\`\`json fences; mapping profile dropdown; Drive playbook hint on image warnings.
+- Partner: 3-step Concierge checklist; existing-partner ingest → email + `metadata.concierge_welcome_pending` → login redirect `?concierge_welcome=true`; ack clears flag.
+- SSOT: `strip-json-fences.js`, `concierge-partner-notify.service.js`.
+
+### Stage 210.7 — Concierge Supply Slice 7 (admin Concierge UI)
+
+- `/admin/concierge` (ADMIN): tabs «Импорт объектов» + «Журнал батчей»; copy LLM prompt; JSON paste → debounced `validate-payload`; preview cards; shadow+claim vs existing partner ingest.
+- APIs: `GET …/batches`, `GET …/batches/[id]`, `GET …/partner-search`, `GET …/prompt`; validate response includes normalized `listings`.
+- Claim URL in journal: re-issue invite (token not stored); existing partners never get claim (ADR-210).
+
+### Stage 210.6 — Concierge Supply Slice 6 (mapping profiles + validate)
+
+- Registry `lib/services/concierge/mapping-profiles/` — `generic_concierge_v1`, `show_property_v1` (high-season required); seasons/geo/amenities/currency via explicit `rateToThb`.
+- `POST|GET /api/v2/admin/concierge/validate-payload` — ADMIN dry-run (no DB); image HEAD probe → warnings; `{ valid, summary }`.
+- Ops: [`runbooks/CONCIERGE_AI_EXTRACTOR_PROMPT.md`](./runbooks/CONCIERGE_AI_EXTRACTOR_PROMPT.md) — LLM → ingest JSON.
+
+### Stage 210.5 — Concierge Supply Slice 5 (partner review UX)
+
+- `/partner/listings?concierge_welcome=true` — welcome banner with Concierge draft count; badge `Concierge`; primary CTA «Проверить и опубликовать» → edit.
+- Edit wizard: Concierge draft guidance strip; publish still uses listing quality gates (`INACTIVE`+draft → `PENDING`); `metadata.concierge_stage=submitted` on submit.
+- API list/detail expose `importPlatform`; SSOT detect: `lib/partner/concierge-listing-ui.js`.
+
+### Stage 210.4 — Concierge Supply Slice 4 (media rehost + Drive playbook)
+
+- `POST /api/v2/admin/concierge/rehost-media` — ADMIN; `{ listingId? | batchId?, force? }`; HTTPS jpeg/png/webp → `listing-images/concierge/{listingId}/{hash}.{ext}`; per-URL errors keep original URL.
+- Ingest: `autoRehostMedia` default **true**; Drive folder/view URLs skipped → `batch.metadata.media_warnings`.
+- SSOT: `lib/services/concierge/concierge-media.service.js` (+ `uploadExternalImageToStorage` `pathMode: 'concierge'`). Ops: [`runbooks/CONCIERGE_DRIVE_MEDIA_PLAYBOOK.md`](./runbooks/CONCIERGE_DRIVE_MEDIA_PLAYBOOK.md).
+
+### Stage 210.3 — Concierge Supply Slice 3 (claim invites + activation)
+
+- `POST /api/v2/admin/concierge/claim-invites` — ADMIN-only; requires `is_shadow`; stores SHA-256 `token_hash` only; Resend via `sendResendEmail` (+ transport guard); returns `claimUrl` (`/claim?token=`).
+- `POST /api/v2/auth/claim-partner` — public; password policy SSOT; RU (`isRussia`) requires phone OTP (`phone` + code, optional `phoneChallengeId`); sets `is_shadow=false` + `shadow_claimed_at`; **does not** set `is_verified`; issues `gostaylo_session`; redirect `/partner/listings?concierge_welcome=true`.
+- UI: `/claim` (password + RU OTP; no OAuth). Login allows re-entry for PARTNER with `shadow_claimed_at` while `is_verified` stays false (payout KYC separate).
+- SSOT: `lib/services/concierge/concierge-claim.service.js`. Existing verified partners: **ingest only** (no claim invite).
+
+### Stage 210.2 — Concierge Supply Slice 2 (shadow provision + ingest APIs)
+
+- `POST /api/v2/admin/concierge/partners` — ADMIN-only shadow `PARTNER` (`is_shadow=true`); idempotent on existing shadow email; 409 if real account.
+- `POST /api/v2/admin/concierge/ingest` — batch + upsert listings (`INACTIVE` + `is_draft` / `concierge_protected` / `imported_draft`), seasons, HTTPS images, optional iCal `sync_settings`; compensating cancel on failure.
+- SSOT: `lib/services/concierge/concierge-supply.service.js`; RBAC prefix `/api/v2/admin/concierge` ADMIN-only. No guest UI; no fee/FX mutation; no `listing_status` enum change.
+
+### Stage 210.1 — Concierge Supply Slice 1 (schema + draft GC guard)
+
+- Migration `database/migrations/057_concierge_supply_slice1.sql`: `profiles.is_shadow` / `shadow_claimed_at`; tables `concierge_import_batches`, `partner_claim_invites` (GRANT service_role + RLS admin SELECT / service_role write); `listings.concierge_batch_id`. No `listing_status` enum change.
+- Draft GC: `isConciergeProtectedDraft` in `lib/partner/draft-cleanup-policy.js` — skip when `metadata.concierge_protected` or `import_platform` starts with `concierge`; cron selects `import_platform`.
+- Policy: ADR-210 Proposed (remaining slices); pointer in `ARCHITECTURAL_DECISIONS.md`.
+
 ### Stage 200.82 — M1.1 Push after login (storefront + partner)
 
 - `PushClientInit` mounted in `StorefrontAppShell` + partner layout (chat keeps mount for direct `/messages` entry); idempotent register for same uid+token.

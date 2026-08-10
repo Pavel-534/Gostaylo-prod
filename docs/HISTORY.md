@@ -6,6 +6,14 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 210.71 | 2026-08-10 | ADR-210 Slice 7.1: Concierge UX polish (fences, mapping select, checklist, existing-partner notify) | Done |
+| 210.7 | 2026-08-10 | ADR-210 Slice 7: admin `/admin/concierge` import UI + batch journal | Done |
+| 210.6 | 2026-08-10 | ADR-210 Slice 6: mapping profiles + validate-payload + AI extract prompt | Done |
+| 210.5 | 2026-08-10 | ADR-210 Slice 5: partner Concierge welcome + badge + review CTA | Done |
+| 210.4 | 2026-08-10 | ADR-210 Slice 4: Concierge media rehost + Drive ops playbook | Done |
+| 210.3 | 2026-08-10 | ADR-210 Slice 3: claim invites + `/claim` + claim-partner (RU OTP) | Done |
+| 210.2 | 2026-08-10 | ADR-210 Slice 2: admin Concierge partners + ingest APIs (shadow + drafts) | Done |
+| 210.1 | 2026-08-10 | ADR-210 Slice 1: Concierge schema (shadow/batches/claim) + cleanup-drafts skip guard | Done |
 | 200.82 | 2026-08-10 | M1.1 Push after login: PushClientInit on storefront+partner; gesture Soft CTA; unregister on logout | Done |
 | 200.81 | 2026-08-09 | PWA install UX: 5d/30d soft snooze, settings (renter+partner), CLS banner, airento_pwa_* migrate | Done |
 | 189.35 | 2026-08-09 | DAL: restore `ru.airento.app` SHA + keep Cap second statement in assetlinks.json | Done |

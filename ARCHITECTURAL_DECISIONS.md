@@ -835,3 +835,32 @@ Dual SSOT forever (status SoT, ledger = audit only) is **not** the accepted end 
 - `app/api/v2/admin/partner-ledger-shadow/route.js`
 - `app/api/cron/ledger-shadow-reconcile/route.js`
 - Dry run: **`npm run smoke:ledger-shadow-dry-run`**
+
+---
+
+## ADR-210: Concierge Supply Pipeline — cold-start listings (M2.0 Prep)
+
+**Status:** **Proposed** (2026-08-10) — policy/design until full epic Accept.  
+**Slice 1 (2026-08-10):** schema + draft GC guard **implemented** — `database/migrations/057_concierge_supply_slice1.sql`; `isConciergeProtectedDraft`.  
+**Slice 2 (2026-08-10):** admin APIs **implemented** — `POST /api/v2/admin/concierge/partners`, `POST /api/v2/admin/concierge/ingest` (`lib/services/concierge/concierge-supply.service.js`).  
+**Slice 3 (2026-08-10):** claim invites + activation **implemented** — `POST /api/v2/admin/concierge/claim-invites`, `POST /api/v2/auth/claim-partner`, UI `/claim` (`lib/services/concierge/concierge-claim.service.js`); RU phone OTP via `isRussia`; no OAuth on claim.  
+**Slice 4 (2026-08-10):** media rehost **implemented** — `POST /api/v2/admin/concierge/rehost-media`; ingest `autoRehostMedia` (default true); Drive folder/view → `media_warnings`; playbook `docs/runbooks/CONCIERGE_DRIVE_MEDIA_PLAYBOOK.md`.  
+**Slice 5 (2026-08-10):** partner review UX **implemented** — `/partner/listings?concierge_welcome=true` banner, Concierge badge + «Review and publish» CTA, wizard guidance strip (`lib/partner/concierge-listing-ui.js`).  
+**Slice 6 (2026-08-10):** mapping profiles + validate **implemented** — `lib/services/concierge/mapping-profiles/` (`show_property_v1`, `generic_concierge_v1`); `POST /api/v2/admin/concierge/validate-payload`; ops prompt `docs/runbooks/CONCIERGE_AI_EXTRACTOR_PROMPT.md`.  
+**Slice 7 (2026-08-10):** admin Concierge UI **implemented** — `/admin/concierge` (import + batch journal); `GET …/batches`, `partner-search`, `prompt`.  
+**Slice 7.1 (2026-08-10):** UX polish — fence strip, mapping select, Drive hint, partner 3-step checklist, existing-partner email + welcome-on-login. Full text: **`docs/ADR/210-concierge-supply-pipeline.md`**.
+
+**Problem:** partners will not self-serve the wizard on an empty marketplace; catalogs arrive as heterogeneous Sheets/Excel/PDF rate cards + Drive photos — not Airbnb scrape.
+
+**Decisions (summary):**
+
+- **Concierge-first** ingest → drafts on a **shadow** `profiles` row → **magic claim** → partner review → `PENDING` → `ACTIVE`.
+- **Do not** add `imported_draft` / `ready_for_review` to `listing_status` enum; reuse `INACTIVE` + `metadata.is_draft` + `metadata.concierge_stage` / `concierge_protected`; origin SSOT = `import_platform` / `import_external_id`.
+- **No** `units` table for M2.0; one rate-card unit = one `listings` row.
+- Seasonal partner grids → `seasonal_prices` **date ranges** + **`price_daily`** (booking SSOT); `price_monthly` non-authoritative for checkout without a new ADR.
+- Photos: HTTPS → existing rehost to Supabase `listing-images` (not R2); Drive folders = ops/later crawler.
+- iCal may be attached on draft (`sync_settings`); cron already includes `INACTIVE`.
+- Ingest is **Admin API + normalized JSON** (AI extract is ops-side QC, not unsupervised money writes).
+- **Forbidden** in Concierge path: fee/`pricing_profiles`/FX hardcodes/ledger; Airbnb scrape as product path.
+
+**Until Accept:** no Concierge feature implementation that invents a second listing FSM or monthly booking SSOT.

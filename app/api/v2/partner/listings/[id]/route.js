@@ -140,6 +140,8 @@ export async function GET(request, context) {
       views: listing.views || 0,
       metadata: listing.metadata || {},
       sync_settings: listing.sync_settings || null,
+      importPlatform: listing.import_platform || null,
+      import_platform: listing.import_platform || null,
       ownerId: listing.owner_id,
       createdAt: listing.created_at,
       updatedAt: listing.updated_at,

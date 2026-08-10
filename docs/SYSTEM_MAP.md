@@ -48,8 +48,8 @@
 
 | Таблица | Назначение |
 |---------|------------|
-| `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral |
-| `listings` | Объявления; `base_price_thb` THB-канон (L1 asset→THB mid); wizard form `basePriceThb` = asset in `baseCurrency` (preview: mid→THB→guest fee→retail header FX, Stage 200.49); `metadata` JSONB; статус модерации |
+| `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral; ADR-210: `is_shadow`, `shadow_claimed_at` |
+| `listings` | Объявления; `base_price_thb` THB-канон (L1 asset→THB mid); wizard form `basePriceThb` = asset in `baseCurrency` (preview: mid→THB→guest fee→retail header FX, Stage 200.49); `metadata` JSONB; статус модерации; ADR-210: optional `concierge_batch_id` |
 | `categories` | Вертикали: `slug`, `wizard_profile`, i18n, visibility flags |
 | `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки |
 | `conversations` | Чаты; deal SSOT через `booking_id` |
@@ -77,6 +77,8 @@
 | `leads_waiting_list` | Waitlist «coming soon» категорий |
 | `activity_log` / `audit_logs` | Операционный / staff audit |
 | `finance_bank_reconciliation_entries` | Bank reconciliation (FI) |
+| `concierge_import_batches` | ADR-210 Concierge Supply import batches (ops; service_role + admin read) |
+| `partner_claim_invites` | ADR-210 magic claim invites (`token_hash` only) |
 
 ---
 
@@ -151,6 +153,14 @@
 | `/admin/finance/intelligence*` |
 | `GET /api/v2/admin/ledger-balances` (ADMIN only) · `ledger-reconciliation` |
 | `GET /api/v2/admin/partner-ledger-shadow?partnerId=` (ADMIN/MODERATOR) — ADR-203 Phase 1 |
+| `POST /api/v2/admin/concierge/partners` (ADMIN) — ADR-210 shadow partner provision |
+| `POST /api/v2/admin/concierge/ingest` (ADMIN) — ADR-210 Concierge listing ingest |
+| `POST /api/v2/admin/concierge/claim-invites` (ADMIN) — ADR-210 magic claim invite + email |
+| `POST /api/v2/admin/concierge/rehost-media` (ADMIN) — ADR-210 Concierge image rehost → listing-images |
+| `POST|GET /api/v2/admin/concierge/validate-payload` (ADMIN) — ADR-210 mapping dry-run (no DB) |
+| `GET /api/v2/admin/concierge/batches` · `GET …/batches/[id]` (ADMIN) — ADR-210 batch journal |
+| `GET /api/v2/admin/concierge/partner-search` · `GET …/prompt` (ADMIN) — Slice 7 UI helpers |
+| UI `/admin/concierge` (ADMIN) — Concierge Supply import + journal |
 | `GET|PATCH /api/v2/admin/payouts*` |
 | `POST /api/v2/admin/payouts/tbank-registry` |
 | `POST /api/v2/admin/bookings/[id]/emergency-actions` |
@@ -160,6 +170,7 @@
 | Path |
 |------|
 | `POST /api/v2/auth/login` · logout / me |
+| `POST /api/v2/partner/concierge-welcome/ack` — ADR-210 clear welcome-pending flag |
 | `POST /api/v2/auth/phone/send` · `verify` |
 | `POST /api/v2/auth/telegram` |
 | OAuth callback routes (Google / region-gated providers) |

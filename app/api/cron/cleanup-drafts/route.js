@@ -8,6 +8,7 @@
  * - Empty wizard orphans (no photos / stub title / short desc): **7 days** (`DRAFT_CLEANUP_EMPTY_DAYS`)
  * - Contentful drafts: **30 days** (`DRAFT_CLEANUP_DAYS`)
  * - A draft is: status='INACTIVE' AND metadata.is_draft true|'true'
+ * - ADR-210: skip if metadata.concierge_protected or import_platform starts with `concierge`
  *
  * ACTIONS (listings):
  * 1. Find INACTIVE candidates older than empty TTL
@@ -449,7 +450,7 @@ export async function POST(request) {
 
     // 1. Find abandoned draft candidates (shortest TTL window)
     const listingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at,owner_id`,
+      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at,owner_id,import_platform`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -583,7 +584,7 @@ export async function GET(request) {
     const cutoffISO = draftCleanupCandidateCutoffIso();
 
     const listingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at`,
+      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at,import_platform`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,

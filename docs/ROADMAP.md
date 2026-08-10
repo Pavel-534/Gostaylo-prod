@@ -20,6 +20,7 @@
 | Controlled live bookings | 10–50 Concierge-броней с ручным payout | Phase D §4.2; Day-0: [`runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md`](./runbooks/DAY0_SOFT_LAUNCH_CHECKLIST.md) |
 | Partner payout SOP | Документ + UI checklist | `CONCIERGE_LAUNCH_TREASURY_RUNBOOK` |
 | Referral withdrawal ops | Ручная очередь до автоматизации банка | Phase D; GO/No-Go |
+| **Concierge Supply (M2.0)** | Cold-start listings: ops ingest Sheets/PDF → drafts on shadow partner → magic claim → review → publish + iCal | **ADR-210** — [`ADR/210-concierge-supply-pipeline.md`](./ADR/210-concierge-supply-pipeline.md); **Slice 1–7.1 Done** (`/admin/concierge` + UX polish); next: more mapping profiles / Drive crawler (ops) |
 
 **Отложено явно:** полная автоматизация referral bank payouts; microservices / analytics warehouse.
 

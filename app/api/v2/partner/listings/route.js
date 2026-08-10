@@ -100,6 +100,7 @@ export async function GET(request) {
       instantBooking: l.instant_booking === true,
       rejectionReason: l.rejection_reason ?? null,
       rejectedAt: l.rejected_at ?? null,
+      importPlatform: l.import_platform || null,
       createdAt: l.created_at,
       updatedAt: l.updated_at,
       syncSettings: l.sync_settings && typeof l.sync_settings === 'object' ? l.sync_settings : null,
