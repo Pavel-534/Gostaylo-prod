@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Stage 200.83 / 200.84 — street + house fields with city-bounded suggest → pin.
+ * Stage 200.83 / 200.84 / 200.85 — street + house; suggestions dock under street.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Loader2, MapPin } from 'lucide-react'
-import { cityViewboxFromCentroid } from '@/lib/geo/nominatim-lang'
+import { cityViewboxFromCentroid, formatListingStreetAddress } from '@/lib/geo/nominatim-lang'
 import { cn } from '@/lib/utils'
 
 function isStreetLike(r) {
@@ -23,8 +23,21 @@ function isStreetLike(r) {
   return Boolean(r.lat != null && r.lon != null && (r.displayName || r.labelEn || r.labelRu))
 }
 
-function resultPrimary(r) {
-  return r.displayName || r.labelRu || r.labelEn || ''
+/** Compact line for the dropdown — not the full OSM hierarchy. */
+function resultLines(r, cityLabel) {
+  const addr = r.address && typeof r.address === 'object' ? r.address : null
+  const primary =
+    formatListingStreetAddress(addr, null) ||
+    String(addr?.road || addr?.pedestrian || addr?.street || '').trim() ||
+    String(r.labelRu || r.labelEn || '').trim() ||
+    String(r.displayName || '')
+      .split(',')[0]
+      ?.trim() ||
+    ''
+  const city = String(addr?.city || addr?.town || addr?.municipality || cityLabel || '').trim()
+  const district = String(addr?.suburb || addr?.neighbourhood || addr?.city_district || '').trim()
+  const secondary = [district, city].filter(Boolean).join(' · ')
+  return { primary, secondary }
 }
 
 function composeNeedle(street, house) {
@@ -108,6 +121,7 @@ export function WizardStreetTypeahead({
         const streetFirst = json.data.filter(isStreetLike)
         const rest = json.data.filter((r) => !isStreetLike(r))
         setResults([...streetFirst, ...rest].slice(0, 8))
+        setOpen(true)
       } else {
         setResults([])
       }
@@ -119,7 +133,6 @@ export function WizardStreetTypeahead({
   }
 
   const scheduleSearch = (streetVal, houseVal) => {
-    setOpen(true)
     setActiveIndex(-1)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => runSearch(streetVal, houseVal), 300)
@@ -134,20 +147,20 @@ export function WizardStreetTypeahead({
       const hn = String(addr.house_number || '').trim()
       if (road) onStreetChange(road)
       if (hn) onHouseChange(hn)
-      else if (!hn && house) {
-        /* keep typed house if OSM result is road-only */
-      }
     }
     await onSelectResult(r)
   }
 
+  const showList = open && results.length > 0
   const canLocate = composeNeedle(street, house).length >= 3 && Boolean(countryCode)
 
   return (
     <div ref={wrapRef} className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_7.5rem]">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        {/* Street: suggestions dock here so they sit under the field being typed */}
+        <div className="relative min-w-0 flex-1">
           <Label className="text-sm font-medium">{t('wizardGeo_streetOnlyLabel')}</Label>
+          <p className="mt-0.5 text-xs text-slate-500">{t('wizardGeo_addressSuggestHint')}</p>
           <div className="relative mt-1.5">
             <Input
               className="h-11 w-full pr-10"
@@ -155,6 +168,7 @@ export function WizardStreetTypeahead({
               disabled={disabled}
               placeholder={t('wizardGeo_streetOnlyPh')}
               autoComplete="street-address"
+              data-testid="wizard-street-input"
               onChange={(e) => {
                 onStreetChange(e.target.value)
                 scheduleSearch(e.target.value, house)
@@ -163,10 +177,12 @@ export function WizardStreetTypeahead({
                 if (composeNeedle(street, house).length >= 3) {
                   setOpen(true)
                   void runSearch(street, house)
+                } else if (results.length > 0) {
+                  setOpen(true)
                 }
               }}
               onKeyDown={(e) => {
-                if (!open || results.length === 0) return
+                if (!showList) return
                 if (e.key === 'ArrowDown') {
                   e.preventDefault()
                   setActiveIndex((i) => Math.min(i + 1, results.length - 1))
@@ -181,7 +197,7 @@ export function WizardStreetTypeahead({
                 }
               }}
               aria-autocomplete="list"
-              aria-expanded={open}
+              aria-expanded={showList}
             />
             {loading ? (
               <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
@@ -189,56 +205,67 @@ export function WizardStreetTypeahead({
               <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             )}
           </div>
+
+          {showList ? (
+            <div
+              className="absolute left-0 right-0 top-full z-40 mt-1 max-h-52 divide-y overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg"
+              role="listbox"
+              data-testid="wizard-street-suggestions"
+            >
+              {results.map((r, i) => {
+                const { primary, secondary } = resultLines(r, cityLabel)
+                return (
+                  <button
+                    key={`${r.code || ''}-${r.lat}-${r.lon}-${i}`}
+                    type="button"
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    className={cn(
+                      'min-h-[44px] w-full px-3 py-2.5 text-left text-sm hover:bg-slate-50',
+                      i === activeIndex && 'bg-slate-50',
+                    )}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => void pick(r)}
+                  >
+                    <span className="block font-medium text-slate-900 line-clamp-1">{primary}</span>
+                    {secondary ? (
+                      <span className="mt-0.5 block text-xs text-slate-500 line-clamp-1">
+                        {secondary}
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {t('wizardGeo_streetSuggestHint')}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
-        <div>
+
+        <div className="w-full shrink-0 sm:w-28">
           <Label className="text-sm font-medium">{t('wizardGeo_houseLabel')}</Label>
           <Input
-            className="mt-1.5 h-11 w-full"
+            className="mt-1.5 h-11 w-full sm:mt-[1.625rem]"
             value={house || ''}
             disabled={disabled}
             placeholder={t('wizardGeo_housePh')}
             autoComplete="off"
             inputMode="text"
+            data-testid="wizard-house-input"
             onChange={(e) => {
               onHouseChange(e.target.value)
               scheduleSearch(street, e.target.value)
             }}
+            onFocus={() => {
+              if (results.length > 0) setOpen(true)
+            }}
           />
         </div>
       </div>
-      <p className="text-xs text-slate-500">{t('wizardGeo_addressSuggestHint')}</p>
 
-      {open && results.length > 0 ? (
-        <div
-          className="z-30 max-h-56 w-full divide-y overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg"
-          role="listbox"
-        >
-          {results.map((r, i) => {
-            const primary = resultPrimary(r)
-            return (
-              <button
-                key={`${r.code || ''}-${r.lat}-${r.lon}-${i}`}
-                type="button"
-                role="option"
-                aria-selected={i === activeIndex}
-                className={cn(
-                  'min-h-[44px] w-full px-3 py-2.5 text-left text-sm hover:bg-slate-50',
-                  i === activeIndex && 'bg-slate-50',
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => void pick(r)}
-              >
-                <span className="block font-medium text-slate-900 line-clamp-2">{primary}</span>
-                <span className="mt-0.5 text-xs text-slate-500">
-                  {t('wizardGeo_streetSuggestHint')}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-
-      {canLocate && results.length > 0 ? (
+      {canLocate && showList ? (
         <Button
           type="button"
           variant="outline"

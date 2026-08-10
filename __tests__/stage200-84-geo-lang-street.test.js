@@ -67,6 +67,13 @@ describe('Stage 200.84 — wiring', () => {
     assert.match(src, /cityViewboxFromCentroid|cityLat/)
   })
 
+  it('street suggestions dock under street field', () => {
+    const src = read('app/(partner)/partner/listings/new/components/WizardStreetTypeahead.jsx')
+    assert.match(src, /wizard-street-suggestions/)
+    assert.match(src, /absolute left-0 right-0 top-full/)
+    assert.match(src, /resultLines|formatListingStreetAddress/)
+  })
+
   it('merge writes short street + UI-lang region label', () => {
     const src = read('lib/geo/wizard-geo-from-pin.js')
     assert.match(src, /formatListingStreetAddress/)
