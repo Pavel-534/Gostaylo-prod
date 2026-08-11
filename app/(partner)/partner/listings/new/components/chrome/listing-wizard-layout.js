@@ -19,18 +19,35 @@ export const WIZARD_MOBILE_CHROME_CONTENT_GAP = '0.75rem'
 
 /**
  * Fixed bottom action bar content height (py-3 + min-h-11 CTAs).
- * Stage 200.94 — was 4.5rem; last form fields clipped under sticky nav.
+ * Stage 200.95 — was 5rem; short forms still sat under sticky CTA (and Tailwind env() comma broke pb).
  */
-export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'
+export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '6.5rem'
 
-/** Extra scroll padding above the action bar. */
-export const WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '0.75rem'
+/** Extra scroll padding above the action bar (Stage 200.95). */
+export const WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '1.25rem'
 
-/** Tailwind utilities derived from heights above (SSOT). */
+/**
+ * DOM marker on WORKSPACE_SCROLL for listing wizard routes.
+ * Pair with CSS in globals.css + WIZARD_WORKSPACE_SCROLL_PAD_CLASS.
+ */
+export const LISTING_WIZARD_SCROLL_ATTR = 'data-listing-wizard-scroll'
+
+/**
+ * Tailwind utilities derived from heights above (SSOT).
+ * Note: do NOT put a comma inside env() in arbitrary values — Tailwind treats `,` as a
+ * class separator and silently drops the utility (Stage 200.95 root cause).
+ */
 export const WIZARD_MOBILE_CHROME_PT_CLASS =
   'max-sm:pt-[calc(5.75rem+0.75rem)]'
 export const WIZARD_MOBILE_CONTENT_PB_CLASS =
-  'max-sm:pb-[calc(5rem+0.75rem+env(safe-area-inset-bottom,0px))]'
+  'max-sm:pb-[calc(6.5rem+1.25rem+env(safe-area-inset-bottom))]'
+
+/**
+ * Applied on partner WORKSPACE_SCROLL when on listing wizard — scroll-padding so focus /
+ * programmatic scroll lands above fixed chrome + sticky CTA (Stage 200.95).
+ */
+export const WIZARD_WORKSPACE_SCROLL_PAD_CLASS =
+  'max-sm:[scroll-padding-top:calc(5.75rem+0.75rem)] max-sm:[scroll-padding-bottom:calc(6.5rem+1.25rem+env(safe-area-inset-bottom))]'
 
 /** Fixed mobile wizard chrome — directly below AppHeader. */
 export const WIZARD_MOBILE_CHROME_POSITION_CLASS =

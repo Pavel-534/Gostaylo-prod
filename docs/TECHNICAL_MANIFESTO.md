@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.77 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.94** partner section rhythm.
+> **Version**: 13.2.79 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.96** live preview price + in-app PDP.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,9 +27,23 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 200.96 — Live wizard preview price + in-app «view on site»
+
+- **Eye preview bug:** card used stale `metadata.base_price_asset` (e.g. 5400×1.15=6210) over live form L1 (5700). Fix: `readBasePriceAssetFromListing` prefers top-level `basePriceAsset`; wizard preview payloads sync `metadata.base_price_asset` from `formData.basePriceThb`.
+- **View on site:** drop `target="_blank"` on partner listings overflow Link (PWA stays in-app).
+- **PDP hero:** `HeroPriceHeadline` uses `formatSameCurrencyGuestDisplay` for per-night when UI currency === listing base (avoids retail FX ₽6882-style drift).
+- Tests: `__tests__/stage200-96-wizard-preview-price.test.js`.
+
+### Stage 200.95 — Wizard scroll clearance + Basics/Pricing rhythm
+
+- **P0 root cause:** Tailwind dropped `pb-[…env(safe-area-inset-bottom,0px)]` because `,` splits arbitrary classes — fixed (no comma) + bumped action clearance to `6.5rem+1.25rem`.
+- **Scrollport:** `data-listing-wizard-scroll` on partner `WORKSPACE_SCROLL` + `scroll-padding-*` (Tailwind + `globals.css` fallback).
+- **SSOT apply:** `PartnerSectionDivider` + `PARTNER_SECTION_TITLE` / `PARTNER_FIELD_LABEL` on Basics + Pricing; helpers under controls; RU genitive via `formatWizardAddDetailsLine`.
+- Tests: `__tests__/stage200-95-wizard-section-rhythm.test.js`.
+
 ### Stage 200.94 — Partner section rhythm (wizard + listings pilot)
 
-- **P1 padding:** `listing-wizard-layout.js` — chrome `5.75rem` + `0.75rem` gap; action bar `5rem` + gap + safe-area (content no longer clips under progress / sticky CTA).
+- **P1 padding:** `listing-wizard-layout.js` — chrome `5.75rem` + `0.75rem` gap; action bar clearance (superseded heights in **200.95**).
 - **P2:** `PartnerSectionDivider` + `lib/ui/partner-section-rhythm.js` (mint hairline ~20%, inset `mx-4/6`); pilot on Location + Calendar; section title `text-base font-semibold` vs field `text-sm font-medium`; helpers under inputs.
 - **P3:** `/partner/listings` — soft surface + left mint accent (`PARTNER_LISTING_CARD_SURFACE_CLASS`), keep `space-y-3`.
 - Tests: `__tests__/stage200-94-partner-section-rhythm.test.js`.

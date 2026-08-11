@@ -509,3 +509,20 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
     box-shadow: 0 0 12px rgba(0, 168, 168, 0.8);
   }
 }
+
+/**
+ * Stage 200.95 — listing wizard scrollport.
+ * Sticky mobile CTA overlays the scrollport; short forms must remain scrollable above it.
+ * Heights mirror WIZARD_MOBILE_* in listing-wizard-layout.js (CSS fallback if Tailwind
+ * arbitrary env() utilities are purged or misparsed).
+ */
+[data-workspace-scroll][data-listing-wizard-scroll] {
+  scroll-padding-top: calc(5.75rem + 0.75rem);
+  scroll-padding-bottom: calc(6.5rem + 1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 639px) {
+  [data-workspace-scroll][data-listing-wizard-scroll] {
+    padding-bottom: calc(6.5rem + 1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}

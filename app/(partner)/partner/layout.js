@@ -73,6 +73,10 @@ import {
   WORKSPACE_TOOLBAR_CLASS,
   WORKSPACE_TOOLBAR_ROW_CLASS,
 } from '@/lib/layout/workspace-shell'
+import {
+  LISTING_WIZARD_SCROLL_ATTR,
+  WIZARD_WORKSPACE_SCROLL_PAD_CLASS,
+} from './listings/new/components/chrome/listing-wizard-layout'
 
 const PartnerForegroundNotifications = dynamic(
   () =>
@@ -527,8 +531,17 @@ export default function PartnerLayout({ children }) {
             </div>
           ) : null}
 
-          {/* Page Content */}
-          <div className={WORKSPACE_SCROLL_CLASS} {...{ [WORKSPACE_SCROLL_ATTR]: '' }}>
+          {/* Page Content — Stage 200.95: wizard scroll-padding for fixed chrome/CTA */}
+          <div
+            className={cn(
+              WORKSPACE_SCROLL_CLASS,
+              isListingWizardRoute && WIZARD_WORKSPACE_SCROLL_PAD_CLASS,
+            )}
+            {...{
+              [WORKSPACE_SCROLL_ATTR]: '',
+              ...(isListingWizardRoute ? { [LISTING_WIZARD_SCROLL_ATTR]: '' } : {}),
+            }}
+          >
             {children}
           </div>
         </main>

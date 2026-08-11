@@ -8,6 +8,12 @@ import { useListingWizard } from '../context/ListingWizardContext'
 import { isTransportWizardCategory } from '@/lib/config/category-wizard-profile-db'
 import { getWizardSpecsSectionFields } from '@/lib/config/category-form-schema'
 import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
+import { formatWizardAddDetailsLine } from '@/lib/i18n/wizard-add-details-line'
 
 function SpecsFields() {
   const w = useListingWizard()
@@ -65,16 +71,17 @@ function WizardSpecsSectionInner() {
     amenitiesHintKey,
     updateMetadata,
   } = w
+  const categoryLabel = getCategoryName(listingCategorySlug, language) || formData.categoryName || ''
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h3 className={PARTNER_SECTION_TITLE_CLASS}>
           {transportWizard ? t('listingSpecsTransport') : t('listingSpecs')}
-        </h2>
-        <p className="leading-relaxed text-slate-600">
+        </h3>
+        <p className="text-sm leading-relaxed text-slate-600">
           {transportWizard
             ? t('addDetailsForTransport')
-            : `${t('addDetailsFor')} ${getCategoryName(listingCategorySlug, language) || formData.categoryName || ''}.`}
+            : formatWizardAddDetailsLine(t, language, categoryLabel)}
         </p>
         {transportWizard ? (
           <p className="text-sm leading-relaxed text-slate-500">{t('wizardVehicleSpecsOnStep1Reminder')}</p>
@@ -82,31 +89,34 @@ function WizardSpecsSectionInner() {
       </div>
       <SpecsFields />
       {partnerAmenitySlugs.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <UiLabel className="text-base font-medium text-slate-800">{t('amenities')}</UiLabel>
-          <p className="text-xs leading-relaxed text-slate-500">{t(amenitiesHintKey)}</p>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-            {partnerAmenitySlugs.map((slug) => {
-              const selected = formData.metadata.amenities?.includes(slug)
-              return (
-                <UiButton
-                  key={slug}
-                  variant={selected ? 'brand' : 'outline'}
-                  size="sm"
-                  type="button"
-                  onClick={() => {
-                    const current = formData.metadata.amenities || []
-                    const updated = selected ? current.filter((a) => a !== slug) : [...current, slug]
-                    updateMetadata('amenities', updated)
-                  }}
-                  className="h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug"
-                >
-                  {getAmenityName(slug, language, slug)}
-                </UiButton>
-              )
-            })}
+        <>
+          <PartnerSectionDivider wrapClassName="py-2 sm:py-3" />
+          <div className="space-y-3">
+            <UiLabel className={PARTNER_FIELD_LABEL_CLASS}>{t('amenities')}</UiLabel>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {partnerAmenitySlugs.map((slug) => {
+                const selected = formData.metadata.amenities?.includes(slug)
+                return (
+                  <UiButton
+                    key={slug}
+                    variant={selected ? 'brand' : 'outline'}
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const current = formData.metadata.amenities || []
+                      const updated = selected ? current.filter((a) => a !== slug) : [...current, slug]
+                      updateMetadata('amenities', updated)
+                    }}
+                    className="h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug"
+                  >
+                    {getAmenityName(slug, language, slug)}
+                  </UiButton>
+                )
+              })}
+            </div>
+            <p className="text-xs leading-relaxed text-slate-500">{t(amenitiesHintKey)}</p>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

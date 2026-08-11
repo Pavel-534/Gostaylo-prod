@@ -29,6 +29,11 @@ import {
   wizardFieldHasError,
   WIZARD_FIELD_ERROR_BOX,
 } from '../lib/wizard-field-errors'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 function pickupInstructionsPlaceholder(listingServiceType, t) {
   switch (listingServiceType) {
@@ -92,8 +97,8 @@ function StepGeneralInfoInner() {
       </div>
 
       {/* Section A — identity (Airbnb-like: decide what you're listing first) */}
-      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS}>
-        <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_identity')}</h3>
+      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS} data-partner-section="basics-identity">
+        <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_identity')}</h3>
         <div
           className={cn(
             WIZARD_MOBILE_FLAT_INSET_CLASS,
@@ -103,17 +108,16 @@ function StepGeneralInfoInner() {
           data-wizard-field="listingServiceType"
           data-wizard-field-error={errService ? 'true' : undefined}
         >
-          <Label className={cn('text-base font-medium', errService && 'text-red-700')}>
+          <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errService && 'text-red-700')}>
             {t('wizardServiceTypeLabel')}
           </Label>
-          <p className="text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
           {errService ? (
             <p className="text-xs font-medium text-red-600">{t('wizardBlocker_serviceType')}</p>
           ) : null}
           <RadioGroup
             value={formData.listingServiceType || ''}
             onValueChange={setListingServiceType}
-            className="grid w-full gap-2 sm:grid-cols-2"
+            className="mt-2 grid w-full gap-2 sm:grid-cols-2"
           >
             {(['stay', 'transport', 'service', 'tour']).map((value) => (
               <label
@@ -127,18 +131,16 @@ function StepGeneralInfoInner() {
               </label>
             ))}
           </RadioGroup>
+          <p className="mt-2 text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
         </div>
         <div
           data-wizard-field="categoryId"
           data-wizard-field-error={errCategory ? 'true' : undefined}
           className={cn(errCategory && cn('rounded-xl p-2', WIZARD_FIELD_ERROR_BOX))}
         >
-          <Label className={cn('text-base font-medium', errCategory && 'text-red-700')}>
+          <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errCategory && 'text-red-700')}>
             {t('selectCategory')}
           </Label>
-          <p className="mt-1 text-xs text-slate-600">
-            {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
-          </p>
           {errCategory ? (
             <p className="mt-1 text-xs font-medium text-red-600">{t('wizardBlocker_category')}</p>
           ) : null}
@@ -154,6 +156,9 @@ function StepGeneralInfoInner() {
               disabled={!formData.listingServiceType}
             />
           </div>
+          <p className="mt-2 text-xs text-slate-600">
+            {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
+          </p>
         </div>
         {transportWizard && formData.categoryId ? (
           (() => {
@@ -179,14 +184,16 @@ function StepGeneralInfoInner() {
         ) : null}
       </section>
 
+      <PartnerSectionDivider />
+
       {/* Section B — title / description / AI */}
-      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS}>
-        <h3 className="text-sm font-semibold tracking-tight text-slate-900">{t('wizardSection_basics')}</h3>
+      <section className={WIZARD_MOBILE_FLAT_SECTION_CLASS} data-partner-section="basics-copy">
+        <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_basics')}</h3>
         <div
           data-wizard-field="title"
           data-wizard-field-error={errTitle ? 'true' : undefined}
         >
-          <Label className={cn('text-base font-medium text-slate-800', errTitle && 'text-red-700')}>
+          <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errTitle && 'text-red-700')}>
             {t('listingTitleLabel')}
           </Label>
           <Input
@@ -216,7 +223,7 @@ function StepGeneralInfoInner() {
           data-wizard-field-error={errDesc ? 'true' : undefined}
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <Label className={cn('text-base font-medium text-slate-800', errDesc && 'text-red-700')}>
+            <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errDesc && 'text-red-700')}>
               {t('listingDescriptionLabel')}
             </Label>
             <TooltipProvider delayDuration={200}>
@@ -310,16 +317,22 @@ function StepGeneralInfoInner() {
 
       {/* Section C — check-in / handoff (collapsed by default unless already filled) */}
       {formData.listingServiceType ? (
+        <>
+          <PartnerSectionDivider />
         <details
           className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'open:max-sm:pb-0 open:sm:pb-5')}
           defaultOpen={hasCheckInContent}
         >
-          <summary className="flex min-h-[44px] cursor-pointer list-none items-center text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+          <summary
+            className={cn(
+              PARTNER_SECTION_TITLE_CLASS,
+              'flex min-h-[44px] cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden',
+            )}
+          >
             {t('wizardSection_checkInOptional')}
           </summary>
           <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
-            <Label className="text-base font-medium text-slate-800">{t('wizardCheckInInstructionsLabel')}</Label>
-            <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInInstructionsHint')}</p>
+            <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('wizardCheckInInstructionsLabel')}</Label>
             <Textarea
               value={String(formData.metadata?.check_in_instructions ?? '')}
               onChange={(e) => updateMetadata('check_in_instructions', e.target.value)}
@@ -327,12 +340,12 @@ function StepGeneralInfoInner() {
               className="mt-2 min-h-[96px]"
               maxLength={2000}
             />
+            <p className="mt-1 text-xs text-slate-600 leading-relaxed">{t('wizardCheckInInstructionsHint')}</p>
             <p className="mt-1 text-xs text-slate-500">
               {String(formData.metadata?.check_in_instructions ?? '').length}/2000 {t('characters')}
             </p>
             <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-              <Label className="text-sm font-medium text-slate-800">{t('wizardCheckInPhotosLabel')}</Label>
-              <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInPhotosHint')}</p>
+              <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('wizardCheckInPhotosLabel')}</Label>
               <input
                 ref={checkInPhotosRef}
                 type="file"
@@ -387,6 +400,7 @@ function StepGeneralInfoInner() {
                 </Button>
                 <span className="text-xs text-slate-500">{t('wizardCheckInPhotosMax')}</span>
               </div>
+              <p className="text-xs text-slate-600 leading-relaxed">{t('wizardCheckInPhotosHint')}</p>
               {Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {formData.metadata.check_in_photos.map((url, idx) => (
@@ -414,12 +428,16 @@ function StepGeneralInfoInner() {
             </div>
           </div>
         </details>
+        </>
       ) : null}
 
       {formData.categoryId ? (
-        <div className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
-          <WizardSpecsSection />
-        </div>
+        <>
+          <PartnerSectionDivider />
+          <div className={WIZARD_MOBILE_FLAT_CARD_CLASS} data-partner-section="basics-specs">
+            <WizardSpecsSection />
+          </div>
+        </>
       ) : null}
     </div>
   )

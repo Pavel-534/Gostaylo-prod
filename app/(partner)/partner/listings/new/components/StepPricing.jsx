@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { memo, useEffect, useMemo } from 'react'
 import { Info } from 'lucide-react'
@@ -29,6 +29,8 @@ import {
   listingHasEnabledIcalSources,
 } from '@/lib/ical/instant-booking-ical-policy.js'
 import { getSiteDisplayName } from '@/lib/site-url.js'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import { PARTNER_FIELD_LABEL_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 function StepPricingInner() {
   const w = useListingWizard()
@@ -85,7 +87,7 @@ function StepPricingInner() {
 
   return (
     <TooltipProvider>
-      <div className={cn(WIZARD_STEP_ROOT_CLASS, 'space-y-8')}>
+      <div className={cn(WIZARD_STEP_ROOT_CLASS, 'space-y-0')}>
         <div className="space-y-2">
           <h2 className={WIZARD_STEP_TITLE_CLASS}>{t('pricingAndBooking')}</h2>
           <p className={`leading-relaxed ${WIZARD_STEP_SUBTITLE_CLASS}`}>{t('setRates')}</p>
@@ -94,9 +96,10 @@ function StepPricingInner() {
         <div
           className={cn(
             WIZARD_MOBILE_FLAT_INSET_CLASS,
-            'flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:border-slate-200/90',
+            'mt-6 flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:border-slate-200/90',
           )}
           data-testid="partner-listing-instant-booking"
+          data-partner-section="pricing-instant"
         >
           <div className="min-w-0 flex-1 space-y-1">
             <Label
@@ -128,7 +131,7 @@ function StepPricingInner() {
           <div
             className={cn(
               WIZARD_MOBILE_FLAT_INSET_CLASS,
-              'flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4',
+              'mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4',
             )}
             data-testid="partner-listing-exclusive-calendar-ack"
           >
@@ -151,13 +154,18 @@ function StepPricingInner() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <PartnerSectionDivider />
+
+        <div
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2"
+          data-partner-section="pricing-base"
+        >
           <div
             data-wizard-field="basePriceThb"
             data-wizard-field-error={errPrice ? 'true' : undefined}
           >
             <Label
-              className={cn('text-base font-medium text-slate-800', errPrice && 'text-red-700')}
+              className={cn(PARTNER_FIELD_LABEL_CLASS, errPrice && 'text-red-700')}
             >
               {basePriceLabel}
             </Label>
@@ -178,7 +186,7 @@ function StepPricingInner() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <Label className="text-base font-medium text-slate-800">{t('wizardBaseCurrencyLabel')}</Label>
+              <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('wizardBaseCurrencyLabel')}</Label>
               {baseCurrencyLocked ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -228,17 +236,23 @@ function StepPricingInner() {
           </div>
         </div>
 
-        <WizardPartnerEarningsCalculator
-          t={t}
-          tr={tr}
-          baseAmount={formData.basePriceThb}
-          baseCurrency={baseCurrency}
-          hostCommissionPercent={partnerCommissionRate ?? 0}
-          periodLabel={periodLabel}
-        />
+        <PartnerSectionDivider />
 
-        <div className="space-y-2">
-          <Label className="text-base font-medium text-slate-800">{t('partnerEdit_cancellationPolicy')}</Label>
+        <div data-partner-section="pricing-earnings">
+          <WizardPartnerEarningsCalculator
+            t={t}
+            tr={tr}
+            baseAmount={formData.basePriceThb}
+            baseCurrency={baseCurrency}
+            hostCommissionPercent={partnerCommissionRate ?? 0}
+            periodLabel={periodLabel}
+          />
+        </div>
+
+        <PartnerSectionDivider />
+
+        <div className="space-y-2" data-partner-section="pricing-cancellation">
+          <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('partnerEdit_cancellationPolicy')}</Label>
           <Select
             value={formData.cancellationPolicy || 'moderate'}
             onValueChange={(value) => updateField('cancellationPolicy', value)}
@@ -252,15 +266,21 @@ function StepPricingInner() {
               <SelectItem value="strict">{t('partnerEdit_cancelPol_strict')}</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-slate-500">{t('partnerEdit_cancellationPolicyHint')}</p>
           <PartnerCancellationPolicyPreview
             policy={formData.cancellationPolicy || 'moderate'}
             language={language}
           />
+          <p className="text-xs text-slate-500">{t('partnerEdit_cancellationPolicyHint')}</p>
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+        <PartnerSectionDivider />
+
+        <div
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2"
+          data-partner-section="pricing-stay-window"
+        >
           <div>
-            <Label className="text-base font-medium text-slate-800">
+            <Label className={PARTNER_FIELD_LABEL_CLASS}>
               {transportWizard ? t('minStayVehicle') : toursWizard ? t('minStayTourGroup') : t('minStay')}
             </Label>
             <Input
@@ -288,7 +308,7 @@ function StepPricingInner() {
             />
           </div>
           <div>
-            <Label className="text-base font-medium text-slate-800">
+            <Label className={PARTNER_FIELD_LABEL_CLASS}>
               {transportWizard ? t('maxStayVehicle') : toursWizard ? t('maxStayTourGroup') : t('maxStay')}
             </Label>
             <Input
@@ -318,28 +338,34 @@ function StepPricingInner() {
           <p
             className={cn(
               WIZARD_MOBILE_FLAT_INSET_CLASS,
-              'text-xs leading-relaxed text-slate-600 sm:bg-slate-50',
+              'mt-3 text-xs leading-relaxed text-slate-600 sm:bg-slate-50',
             )}
           >
             {t('partnerTourMinMaxBackendHint')}
           </p>
         ) : null}
         {!toursWizard ? (
-          <PartnerListingDurationDiscountFields
-            metadata={formData.metadata}
-            language={w.language}
-            onChangeDiscount={updateDurationDiscountPercent}
-            rentalPeriodDays={transportWizard}
-          />
+          <div className="mt-5" data-partner-section="pricing-discounts">
+            <PartnerListingDurationDiscountFields
+              metadata={formData.metadata}
+              language={w.language}
+              onChangeDiscount={updateDurationDiscountPercent}
+              rentalPeriodDays={transportWizard}
+            />
+          </div>
         ) : null}
+
+        <PartnerSectionDivider />
+
         <div
           className={cn(
             WIZARD_MOBILE_FLAT_INSET_CLASS,
             'space-y-2 rounded-2xl border border-slate-200/90 p-4 sm:bg-slate-50/80',
           )}
           data-testid="wizard-pricing-seasons-pointer"
+          data-partner-section="pricing-seasons"
         >
-          <p className="text-sm font-medium text-slate-800">{t('seasonalPricing')}</p>
+          <p className={PARTNER_FIELD_LABEL_CLASS}>{t('seasonalPricing')}</p>
           <p className="text-sm leading-relaxed text-slate-600">{t('wizardPricing_seasonsOnCalendarStep')}</p>
           <button
             type="button"

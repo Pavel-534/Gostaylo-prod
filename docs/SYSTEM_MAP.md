@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.71 | **Last Updated**: 2026-08-11 | **200.94** partner section rhythm; **200.93** calendar auto-draft.  
+> **Version**: 13.2.73 | **Last Updated**: 2026-08-11 | **200.96** live preview price + in-app PDP; **200.95** wizard scroll + Basics/Pricing rhythm; **200.94** partner section rhythm.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
