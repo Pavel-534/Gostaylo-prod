@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.80 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.97** tighter wizard rhythm.
+> **Version**: 13.2.81 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.98** wizard action bar vertical balance.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.98 — Wizard action bar vertical balance
+
+- Bug: `py-3` + `.safe-area-pb` — class sets `padding-bottom: env(...)` and zeroes bottom pad when inset is 0 → CTAs stuck to bottom edge of sticky bar.
+- Fix: `WIZARD_MOBILE_ACTION_BAR_INNER_CLASS` — `pt-3` + `pb-[calc(0.75rem+env(safe-area-inset-bottom))]` (equal rhythm; safe-area additive).
 
 ### Stage 200.97 — Tighter wizard void + clearer mint dividers
 

@@ -60,6 +60,14 @@ export const WIZARD_MOBILE_CHROME_POSITION_CLASS =
 export const WIZARD_MOBILE_ACTION_BAR_POSITION_CLASS =
   'fixed inset-x-0 bottom-0 z-50 border-t border-slate-200/80 bg-white/80 backdrop-blur-md sm:hidden'
 
+/**
+ * Inner row of fixed mobile action bar (Stage 200.98).
+ * Equal pt/pb (0.75rem); safe-area is additive — never use `.safe-area-pb` with `py-*`
+ * (it overrides padding-bottom to 0 when inset is 0 → buttons stick to the bottom edge).
+ */
+export const WIZARD_MOBILE_ACTION_BAR_INNER_CLASS =
+  'mx-auto flex w-full max-w-7xl min-w-0 items-center gap-2 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]'
+
 /** Strip leading bullet from wizardStepMarker for dot-row label. */
 export function formatWizardStepMarkerLabel(stepMarker) {
   return String(stepMarker || '').replace(/^•\s*/, '').trim()

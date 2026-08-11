@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.98 | 2026-08-11 | Wizard sticky CTA bar: equal vertical padding (fix safe-area-pb override) | Done |
 | 200.97 | 2026-08-11 | Tighter wizard bottom clearance; clearer mint PartnerSectionDivider (2px /40–55%) | Done |
 | 200.96 | 2026-08-11 | Live wizard preview L1 price; in-app view-on-site; PDP same-currency hero | Done |
 | 200.95 | 2026-08-11 | Wizard scroll clearance (Tailwind env comma + scroll-pad); Basics/Pricing PartnerSectionDivider SSOT; RU genitive | Done |
