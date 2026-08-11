@@ -12,9 +12,10 @@ import {
 import { detectPinCountryConflict } from '@/lib/geo/wizard-pin-country-conflict'
 
 /**
- * Step validation: 1 general+specs; 2 location; 3 photos; 4 pricing; 5 preview.
+ * Step validation: 1 general; 2 location; 3 photos; 4 pricing; 5 calendar; 6 preview.
  * Stage 200.23 — step Next uses soft minima so partners can reach soft publish;
  * full quality still gates the primary Publish CTA via publishQualityChecklist.
+ * Stage 200.92 — calendar step is optional (no hard blockers); preview aggregates gates.
  */
 export function computeWizardCanProceed(currentStep, formData, coordsValid, ctx = {}) {
   return computeWizardStepBlockers(currentStep, formData, coordsValid, ctx).length === 0
@@ -115,6 +116,9 @@ export function computeWizardStepBlockers(currentStep, formData, coordsValid, ct
       }
       break
     case 5:
+      // Calendar / channels — optional; partner may skip and configure later.
+      break
+    case 6:
       pushGeneral()
       if (!String(formData?.country || '').trim()) {
         blockers.push({ i18nKey: 'wizardBlocker_country', field: 'country' })

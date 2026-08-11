@@ -1,7 +1,10 @@
 export { PHUKET_DISTRICTS_CANON as WIZARD_DISTRICTS } from '@/lib/locations/phuket-districts-canonical'
 
-/** SSOT step count for wizard navigation and validation. */
-export const LISTING_WIZARD_STEP_COUNT = 5
+/**
+ * SSOT step count for wizard navigation and validation.
+ * Stage 200.92 — 6 steps: Basics → Location → Photos → Pricing → Calendar → Preview.
+ */
+export const LISTING_WIZARD_STEP_COUNT = 6
 
 export function getDefaultWizardFormData() {
   return {

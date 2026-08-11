@@ -9,8 +9,8 @@ import { StepGeneralInfo } from './StepGeneralInfo'
 import { StepLocation } from './StepLocation'
 import { StepPhotos } from './StepPhotos'
 import { StepPricing } from './StepPricing'
+import { StepCalendar } from './StepCalendar'
 import { StepPreview } from './StepPreview'
-import { StepCalendarSection } from './StepCalendarSection'
 import { ListingWizardChrome } from './chrome/ListingWizardChrome'
 import { ListingWizardStepFooter } from './chrome/ListingWizardStepFooter'
 import { ListingWizardMobileActionBar } from './chrome/ListingWizardMobileActionBar'
@@ -74,18 +74,23 @@ export function ListingWizardPageInner() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [currentStep])
 
-  /** Deep-link: /partner/listings/[id]?highlight=calendar */
+  /** Deep-link: /partner/listings/[id]?highlight=calendar → step 5 */
   useEffect(() => {
     if (typeof window === 'undefined' || wizardMode !== 'edit' || !serverListing) return
     const sp = new URLSearchParams(window.location.search)
     if (sp.get('highlight') !== 'calendar') return
+    setCurrentStep(5)
     const timer = setTimeout(() => {
       document.getElementById('partner-calendar-sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       toast.success(t('partnerCal_toastScroll'))
-      window.history.replaceState({}, '', window.location.pathname)
-    }, 600)
+      const params = new URLSearchParams(window.location.search)
+      params.delete('highlight')
+      params.set('step', 'calendar')
+      const qs = params.toString()
+      window.history.replaceState({}, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname)
+    }, 400)
     return () => clearTimeout(timer)
-  }, [serverListing, wizardMode, t])
+  }, [serverListing, wizardMode, t, setCurrentStep])
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
@@ -113,7 +118,8 @@ export function ListingWizardPageInner() {
       { id: 2, label: t('location') },
       { id: 3, label: t('gallery') },
       { id: 4, label: t('pricing') },
-      { id: 5, label: t('livePreview') },
+      { id: 5, label: t('wizardStep_calendar') },
+      { id: 6, label: t('livePreview') },
     ],
     [t],
   )
@@ -129,6 +135,8 @@ export function ListingWizardPageInner() {
       case 4:
         return <StepPricing />
       case 5:
+        return <StepCalendar />
+      case 6:
         return <StepPreview />
       default:
         return null
@@ -186,8 +194,6 @@ export function ListingWizardPageInner() {
                 <ListingWizardStepFooter />
               </CardContent>
             </Card>
-
-            {isEditRoute && editId && serverListing ? <StepCalendarSection /> : null}
           </div>
 
           <ListingWizardPreviewPanel previewStickyTop={previewStickyTop} />

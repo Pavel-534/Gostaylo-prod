@@ -8,9 +8,11 @@ import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepCalendarSectionInner() {
-  const { editId, serverListing, formData, listingCategorySlug, t } = useListingWizard()
+  const { editId, serverListing, formData, listingCategorySlug, t, draftListingIdRef } =
+    useListingWizard()
 
-  if (!editId || !serverListing) return null
+  const listingId = editId || draftListingIdRef?.current || null
+  if (!listingId || !serverListing) return null
 
   const transport = isTransportListingCategory(listingCategorySlug)
   const basePrice = parseFloat(String(formData?.basePriceThb || '').replace(',', '.')) || 0
@@ -18,22 +20,25 @@ function StepCalendarSectionInner() {
 
   return (
     <section
-      className="mt-10 space-y-6 border-t border-slate-200/90 pt-10 max-sm:min-w-0 max-sm:overflow-x-hidden max-sm:border-t-0 max-sm:pt-6"
+      className="space-y-6 max-sm:min-w-0 max-sm:overflow-x-hidden"
       aria-labelledby="partner-listing-calendar-heading"
+      data-testid="wizard-calendar-section"
     >
-      <div id="partner-listing-calendar" className="scroll-mt-28 max-sm:space-y-4">
-        <h2 id="partner-listing-calendar-heading" className="sr-only">
-          {t('partnerCal_mainTitle')}
-        </h2>
-        {transport ? null : (
-          <CalendarSyncManager listingId={editId} onSync={() => {}} />
-        )}
-        <AvailabilityCalendar listingId={editId} syncErrors={[]} />
-        <SeasonalPriceManager
-          listingId={editId}
-          basePriceThb={basePrice}
-          baseCurrency={baseCurrency}
-        />
+      <div id="partner-calendar-sync" className="scroll-mt-28 max-sm:space-y-4">
+        <div id="partner-listing-calendar">
+          <h2 id="partner-listing-calendar-heading" className="sr-only">
+            {t('partnerCal_mainTitle')}
+          </h2>
+          {transport ? null : (
+            <CalendarSyncManager listingId={listingId} onSync={() => {}} />
+          )}
+          <AvailabilityCalendar listingId={listingId} syncErrors={[]} />
+          <SeasonalPriceManager
+            listingId={listingId}
+            basePriceThb={basePrice}
+            baseCurrency={baseCurrency}
+          />
+        </div>
       </div>
     </section>
   )

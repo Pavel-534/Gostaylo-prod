@@ -45,8 +45,8 @@ describe('Stage 200.87 — street/house survive metadata normalize', () => {
 describe('Stage 200.87 — edit save redirect + list cache invalidate', () => {
   it('savePatchForEdit redirects to partner listings and invalidates RQ', () => {
     const src = read('app/(partner)/partner/listings/new/hooks/useListingSave.js')
-    assert.match(src, /partnerListingsKeys/)
-    assert.match(src, /invalidatePartnerListingsCache/)
+    assert.match(src, /refreshPartnerListingsAfterSave|invalidatePartnerListingsCache/)
+    assert.match(src, /listingsCacheOptsFromForm/)
     assert.match(src, /router\.push\('\/partner\/listings'\)/)
     assert.match(src, /coordsPayloadFromForm/)
   })
@@ -55,5 +55,21 @@ describe('Stage 200.87 — edit save redirect + list cache invalidate', () => {
     const src = read('app/(partner)/partner/listings/new/hooks/listing-wizard-load-existing.js')
     assert.match(src, /house_number/)
     assert.match(src, /rawMeta\.street/)
+  })
+})
+
+describe('Stage 200.91 — partner list cache after price save', () => {
+  it('usePartnerListings refetches on mount; save uses refetchType all', () => {
+    const hook = read('lib/hooks/use-partner-listings.js')
+    assert.match(hook, /refetchOnMount:\s*true/)
+    assert.match(hook, /refetchType:\s*['"]all['"]/)
+    assert.match(hook, /refreshPartnerListingsAfterSave/)
+    assert.match(hook, /basePriceAsset/)
+  })
+
+  it('street input disables browser address autofill', () => {
+    const src = read('app/(partner)/partner/listings/new/components/WizardStreetTypeahead.jsx')
+    assert.match(src, /autoComplete="off"/)
+    assert.doesNotMatch(src, /autoComplete="street-address"/)
   })
 })

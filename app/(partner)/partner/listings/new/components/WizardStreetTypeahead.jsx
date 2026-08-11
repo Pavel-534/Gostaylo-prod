@@ -61,6 +61,7 @@ function composeNeedle(street, house, { includeHouse = false } = {}) {
  *   t: (key: string) => string
  *   onStreetChange: (value: string) => void
  *   onHouseChange: (value: string) => void
+ *   onStreetHouseChange?: (street: string, house: string) => void
  *   onSelectResult: (result: object) => void | Promise<void>
  * }} props
  */
@@ -76,6 +77,7 @@ export function WizardStreetTypeahead({
   t,
   onStreetChange,
   onHouseChange,
+  onStreetHouseChange = null,
   onSelectResult,
 }) {
   const [open, setOpen] = useState(false)
@@ -160,18 +162,30 @@ export function WizardStreetTypeahead({
     }, 280)
   }
 
+  const applyStreetHouse = (nextStreet, nextHouse) => {
+    if (typeof onStreetHouseChange === 'function') {
+      onStreetHouseChange(nextStreet, nextHouse)
+      return
+    }
+    onStreetChange(nextStreet)
+    onHouseChange(nextHouse)
+  }
+
   const pick = async (r) => {
     setOpen(false)
     setResults([])
     resultsRef.current = []
     const addr = r.address && typeof r.address === 'object' ? r.address : null
+    let nextStreet = street
+    let nextHouse = house
     if (addr) {
       const road = String(addr.road || addr.pedestrian || addr.street || '').trim()
       const hn = String(addr.house_number || '').trim()
-      if (road) onStreetChange(road)
+      if (road) nextStreet = road
       // Keep typed house if OSM hit has no house_number (street-only suggest).
-      if (hn) onHouseChange(hn)
+      if (hn) nextHouse = hn
     }
+    applyStreetHouse(nextStreet, nextHouse)
     await onSelectResult(r)
   }
 
@@ -208,7 +222,10 @@ export function WizardStreetTypeahead({
             value={street || ''}
             disabled={disabled}
             placeholder={t('wizardGeo_streetOnlyPh')}
-            autoComplete="street-address"
+            // Custom typeahead — browser address autofill (Samsung/Chrome) shows
+            // unrelated saved places e.g. "Main Building, Thaweewong Road…".
+            autoComplete="off"
+            name="listing-street-manual"
             data-testid="wizard-street-input"
             onChange={(e) => {
               onStreetChange(e.target.value)
@@ -256,6 +273,7 @@ export function WizardStreetTypeahead({
             disabled={disabled}
             placeholder={t('wizardGeo_housePh')}
             autoComplete="off"
+            name="listing-house-manual"
             inputMode="text"
             data-testid="wizard-house-input"
             onChange={(e) => {

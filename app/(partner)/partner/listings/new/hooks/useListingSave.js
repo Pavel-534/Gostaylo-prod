@@ -28,7 +28,7 @@ import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publ
 import { ensureProvisionalCityCode } from '@/lib/geo/wizard-ensure-provisional'
 import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js'
 import { isConciergeImportListing } from '@/lib/partner/concierge-listing-ui.js'
-import { partnerListingsKeys } from '@/lib/hooks/use-partner-listings'
+import { refreshPartnerListingsAfterSave } from '@/lib/hooks/use-partner-listings'
 
 function showListingModerationToast(t) {
   toast.success(t('partnerEdit_statusPending'), {
@@ -140,11 +140,20 @@ function coordsPayloadFromForm(geoForm) {
   return {}
 }
 
-async function invalidatePartnerListingsCache(queryClient) {
+async function invalidatePartnerListingsCache(queryClient, opts = {}) {
   try {
-    await queryClient.invalidateQueries({ queryKey: partnerListingsKeys.all })
+    await refreshPartnerListingsAfterSave(queryClient, opts)
   } catch {
     /* ignore */
+  }
+}
+
+function listingsCacheOptsFromForm(listingId, geoForm) {
+  const n = parseFloat(String(geoForm?.basePriceThb ?? '').replace(',', '.'))
+  return {
+    listingId: listingId || null,
+    basePriceAssetAmount: Number.isFinite(n) ? n : null,
+    baseCurrency: geoForm?.baseCurrency || null,
   }
 }
 
@@ -245,7 +254,7 @@ export function useListingSave() {
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
           await patchPartnerListingCoverImage(editId, newCover)
         }
-        await invalidatePartnerListingsCache(queryClient)
+        await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
         clearWizardDraft()
         router.push('/partner/listings')
       } else {
@@ -353,7 +362,7 @@ export function useListingSave() {
           await patchPartnerListingCoverImage(editId, newCover)
         }
         clearWizardDraft()
-        await invalidatePartnerListingsCache(queryClient)
+        await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
         if (soft) {
           toast.success(t('listingQuality_softPublishOk'), {
             description: t('listingQuality_softPublishOkHint'),
@@ -569,7 +578,7 @@ export function useListingSave() {
           }
           clearWizardDraft()
           toast.success(t('draftSaved'))
-          await invalidatePartnerListingsCache(queryClient)
+          await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
           router.push('/partner/listings')
         } else {
           toast.error(data.error || t('failedToLoadListing'))
@@ -610,7 +619,7 @@ export function useListingSave() {
           }
           clearWizardDraft()
           toast.success(t('draftSaved'))
-          await invalidatePartnerListingsCache(queryClient)
+          await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(lid, geoForm))
           if (lid) {
             router.replace(`/partner/listings/new?edit=${encodeURIComponent(lid)}`)
           } else {

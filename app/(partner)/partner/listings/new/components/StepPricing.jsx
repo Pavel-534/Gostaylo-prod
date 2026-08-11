@@ -1,14 +1,9 @@
 'use client'
 
 import { memo, useEffect, useMemo } from 'react'
-import { DayPicker } from 'react-day-picker'
-import { format } from 'date-fns'
-import { DollarSign, Info } from 'lucide-react'
-import { toast } from 'sonner'
-import { getSeasonColor } from '@/lib/price-calculator'
+import { Info } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -16,7 +11,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
 import { PartnerCancellationPolicyPreview } from '@/components/partner/wizard/PartnerCancellationPolicyPreview'
 import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/WizardPartnerEarningsCalculator'
-import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 import { getCurrencySymbol } from '@/lib/currency'
 import { LISTING_BASE_CURRENCIES } from '@/lib/finance/currency-codes'
 import { getDefaultListingBaseCurrency } from '@/lib/listing/listing-asset-currency'
@@ -42,7 +36,6 @@ function StepPricingInner() {
     t,
     tr,
     formData,
-    setFormData,
     updateField,
     updateMetadata,
     updateDurationDiscountPercent,
@@ -50,13 +43,10 @@ function StepPricingInner() {
     baseCurrencyLocked,
     transportWizard,
     toursWizard,
-    SEASON_TYPES,
-    newSeason,
-    setNewSeason,
-    dayPickerLocale,
     language,
     stepFieldErrors,
     serverListing,
+    setCurrentStep,
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
   const countryCode = String(formData.country || '').trim().toUpperCase().slice(0, 2)
@@ -71,7 +61,6 @@ function StepPricingInner() {
     updateField('baseCurrency', currencyFromCountry)
   }, [currencyFromCountry, baseCurrencyLocked, formData.baseCurrency, updateField])
 
-  const { formatInListingBase } = useStorefrontDisplayFx()
   const currencySymbol = getCurrencySymbol(baseCurrency)
   const errPrice = wizardFieldHasError(stepFieldErrors, 'basePriceThb')
   const hasIcal = listingHasEnabledIcalSources(serverListing?.sync_settings || serverListing?.syncSettings)
@@ -343,164 +332,23 @@ function StepPricingInner() {
             rentalPeriodDays={transportWizard}
           />
         ) : null}
-        <div className="space-y-3">
-          <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
-          <p className="text-sm leading-relaxed text-slate-500">{t('seasonalPricingDesc')}</p>
-          <div className="mt-1 space-y-5">
-            <div
-              className={cn(
-                WIZARD_MOBILE_FLAT_INSET_CLASS,
-                'min-w-0 w-full sm:bg-slate-50/90',
-              )}
-            >
-              <Label className="mb-2 block text-sm font-medium text-slate-800">{t('wizardDateRange')}</Label>
-              <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                <DayPicker
-                  mode="range"
-                  selected={newSeason.dateRange}
-                  onSelect={(range) =>
-                    setNewSeason((s) => ({
-                      ...s,
-                      dateRange: range || { from: null, to: null },
-                    }))
-                  }
-                  locale={dayPickerLocale}
-                  className="rdp-root mx-auto !m-0 !p-0 max-w-full [--rdp-day-width:1.85rem] [--rdp-day-height:1.85rem] [--rdp-day_button-width:1.7rem] [--rdp-day_button-height:1.7rem] [--rdp-nav_button-width:1.75rem] [--rdp-nav_button-height:1.75rem] sm:[--rdp-day-width:2.5rem] sm:[--rdp-day-height:2.5rem] sm:[--rdp-day_button-width:2.35rem] sm:[--rdp-day_button-height:2.35rem] [&_.rdp-month_caption]:max-w-full [&_.rdp-month_caption]:truncate [&_.rdp-weekday]:text-[0.6rem] sm:[&_.rdp-weekday]:text-xs [&_.rdp-day]:text-xs sm:[&_.rdp-day]:text-sm"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-              <div className="min-w-0 space-y-1.5">
-                <Label className="block text-xs font-medium text-slate-600">{t('seasonLabel')}</Label>
-                <Input
-                  placeholder={t('seasonLabelExamplePlaceholder')}
-                  value={newSeason.label}
-                  onChange={(e) => setNewSeason((s) => ({ ...s, label: e.target.value }))}
-                  className="h-11 w-full"
-                />
-              </div>
-              <div className="min-w-0 space-y-1.5">
-                <Label className="block text-xs font-medium text-slate-600">{t('seasonTypeLabel')}</Label>
-                <Select
-                  value={newSeason.seasonType}
-                  onValueChange={(v) => setNewSeason((s) => ({ ...s, seasonType: v }))}
-                >
-                  <SelectTrigger className="h-11 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEASON_TYPES.map((st) => (
-                      <SelectItem key={st.value} value={st.value}>
-                        {st.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="min-w-0 space-y-1.5">
-                <Label className="block text-xs font-medium text-slate-600">
-                  {tr('pricePerDayShort', { unit: currencySymbol })}
-                </Label>
-                <Input
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="15000"
-                  value={newSeason.priceDaily}
-                  onChange={(e) => setNewSeason((s) => ({ ...s, priceDaily: sanitizeThbDigits(e.target.value) }))}
-                  className="h-11 w-full"
-                />
-              </div>
-              <div className="min-w-0 space-y-1.5">
-                <Label className="block text-xs font-medium text-slate-600">
-                  {tr('pricePerMonthOptional', { unit: currencySymbol })}
-                </Label>
-                <Input
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="—"
-                  value={newSeason.priceMonthly}
-                  onChange={(e) => setNewSeason((s) => ({ ...s, priceMonthly: sanitizeThbDigits(e.target.value) }))}
-                  className="h-11 w-full"
-                />
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              type="button"
-              className="h-11 w-full sm:h-10 sm:w-auto"
-              onClick={() => {
-                const from = newSeason.dateRange?.from
-                const to = newSeason.dateRange?.to || newSeason.dateRange?.from
-                if (newSeason.label && from && to && newSeason.priceDaily) {
-                  setFormData((prev) => ({
-                    ...prev,
-                    seasonalPricing: [
-                      ...(prev.seasonalPricing || []),
-                      {
-                        id: `s-${Date.now()}`,
-                        label: newSeason.label,
-                        startDate: format(from, 'yyyy-MM-dd'),
-                        endDate: format(to, 'yyyy-MM-dd'),
-                        priceDaily: parseFloat(newSeason.priceDaily) || 0,
-                        priceMonthly: newSeason.priceMonthly ? parseFloat(newSeason.priceMonthly) : null,
-                        seasonType: newSeason.seasonType,
-                      },
-                    ],
-                  }))
-                  setNewSeason({
-                    label: '',
-                    dateRange: { from: null, to: null },
-                    priceDaily: '',
-                    priceMonthly: '',
-                    seasonType: 'NORMAL',
-                  })
-                  toast.success(t('seasonAddedToast'))
-                } else {
-                  toast.error(t('seasonFillErrorToast'))
-                }
-              }}
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              {t('addSeason')}
-            </Button>
-            {(formData.seasonalPricing || []).length > 0 && (
-              <div className="mt-3 space-y-2">
-                {(formData.seasonalPricing || []).map((s, i) => {
-                  const colors = getSeasonColor(s.seasonType || 'NORMAL')
-                  return (
-                    <div
-                      key={s.id || i}
-                      className={`flex flex-col gap-2 rounded-lg border py-2.5 px-3 sm:flex-row sm:items-center sm:justify-between ${colors.bg} ${colors.border}`}
-                    >
-                      <span className="text-sm leading-snug tabular-nums">
-                        {s.label} ({s.seasonType || 'NORMAL'}): {s.startDate} — {s.endDate} •{' '}
-                        {formatInListingBase(s.priceDaily, baseCurrency)}
-                        {transportWizard ? t('perBookingDayShort') : t('perNightShort')}
-                        {s.priceMonthly
-                          ? ` • ${formatInListingBase(s.priceMonthly, baseCurrency)}${t('perMonthShort')}`
-                          : ''}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        className="shrink-0 self-end text-red-600 hover:text-red-700 sm:self-auto"
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i),
-                          }))
-                        }
-                      >
-                        {t('removeSeason')}
-                      </Button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+        <div
+          className={cn(
+            WIZARD_MOBILE_FLAT_INSET_CLASS,
+            'space-y-2 rounded-2xl border border-slate-200/90 p-4 sm:bg-slate-50/80',
+          )}
+          data-testid="wizard-pricing-seasons-pointer"
+        >
+          <p className="text-sm font-medium text-slate-800">{t('seasonalPricing')}</p>
+          <p className="text-sm leading-relaxed text-slate-600">{t('wizardPricing_seasonsOnCalendarStep')}</p>
+          <button
+            type="button"
+            className="min-h-[44px] text-sm font-semibold text-brand underline-offset-2 hover:underline"
+            onClick={() => setCurrentStep?.(5)}
+            data-testid="wizard-pricing-go-calendar"
+          >
+            {t('wizardPricing_goToCalendarStep')}
+          </button>
         </div>
       </div>
     </TooltipProvider>

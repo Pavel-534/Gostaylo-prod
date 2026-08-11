@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.92 | 2026-08-11 | Wizard 6 steps: Calendar = step 5 (OTA/blocks/seasons); Preview = 6; no global calendar tail | Done |
+| 200.91 | 2026-08-11 | Partner listings RQ: fresh price after wizard save (refetchType all + refetchOnMount + L1 seed) | Done |
+| 200.90 | 2026-08-11 | Wizard: clearing street no longer bleeds house number into street field | Done |
 | 200.89 | 2026-08-11 | Wizard street+house one row; street suggest without house needle; auto-pin on house blur | Done |
 | 200.88 | 2026-08-11 | FX markup for pay=THB × base≠THB (+ currency matrix); intent/capture/price_paid include THB surcharge; partner netto untouched | Done |
 | 200.87 | 2026-08-11 | Wizard edit save: invalidate list cache (price), keep street/house in metadata, redirect to listings | Done |

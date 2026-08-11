@@ -47,6 +47,11 @@ import { WizardStreetTypeahead } from './WizardStreetTypeahead'
 import { cn } from '@/lib/utils'
 import { wizardFieldHasError } from '../lib/wizard-field-errors'
 import { getCurrencySymbol } from '@/lib/currency'
+import {
+  composeWizardStreetHouseAddress,
+  resolveWizardHouseDisplay,
+  resolveWizardStreetDisplay,
+} from '@/lib/geo/wizard-street-house-display'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -259,34 +264,38 @@ function StepLocationInner() {
     }
   }
 
-  const streetValue = useMemo(() => {
-    const fromMeta = String(formData.metadata?.street || '').trim()
-    if (fromMeta) return fromMeta
-    const addr = String(formData.address || '').trim()
-    if (!addr) return ''
-    // Legacy: single address field without metadata.street
-    if (!formData.metadata?.house_number) return addr.split(',')[0]?.trim() || addr
-    return addr.split(',')[0]?.trim() || ''
-  }, [formData.address, formData.metadata?.street, formData.metadata?.house_number])
+  const streetValue = useMemo(
+    () =>
+      resolveWizardStreetDisplay({
+        address: formData.address,
+        metadata: formData.metadata,
+      }),
+    [formData.address, formData.metadata],
+  )
 
-  const houseValue = useMemo(() => {
-    const fromMeta = String(formData.metadata?.house_number || '').trim()
-    if (fromMeta) return fromMeta
-    const addr = String(formData.address || '').trim()
-    if (!addr || formData.metadata?.street) return ''
-    const parts = addr.split(',').map((p) => p.trim()).filter(Boolean)
-    return parts.length > 1 ? parts.slice(1).join(', ') : ''
-  }, [formData.address, formData.metadata?.street, formData.metadata?.house_number])
+  const houseValue = useMemo(
+    () =>
+      resolveWizardHouseDisplay({
+        address: formData.address,
+        metadata: formData.metadata,
+      }),
+    [formData.address, formData.metadata],
+  )
 
-  const syncStreetHouse = (street, house) => {
-    updateMetadata('street', street)
-    updateMetadata('house_number', house)
-    const composed = [street, house]
-      .map((s) => String(s || '').trim())
-      .filter(Boolean)
-      .join(', ')
-    updateField('address', composed)
-  }
+  const syncStreetHouse = useCallback(
+    (street, house) => {
+      setFormData((prev) => ({
+        ...prev,
+        address: composeWizardStreetHouseAddress(street, house),
+        metadata: {
+          ...(prev.metadata && typeof prev.metadata === 'object' ? prev.metadata : {}),
+          street,
+          house_number: house,
+        },
+      }))
+    },
+    [setFormData],
+  )
 
   const cityViewportLat =
     mapCenter?.[0] ??
@@ -666,6 +675,7 @@ function StepLocationInner() {
             t={t}
             onStreetChange={(v) => syncStreetHouse(v, houseValue)}
             onHouseChange={(v) => syncStreetHouse(streetValue, v)}
+            onStreetHouseChange={syncStreetHouse}
             onSelectResult={selectGeocodeResult}
           />
         </div>

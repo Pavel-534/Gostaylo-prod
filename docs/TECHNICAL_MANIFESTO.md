@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.72 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.89** street/house row UX.
+> **Version**: 13.2.75 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.92** wizard 6 steps (calendar).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,25 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.92 — Wizard = 6 steps (Calendar dedicated)
+
+- **IA:** 1 Basics → 2 Location → 3 Photos → 4 Pricing → **5 Calendar** → **6 Preview** (`LISTING_WIZARD_STEP_COUNT = 6`).
+- **Why:** edit mode mounted `StepCalendarSection` under every step; Pricing also had DayPicker seasons → duplicate UX. Seasons SSOT = `SeasonalPriceManager` on step 5 only.
+- Pricing keeps a pointer to step 5; calendar optional (no Next blockers); `?highlight=calendar` / `?step=calendar` → step 5.
+- Tests: `__tests__/stage200-92-wizard-six-steps.test.js`.
+
+### Stage 200.91 — Partner list price updates immediately after wizard save
+
+- **Why stale:** global RQ defaults `staleTime` 5m + `refetchOnMount: false`; wizard `invalidateQueries` only refetched **active** queries — list page was unmounted, so cache stayed old until ~5m / focus.
+- **Fix:** `refreshPartnerListingsAfterSave` seeds L1 `basePriceAsset` + `invalidateQueries({ refetchType: 'all' })`; `usePartnerListings` sets `refetchOnMount: true`, `staleTime: 60s` (override shared defaults for this query only).
+- Street input: `autoComplete="off"` — Samsung/Chrome address autofill was showing unrelated saved places (e.g. Thaweewong) over our typeahead.
+
+### Stage 200.90 — Clear street without house number bleed
+
+- **Bug:** empty `metadata.street` was treated as absent → street input fell back to `address` which after clear was only `"12"` (house).
+- **Fix:** `lib/geo/wizard-street-house-display.js` — respect explicit empty street/house; `address` never composed as house-only; atomic `syncStreetHouse` via `setFormData`.
+- Tests: `__tests__/stage200-90-street-clear-house-bleed.test.js`.
 
 ### Stage 200.89 — Wizard street + house one row; suggest while typing
 
