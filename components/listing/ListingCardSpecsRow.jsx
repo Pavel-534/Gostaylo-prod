@@ -21,6 +21,11 @@ import {
 import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import {
+  pluralizeBedrooms,
+  pluralizeBathrooms,
+  formatUpToGuestsLabel,
+} from '@/lib/i18n/pluralize'
+import {
   resolveListingCardSpecVertical,
   getListingCardBedrooms,
   getListingCardBathrooms,
@@ -107,9 +112,7 @@ export function ListingCardSpecsRow({
         <div className="flex items-center gap-2" title={getUIText('bedrooms', language)}>
           <BedDouble className={iconCls} aria-hidden />
           <span>
-            {isPdp
-              ? `${bedrooms} ${getUIText('listingInfo_bedroomsWord', language)}`
-              : bedrooms}
+            {isPdp ? `${bedrooms} ${pluralizeBedrooms(bedrooms, language)}` : bedrooms}
           </span>
         </div>
       )}
@@ -117,7 +120,7 @@ export function ListingCardSpecsRow({
         <div className="flex items-center gap-2" title={getUIText('bathrooms', language)}>
           <Bath className={iconCls} aria-hidden />
           <span>
-            {isPdp ? `${bathrooms} ${getUIText('bathrooms', language)}` : bathrooms}
+            {isPdp ? `${bathrooms} ${pluralizeBathrooms(bathrooms, language)}` : bathrooms}
           </span>
         </div>
       )}
@@ -224,7 +227,7 @@ export function ListingCardSpecsRow({
             {isPdp && vertical === 'transport'
               ? `${cap} ${getUIText('seats', language)}`
               : isPdp && vertical !== 'transport'
-                ? getUIText('listingUpToGuests', language).replace(/\{\{n\}\}/g, String(cap))
+                ? formatUpToGuestsLabel(cap, language)
                 : cap}
           </span>
         </div>

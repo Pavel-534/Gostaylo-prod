@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.82 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.99** stay arrival hours.
+> **Version**: 13.2.83 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.100** safe polish (plurals / trust / cancel title).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.100 — Safe polish (plurals, trust, cancellation title)
+
+- PDP specs: `pluralizeBedrooms` / `pluralizeBathrooms` / `formatUpToGuestsLabel` (`lib/i18n/pluralize.js`) — «1 спальня», не «1 спален».
+- Pricing: cancellation uses `PARTNER_SECTION_TITLE_CLASS`.
+- PDP sticky trust compact: `text-xs leading-relaxed` (was `text-[10px]`).
+- Geo helpers (RU/EN): slightly shorter one-liners.
+- Tests: `__tests__/stage200-100-safe-polish.test.js`.
 
 ### Stage 200.99 — Stay check-in/out times + soft flexibility (no money / no calendar)
 

@@ -30,7 +30,10 @@ import {
 } from '@/lib/ical/instant-booking-ical-policy.js'
 import { getSiteDisplayName } from '@/lib/site-url.js'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
-import { PARTNER_FIELD_LABEL_CLASS } from '@/lib/ui/partner-section-rhythm'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 function StepPricingInner() {
   const w = useListingWizard()
@@ -252,7 +255,7 @@ function StepPricingInner() {
         <PartnerSectionDivider />
 
         <div className="space-y-2" data-partner-section="pricing-cancellation">
-          <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('partnerEdit_cancellationPolicy')}</Label>
+          <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerEdit_cancellationPolicy')}</h3>
           <Select
             value={formData.cancellationPolicy || 'moderate'}
             onValueChange={(value) => updateField('cancellationPolicy', value)}
