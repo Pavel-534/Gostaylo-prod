@@ -1,6 +1,6 @@
 'use client'
 
-import { LogIn, LogOut, ScrollText, Home, ShieldCheck } from 'lucide-react'
+import { LogIn, LogOut, ScrollText, Home, ShieldCheck, MessageCircle } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import {
   getListingGoodToKnow,
@@ -54,6 +54,14 @@ export function ListingStayPolicies({ listing, language = 'ru' }) {
     })
   }
 
+  const flexNotes = []
+  if (info.earlyCheckInOnRequest) {
+    flexNotes.push(t('listingGoodToKnow_earlyOnRequest'))
+  }
+  if (info.lateCheckOutOnRequest) {
+    flexNotes.push(t('listingGoodToKnow_lateOnRequest'))
+  }
+
   const showPolicyBlock = Boolean(policy && bodyKey)
   const showRulesBlock = info.hasHouseRules
   const showUnifiedCard = showRulesBlock || showPolicyBlock
@@ -83,6 +91,29 @@ export function ListingStayPolicies({ listing, language = 'ru' }) {
               </div>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {flexNotes.length > 0 ? (
+        <div
+          className={cn(
+            MOBILE_FLAT_INSET_CLASS,
+            'flex items-start gap-3 max-sm:py-3 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-slate-50/80 sm:p-4',
+          )}
+          data-testid="listing-arrival-flexibility"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+            <MessageCircle className="h-5 w-5 text-brand" aria-hidden />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-medium text-slate-900">{t('listingGoodToKnow_flexTitle')}</p>
+            <ul className="space-y-1 text-sm leading-relaxed text-slate-600">
+              {flexNotes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+            <p className="text-xs leading-relaxed text-slate-500">{t('listingGoodToKnow_flexFooter')}</p>
+          </div>
         </div>
       ) : null}
 
@@ -150,4 +181,3 @@ export function ListingGuestPolicies({ listing, language = 'ru' }) {
 
   return <ListingCancellationPolicy policy={policy} language={language} />
 }
-

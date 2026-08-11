@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.81 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.98** wizard action bar vertical balance.
+> **Version**: 13.2.82 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.99** stay arrival hours.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.99 — Stay check-in/out times + soft flexibility (no money / no calendar)
+
+- **Why:** partners had no UI for arrival hours; PDP already read `metadata.check_in_time` / `check_out_time`.
+- **Wizard (stay only):** `WizardStayArrivalHours` — times + «early/late on request» switches (chat signal only).
+- **PDP:** `getListingGoodToKnow` + `ListingStayPolicies` show flexibility note; **no** price/ledger/calendar change.
+- Whitelist: `METADATA_KEYS_ALWAYS_ALLOWED` adds arrival keys.
+- Tests: `__tests__/stage200-99-stay-arrival-hours.test.js`.
 
 ### Stage 200.98 — Wizard action bar vertical balance
 

@@ -14,6 +14,7 @@ import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
 import { getWizardStep1TransportFields } from '@/lib/config/category-form-schema'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { WizardSpecsSection } from './WizardSpecsSection'
+import { WizardStayArrivalHours } from './WizardStayArrivalHours'
 import { PartnerCategoryPickerTwoStep } from '@/components/partner/PartnerCategoryPickerTwoStep'
 import {
   WIZARD_STEP_ROOT_CLASS,
@@ -34,6 +35,7 @@ import {
   PARTNER_FIELD_LABEL_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
+import { readStayArrivalFromMetadata } from '@/lib/listing/stay-arrival-hours'
 
 function pickupInstructionsPlaceholder(listingServiceType, t) {
   switch (listingServiceType) {
@@ -80,9 +82,8 @@ function StepGeneralInfoInner() {
   const checkInPhotosRef = useRef(null)
   const [checkInPhotosUploading, setCheckInPhotosUploading] = useState(false)
 
-  const hasCheckInContent =
-    String(formData.metadata?.check_in_instructions ?? '').trim().length > 0 ||
-    (Array.isArray(formData.metadata?.check_in_photos) && formData.metadata.check_in_photos.length > 0)
+  const arrival = readStayArrivalFromMetadata(formData.metadata)
+  const isStayService = formData.listingServiceType === 'stay'
 
   const errService = wizardFieldHasError(stepFieldErrors, 'listingServiceType')
   const errCategory = wizardFieldHasError(stepFieldErrors, 'categoryId')
@@ -315,13 +316,34 @@ function StepGeneralInfoInner() {
         </div>
       </section>
 
+      {isStayService ? (
+        <>
+          <PartnerSectionDivider />
+          <WizardStayArrivalHours
+            t={t}
+            checkInTime={arrival.checkInTime}
+            checkOutTime={arrival.checkOutTime}
+            earlyCheckInOnRequest={arrival.earlyCheckInOnRequest}
+            lateCheckOutOnRequest={arrival.lateCheckOutOnRequest}
+            onCheckInTime={(v) => updateMetadata('check_in_time', v || null)}
+            onCheckOutTime={(v) => updateMetadata('check_out_time', v || null)}
+            onEarlyCheckIn={(v) => updateMetadata('early_check_in_on_request', v)}
+            onLateCheckOut={(v) => updateMetadata('late_check_out_on_request', v)}
+          />
+        </>
+      ) : null}
+
       {/* Section C — check-in / handoff (collapsed by default unless already filled) */}
       {formData.listingServiceType ? (
         <>
           <PartnerSectionDivider />
         <details
           className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'open:max-sm:pb-0 open:sm:pb-5')}
-          defaultOpen={hasCheckInContent}
+          defaultOpen={
+            String(formData.metadata?.check_in_instructions ?? '').trim().length > 0 ||
+            (Array.isArray(formData.metadata?.check_in_photos) &&
+              formData.metadata.check_in_photos.length > 0)
+          }
         >
           <summary
             className={cn(
