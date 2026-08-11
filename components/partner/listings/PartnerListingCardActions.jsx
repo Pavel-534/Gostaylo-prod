@@ -12,7 +12,7 @@ import {
   Calendar,
   DollarSign,
   Edit,
-  ExternalLink,
+  Eye,
   ImageIcon,
   Loader2,
   MoreHorizontal,
@@ -185,8 +185,9 @@ export function PartnerListingCardActions({
           </SheetHeader>
           <div className="flex flex-col gap-1.5 pb-2">
             <Button variant="outline" className="min-h-11 w-full justify-start" asChild>
-              <Link href={`/listings/${listing.id}`} target="_blank" onClick={() => setMoreOpen(false)}>
-                <ExternalLink className="mr-2 h-4 w-4" />
+              {/* Stage 200.96 — same-tab so PWA stays in-app (no target=_blank). */}
+              <Link href={`/listings/${listing.id}`} onClick={() => setMoreOpen(false)}>
+                <Eye className="mr-2 h-4 w-4" />
                 {t('partnerListings_viewOnSite')}
               </Link>
             </Button>

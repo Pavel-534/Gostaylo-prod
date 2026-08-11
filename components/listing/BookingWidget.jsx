@@ -12,6 +12,7 @@ import {
   formatDisplayPriceInCurrency,
   displayPriceRawForTest,
 } from '@/lib/pricing/fx-display-client'
+import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { getUIText } from '@/lib/translations'
 import { parseDurationDiscountTiers } from '@/lib/listing/duration-discount-tiers.js'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
@@ -95,6 +96,15 @@ function HeroPriceHeadline({
   const hero = useHeroGuestPrice(listing, priceCalc)
 
   // Stage 200.8 — guest sees total only; detailed math lives in BookingPriceBreakdown on request.
+  // Stage 200.96 — same listing currency: no retail FX round-trip (matches CardPriceDisplay / checkout).
+  const sameCurrencyLabel =
+    hero.mode === 'perNight'
+      ? formatSameCurrencyGuestDisplay(listing, currency, language)
+      : null
+  const priceLabel =
+    sameCurrencyLabel ||
+    formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)
+
   const periodHint =
     hero.mode === 'stay' && hero.nights > 0
       ? formatRentalSpanLabel(hero.nights, rentalPeriodMode === 'day' ? 'day' : 'night', language)
@@ -108,9 +118,13 @@ function HeroPriceHeadline({
         data-test-hero-mode={hero.mode}
         data-test-hero-nights={String(hero.nights || 0)}
         data-test-hero-payable="1"
-        data-test-raw-value={displayPriceRawForTest(hero.amountThb, currency, exchangeRates)}
+        data-test-raw-value={
+          sameCurrencyLabel
+            ? String(sameCurrencyLabel)
+            : displayPriceRawForTest(hero.amountThb, currency, exchangeRates)
+        }
       >
-        {formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)}
+        {priceLabel}
       </div>
       <p
         className={cn('text-slate-500 leading-snug', compact ? 'text-[11px] sm:text-xs' : 'text-sm')}

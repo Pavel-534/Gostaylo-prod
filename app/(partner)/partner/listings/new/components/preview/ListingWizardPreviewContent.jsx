@@ -40,7 +40,14 @@ export function useWizardPreviewListing() {
       rating: 0,
       reviewsCount: 0,
       reviews_count: 0,
-      metadata: formData.metadata,
+      // Stage 200.96 — keep metadata.base_price_asset in sync with live form L1
+      metadata: {
+        ...(formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}),
+        base_price_asset: {
+          amount: Number(formData.basePriceThb) || 0,
+          currency: String(formData.baseCurrency || 'THB').toUpperCase(),
+        },
+      },
       isFeatured: false,
       is_featured: false,
     }),
