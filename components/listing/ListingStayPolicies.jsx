@@ -23,7 +23,15 @@ export function ListingStayPolicies({ listing, language = 'ru' }) {
   if (!info.isStayVertical) return null
   if (!info.hasContent && !policy) return null
 
-  const t = (key) => getUIText(key, language)
+  const uiCtx = {
+    listingCategorySlug: listing?.categorySlug || listing?.category?.slug || listing?.category_slug || '',
+    wizardProfile:
+      listing?.wizardProfile ||
+      listing?.category?.wizard_profile ||
+      listing?.category?.wizardProfile ||
+      null,
+  }
+  const t = (key) => getUIText(key, language, uiCtx)
 
   const tiles = []
 
