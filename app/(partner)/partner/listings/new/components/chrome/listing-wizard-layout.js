@@ -19,12 +19,12 @@ export const WIZARD_MOBILE_CHROME_CONTENT_GAP = '0.75rem'
 
 /**
  * Fixed bottom action bar content height (py-3 + min-h-11 CTAs).
- * Stage 200.95 — was 5rem; short forms still sat under sticky CTA (and Tailwind env() comma broke pb).
+ * Stage 200.97 — back to true bar height; clearance only on content (no double pad).
  */
-export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '6.5rem'
+export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'
 
-/** Extra scroll padding above the action bar (Stage 200.95). */
-export const WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '1.25rem'
+/** Extra scroll padding above the action bar — tight “в притык” (Stage 200.97). */
+export const WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '0.5rem'
 
 /**
  * DOM marker on WORKSPACE_SCROLL for listing wizard routes.
@@ -36,18 +36,21 @@ export const LISTING_WIZARD_SCROLL_ATTR = 'data-listing-wizard-scroll'
  * Tailwind utilities derived from heights above (SSOT).
  * Note: do NOT put a comma inside env() in arbitrary values — Tailwind treats `,` as a
  * class separator and silently drops the utility (Stage 200.95 root cause).
+ *
+ * Stage 200.97: clearance lives on content only. Scrollport gets scroll-padding
+ * (focus) but NOT padding-bottom — that double-pad left a huge void after short steps.
  */
 export const WIZARD_MOBILE_CHROME_PT_CLASS =
   'max-sm:pt-[calc(5.75rem+0.75rem)]'
 export const WIZARD_MOBILE_CONTENT_PB_CLASS =
-  'max-sm:pb-[calc(6.5rem+1.25rem+env(safe-area-inset-bottom))]'
+  'max-sm:pb-[calc(5rem+0.5rem+env(safe-area-inset-bottom))]'
 
 /**
- * Applied on partner WORKSPACE_SCROLL when on listing wizard — scroll-padding so focus /
- * programmatic scroll lands above fixed chrome + sticky CTA (Stage 200.95).
+ * Applied on partner WORKSPACE_SCROLL when on listing wizard — scroll-padding only
+ * (Stage 200.97). Do not add padding-bottom here.
  */
 export const WIZARD_WORKSPACE_SCROLL_PAD_CLASS =
-  'max-sm:[scroll-padding-top:calc(5.75rem+0.75rem)] max-sm:[scroll-padding-bottom:calc(6.5rem+1.25rem+env(safe-area-inset-bottom))]'
+  'max-sm:[scroll-padding-top:calc(5.75rem+0.75rem)] max-sm:[scroll-padding-bottom:calc(5rem+0.5rem+env(safe-area-inset-bottom))]'
 
 /** Fixed mobile wizard chrome — directly below AppHeader. */
 export const WIZARD_MOBILE_CHROME_POSITION_CLASS =

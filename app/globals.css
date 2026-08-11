@@ -511,18 +511,12 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
 }
 
 /**
- * Stage 200.95 — listing wizard scrollport.
- * Sticky mobile CTA overlays the scrollport; short forms must remain scrollable above it.
- * Heights mirror WIZARD_MOBILE_* in listing-wizard-layout.js (CSS fallback if Tailwind
- * arbitrary env() utilities are purged or misparsed).
+ * Stage 200.95 / 200.97 — listing wizard scrollport.
+ * Sticky mobile CTA overlays the scrollport. Use scroll-padding for focus/scroll-into-view.
+ * Stage 200.97: do NOT set padding-bottom here — it stacked with content pb and left a
+ * large void after short steps. Clearance = WIZARD_MOBILE_CONTENT_PB_CLASS only.
  */
 [data-workspace-scroll][data-listing-wizard-scroll] {
   scroll-padding-top: calc(5.75rem + 0.75rem);
-  scroll-padding-bottom: calc(6.5rem + 1.25rem + env(safe-area-inset-bottom, 0px));
-}
-
-@media (max-width: 639px) {
-  [data-workspace-scroll][data-listing-wizard-scroll] {
-    padding-bottom: calc(6.5rem + 1.25rem + env(safe-area-inset-bottom, 0px));
-  }
+  scroll-padding-bottom: calc(5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
 }

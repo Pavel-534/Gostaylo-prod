@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.79 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.96** live preview price + in-app PDP.
+> **Version**: 13.2.80 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.97** tighter wizard rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.97 — Tighter wizard void + clearer mint dividers
+
+- **Void:** removed scrollport `padding-bottom` (it stacked with content pb); content clearance = `5rem+0.5rem` only; step root `space-y-4` on mobile.
+- **Dividers SSOT:** `h-0.5` (2px) + `bg-brand-mint/40` / dark `/55`; wrap `py-3 sm:py-4` (was faint `/20` + `py-5`).
+- Tests: `__tests__/stage200-97-wizard-rhythm-tighten.test.js`.
 
 ### Stage 200.96 — Live wizard preview price + in-app «view on site»
 

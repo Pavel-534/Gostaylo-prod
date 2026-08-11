@@ -20,15 +20,16 @@ describe('Stage 200.94 — partner section rhythm', () => {
       'app/(partner)/partner/listings/new/components/chrome/listing-wizard-layout.js',
     )
     assert.match(layout, /WIZARD_MOBILE_CHROME_HEIGHT = '5\.75rem'/)
-    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_HEIGHT = '6\.5rem'/)
+    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'/)
     assert.match(layout, /pt-\[calc\(5\.75rem\+0\.75rem\)\]/)
-    assert.match(layout, /pb-\[calc\(6\.5rem\+1\.25rem\+env\(safe-area-inset-bottom\)\)\]/)
+    assert.match(layout, /pb-\[calc\(5rem\+0\.5rem\+env\(safe-area-inset-bottom\)\)\]/)
   })
 
   it('PartnerSectionDivider uses mint hairline SSOT', () => {
     const rhythm = read('lib/ui/partner-section-rhythm.js')
     assert.match(rhythm, /PARTNER_SECTION_DIVIDER_CLASS/)
-    assert.match(rhythm, /brand-mint\/20/)
+    assert.match(rhythm, /brand-mint\/40/)
+    assert.match(rhythm, /h-0\.5/)
     assert.match(rhythm, /mx-4/)
     assert.match(rhythm, /PARTNER_SECTION_TITLE_CLASS/)
     assert.match(rhythm, /PARTNER_FIELD_LABEL_CLASS/)

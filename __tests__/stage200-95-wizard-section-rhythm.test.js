@@ -19,9 +19,9 @@ describe('Stage 200.95 — wizard scroll + section rhythm', () => {
     const layout = read(
       'app/(partner)/partner/listings/new/components/chrome/listing-wizard-layout.js',
     )
-    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_HEIGHT = '6\.5rem'/)
-    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '1\.25rem'/)
-    assert.match(layout, /pb-\[calc\(6\.5rem\+1\.25rem\+env\(safe-area-inset-bottom\)\)\]/)
+    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'/)
+    assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '0\.5rem'/)
+    assert.match(layout, /pb-\[calc\(5rem\+0\.5rem\+env\(safe-area-inset-bottom\)\)\]/)
     assert.doesNotMatch(layout, /env\(safe-area-inset-bottom,/)
     assert.match(layout, /LISTING_WIZARD_SCROLL_ATTR/)
     assert.match(layout, /WIZARD_WORKSPACE_SCROLL_PAD_CLASS/)
@@ -35,7 +35,7 @@ describe('Stage 200.95 — wizard scroll + section rhythm', () => {
     assert.match(layout, /isListingWizardRoute && WIZARD_WORKSPACE_SCROLL_PAD_CLASS/)
     const css = read('app/globals.css')
     assert.match(css, /data-listing-wizard-scroll/)
-    assert.match(css, /scroll-padding-bottom:\s*calc\(6\.5rem/)
+    assert.match(css, /scroll-padding-bottom:\s*calc\(5rem/)
   })
 
   it('Basics uses PartnerSectionDivider + title/label SSOT', () => {
