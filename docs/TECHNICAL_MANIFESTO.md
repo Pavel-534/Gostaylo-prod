@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.71 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.88** FX cross-currency THB pay.
+> **Version**: 13.2.72 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.89** street/house row UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.89 — Wizard street + house one row; suggest while typing
+
+- Layout: street + house always one row (street wide, house ~5rem); suggestions under the row (no mobile `flex-col` stack under the street field).
+- **Why empty suggest for «Славянска»:** search needle appended already-typed house (`Славянска, 12`) — Nominatim often returns nothing mid-name. Street typing now searches **street-only**; house field searches `street, house`.
+- House blur / CTA auto-picks top geocode hit so partner need not tap the list twice.
+- Tests: `__tests__/stage200-89-street-house-row.test.js`.
 
 ### Stage 200.88 — FX markup when guest pays THB for non-THB listing
 
