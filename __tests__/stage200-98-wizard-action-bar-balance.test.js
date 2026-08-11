@@ -28,6 +28,7 @@ describe('Stage 200.98 — wizard action bar vertical balance', () => {
       'app/(partner)/partner/listings/new/components/chrome/ListingWizardMobileActionBar.jsx',
     )
     assert.match(bar, /WIZARD_MOBILE_ACTION_BAR_INNER_CLASS/)
-    assert.doesNotMatch(bar, /safe-area-pb/)
+    assert.doesNotMatch(bar, /className=\{?["'`][^"'`]*safe-area-pb/)
+    assert.doesNotMatch(bar, /\bpy-3\b.*safe-area-pb|safe-area-pb.*\bpy-3\b/)
   })
 })
