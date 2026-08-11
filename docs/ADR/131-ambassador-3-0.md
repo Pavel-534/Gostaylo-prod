@@ -76,7 +76,7 @@
 | **RF domestic** | RUB | RUB | **0** (`payCur === baseCur`) | YooKassa **4.3%** от оплаты | **RUB** `TBANK_RU` |
 | **RF cross** | RUB | USD / THB | по профилю, если `pay ≠ base` | по факту PSP | по rail |
 
-**Канон в коде:** `lib/pricing-engine/compute-breakdown.js` — markup только если `payment_currency ≠ listing_base_currency` (и `payment ≠ THB` для блока FX).  
+**Канон в коде:** `lib/pricing-engine/compute-breakdown.js` — markup если `payment_currency ≠ listing_base_currency` (в т.ч. **pay=THB × base≠THB**: surcharge в `total_guest_brutto` THB + `fx_markup_thb`; partner netto без изменений). Stage **200.88**.  
 **Рефералка для «русских»:** гость платит в рублях, хост в РФ получает рубли — **FX-наценка не срабатывает**; cushion владельца = только guest fee − налоги − эквайринг.  
 **Рефералка для Тая с иностранным гостем:** markup **помогает** владельцу, **не урезая** пул амбассадоров.
 

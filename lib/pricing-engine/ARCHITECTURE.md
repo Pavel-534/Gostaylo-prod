@@ -63,6 +63,8 @@ Percents never live in application code — only in **`pricing_profiles`** (seed
 | `raw_fx_rate_map` | No — THB per 1 unit from `getDisplayRateMap({ applyRetailMarkup: false })` |
 | `apply_pot_rounding` | No (default true) |
 
+**FX (Stage 200.88):** markup when `payment_currency ≠ listing_base_currency`. Non-THB pay → worse customer rate; THB pay × foreign base → integer THB surcharge in `total_guest_brutto` + `fx_markup_thb`. Partner netto always from mid subtotal.
+
 **Output: `FinalBreakdown`**
 
 | Field | Partner/guest API | Admin / compliance |

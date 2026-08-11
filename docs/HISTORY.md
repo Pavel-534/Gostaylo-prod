@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.88 | 2026-08-11 | FX markup for pay=THB × base≠THB (+ currency matrix); intent/capture/price_paid include THB surcharge; partner netto untouched | Done |
 | 200.87 | 2026-08-11 | Wizard edit save: invalidate list cache (price), keep street/house in metadata, redirect to listings | Done |
 | 200.86 | 2026-08-11 | Listing price UX: no 100 THB draft seed; draft save without pin; same-currency guest=L1×fee; admin L1 not ฿; currency locked to country | Done |
 | 200.84 | 2026-08-11 | Wizard geo: Nominatim UI lang + street/house→pin (city viewbox); Irkutsk seed; partner map hints | Done |

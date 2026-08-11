@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.70 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.87** wizard save persist.
+> **Version**: 13.2.71 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.88** FX cross-currency THB pay.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.88 — FX markup when guest pays THB for non-THB listing
+
+- **Gap:** `computeFinalBreakdown` / `getCheckoutRateToThb` skipped FX when `pay=THB` even if `base≠THB` (RF listing + THB pay had `fx_markup_thb=0`).
+- **Fix:** markup whenever `payment_currency ≠ listing_base_currency`. THB pay → integer surcharge in `total_guest_brutto` + `fx_markup_thb`; mid payable / partner netto unchanged. Intent (`expectedPaymentIntentAmountThbFromBooking`), capture (`resolveCaptureGuestTotalThb`), `price_paid` / attestation use brutto THB when above mid.
+- Helpers: `lib/pricing-engine/guest-fx-charge.js`. Tests: `__tests__/stage200-88-fx-markup-cross-currency.test.js`.
 
 ### Stage 200.87 — Wizard edit save: price list refresh, street/house persist, redirect
 
