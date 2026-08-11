@@ -1,11 +1,14 @@
 ﻿import Image from 'next/image'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { MapPin, Calendar } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { formatNativeAmountInCurrency, formatThbAmountAsCode, languageToNumberLocale } from '@/lib/currency'
 import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
-import { languageToNumberLocale } from '@/lib/currency'
+import {
+  getSameCurrencyGuestNativeAmount,
+  resolveListingBaseCurrencyCode,
+} from '@/lib/pricing/same-currency-guest-display'
 
 export function ListingContextCard({ listing, checkIn, checkOut, className = '', language = 'ru' }) {
   if (!listing) return null
@@ -18,6 +21,16 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
     resolveImageThumbDisplayUrl(
       listing.coverImage || listing.cover_image || listing.images?.[0],
     ) || '/placeholder.svg'
+
+  const baseCur = resolveListingBaseCurrencyCode(listing) || 'THB'
+  const nativePerNight = getSameCurrencyGuestNativeAmount(listing, baseCur)
+  const priceLabel =
+    nativePerNight != null
+      ? formatNativeAmountInCurrency(nativePerNight * days, baseCur, language)
+      : formatThbAmountAsCode(
+          (listing.basePriceThb || listing.base_price_thb || 0) * days,
+          language,
+        )
 
   return (
     <Card className={`overflow-hidden ${className}`}>
@@ -51,9 +64,7 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
               </span>
             </div>
           )}
-          <div className="mt-2 font-semibold text-brand text-sm">
-            {formatPrice((listing.basePriceThb || listing.base_price_thb || 0) * days, 'THB', { THB: 1 }, language)}
-          </div>
+          <div className="mt-2 font-semibold text-brand text-sm">{priceLabel}</div>
         </div>
       </div>
     </Card>

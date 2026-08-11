@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { DollarSign, Info } from 'lucide-react'
@@ -19,6 +19,7 @@ import { WizardPartnerEarningsCalculator } from '@/components/partner/wizard/Wiz
 import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 import { getCurrencySymbol } from '@/lib/currency'
 import { LISTING_BASE_CURRENCIES } from '@/lib/finance/currency-codes'
+import { getDefaultListingBaseCurrency } from '@/lib/listing/listing-asset-currency'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import { cn } from '@/lib/utils'
@@ -58,6 +59,18 @@ function StepPricingInner() {
     serverListing,
   } = w
   const baseCurrency = String(formData.baseCurrency || 'THB').toUpperCase()
+  const countryCode = String(formData.country || '').trim().toUpperCase().slice(0, 2)
+  const currencyFromCountry = countryCode ? getDefaultListingBaseCurrency(countryCode) : null
+  const currencyLockedToCountry = Boolean(currencyFromCountry) && !baseCurrencyLocked
+
+  // Stage 200.86 — listing currency = country (Airbnb-style); no free THB for RU
+  useEffect(() => {
+    if (!currencyFromCountry) return
+    if (baseCurrencyLocked) return
+    if (String(formData.baseCurrency || '').toUpperCase() === currencyFromCountry) return
+    updateField('baseCurrency', currencyFromCountry)
+  }, [currencyFromCountry, baseCurrencyLocked, formData.baseCurrency, updateField])
+
   const { formatInListingBase } = useStorefrontDisplayFx()
   const currencySymbol = getCurrencySymbol(baseCurrency)
   const errPrice = wizardFieldHasError(stepFieldErrors, 'basePriceThb')
@@ -195,13 +208,16 @@ function StepPricingInner() {
               ) : null}
             </div>
             <Select
-              value={formData.baseCurrency || 'THB'}
+              value={formData.baseCurrency || currencyFromCountry || 'USD'}
               onValueChange={(v) => updateField('baseCurrency', v)}
-              disabled={baseCurrencyLocked}
+              disabled={baseCurrencyLocked || currencyLockedToCountry}
             >
               <SelectTrigger
-                className={cn('mt-2 h-12 w-full', baseCurrencyLocked && 'cursor-not-allowed opacity-60')}
-                aria-disabled={baseCurrencyLocked}
+                className={cn(
+                  'mt-2 h-12 w-full',
+                  (baseCurrencyLocked || currencyLockedToCountry) && 'cursor-not-allowed opacity-60',
+                )}
+                aria-disabled={baseCurrencyLocked || currencyLockedToCountry}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -215,6 +231,8 @@ function StepPricingInner() {
             </Select>
             {baseCurrencyLocked ? (
               <p className="mt-1.5 text-xs leading-relaxed text-amber-800">{t('wizardBaseCurrencyLockedActiveBookings')}</p>
+            ) : currencyLockedToCountry ? (
+              <p className="mt-1 text-xs text-slate-500">{t('wizardBaseCurrencyFromCountryHint')}</p>
             ) : (
               <p className="mt-1 text-xs text-slate-500">{t('wizardBaseCurrencyFxHint')}</p>
             )}

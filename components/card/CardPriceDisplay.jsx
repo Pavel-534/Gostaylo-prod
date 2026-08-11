@@ -11,6 +11,7 @@ import {
   formatDisplayPriceInCurrency,
   displayPriceRawForTest,
 } from '@/lib/pricing/fx-display-client'
+import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { AnimatedPrice } from '@/components/card/AnimatedPrice'
 import {
@@ -73,7 +74,14 @@ export function CardPriceDisplay({
     [nights, spanMode, language],
   )
 
-  const formattedPrice = formatDisplayPriceInCurrency(displayPrice, currency, rates, language)
+  const formattedPrice = useMemo(() => {
+    // Same listing/UI currency: L1 × guest fee, no retail FX (Stage 200.86)
+    if (nights <= 0) {
+      const same = formatSameCurrencyGuestDisplay(listingForPrice, currency, language)
+      if (same) return same
+    }
+    return formatDisplayPriceInCurrency(displayPrice, currency, rates, language)
+  }, [listingForPrice, currency, language, nights, displayPrice, rates])
 
   return (
     <div className="flex items-baseline gap-1.5 flex-wrap">

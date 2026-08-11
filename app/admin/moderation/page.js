@@ -24,6 +24,8 @@ import {
   formatModerationCreatedAt,
   truncateModerationDescription,
 } from '@/lib/admin/moderation-queue.js'
+import { resolveModerationListingPriceDisplay } from '@/lib/admin/moderation-listing-price-display.js'
+import { getCurrencySymbol } from '@/lib/currency'
 import { useI18n } from '@/contexts/i18n-context'
 import { getCategoryName } from '@/lib/translations'
 import { resolveCategoryDisplayName } from '@/lib/category-display-name'
@@ -96,17 +98,18 @@ export default function ModerationPage() {
     void loadData()
   }, [loadData])
 
+  function moderationAssetDraftAmount(listing) {
+    const price = resolveModerationListingPriceDisplay(listing, language)
+    return price.amount != null && price.amount !== '' ? String(price.amount) : ''
+  }
+
   useEffect(() => {
     if (!selectedListing) return
     setEditTextMode(false)
     setDraftTitle(selectedListing.title ?? '')
     setDraftDescription(selectedListing.description ?? '')
     setDraftDistrict(selectedListing.district ?? '')
-    setDraftPrice(
-      selectedListing.base_price_thb != null && selectedListing.base_price_thb !== ''
-        ? String(selectedListing.base_price_thb)
-        : '',
-    )
+    setDraftPrice(moderationAssetDraftAmount(selectedListing))
   }, [selectedListing?.id])
 
   function clearFilters() {
@@ -509,8 +512,8 @@ export default function ModerationPage() {
                         </span>
                       </div>
                       <p className="text-sm font-medium text-indigo-700">
-                        ฿{listing.base_price_thb?.toLocaleString() || 0}/день · {listing.effectiveCommission}%
-                        комиссия
+                        {resolveModerationListingPriceDisplay(listing, language).primary}/день ·{' '}
+                        {listing.effectiveCommission}% комиссия
                       </p>
                     </div>
 
@@ -711,12 +714,7 @@ export default function ModerationPage() {
                             setDraftTitle(selectedListing.title ?? '')
                             setDraftDescription(selectedListing.description ?? '')
                             setDraftDistrict(selectedListing.district ?? '')
-                            setDraftPrice(
-                              selectedListing.base_price_thb != null &&
-                                selectedListing.base_price_thb !== ''
-                                ? String(selectedListing.base_price_thb)
-                                : '',
-                            )
+                            setDraftPrice(moderationAssetDraftAmount(selectedListing))
                             setEditTextMode(false)
                           }}
                         >
@@ -789,7 +787,12 @@ export default function ModerationPage() {
                     <p className="text-lg md:text-xl font-bold text-indigo-700">
                       {editTextMode ? (
                         <span className="flex items-center gap-1">
-                          <span className="text-base font-semibold">฿</span>
+                          <span className="text-base font-semibold">
+                            {getCurrencySymbol(
+                              resolveModerationListingPriceDisplay(selectedListing, language)
+                                .currency,
+                            )}
+                          </span>
                           <Input
                             type="number"
                             min={0}
@@ -797,11 +800,11 @@ export default function ModerationPage() {
                             value={draftPrice}
                             onChange={(e) => setDraftPrice(e.target.value)}
                             className="h-9 max-w-[9rem] bg-white text-base font-bold"
-                            aria-label="Цена в батах"
+                            aria-label="Цена в валюте объявления"
                           />
                         </span>
                       ) : (
-                        <>฿{selectedListing.base_price_thb?.toLocaleString() || 0}</>
+                        <>{resolveModerationListingPriceDisplay(selectedListing, language).primary}</>
                       )}
                     </p>
                     <p className="text-xs text-indigo-600">/день</p>

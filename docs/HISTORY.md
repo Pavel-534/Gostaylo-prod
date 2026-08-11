@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.86 | 2026-08-11 | Listing price UX: no 100 THB draft seed; draft save without pin; same-currency guest=L1×fee; admin L1 not ฿; currency locked to country | Done |
 | 200.84 | 2026-08-11 | Wizard geo: Nominatim UI lang + street/house→pin (city viewbox); Irkutsk seed; partner map hints | Done |
 | 200.83 | 2026-08-10 | Wizard location UX: derived region (no hub Select), street suggest→pin, district optional, RU-ZAB/Chita seed | Done |
 | 189.37 | 2026-08-10 | Push resume: throttled re-check + FCM sync if granted after OS settings | Done |

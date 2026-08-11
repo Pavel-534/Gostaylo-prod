@@ -563,8 +563,11 @@ export function useListingSave() {
             geoForm.longitude === '' || geoForm.longitude == null
               ? null
               : parseFloat(String(geoForm.longitude)),
-          basePriceThb: Math.max(100, parseFloat(String(geoForm.basePriceThb)) || 100),
-          baseCurrency: geoForm.baseCurrency || 'THB',
+          basePriceThb: (() => {
+            const n = parseFloat(String(geoForm.basePriceThb ?? '').replace(',', '.'))
+            return Number.isFinite(n) && n >= 0 ? n : 0
+          })(),
+          baseCurrency: geoForm.baseCurrency || 'USD',
           images: geoForm.images || [],
           metadata: draftMeta,
           instantBooking: geoForm.instantBooking === true,

@@ -306,6 +306,19 @@ export async function PATCH(request, context) {
 
   const publishing =
     body.status === 'PENDING' || body.softPublish === true || body.soft_publish === true;
+  const hasFiniteCoords = (lat, lng) => {
+    const a = lat != null && lat !== '' ? Number(lat) : NaN;
+    const b = lng != null && lng !== '' ? Number(lng) : NaN;
+    return (
+      Number.isFinite(a) &&
+      Number.isFinite(b) &&
+      a >= -90 &&
+      a <= 90 &&
+      b >= -180 &&
+      b <= 180
+    );
+  };
+  const bodyHasCoords = hasFiniteCoords(body.latitude, body.longitude);
   const geoTouched =
     body.country != null ||
     body.region != null ||
@@ -320,7 +333,8 @@ export async function PATCH(request, context) {
       latitude: updateData.latitude !== undefined ? updateData.latitude : existing.latitude,
       longitude: updateData.longitude !== undefined ? updateData.longitude : existing.longitude,
       requireCountry: publishing || body.country != null,
-      requireCoords: publishing || body.latitude !== undefined || body.longitude !== undefined,
+      // Stage 200.86 — null lat/lng on draft saves must not block price/currency PATCH
+      requireCoords: publishing || bodyHasCoords,
     });
     if (!geoAssert.ok) {
       return NextResponse.json(

@@ -96,6 +96,13 @@ function StepPreviewInner() {
               category: { slug: listingCategorySlug },
               basePriceThb: Number(pricingPreview?.base) || 0,
               base_price_thb: Number(pricingPreview?.base) || 0,
+              baseCurrency: formData.baseCurrency || 'THB',
+              base_currency: formData.baseCurrency || 'THB',
+              basePriceAsset: {
+                amount: Number(formData.basePriceThb) || 0,
+                currency: String(formData.baseCurrency || 'THB').toUpperCase(),
+              },
+              sameCurrencyGuestNative: Number(pricingPreview?.storefrontInListingCurrency) || 0,
               guestDisplayPriceThb:
                 pricingPreview?.storefrontGuestDisplayThb ??
                 pricingPreview?.sitePriceSameCurrency ??

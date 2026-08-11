@@ -35,7 +35,8 @@ await BookingSettlementPricing.attachSettlementSnapshotForBooking(bookingId)
 
 - **Клиент:** `fx-display-client.js` — `getDisplayPriceInCurrency`, `formatDisplayPriceInCurrency`, wizard preview (без Supabase).
 - **Сервер:** `fx-display.js` — `getStorefrontDisplayRateMap()` / `getMidMarketDisplayRateMap()`, `parseRetailFxQueryParam`.
-- `computeWizardStorefrontPricePreview` — wizard: guest fee в THB + конвертация в `listingBaseCurrency` через **retail** `rateMap` (не `THB × multiplier` для кросс-валюты).
+- `computeWizardStorefrontPricePreview` — wizard: guest fee; **same listing currency** = L1 × (1+fee) without retail round-trip (Stage 200.86); cross-currency card still uses THB + retail header FX.
+- `formatSameCurrencyGuestDisplay` / `CardPriceDisplay` — when UI currency === `base_currency`, show asset × guest fee (checkout FX markup 0%).
 
 ### API курсов
 

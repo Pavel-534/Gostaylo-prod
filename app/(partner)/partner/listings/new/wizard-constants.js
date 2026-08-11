@@ -20,7 +20,8 @@ export function getDefaultWizardFormData() {
     latitude: null,
     longitude: null,
     basePriceThb: '',
-    baseCurrency: 'THB',
+    /** Set from listing country (Stage 200.86); empty until Location. */
+    baseCurrency: '',
     commissionRate: '',
     minBookingDays: 1,
     maxBookingDays: 90,

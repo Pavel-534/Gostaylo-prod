@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.68 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.84** wizard geo lang + street/house.
+> **Version**: 13.2.69 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.86** listing price currency UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.86 — Listing price currency UX (draft / same-currency / admin)
+
+- **Root cause of «100 THB»:** category draft seeded `Math.max(100)` + `THB`; draft PATCH with `latitude: null` failed `GEO_COORDS_REQUIRED` before price write (pin missing after city select — street text alone was not the gate).
+- **Fix:** draft price may be `0`; currency from country; PATCH `requireCoords` only when publishing or body has real coords; wizard currency Select locked to country map; guest/preview same listing currency = L1 × (1+guestFee) without retail FX (`same-currency-guest-display.js`, `CardPriceDisplay`); admin moderation shows L1 asset (not hardcoded ฿).
+- Tests: `__tests__/stage200-86-listing-price-currency-ux.test.js`.
 
 ### Stage 200.84 — Wizard geo language + street/house → pin
 

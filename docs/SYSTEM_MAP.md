@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.62 | **Last Updated**: 2026-08-11 | **200.84** geo lang + street/house; **200.83** location UX.  
+> **Version**: 13.2.63 | **Last Updated**: 2026-08-11 | **200.86** listing price currency UX; **200.84** geo lang + street/house.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -144,7 +144,7 @@
 
 | Path |
 |------|
-| `GET|PATCH /api/admin/moderation` (approve/reject/set_featured/**update**: title/desc/district/price) |
+| `GET|PATCH /api/admin/moderation` (approve/reject/set_featured/**update**: title/desc/district/**L1 asset price** via `buildListingPriceWriteFields`) |
 | `GET /api/admin/metrics/overview` |
 | `GET|PUT /api/admin/finances/fintech-settings` |
 | `GET|POST /api/admin/finances/payout-batches` · `…/[id]` (lock/settled; settled single-flight → 409 `settle_in_progress`, TTL 1800s + heartbeat; `finally` release) · export · bank-package |

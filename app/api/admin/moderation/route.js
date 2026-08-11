@@ -20,6 +20,7 @@ import {
   filterPendingModerationListings,
 } from '@/lib/admin/moderation-queue.js'
 import { readSystemSettingValue } from '@/lib/admin/system-settings-store'
+import { buildListingPriceWriteFields } from '@/lib/listing/listing-base-price-canon.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,11 +60,12 @@ function categorySlugFromListing(listing) {
 
 /**
  * Apply optional content fields from moderation PATCH body onto updateData.
+ * Stage 200.86 — price edits are L1 asset amounts in listing.base_currency (not raw ledger THB).
  * @param {Record<string, unknown>} updateData
  * @param {{ title?: unknown, description?: unknown, district?: unknown, basePriceThb?: unknown, metadata?: unknown }} body
  * @param {unknown} listing
  */
-function applyModerationContentFields(updateData, body, listing) {
+async function applyModerationContentFields(updateData, body, listing) {
   const { title, description, district, basePriceThb, metadata: metadataPatch } = body
 
   if (title !== undefined && title !== null) {
@@ -76,24 +78,16 @@ function applyModerationContentFields(updateData, body, listing) {
   if (district !== undefined && district !== null) {
     updateData.district = String(district).trim().slice(0, 200)
   }
-  if (basePriceThb !== undefined && basePriceThb !== null && basePriceThb !== '') {
-    const n = Number(basePriceThb)
-    if (!Number.isFinite(n) || n < 0) {
-      const err = new Error('basePriceThb must be a non-negative number')
-      err.status = 400
-      throw err
-    }
-    updateData.base_price_thb = Math.round(n * 100) / 100
-  }
+
+  let nextMeta =
+    listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
+      ? { ...listing.metadata }
+      : {}
 
   if (metadataPatch != null && typeof metadataPatch === 'object' && !Array.isArray(metadataPatch)) {
     const categorySlug = categorySlugFromListing(listing)
     const nameFb = String(listing.categories?.name || listing.categories?.[0]?.name || '')
-    const prevMeta =
-      listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
-        ? { ...listing.metadata }
-        : {}
-    const merged = { ...prevMeta, ...metadataPatch }
+    const merged = { ...nextMeta, ...metadataPatch }
     const catRow = listing?.categories
     const wp =
       (catRow && typeof catRow === 'object' && !Array.isArray(catRow)
@@ -101,7 +95,25 @@ function applyModerationContentFields(updateData, body, listing) {
         : Array.isArray(catRow)
           ? catRow[0]?.wizard_profile
           : null) ?? null
-    updateData.metadata = normalizePartnerListingMetadata(merged, categorySlug, nameFb, wp)
+    nextMeta = normalizePartnerListingMetadata(merged, categorySlug, nameFb, wp)
+    updateData.metadata = nextMeta
+  }
+
+  if (basePriceThb !== undefined && basePriceThb !== null && basePriceThb !== '') {
+    const n = Number(basePriceThb)
+    if (!Number.isFinite(n) || n < 0) {
+      const err = new Error('basePriceThb must be a non-negative number')
+      err.status = 400
+      throw err
+    }
+    const currency = String(listing.base_currency || 'THB').toUpperCase()
+    const priceWrite = await buildListingPriceWriteFields({
+      assetAmount: n,
+      currency,
+      existingMetadata: updateData.metadata !== undefined ? updateData.metadata : nextMeta,
+    })
+    updateData.base_price_thb = priceWrite.base_price_thb
+    updateData.metadata = priceWrite.metadata
   }
 }
 
@@ -223,13 +235,13 @@ export async function PATCH(request) {
         available: true,
         updated_at: timestamp,
       }
-      applyModerationContentFields(updateData, body, listing)
+      await applyModerationContentFields(updateData, body, listing)
     } else if (action === 'update') {
       if (String(listing.status || '').toUpperCase() !== 'PENDING') {
         return NextResponse.json({ error: 'update only allowed for PENDING listings' }, { status: 400 })
       }
       updateData = { updated_at: timestamp }
-      applyModerationContentFields(updateData, body, listing)
+      await applyModerationContentFields(updateData, body, listing)
       const contentKeys = Object.keys(updateData).filter((k) => k !== 'updated_at')
       if (contentKeys.length === 0) {
         return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
