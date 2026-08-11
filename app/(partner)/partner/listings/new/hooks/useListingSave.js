@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useListingWizard } from '../context/ListingWizardContext'
 import {
@@ -27,6 +28,7 @@ import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publ
 import { ensureProvisionalCityCode } from '@/lib/geo/wizard-ensure-provisional'
 import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js'
 import { isConciergeImportListing } from '@/lib/partner/concierge-listing-ui.js'
+import { partnerListingsKeys } from '@/lib/hooks/use-partner-listings'
 
 function showListingModerationToast(t) {
   toast.success(t('partnerEdit_statusPending'), {
@@ -122,11 +124,36 @@ async function resolveFormDataWithProvisionalCity(formData, setFormData, t) {
   return result.formData
 }
 
+/** Only include lat/lng when set — omit null so draft saves do not clear an existing pin. */
+function coordsPayloadFromForm(geoForm) {
+  const lat =
+    geoForm.latitude === '' || geoForm.latitude == null
+      ? null
+      : parseFloat(String(geoForm.latitude))
+  const lng =
+    geoForm.longitude === '' || geoForm.longitude == null
+      ? null
+      : parseFloat(String(geoForm.longitude))
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { latitude: lat, longitude: lng }
+  }
+  return {}
+}
+
+async function invalidatePartnerListingsCache(queryClient) {
+  try {
+    await queryClient.invalidateQueries({ queryKey: partnerListingsKeys.all })
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Partner listing save: draft, publish, patch (dedicated edit route).
  */
 export function useListingSave() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const w = useListingWizard()
   const {
     t,
@@ -181,8 +208,6 @@ export function useListingSave() {
               minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
               maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
             }
-      const lat = geoForm.latitude
-      const lng = geoForm.longitude
       const payload = {
         title: geoForm.title,
         description: descriptionDb,
@@ -193,8 +218,7 @@ export function useListingSave() {
         region: geoForm.region,
         city: geoForm.city,
         district: geoForm.district,
-        latitude: lat === '' || lat == null ? null : parseFloat(String(lat)),
-        longitude: lng === '' || lng == null ? null : parseFloat(String(lng)),
+        ...coordsPayloadFromForm(geoForm),
         images: geoForm.images,
         coverImage,
         metadata,
@@ -221,6 +245,9 @@ export function useListingSave() {
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
           await patchPartnerListingCoverImage(editId, newCover)
         }
+        await invalidatePartnerListingsCache(queryClient)
+        clearWizardDraft()
+        router.push('/partner/listings')
       } else {
         toast.error(result.error || t('partnerEdit_listingSaveErr'))
       }
@@ -238,6 +265,8 @@ export function useListingSave() {
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
+    queryClient,
+    router,
     serverListing,
     t,
   ])
@@ -282,8 +311,6 @@ export function useListingSave() {
               minBookingDays: parseInt(String(geoForm.minBookingDays), 10) || 1,
               maxBookingDays: parseInt(String(geoForm.maxBookingDays), 10) || 90,
             }
-      const lat = geoForm.latitude
-      const lng = geoForm.longitude
       const res = await fetch(`/api/v2/partner/listings/${editId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -297,8 +324,7 @@ export function useListingSave() {
           region: geoForm.region,
           city: geoForm.city,
           district: geoForm.district,
-          latitude: lat === '' || lat == null ? null : parseFloat(String(lat)),
-          longitude: lng === '' || lng == null ? null : parseFloat(String(lng)),
+          ...coordsPayloadFromForm(geoForm),
           images: geoForm.images,
           coverImage,
           status: 'PENDING',
@@ -327,6 +353,7 @@ export function useListingSave() {
           await patchPartnerListingCoverImage(editId, newCover)
         }
         clearWizardDraft()
+        await invalidatePartnerListingsCache(queryClient)
         if (soft) {
           toast.success(t('listingQuality_softPublishOk'), {
             description: t('listingQuality_softPublishOkHint'),
@@ -355,6 +382,7 @@ export function useListingSave() {
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
+    queryClient,
     router,
     serverListing,
     t,
@@ -541,6 +569,7 @@ export function useListingSave() {
           }
           clearWizardDraft()
           toast.success(t('draftSaved'))
+          await invalidatePartnerListingsCache(queryClient)
           router.push('/partner/listings')
         } else {
           toast.error(data.error || t('failedToLoadListing'))
@@ -555,14 +584,7 @@ export function useListingSave() {
           region: geoForm.region || undefined,
           city: geoForm.city || undefined,
           district: geoForm.district || '',
-          latitude:
-            geoForm.latitude === '' || geoForm.latitude == null
-              ? null
-              : parseFloat(String(geoForm.latitude)),
-          longitude:
-            geoForm.longitude === '' || geoForm.longitude == null
-              ? null
-              : parseFloat(String(geoForm.longitude)),
+          ...coordsPayloadFromForm(geoForm),
           basePriceThb: (() => {
             const n = parseFloat(String(geoForm.basePriceThb ?? '').replace(',', '.'))
             return Number.isFinite(n) && n >= 0 ? n : 0
@@ -588,6 +610,7 @@ export function useListingSave() {
           }
           clearWizardDraft()
           toast.success(t('draftSaved'))
+          await invalidatePartnerListingsCache(queryClient)
           if (lid) {
             router.replace(`/partner/listings/new?edit=${encodeURIComponent(lid)}`)
           } else {
@@ -610,6 +633,7 @@ export function useListingSave() {
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
+    queryClient,
     router,
     savePatchForEdit,
     setSavingDraft,

@@ -93,6 +93,13 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
         rawMeta.cityCode ||
         '',
       district: listing.district || '',
+      address: (() => {
+        const street = String(rawMeta.street || metaForForm.street || '').trim()
+        const house = String(rawMeta.house_number || metaForForm.house_number || '').trim()
+        const composed = [street, house].filter(Boolean).join(', ')
+        if (composed) return composed
+        return String(listing.address || rawMeta.address || '').trim()
+      })(),
       latitude: listing.latitude ?? null,
       longitude: listing.longitude ?? null,
       basePriceThb:

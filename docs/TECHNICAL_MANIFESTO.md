@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.69 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.86** listing price currency UX.
+> **Version**: 13.2.70 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.87** wizard save persist.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.87 — Wizard edit save: price list refresh, street/house persist, redirect
+
+- Partner list RQ: `staleTime` 5m + `refetchOnMount: false` hid price updates after save — invalidate `partnerListingsKeys` on save/publish.
+- `normalizePartnerListingMetadata` whitelist dropped `street` / `house_number` — added to `METADATA_KEYS_ALWAYS_ALLOWED`.
+- Edit save (floppy) → `/partner/listings` after success; omit null lat/lng so draft saves do not clear pin.
 
 ### Stage 200.86 — Listing price currency UX (draft / same-currency / admin)
 
