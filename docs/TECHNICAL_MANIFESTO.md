@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.83 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.100** safe polish (plurals / trust / cancel title).
+> **Version**: 13.2.84 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.101** Photos+Preview partner section rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.101 — Photos + Preview on partner section rhythm
+
+- **Photos / Preview** aligned with Basics/Location/Pricing: `PARTNER_SECTION_TITLE_CLASS`, `PARTNER_FIELD_LABEL_CLASS`, `PartnerSectionDivider`, short helpers; mobile flat (no heavy nested chrome).
+- Upload / DnD / sort / live `pricingPreview` L1 (200.96) unchanged; no `target="_blank"` on preview.
+- Tests: `__tests__/stage200-101-photos-preview-rhythm.test.js`.
 
 ### Stage 200.100 — Safe polish (plurals, trust, cancellation title)
 

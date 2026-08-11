@@ -5,6 +5,7 @@
 | `ANTI_DISINTERMEDIATION_POLICY.md` | Анти-обход платформы |
 | `CALENDAR_DATES.md` | Календарные даты / семантика |
 | `PARTNER_DASHBOARD.md` | Партнёрский кабинет |
+| `PARTNER_WIZARD_DESIGN_HANDOFF.md` | SSOT ритм мастера объявлений (через 200.101) + кандидаты 200.102 |
 | `PAYOUT_RETENTION_LOGIC.md` | Retention выплат |
 | `MARKETING_HANDBOOK.md` / `AMBASSADOR_FIRST_WAVE_GUIDE.md` | Маркетинг / амбассадоры |
 | `INVESTOR_ONE_PAGER_FINANCIAL_V2.md` | Investor one-pager |

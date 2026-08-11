@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.101 | 2026-08-12 | Wizard Photos+Preview: PartnerSectionDivider / TITLE / FIELD + flat rhythm (no upload/preview logic change) | Done |
 | 200.100 | 2026-08-12 | Safe polish: RU plurals, cancellation section title, trust text-xs, shorter geo helpers | Done |
 | 200.99 | 2026-08-12 | Stay arrival hours in wizard + soft early/late on-request (informational only) | Done |
 | 200.98 | 2026-08-11 | Wizard sticky CTA bar: equal vertical padding (fix safe-area-pb override) | Done |
