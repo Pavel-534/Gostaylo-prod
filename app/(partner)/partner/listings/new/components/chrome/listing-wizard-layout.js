@@ -8,16 +8,29 @@ export const WIZARD_COMPACT_STEP_INDICATOR_HEIGHT = '2.375rem'
 export const WIZARD_COMPACT_STEP_BAR_POSITION_CLASS =
   'fixed left-0 right-0 top-[calc(var(--app-header-height,64px)+2.5rem)] z-50 w-full lg:left-64 lg:top-[calc(var(--app-header-height,64px)+3rem)]'
 
-/** Mobile slim header row + dot indicator — fixed under AppHeader (breadcrumbs hidden on wizard). */
-export const WIZARD_MOBILE_CHROME_HEIGHT = '5rem'
+/**
+ * Fixed mobile chrome content height (slim header min-h-11 + step dots row).
+ * Stage 200.94 — was 5rem; active-dot ring + py made content clip under progress.
+ */
+export const WIZARD_MOBILE_CHROME_HEIGHT = '5.75rem'
 
-/** Fixed bottom action bar content height (safe-area added via safe-area-pb). Stage 194.0-C: min-h-11 CTAs. */
-export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '4.5rem'
+/** Gap between fixed chrome and first scroll content (Stage 200.94). */
+export const WIZARD_MOBILE_CHROME_CONTENT_GAP = '0.75rem'
+
+/**
+ * Fixed bottom action bar content height (py-3 + min-h-11 CTAs).
+ * Stage 200.94 — was 4.5rem; last form fields clipped under sticky nav.
+ */
+export const WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'
+
+/** Extra scroll padding above the action bar. */
+export const WIZARD_MOBILE_ACTION_BAR_CONTENT_GAP = '0.75rem'
 
 /** Tailwind utilities derived from heights above (SSOT). */
-export const WIZARD_MOBILE_CHROME_PT_CLASS = 'max-sm:pt-[5rem]'
+export const WIZARD_MOBILE_CHROME_PT_CLASS =
+  'max-sm:pt-[calc(5.75rem+0.75rem)]'
 export const WIZARD_MOBILE_CONTENT_PB_CLASS =
-  'max-sm:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]'
+  'max-sm:pb-[calc(5rem+0.75rem+env(safe-area-inset-bottom,0px))]'
 
 /** Fixed mobile wizard chrome — directly below AppHeader. */
 export const WIZARD_MOBILE_CHROME_POSITION_CLASS =

@@ -52,6 +52,11 @@ import {
   resolveWizardHouseDisplay,
   resolveWizardStreetDisplay,
 } from '@/lib/geo/wizard-street-house-display'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -512,7 +517,7 @@ function StepLocationInner() {
 
       <div className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'min-w-0 overflow-x-hidden')}>
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">{t('wizardGeo_cascadeTitle')}</h3>
+          <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardGeo_cascadeTitle')}</h3>
           <p className="mt-1 text-xs text-slate-500">{t('wizardGeo_cascadeHint')}</p>
         </div>
 
@@ -599,7 +604,7 @@ function StepLocationInner() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div data-wizard-field="country" data-wizard-field-error={errCountry ? 'true' : undefined}>
-            <Label className={cn('text-sm font-medium', errCountry && 'text-red-700')}>
+            <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errCountry && 'text-red-700')}>
               {t('country') || 'Country'}
             </Label>
             <div className="mt-1.5">
@@ -614,7 +619,7 @@ function StepLocationInner() {
           </div>
 
           <div data-wizard-field="city" data-wizard-field-error={errCity ? 'true' : undefined}>
-            <Label className={cn('text-sm font-medium', errCity && 'text-red-700')}>
+            <Label className={cn(PARTNER_FIELD_LABEL_CLASS, errCity && 'text-red-700')}>
               {t('city') || 'City'}
             </Label>
             <div className="mt-1.5">
@@ -645,7 +650,7 @@ function StepLocationInner() {
         </div>
 
         <div>
-          <Label className="text-sm font-medium">{t('region') || 'Region'}</Label>
+          <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('region') || 'Region'}</Label>
           {regionDisplay ? (
             <>
               <div
@@ -663,7 +668,10 @@ function StepLocationInner() {
           )}
         </div>
 
-        <div>
+        <PartnerSectionDivider />
+
+        <div data-partner-section="geo-street" className="space-y-4">
+          <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardGeo_streetSectionTitle')}</h3>
           <WizardStreetTypeahead
             countryCode={formData.country || ''}
             cityLabel={cityLabel}
@@ -678,10 +686,9 @@ function StepLocationInner() {
             onStreetHouseChange={syncStreetHouse}
             onSelectResult={selectGeocodeResult}
           />
-        </div>
 
         <div data-wizard-field="district">
-          <Label className="text-base font-medium">{t('selectDistrict')}</Label>
+          <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('selectDistrict')}</Label>
           <Input
             data-testid="wizard-district-input"
             className="mt-2 h-12 min-h-[44px]"
@@ -703,6 +710,9 @@ function StepLocationInner() {
           </datalist>
           <p className="mt-1.5 text-xs text-slate-500">{t('wizardGeo_districtHint')}</p>
         </div>
+        </div>
+
+        <PartnerSectionDivider />
 
         <div
           className={cn(
@@ -710,10 +720,11 @@ function StepLocationInner() {
             'text-xs text-slate-600 sm:bg-slate-50',
           )}
           data-testid="wizard-geo-fx-strip"
+          data-partner-section="geo-fx"
           data-currency={currencyInfo.cur}
           data-timezone={currencyInfo.tz}
         >
-          <div className="font-medium text-slate-800">{t('wizardGeo_fxReadonlyTitle')}</div>
+          <div className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardGeo_fxReadonlyTitle')}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
             <span data-testid="wizard-geo-fx-currency">
               {t('wizardGeo_currency')}: {currencyInfo.symbol} ({currencyInfo.cur})
@@ -726,11 +737,14 @@ function StepLocationInner() {
         </div>
       </div>
 
+      <PartnerSectionDivider wrapClassName="max-sm:py-4" />
+
       <div
         className={cn(
           WIZARD_MOBILE_FLAT_INSET_CLASS,
           'max-sm:space-y-0 sm:border-dashed sm:bg-slate-50/60',
         )}
+        data-partner-section="geo-paste"
       >
         <button
           type="button"
@@ -747,7 +761,6 @@ function StepLocationInner() {
 
         {addressSearchOpen ? (
           <div className="mt-3 space-y-2" data-wizard-field="address-search">
-            <p className="text-xs text-slate-500">{t('wizardGeo_searchHint')}</p>
             <div className="relative">
               <Input
                 placeholder={t('searchAddressPlaceholder')}
@@ -762,6 +775,7 @@ function StepLocationInner() {
                 <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               )}
             </div>
+            <p className="text-xs text-slate-500">{t('wizardGeo_searchHint')}</p>
             {geocodeResults.length > 0 ? (
               <div className="max-h-48 divide-y overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {geocodeResults.map((r, i) => {
@@ -800,13 +814,12 @@ function StepLocationInner() {
         ) : null}
       </div>
 
-      <div>
-        <Label className="text-base font-medium">
+      <PartnerSectionDivider wrapClassName="max-sm:py-4" />
+
+      <div data-partner-section="geo-map">
+        <h3 className={PARTNER_SECTION_TITLE_CLASS}>
           {transportWizard ? t('mapLocationTransport') : t('mapLocation')}
-        </Label>
-        <p className="mt-1 text-xs text-slate-500">
-          {transportWizard ? t('clickToPinTransport') : t('wizardGeo_mapHintAfterCascade')}
-        </p>
+        </h3>
         <div
           className={cn('mt-2', errCoords && 'rounded-2xl ring-2 ring-red-400 ring-offset-2')}
           data-wizard-field="coordinates"
@@ -826,6 +839,9 @@ function StepLocationInner() {
             partnerPlaceHints
           />
         </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {transportWizard ? t('clickToPinTransport') : t('wizardGeo_mapHintAfterCascade')}
+        </p>
         {errCoords ? (
           <p className="mt-1.5 text-xs font-medium text-red-600">{t('wizardBlocker_coordinates')}</p>
         ) : null}

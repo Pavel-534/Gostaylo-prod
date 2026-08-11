@@ -77,11 +77,22 @@ describe('Stage 200.92 — six-step wizard wiring', () => {
       'wizardStep_calendar',
       'wizardStep_calendarHint',
       'wizardStep_calendarNeedsDraft',
+      'wizardStep_calendarPreparing',
       'wizardPricing_seasonsOnCalendarStep',
       'wizardPricing_goToCalendarStep',
     ]) {
       const matches = src.match(new RegExp(`${key}:`, 'g'))
       assert.equal(matches?.length, 4, `${key} should appear in 4 locales`)
     }
+  })
+
+  it('calendar step auto-ensures draft without form wipe', () => {
+    const step = read('app/(partner)/partner/listings/new/components/StepCalendar.jsx')
+    assert.match(step, /ensureCalendarListingReady/)
+    assert.match(step, /wizard-calendar-preparing/)
+    const actions = read('app/(partner)/partner/listings/new/hooks/useListingWizardActions.js')
+    assert.match(actions, /ensureCalendarListingReady/)
+    assert.match(actions, /updateUrl:\s*false/)
+    assert.match(actions, /setServerListing\(listing\)/)
   })
 })

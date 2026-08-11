@@ -564,6 +564,45 @@ export function useListingWizardActions(state, derived) {
     return resolveOrCreateWizardDraft(formData)
   }, [formData, resolveOrCreateWizardDraft])
 
+  /**
+   * Stage 200.93 — Calendar step needs a server listing id without wiping the in-progress form.
+   * Ensures draft (URL stay put) + soft-loads `serverListing` when missing.
+   * @returns {Promise<string|null>} listing id or null
+   */
+  const ensureCalendarListingReady = useCallback(async () => {
+    let listingId = editId || draftListingIdRef.current || null
+    if (!listingId) {
+      listingId = await resolveOrCreateWizardDraft(formData, {
+        updateUrl: false,
+        silentCategoryToast: false,
+      })
+    }
+    if (!listingId) return null
+
+    if (!serverListing || String(serverListing.id || serverListing.listing_id || '') !== String(listingId)) {
+      try {
+        const res = await fetch(`/api/v2/partner/listings/${encodeURIComponent(listingId)}`, {
+          credentials: 'include',
+        })
+        const data = await res.json()
+        const listing = data.data || data.listing
+        if (data.success && listing) {
+          setServerListing(listing)
+        }
+      } catch (e) {
+        console.warn('[wizard] ensureCalendarListingReady soft-fetch:', e)
+      }
+    }
+    return listingId
+  }, [
+    editId,
+    draftListingIdRef,
+    resolveOrCreateWizardDraft,
+    formData,
+    serverListing,
+    setServerListing,
+  ])
+
   const handleImageUpload = useCallback(
     async (files) => {
       const fileList = Array.from(files || []).filter((f) => f.type?.startsWith('image/'))
@@ -728,6 +767,7 @@ export function useListingWizardActions(state, derived) {
     handleAiImproveDescription,
     handleAiTranslateDescription,
     resolveListingIdForUpload,
+    ensureCalendarListingReady,
     handleImageUpload,
     removeImage,
     reorderImages,

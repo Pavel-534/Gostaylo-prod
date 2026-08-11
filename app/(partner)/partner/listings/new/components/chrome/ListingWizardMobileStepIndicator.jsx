@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 
 /**
- * Airbnb-style dot progress: ● ● ○ ○ ○ + «Шаг 2 из 5».
+ * Airbnb-style dot progress: ● ● ○ ○ ○ ○ + «Шаг 2 из 6».
  */
 export function ListingWizardMobileStepIndicator({ steps, currentStep, stepMarkerLabel }) {
   return (

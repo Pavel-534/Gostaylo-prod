@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.94 | 2026-08-11 | Partner section rhythm: wizard padding fix, mint PartnerSectionDivider (Location/Calendar), listing card accent | Done |
+| 200.93 | 2026-08-11 | Wizard calendar step: auto-ensure draft + soft-load serverListing (no form wipe) | Done |
 | 200.92 | 2026-08-11 | Wizard 6 steps: Calendar = step 5 (OTA/blocks/seasons); Preview = 6; no global calendar tail | Done |
 | 200.91 | 2026-08-11 | Partner listings RQ: fresh price after wizard save (refetchType all + refetchOnMount + L1 seed) | Done |
 | 200.90 | 2026-08-11 | Wizard: clearing street no longer bleeds house number into street field | Done |

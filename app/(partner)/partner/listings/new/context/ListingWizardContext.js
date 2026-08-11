@@ -12,8 +12,8 @@ const ListingWizardContext = createContext(null)
 export { WIZARD_DISTRICTS }
 
 /**
- * Wizard: (1) general+specs (2) location (3) photos (4) pricing (5) preview.
- * Stage 109.3 — composition via thematic hooks.
+ * Wizard: (1) general (2) location (3) photos (4) pricing (5) calendar (6) preview.
+ * Stage 109.3 — composition via thematic hooks; Stage 200.92 — six steps.
  */
 export function ListingWizardProvider({ children, initialListingId = null, mode: wizardMode = 'create' }) {
   const state = useListingWizardState({ initialListingId, wizardMode })
@@ -105,6 +105,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     pricingPreview: derived.pricingPreview,
     draftListingIdRef: state.draftListingIdRef,
     resolveListingIdForUpload: actions.resolveListingIdForUpload,
+    ensureCalendarListingReady: actions.ensureCalendarListingReady,
     handleImageUpload: actions.handleImageUpload,
     removeImage: actions.removeImage,
     reorderImages: actions.reorderImages,

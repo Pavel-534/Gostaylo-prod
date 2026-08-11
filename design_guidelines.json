@@ -35,7 +35,10 @@
     "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
     "grid_gap": "gap-8 md:gap-12",
     "section_spacing": "py-12 border-b border-slate-100",
-    "sidebar_width": "w-full lg:w-1/3"
+    "sidebar_width": "w-full lg:w-1/3",
+    "partner_section_divider": "lib/ui/partner-section-rhythm.js → PARTNER_SECTION_DIVIDER_* (mint hairline mx-4/6, Stage 200.94)",
+    "partner_listing_card_surface": "PARTNER_LISTING_CARD_SURFACE_CLASS — soft surface + left mint accent on mobile",
+    "wizard_mobile_scroll_padding": "listing-wizard-layout.js — chrome 5.75rem+0.75rem; action bar 5rem+0.75rem+safe-area"
   },
   "components": {
     "buttons": {

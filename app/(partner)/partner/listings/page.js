@@ -27,6 +27,7 @@ import {
   MOBILE_FLAT_EMPTY_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_LISTING_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { ProxiedImage } from '@/components/proxied-image'
 import {
   buildListingPublishQualityChecklist,
@@ -524,7 +525,11 @@ export default function PartnerListings() {
             return (
               <Card 
                 key={listing.id} 
-                className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden active:bg-slate-50 transition-colors')}
+                className={cn(
+                  MOBILE_FLAT_CARD_CLASS,
+                  PARTNER_LISTING_CARD_SURFACE_CLASS,
+                  'overflow-hidden active:bg-slate-50 transition-colors',
+                )}
                 data-testid={`listing-card-${listing.id}`}
               >
                 {/* Clickable card body - navigates to edit */}

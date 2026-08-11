@@ -205,13 +205,9 @@ export function WizardStreetTypeahead({
       <div className="flex items-end gap-2">
         <div className="min-w-0 flex-1">
           <Label className="text-sm font-medium">{t('wizardGeo_streetOnlyLabel')}</Label>
-          <p className="mt-0.5 text-xs text-muted-foreground">{t('wizardGeo_addressSuggestHint')}</p>
         </div>
         <div className="w-[4.75rem] shrink-0 sm:w-24">
           <Label className="text-sm font-medium">{t('wizardGeo_houseLabel')}</Label>
-          <p className="mt-0.5 text-xs opacity-0 select-none" aria-hidden>
-            ·
-          </p>
         </div>
       </div>
 
@@ -341,6 +337,7 @@ export function WizardStreetTypeahead({
           </div>
         ) : null}
       </div>
+      <p className="text-xs text-muted-foreground">{t('wizardGeo_addressSuggestHint')}</p>
 
       {canLocate ? (
         <Button

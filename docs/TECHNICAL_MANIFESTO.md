@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.75 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.92** wizard 6 steps (calendar).
+> **Version**: 13.2.77 | **Last Updated**: 2026-08-11 | **Tip of tree:** Stage **203**; **200.94** partner section rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,18 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.94 — Partner section rhythm (wizard + listings pilot)
+
+- **P1 padding:** `listing-wizard-layout.js` — chrome `5.75rem` + `0.75rem` gap; action bar `5rem` + gap + safe-area (content no longer clips under progress / sticky CTA).
+- **P2:** `PartnerSectionDivider` + `lib/ui/partner-section-rhythm.js` (mint hairline ~20%, inset `mx-4/6`); pilot on Location + Calendar; section title `text-base font-semibold` vs field `text-sm font-medium`; helpers under inputs.
+- **P3:** `/partner/listings` — soft surface + left mint accent (`PARTNER_LISTING_CARD_SURFACE_CLASS`), keep `space-y-3`.
+- Tests: `__tests__/stage200-94-partner-section-rhythm.test.js`.
+
+### Stage 200.93 — Calendar step auto-ensures draft
+
+- Entering step 5 calls `ensureCalendarListingReady`: create draft if needed (`updateUrl: false` — no form wipe) + soft `GET` → `setServerListing`.
+- UI: preparing shimmer, then sync/blocks/seasons; needs-draft only if category missing.
 
 ### Stage 200.92 — Wizard = 6 steps (Calendar dedicated)
 

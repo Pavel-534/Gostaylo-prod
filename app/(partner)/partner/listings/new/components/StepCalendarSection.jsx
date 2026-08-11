@@ -5,6 +5,7 @@ import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import CalendarSyncManager from '@/components/calendar-sync-manager'
 import AvailabilityCalendar from '@/components/availability-calendar'
 import SeasonalPriceManager from '@/components/seasonal-price-manager'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepCalendarSectionInner() {
@@ -20,24 +21,34 @@ function StepCalendarSectionInner() {
 
   return (
     <section
-      className="space-y-6 max-sm:min-w-0 max-sm:overflow-x-hidden"
+      className="max-sm:min-w-0 max-sm:overflow-x-hidden"
       aria-labelledby="partner-listing-calendar-heading"
       data-testid="wizard-calendar-section"
     >
-      <div id="partner-calendar-sync" className="scroll-mt-28 max-sm:space-y-4">
-        <div id="partner-listing-calendar">
+      <div id="partner-calendar-sync" className="scroll-mt-28">
+        <div id="partner-listing-calendar" className="space-y-0">
           <h2 id="partner-listing-calendar-heading" className="sr-only">
             {t('partnerCal_mainTitle')}
           </h2>
           {transport ? null : (
-            <CalendarSyncManager listingId={listingId} onSync={() => {}} />
+            <>
+              <div data-partner-section="calendar-sync">
+                <CalendarSyncManager listingId={listingId} onSync={() => {}} />
+              </div>
+              <PartnerSectionDivider />
+            </>
           )}
-          <AvailabilityCalendar listingId={listingId} syncErrors={[]} />
-          <SeasonalPriceManager
-            listingId={listingId}
-            basePriceThb={basePrice}
-            baseCurrency={baseCurrency}
-          />
+          <div data-partner-section="calendar-blocks">
+            <AvailabilityCalendar listingId={listingId} syncErrors={[]} />
+          </div>
+          <PartnerSectionDivider />
+          <div data-partner-section="calendar-seasons">
+            <SeasonalPriceManager
+              listingId={listingId}
+              basePriceThb={basePrice}
+              baseCurrency={baseCurrency}
+            />
+          </div>
         </div>
       </div>
     </section>
