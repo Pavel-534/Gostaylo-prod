@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.104 | 2026-08-12 | Partner dashboard: section titles/dividers + hub mint surface on metrics (no analytics API change) | Done |
 | 200.103 | 2026-08-12 | Partner bookings list: hub mint card surface + section titles/dividers (no FSM/price change) | Done |
 | 200.102 | 2026-08-12 | Dark Mode Input contrast: raise `--input`/`--border` tokens + brand-mint focus on Input/Textarea/Select | Done |
 | 200.101 | 2026-08-12 | Wizard Photos+Preview: PartnerSectionDivider / TITLE / FIELD + flat rhythm (no upload/preview logic change) | Done |

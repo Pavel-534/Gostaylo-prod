@@ -16,6 +16,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 function MoneyRow({ label, thb, highlight = false }) {
   return (
@@ -82,7 +83,11 @@ export function PartnerDashboardMoneyCard({ language = 'ru' }) {
 
   return (
     <Card
-      className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-gradient-to-br sm:from-brand/5 sm:to-white')}
+      className={cn(
+        MOBILE_FLAT_BRAND_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'sm:bg-gradient-to-br sm:from-brand/5 sm:to-white',
+      )}
       data-testid="partner-dashboard-money-card"
     >
       <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>

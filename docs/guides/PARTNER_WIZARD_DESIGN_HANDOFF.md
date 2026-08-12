@@ -1,6 +1,6 @@
 # Partner Wizard Design Handoff (SSOT)
 
-> **Status:** agreed corridor through **Stage 200.103** (2026-08-12)  
+> **Status:** agreed corridor through **Stage 200.104** (2026-08-12)  
 > **Product brand:** **`getSiteDisplayName()`** / i18n `{brand}` only in UI (prod env: Airento)  
 > **Audience:** engineers / agents polishing partner listing UX without redesigning the product
 
@@ -97,7 +97,8 @@ Concierge drafts open the **same** wizard routes and shell (`ListingWizardProvid
 | **200.101** | **Photos + Preview on section rhythm SSOT** |
 | **200.102** | **Dark Mode Input/`--input` tokens + brand-mint focus (Input/Textarea/Select)** |
 | **200.103** | **`/partner/bookings` hub list surface + section rhythm** |
-| **200.104** | Next free — pick **one** focus (see §8) |
+| **200.104** | **`/partner/dashboard` section rhythm + hub mint metrics** |
+| **200.105** | Next free — pick **one** focus (see §8) |
 
 Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
@@ -116,16 +117,18 @@ Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
 ---
 
-## 8. Next Stage candidates (200.104+)
+## 8. Next Stage candidates (200.105+)
 
 Pick **one** corridor slice per Stage:
 
 | Candidate | Why | Blast radius |
 |-----------|-----|--------------|
 | **C. Calendar step typography** | Align Seasonal/Availability section titles with `PARTNER_SECTION_*` without rewriting widgets | Small–medium |
-| **D. Dashboard section rhythm** | `/partner/dashboard` groups + dividers | Medium |
+| **E. Settings / finances section titles** | Partner hub forms still CardTitle-heavy | Medium |
 
-**Done in 200.103:** `/partner/bookings` — `PARTNER_HUB_LIST_CARD_SURFACE_CLASS` + section titles/dividers (candidate B).
+**Done in 200.104:** `/partner/dashboard` — section titles/dividers + hub mint metric surface (candidate D).
+
+**Done in 200.103:** `/partner/bookings` — hub list surface + section titles/dividers (candidate B).
 
 **Done in 200.102:** Dark Mode Input borders via `--input` / `--border` + mint focus.
 

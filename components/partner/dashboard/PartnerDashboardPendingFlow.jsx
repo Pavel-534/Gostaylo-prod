@@ -26,6 +26,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 /**
  * Pending approvals queue + detail drawer + decline confirmation (Stage 187.0).
@@ -95,6 +96,7 @@ export function PartnerDashboardPendingFlow({ pending, partnerId, language = 'ru
       <Card
         className={cn(
           MOBILE_FLAT_CARD_CLASS,
+          PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
           'sm:border-amber-300 sm:shadow-sm sm:ring-2 sm:ring-amber-400/60',
         )}
       >

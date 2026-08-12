@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.86 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.103** partner bookings hub rhythm.
+> **Version**: 13.2.87 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.104** partner dashboard hub rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.104 — Partner dashboard hub rhythm
+
+- `/partner/dashboard`: sections Alerts / Quick actions / Metrics / Upcoming with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider`.
+- Metric tiles + money/pending cards: `MOBILE_FLAT_*` + `PARTNER_HUB_LIST_CARD_SURFACE_CLASS`; upcoming rows use hub surface.
+- No change to `usePartnerDashboardPage` / money / booking action hooks or API payloads.
+- Tests: `__tests__/stage200-104-partner-dashboard-rhythm.test.js`.
 
 ### Stage 200.103 — Partner bookings hub rhythm
 
