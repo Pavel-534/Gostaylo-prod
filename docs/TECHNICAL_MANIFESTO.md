@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.105 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.124** payment-window browser-safe split.
+> **Version**: 13.2.106 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.125** season-type browser-safe split.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.125 — season-type browser-safe (build fix)
+
+- Client wizard/`SeasonalPriceManager` imported `normalizeSeasonType` from `listing-seasonal-price-canon` → pulled FX/`currency.service` → `node:crypto` (webpack fail).
+- Pure helpers → `lib/listing/season-type.js`; canon re-exports for server.
+- Tests: `__tests__/stage200-125-season-type-browser-safe.test.js`.
 
 ### Stage 200.124 — payment-window browser-safe (build fix)
 

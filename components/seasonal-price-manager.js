@@ -23,7 +23,7 @@ import {
   fetchSeasonalPricesByListing,
   replaceSeasonalPrice,
 } from '@/lib/api/partner-seasonal-prices-client'
-import { normalizeSeasonType } from '@/lib/listing/listing-seasonal-price-canon'
+import { normalizeSeasonType } from '@/lib/listing/season-type'
 import { cn } from '@/lib/utils'
 import {
   WIZARD_MOBILE_FLAT_CARD_CLASS,

@@ -14,7 +14,7 @@ import { isTourListingCategory } from '@/lib/listing-category-slug'
 import { normalizeCategoryWizardProfileColumn } from '@/lib/config/category-wizard-profile-db'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
-import { normalizeSeasonType } from '@/lib/listing/listing-seasonal-price-canon'
+import { normalizeSeasonType } from '@/lib/listing/season-type'
 import { getDefaultWizardFormData } from '../wizard-constants'
 
 /**

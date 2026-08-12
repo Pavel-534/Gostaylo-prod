@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.125 | 2026-08-12 | Build fix: season-type pure module (wizard no longer pulls currency→node:crypto) | Done |
 | 200.124 | 2026-08-12 | Build fix: split invoice system message out of payment-window-policy (no node:module in checkout client) | Done |
 | 200.123 | 2026-08-12 | Partner mobile sidebar: dock inset + denser rows + short bookings dock label | Done |
 | 200.122 | 2026-08-12 | PDP UX: mobile breakdown exclusions, cancel trust SSOT, rounding line, touch/flat polish | Done |
