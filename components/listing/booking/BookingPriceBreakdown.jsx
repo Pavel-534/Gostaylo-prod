@@ -44,6 +44,17 @@ export function BookingPriceBreakdown({
   const taxAmount = Math.round(Number(priceCalc.taxAmountThb) || 0)
   const taxRate = Number(priceCalc.taxRatePercent) || 0
   const payableTotal = getGuestPayableTotalThb(priceCalc)
+  const roundingPot = Math.max(
+    0,
+    Math.round(
+      Number(
+        priceCalc.roundingDiffPot ??
+          priceCalc.roundingPotThb ??
+          priceCalc.rounding_diff_pot ??
+          0,
+      ) || 0,
+    ),
+  )
   const exclusionHints = buildGuestPriceExclusionHints(listingCategorySlug, listingMetadata)
 
   const baseRaw = priceCalc.baseRawSubtotal
@@ -185,6 +196,19 @@ export function BookingPriceBreakdown({
           {taxAmount > 0 ? fmt(taxAmount) : getUIText('breakdownTaxZero', language)}
         </span>
       </div>
+
+      {roundingPot > 0 ? (
+        <div className="flex justify-between gap-2 text-slate-600">
+          <span>{getUIText('orderPrice_rounding', language)}</span>
+          <span
+            className="font-medium tabular-nums"
+            data-testid="booking-breakdown-rounding"
+            data-test-rounding-thb={String(roundingPot)}
+          >
+            {fmt(roundingPot)}
+          </span>
+        </div>
+      ) : null}
 
       <Separator />
       <div

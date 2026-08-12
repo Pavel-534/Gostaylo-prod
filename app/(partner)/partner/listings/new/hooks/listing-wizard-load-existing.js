@@ -14,6 +14,7 @@ import { isTourListingCategory } from '@/lib/listing-category-slug'
 import { normalizeCategoryWizardProfileColumn } from '@/lib/config/category-wizard-profile-db'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
+import { normalizeSeasonType } from '@/lib/listing/listing-seasonal-price-canon'
 import { getDefaultWizardFormData } from '../wizard-constants'
 
 /**
@@ -30,7 +31,7 @@ export function buildWizardFormDataFromListing(listing, { language, partnerCommi
     endDate: s.endDate || s.end_date,
     priceDaily: s.priceDaily ?? s.price_daily ?? 0,
     priceMonthly: s.priceMonthly ?? s.price_monthly ?? null,
-    seasonType: s.seasonType || s.season_type || 'high',
+    seasonType: normalizeSeasonType(s.seasonType || s.season_type),
   }))
   const rawMeta = listing.metadata || {}
   const shapedMeta = partnerMetadataStateFromServer(rawMeta)

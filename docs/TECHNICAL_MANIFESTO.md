@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.97 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.115** FX SSOT; **200.114** guest catalog rhythm.
+> **Version**: 13.2.103 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.122** PDP UX SSOT polish.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,55 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.122 — PDP UX SSOT polish
+
+- Mobile planner: pass `listingCategorySlug` + `listingMetadata` into breakdown (exclusion hints); drop nested `bg-white` under flat card; ask-partner touch ≥ 44px.
+- Trust cancel: neutral «правила отмены» for moderate/strict; flexible soft copy; anchor `#listing-cancellation-policy`.
+- Breakdown: show rounding pot line when `roundingDiffPot` &gt; 0 (display-only; no PricingEngine/ledger change).
+- Tests: `__tests__/stage200-122-pdp-ux-ssot.test.js`.
+
+### Stage 200.121 — Checkout FX UX + hold gate
+
+- Checkout CARD/MIR: issuer conversion-fee disclaimer under pay CTA (`checkout_issuerFeeDisclaimer`).
+- Cancel preview/dialog: refund estimate in locked guest pay currency via `estimateRefundInGuestPaymentCurrency` / `readGuestPaymentDisplay` (ledger still THB).
+- `POST …/payment/initiate`: fail-closed on `isCheckoutHoldExpired` → `CHECKOUT_HOLD_EXPIRED` (410); toast `checkout_toast_holdExpired`.
+- No PricingEngine / ledger formula change.
+- Tests: `__tests__/stage200-121-fx-ux-hold-gate.test.js`.
+
+### Stage 200.120 — Master calendar date SSOT (Wave E)
+
+- `/partner/calendar` ActionModals: block / booking / seasonal price periods use `PartnerDateRangeFields` (no native `type="date"`).
+- `lockStart` for cell-anchored start; YMD helpers in `lib/ui/partner-date-ymd.js`. Overlay popovers `z-[400]`.
+- No calendar mutate API / FSM change.
+- Tests: `__tests__/stage200-119-120-partner-calendar-copy-and-modals.test.js`.
+
+### Stage 200.119 — Wizard calendar OTA copy (Wave D)
+
+- `wizardSection_calendarSync` / step hint: Airbnb & Booking wording (ru/en/zh/th); drop OTA jargon in partner-facing titles.
+- iCal still named inside sync manager body. No API change.
+
+### Stage 200.118 — AvailabilityCalendar i18n (Wave C)
+
+- Wizard block-dates UI: all labels/toasts/empty via `getUIText` (`partnerAvail_*` + existing `partnerCal_toast_*`).
+- Locales: ru/en/zh/th in `partner-calendar-modals.js`. No calendar/iCal API change.
+- Tests: `__tests__/stage200-118-availability-calendar-i18n.test.js`.
+
+### Stage 200.117 — PartnerDateRangeFields SSOT (Wave B)
+
+- New `components/partner/PartnerDateRangeFields.jsx` — Popover + `ui/calendar`, controlled close, auto-open end; overlay `z-[400]`.
+- Wizard **blocks** + **seasonal** modal use the same two-row start/end UX; seasonal drops inline DayPicker + `react-day-picker/dist/style.css`.
+- Seasonal modal field order: name/type → dates → prices. Locale helper: `lib/ui/partner-date-fns-locale.js`.
+- No iCal / discovery / storefront SearchCalendar change.
+- Tests: `__tests__/stage200-117-partner-date-range-ssot.test.js`.
+
+### Stage 200.116 — Partner calendar picker Wave A hotfix
+
+- Seasonal modal: `SelectContent z-[400]` above Dialog `z-[220]` (dead season-type Select).
+- `normalizeSeasonType` SSOT in `listing-seasonal-price-canon.js` (load/edit/save + wizard map).
+- Master calendar price modal adds `NORMAL`; Availability block popovers controlled (close on pick + open end).
+- Calendar locale from `useI18n` on block date pickers. No iCal/discovery API change.
+- Tests: `__tests__/stage200-116-partner-calendar-picker-hotfix.test.js`.
 
 ### Stage 200.114 — Guest catalog rhythm polish (`/listings`)
 

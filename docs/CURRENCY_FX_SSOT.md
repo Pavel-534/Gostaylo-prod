@@ -81,6 +81,7 @@ Payable set: `lib/finance/currency-codes.js` → `BOOKING_PAYMENT_CURRENCIES`.
 - L3 always THB mid for escrow legs.
 - Do not feed retail `rateMap` into settlement breakdown.
 - Do not invent EUR (or other non-payable) as `payment_currency` without expanding `BOOKING_PAYMENT_CURRENCIES` + acquirer adapters + ADR.
+- **Checkout hold (Stage 200.121):** `POST /api/v2/bookings/[id]/payment/initiate` rejects when `isCheckoutHoldExpired` (`CHECKOUT_HOLD_EXPIRED`). FX snapshot is still locked at booking create (no silent reprice on initiate). Guest cancel UI may show refund in locked pay currency; ledger refund remains THB.
 
 ## Related code
 
@@ -93,5 +94,7 @@ Payable set: `lib/finance/currency-codes.js` → `BOOKING_PAYMENT_CURRENCIES`.
 | Same-currency display | `lib/pricing/same-currency-guest-display.js` |
 | Checkout rate helper | `lib/services/pricing/pricing-fx-helpers.js` |
 | Acquirer charge | `lib/services/payment-adapters/acquirer-charge-amount.js` |
+| Guest refund display | `lib/booking/guest-refund-display.js` |
+| Initiate hold gate | `lib/booking/checkout-hold-initiate-gate.js` |
 | Module map | `lib/pricing/PRICING_SERVICES.md` |
 | Normative L1/L2/L3 | `ARCHITECTURAL_DECISIONS.md` (ADR-181) |

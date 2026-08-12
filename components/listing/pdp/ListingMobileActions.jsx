@@ -186,9 +186,9 @@ export function ListingMobileActions({ chat }) {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="w-full mt-2 border-brand/30"
+                  className="mt-2 min-h-11 w-full border-brand/30"
                   onClick={handleAskPartnerUnavailable}
+                  data-testid="listing-ask-partner-unavailable"
                 >
                   {tx('listingDetail_askPartnerChat')}
                 </Button>
@@ -199,7 +199,7 @@ export function ListingMobileActions({ chat }) {
                 <Button
                   type="button"
                   variant="secondary"
-                  className="w-full border border-brand/25"
+                  className="min-h-11 w-full border border-brand/25"
                   onClick={() => (user ? openBookModal('private') : openLoginModal())}
                 >
                   {tx('listingDetail_privateTrip')}
@@ -207,7 +207,7 @@ export function ListingMobileActions({ chat }) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-dashed"
+                  className="min-h-11 w-full border-dashed"
                   onClick={() => (user ? openBookModal('special') : openLoginModal())}
                 >
                   {tx('listingDetail_specialPrice')}
@@ -215,13 +215,15 @@ export function ListingMobileActions({ chat }) {
               </div>
             )}
             {priceCalc && (
-              <div className="bg-white p-4 rounded-lg">
+              <div className="max-sm:pt-1 sm:rounded-lg sm:bg-white sm:p-4">
                 <PriceBreakdownBlock
                   priceCalc={priceCalc}
                   currency={currency}
                   exchangeRates={exchangeRates}
                   language={language}
                   rentalPeriodMode={listingRentalPeriodMode}
+                  listingCategorySlug={listingCategorySlug}
+                  listingMetadata={listing?.metadata || null}
                 />
               </div>
             )}

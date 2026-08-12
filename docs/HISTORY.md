@@ -6,6 +6,13 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.122 | 2026-08-12 | PDP UX: mobile breakdown exclusions, cancel trust SSOT, rounding line, touch/flat polish | Done |
+| 200.121 | 2026-08-12 | Checkout FX UX: issuer fee disclaimer, cancel refund in pay currency, hold-expired initiate gate | Done |
+| 200.120 | 2026-08-12 | Master calendar ActionModals: PartnerDateRangeFields SSOT (Wave E) | Done |
+| 200.119 | 2026-08-12 | Wizard calendar copy: Airbnb/Booking instead of OTA jargon (Wave D) | Done |
+| 200.118 | 2026-08-12 | AvailabilityCalendar Wave C: full getUIText i18n (ru/en/zh/th) | Done |
+| 200.117 | 2026-08-12 | PartnerDateRangeFields SSOT: wizard blocks + seasonal modal two-row dates (Wave B) | Done |
+| 200.116 | 2026-08-12 | Partner calendar Wave A hotfix: season Select z-index, seasonType normalize, block popover auto-close | Done |
 | 200.115 | 2026-08-12 | Currency/FX SSOT: retail vs checkout FX matrix; wizard hint; fx-policy helpers | Done |
 | 200.114 | 2026-08-12 | Guest catalog `/listings`: empty i18n, skeleton CLS, AI banner brand, load-more touch | Done |
 | 200.113 | 2026-08-12 | Partner empty states: WorkspaceEmptyState on listings/reviews/promo (no API change) | Done |

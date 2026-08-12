@@ -10,6 +10,7 @@ import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { LISTING_CANCELLATION_ANCHOR_ID } from '@/lib/listing/listing-cancellation-anchor.js'
 
 /**
  * Stay vertical — «Важно знать»: tiles + house rules + cancellation in one card (no full-bleed separators).
@@ -156,7 +157,11 @@ export function ListingStayPolicies({ listing, language = 'ru' }) {
           ) : null}
 
           {showPolicyBlock ? (
-            <div className="max-sm:px-0 max-sm:py-4 sm:p-4 md:p-5">
+            <div
+              id={LISTING_CANCELLATION_ANCHOR_ID}
+              className="max-sm:px-0 max-sm:py-4 sm:p-4 md:p-5 scroll-mt-24"
+              data-testid="listing-cancellation-policy"
+            >
               <div className="flex items-start gap-3">
                 <ShieldCheck className="h-5 w-5 shrink-0 text-brand mt-0.5" aria-hidden />
                 <div>

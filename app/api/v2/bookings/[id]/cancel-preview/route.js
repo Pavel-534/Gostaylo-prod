@@ -12,6 +12,7 @@ import {
   BOOKING_LEDGER_REFUND_STATUSES,
   BOOKING_SIMPLE_CANCEL_STATUSES,
 } from '@/lib/booking/status-sets.js';
+import { estimateRefundInGuestPaymentCurrency } from '@/lib/booking/guest-refund-display.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,18 +72,35 @@ export async function GET(request, context) {
     const willUseLedger = BOOKING_LEDGER_REFUND_STATUSES.has(booking.status);
     const simpleCancel = BOOKING_SIMPLE_CANCEL_STATUSES.has(booking.status);
 
+    const refundGuestThb = willUseLedger ? estimate.refundGuestThb : 0;
+    const guestTotalThb = willUseLedger ? estimate.guestTotalThb : null;
+    const refundGuest =
+      willUseLedger && refundGuestThb != null
+        ? estimateRefundInGuestPaymentCurrency({
+            booking,
+            refundGuestThb,
+            guestTotalThb: guestTotalThb || 0,
+            language: 'en',
+          })
+        : null;
+
     return NextResponse.json({
       success: true,
       data: {
         cancellable: willUseLedger || simpleCancel,
         status: booking.status,
         policy: estimate.policy,
-        refundGuestThb: willUseLedger ? estimate.refundGuestThb : 0,
+        refundGuestThb,
         refundPercent: willUseLedger ? estimate.percent : null,
-        guestTotalThb: willUseLedger ? estimate.guestTotalThb : null,
+        guestTotalThb,
         hoursBeforeCheckIn: estimate.hoursBefore,
         ledgerRefund: willUseLedger,
         simpleCancelOnly: simpleCancel && !willUseLedger,
+        // Stage 200.121 — locked payment-currency refund estimate for guest UI
+        refundGuestCurrency: refundGuest?.currency || null,
+        refundGuestAmount: refundGuest?.amount ?? null,
+        refundGuestDisplayAmount: refundGuest?.displayAmount || null,
+        refundGuestSource: refundGuest?.source || null,
       },
     });
   } catch (error) {

@@ -83,6 +83,7 @@ export function BookingActionButtons({
   onSpecialPriceClick,
   listingCategorySlug = null,
   wizardProfile = null,
+  listing = null,
 }) {
   const sharedMode = bookingUiMode === 'shared'
   const uiCtx =
@@ -142,6 +143,7 @@ export function BookingActionButtons({
         language={language}
         listingCategorySlug={listingCategorySlug}
         wizardProfile={wizardProfile}
+        listing={listing}
       />
 
       {sharedMode && (onPrivateTripClick || onSpecialPriceClick) && (

@@ -43,6 +43,11 @@ import {
   formatBlockExpiresAt,
 } from '@/lib/calendar/calendar-cell-presentation.js'
 import { cn } from '@/lib/utils'
+import {
+  PartnerDateRangeFields,
+  PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS,
+} from '@/components/partner/PartnerDateRangeFields'
+import { parsePartnerYmd, formatPartnerYmd } from '@/lib/ui/partner-date-ymd'
 
 const DF_LOCALE = { ru: ruLocale, en: enUS, zh: zhCN, th: thLocale }
 
@@ -67,21 +72,6 @@ function formatSheetDate(dateStr, language) {
 function overlayBtnClass(isMobile) {
   return cn('min-h-11', isMobile && 'w-full')
 }
-
-/**
- * Native date fields: align calendar chevron with SelectTrigger (px-3 / right-3).
- * Plain pe-* alone is ignored for the indicator on Samsung/WebKit — absolute inset works.
- */
-const DATE_INPUT_CLASS = cn(
-  'relative mt-1 min-h-11 pe-11',
-  '[&::-webkit-calendar-picker-indicator]:absolute',
-  '[&::-webkit-calendar-picker-indicator]:right-3',
-  '[&::-webkit-calendar-picker-indicator]:top-1/2',
-  '[&::-webkit-calendar-picker-indicator]:h-4',
-  '[&::-webkit-calendar-picker-indicator]:w-4',
-  '[&::-webkit-calendar-picker-indicator]:-translate-y-1/2',
-  '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
-)
 
 /** Above CalendarActionOverlay sheet (z-350). */
 const SELECT_IN_OVERLAY_CLASS = 'z-[400]'
@@ -182,22 +172,20 @@ export function ActionModals({
 
   const renderBlockBody = () => (
     <div className="grid gap-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <Label>{t('partnerCal_labelStart')}</Label>
-          <Input type="date" value={actionModal.date || ''} disabled className={DATE_INPUT_CLASS} />
-        </div>
-        <div>
-          <Label>{t('partnerCal_labelEnd')}</Label>
-          <Input
-            type="date"
-            value={blockForm.endDate}
-            min={actionModal.date}
-            onChange={(e) => setBlockForm((prev) => ({ ...prev, endDate: e.target.value }))}
-            className={DATE_INPUT_CLASS}
-          />
-        </div>
-      </div>
+      <PartnerDateRangeFields
+        startDate={parsePartnerYmd(actionModal.date)}
+        endDate={parsePartnerYmd(blockForm.endDate)}
+        lockStart
+        autoOpenEnd={false}
+        onChange={({ endDate }) =>
+          setBlockForm((prev) => ({ ...prev, endDate: formatPartnerYmd(endDate) }))
+        }
+        startLabel={t('partnerCal_labelStart')}
+        endLabel={t('partnerCal_labelEnd')}
+        popoverContentClassName={PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS}
+        startTestId="master-block-start"
+        endTestId="master-block-end"
+      />
       <div>
         <Label>{t('partnerCal_blockType')}</Label>
         <Select
@@ -252,22 +240,20 @@ export function ActionModals({
 
   const renderBookingBody = () => (
     <div className={cn('grid gap-4', !isMobile && 'max-h-[60vh] overflow-y-auto')}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <Label>{t('partnerCal_labelCheckIn')}</Label>
-          <Input type="date" value={actionModal.date || ''} disabled className={DATE_INPUT_CLASS} />
-        </div>
-        <div>
-          <Label>{t('partnerCal_labelCheckOut')}</Label>
-          <Input
-            type="date"
-            value={bookingForm.checkOut}
-            min={actionModal.date}
-            onChange={(e) => setBookingForm((prev) => ({ ...prev, checkOut: e.target.value }))}
-            className={DATE_INPUT_CLASS}
-          />
-        </div>
-      </div>
+      <PartnerDateRangeFields
+        startDate={parsePartnerYmd(actionModal.date)}
+        endDate={parsePartnerYmd(bookingForm.checkOut)}
+        lockStart
+        autoOpenEnd={false}
+        onChange={({ endDate }) =>
+          setBookingForm((prev) => ({ ...prev, checkOut: formatPartnerYmd(endDate) }))
+        }
+        startLabel={t('partnerCal_labelCheckIn')}
+        endLabel={t('partnerCal_labelCheckOut')}
+        popoverContentClassName={PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS}
+        startTestId="master-booking-checkin"
+        endTestId="master-booking-checkout"
+      />
       <div>
         <Label>{t('partnerCal_guestName')}</Label>
         <Input
@@ -574,27 +560,22 @@ export function ActionModals({
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <Label>{t('partnerCal_periodStart')}</Label>
-          <Input
-            type="date"
-            value={priceForm.startDate}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, startDate: e.target.value }))}
-            className={DATE_INPUT_CLASS}
-          />
-        </div>
-        <div>
-          <Label>{t('partnerCal_periodEnd')}</Label>
-          <Input
-            type="date"
-            value={priceForm.endDate}
-            min={priceForm.startDate}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, endDate: e.target.value }))}
-            className={DATE_INPUT_CLASS}
-          />
-        </div>
-      </div>
+      <PartnerDateRangeFields
+        startDate={parsePartnerYmd(priceForm.startDate)}
+        endDate={parsePartnerYmd(priceForm.endDate)}
+        onChange={({ startDate, endDate }) =>
+          setPriceForm((prev) => ({
+            ...prev,
+            startDate: formatPartnerYmd(startDate) || prev.startDate,
+            endDate: formatPartnerYmd(endDate) || prev.endDate,
+          }))
+        }
+        startLabel={t('partnerCal_periodStart')}
+        endLabel={t('partnerCal_periodEnd')}
+        popoverContentClassName={PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS}
+        startTestId="master-price-start"
+        endTestId="master-price-end"
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>{t('partnerCal_pricePerDay')}</Label>
@@ -617,6 +598,7 @@ export function ActionModals({
             </SelectTrigger>
             <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
               <SelectItem value="LOW">{t('partnerCal_seasonLow')}</SelectItem>
+              <SelectItem value="NORMAL">{t('partnerCal_seasonNormal')}</SelectItem>
               <SelectItem value="HIGH">{t('partnerCal_seasonHigh')}</SelectItem>
               <SelectItem value="PEAK">{t('partnerCal_seasonPeak')}</SelectItem>
             </SelectContent>

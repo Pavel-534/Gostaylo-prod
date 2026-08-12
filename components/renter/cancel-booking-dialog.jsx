@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { fetchBookingCancelPreview, postBookingCancel } from '@/lib/api/renter-bookings-client'
+import { formatGuestPaymentDisplayAmount } from '@/lib/booking/guest-payment-display.js'
 
 export function CancelBookingDialog({ open, onOpenChange, bookingId, language, onCancelled }) {
   const [step, setStep] = useState('idle')
@@ -22,6 +23,27 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
   const [submitting, setSubmitting] = useState(false)
 
   const t = (key) => getUIText(key, language)
+
+  const refundPrimary = useMemo(() => {
+    if (!preview?.ledgerRefund) return null
+    const currency = String(preview.refundGuestCurrency || 'THB').toUpperCase()
+    const amount = Number(preview.refundGuestAmount)
+    if (Number.isFinite(amount) && amount >= 0 && preview.refundGuestCurrency) {
+      return {
+        currency,
+        amount,
+        label: formatGuestPaymentDisplayAmount(amount, currency, language),
+      }
+    }
+    if (preview.refundGuestThb != null) {
+      return {
+        currency: 'THB',
+        amount: Number(preview.refundGuestThb) || 0,
+        label: formatPrice(preview.refundGuestThb, 'THB'),
+      }
+    }
+    return null
+  }, [preview, language])
 
   const loadPreview = useCallback(async () => {
     if (!bookingId) return
@@ -102,12 +124,26 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
 
         {step === 'confirm' && preview && (
           <div className="space-y-3 text-sm">
-            {preview.ledgerRefund && preview.refundGuestThb != null && (
-              <div className="rounded-lg border border-brand/20 bg-brand/10 px-4 py-3">
+            {preview.ledgerRefund && refundPrimary && (
+              <div
+                className="rounded-lg border border-brand/20 bg-brand/10 px-4 py-3"
+                data-testid="cancel-refund-estimate"
+              >
                 <p className="font-medium text-slate-900">{t('renterCancel_refundLabel')}</p>
-                <p className="text-2xl font-bold text-brand-hover mt-1">
-                  {formatPrice(preview.refundGuestThb, 'THB')}
+                <p
+                  className="text-2xl font-bold text-brand-hover mt-1"
+                  data-testid="cancel-refund-primary"
+                >
+                  {refundPrimary.label}
                 </p>
+                {refundPrimary.currency !== 'THB' && preview.refundGuestThb != null ? (
+                  <p className="text-xs text-slate-600 mt-1" data-testid="cancel-refund-thb-secondary">
+                    {t('renterCancel_refundThbSecondary').replace(
+                      '{{amount}}',
+                      formatPrice(preview.refundGuestThb, 'THB'),
+                    )}
+                  </p>
+                ) : null}
                 {preview.refundPercent != null && (
                   <p className="text-xs text-slate-600 mt-1">
                     {t('renterCancel_policyLine')

@@ -5,6 +5,7 @@ import { getUIText } from '@/lib/translations'
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { LISTING_CANCELLATION_ANCHOR_ID } from '@/lib/listing/listing-cancellation-anchor.js'
 
 /**
  * Guest-facing cancellation copy (matches lib/cancellation-refund-rules.js tiers).
@@ -13,7 +14,11 @@ export function ListingCancellationPolicy({ policy, language = 'ru' }) {
   const p = normalizeCancellationPolicy(policy)
   const bodyKey = `listingCancellation_${p}`
   return (
-    <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/90 sm:p-4 md:p-5')}>
+    <div
+      id={LISTING_CANCELLATION_ANCHOR_ID}
+      className={cn(MOBILE_FLAT_INSET_CLASS, 'scroll-mt-24 sm:bg-slate-50/90 sm:p-4 md:p-5')}
+      data-testid="listing-cancellation-policy"
+    >
       <div className="flex items-start gap-3">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden />
         <div>

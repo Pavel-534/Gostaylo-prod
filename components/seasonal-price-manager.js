@@ -10,9 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react'
-import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
-import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { getSeasonColor } from '@/lib/price-calculator'
 import { useI18n } from '@/contexts/i18n-context'
@@ -25,6 +23,7 @@ import {
   fetchSeasonalPricesByListing,
   replaceSeasonalPrice,
 } from '@/lib/api/partner-seasonal-prices-client'
+import { normalizeSeasonType } from '@/lib/listing/listing-seasonal-price-canon'
 import { cn } from '@/lib/utils'
 import {
   WIZARD_MOBILE_FLAT_CARD_CLASS,
@@ -32,7 +31,11 @@ import {
   WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
   WIZARD_MOBILE_FLAT_EMPTY_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import 'react-day-picker/dist/style.css'
+import {
+  PartnerDateRangeFields,
+  PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS,
+} from '@/components/partner/PartnerDateRangeFields'
+import { resolvePartnerDateFnsLocale } from '@/lib/ui/partner-date-fns-locale'
 
 const SEASON_TYPE_KEYS = [
   { value: 'LOW', labelKey: 'seasonLow', color: 'green' },
@@ -49,7 +52,7 @@ const SEASON_DOT_CLASS = {
 }
 
 function seasonUiLabel(seasonType, t) {
-  const row = SEASON_TYPE_KEYS.find((x) => x.value === seasonType)
+  const row = SEASON_TYPE_KEYS.find((x) => x.value === normalizeSeasonType(seasonType))
   return t(row?.labelKey || 'seasonNormal')
 }
 
@@ -75,7 +78,7 @@ export default function SeasonalPriceManager({
   )
   const currencySymbol = getCurrencySymbol(String(baseCurrency || 'THB').toUpperCase())
 
-  const dayPickerLocale = { ru, en: enUS, zh: zhCN, th: thDateLocale }[language] || ru
+  const dayPickerLocale = resolvePartnerDateFnsLocale(language)
 
   const SEASON_TYPES = useMemo(
     () =>
@@ -124,7 +127,7 @@ export default function SeasonalPriceManager({
           startDate: sp.start_date || sp.startDate,
           endDate: sp.end_date || sp.endDate,
           label: sp.label,
-          seasonType: sp.season_type || sp.seasonType,
+          seasonType: normalizeSeasonType(sp.season_type || sp.seasonType),
           priceDaily: sp.price_daily ?? sp.priceDaily,
           priceMonthly: sp.price_monthly ?? sp.priceMonthly,
           description: sp.description
@@ -158,7 +161,7 @@ export default function SeasonalPriceManager({
     })
     setFormData({
       label: price.label,
-      seasonType: price.seasonType,
+      seasonType: normalizeSeasonType(price.seasonType),
       priceDaily: sanitizeThbDigits(String(price.priceDaily ?? '')),
       priceMonthly: price.priceMonthly != null ? sanitizeThbDigits(String(price.priceMonthly)) : '',
       description: price.description || '',
@@ -194,7 +197,7 @@ export default function SeasonalPriceManager({
         startDate: format(dateRange.from, 'yyyy-MM-dd'),
         endDate: format(dateRange.to, 'yyyy-MM-dd'),
         label: formData.label,
-        seasonType: formData.seasonType,
+        seasonType: normalizeSeasonType(formData.seasonType),
         priceDaily: dailyNum,
         priceMonthly: monthlyNum != null && Number.isFinite(monthlyNum) ? monthlyNum : null,
         description: formData.description,
@@ -374,54 +377,6 @@ export default function SeasonalPriceManager({
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
           <div className="space-y-6">
-            <div className="space-y-2">
-              <Label className="font-semibold">{t('seasonalMgr_selectRange')}</Label>
-              <div className="min-w-0 overflow-hidden rounded-lg border bg-slate-50 p-2 sm:p-4">
-                <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
-                  <div className="inline-flex min-w-full justify-center px-0.5 pb-1">
-                    <DayPicker
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      locale={dayPickerLocale}
-                      className="!p-0"
-                      classNames={{
-                        months: 'flex flex-col gap-4 sm:flex-row',
-                        month: 'space-y-4',
-                        caption: 'relative flex items-center justify-center pt-1',
-                        caption_label: 'text-sm font-medium',
-                        nav: 'flex items-center space-x-1',
-                        nav_button:
-                          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                        table: 'w-full border-collapse space-y-1',
-                        head_row: 'flex',
-                        head_cell:
-                          'w-8 rounded-md text-[0.65rem] font-normal text-slate-500 sm:w-9 sm:text-[0.8rem]',
-                        row: 'mt-2 flex w-full',
-                        cell: 'relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-brand/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md',
-                        day: 'h-8 w-8 rounded-md p-0 font-normal hover:bg-brand/10 aria-selected:opacity-100 sm:h-9 sm:w-9',
-                        day_selected:
-                          'bg-brand text-white hover:bg-brand-hover hover:text-white focus:bg-brand focus:text-white',
-                        day_today: 'bg-slate-100 text-slate-900',
-                        day_outside: 'text-slate-400 opacity-50',
-                        day_disabled: 'text-slate-400 opacity-50',
-                        day_hidden: 'invisible',
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              {dateRange.from && dateRange.to && (
-                <p className="text-sm text-slate-600 mt-2">
-                  {t('seasonalMgr_rangeSelected')}{' '}
-                  <strong>
-                    {format(dateRange.from, 'dd MMM yyyy', { locale: dayPickerLocale })} —{' '}
-                    {format(dateRange.to, 'dd MMM yyyy', { locale: dayPickerLocale })}
-                  </strong>
-                </p>
-              )}
-            </div>
-
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="label">{t('seasonalMgr_seasonName')}</Label>
@@ -437,12 +392,15 @@ export default function SeasonalPriceManager({
                 <Label htmlFor="seasonType">{t('seasonalMgr_seasonType')}</Label>
                 <Select
                   value={formData.seasonType}
-                  onValueChange={(v) => setFormData({ ...formData, seasonType: v })}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, seasonType: normalizeSeasonType(v) })
+                  }
                 >
-                  <SelectTrigger id="seasonType">
+                  <SelectTrigger id="seasonType" data-testid="seasonal-season-type-trigger">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  {/* Dialog is z-[220]; default SelectContent z-50 renders under overlay */}
+                  <SelectContent className="z-[400]" position="popper">
                     {SEASON_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
@@ -456,6 +414,31 @@ export default function SeasonalPriceManager({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-semibold">{t('seasonalMgr_selectRange')}</Label>
+              <PartnerDateRangeFields
+                startDate={dateRange.from}
+                endDate={dateRange.to}
+                onChange={({ startDate, endDate }) =>
+                  setDateRange({ from: startDate, to: endDate })
+                }
+                startLabel={t('partnerCal_dateStart')}
+                endLabel={t('partnerCal_dateEnd')}
+                popoverContentClassName={PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS}
+                startTestId="seasonal-date-start-trigger"
+                endTestId="seasonal-date-end-trigger"
+              />
+              {dateRange.from && dateRange.to && (
+                <p className="mt-2 text-sm text-slate-600">
+                  {t('seasonalMgr_rangeSelected')}{' '}
+                  <strong>
+                    {format(dateRange.from, 'dd MMM yyyy', { locale: dayPickerLocale })} —{' '}
+                    {format(dateRange.to, 'dd MMM yyyy', { locale: dayPickerLocale })}
+                  </strong>
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

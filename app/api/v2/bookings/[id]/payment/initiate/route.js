@@ -22,6 +22,7 @@ import {
   resolveInvoicePaymentExpiresAtIso,
 } from '@/lib/booking/payment-window-policy.js'
 import { resolveCheckoutHoldExpiresAtIso } from '@/lib/booking/checkout-hold-policy.js'
+import { assertCheckoutHoldAllowsPaymentInitiate } from '@/lib/booking/checkout-hold-initiate-gate.js'
 import { applyCheckoutPromoToBooking } from '@/lib/services/booking/apply-checkout-promo.service.js'
 import { promoErrorJson } from '@/lib/promo/promo-error-codes'
 
@@ -161,6 +162,31 @@ export async function POST(request, { params }) {
             code: 'INVOICE_PAYMENT_WINDOW_EXPIRED',
           },
           { status: 410 },
+        )
+      }
+    }
+
+    // Stage 200.121 — fail-closed when checkout hold TTL elapsed (CONFIRMED / AWAITING_PAYMENT).
+    {
+      const { data: intentRows } = await supabaseAdmin
+        .from('payment_intents')
+        .select('initiated_at, created_at, expires_at')
+        .eq('booking_id', bookingId)
+        .order('initiated_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+      const holdGate = assertCheckoutHoldAllowsPaymentInitiate({
+        booking,
+        invoice,
+        intentRow: intentRows?.[0] || null,
+      })
+      if (!holdGate.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: holdGate.error,
+            code: holdGate.code,
+          },
+          { status: holdGate.status || 410 },
         )
       }
     }

@@ -325,6 +325,7 @@ export function DesktopBookingWidget({
             onSpecialPriceClick={onSpecialPriceClick}
             listingCategorySlug={listing?.categorySlug || listing?.category?.slug || ''}
             wizardProfile={listing?.wizardProfile || listing?.category?.wizard_profile || null}
+            listing={listing}
           />
         </CardContent>
       </Card>
@@ -482,6 +483,7 @@ export function MobileBookingBar({
         compact
         className="mt-2"
         language={language}
+        listing={listing}
         listingCategorySlug={listing?.categorySlug || listing?.category?.slug || ''}
         wizardProfile={listing?.wizardProfile || listing?.category?.wizard_profile || null}
       />

@@ -1,5 +1,5 @@
 /**
- * Stage 199.1 — PDP booking trust strip (display-only, next to Book CTA).
+ * Stage 199.1 / 200.122 — PDP booking trust strip (display-only, next to Book CTA).
  */
 
 'use client'
@@ -9,12 +9,19 @@ import { MessageCircle, ShieldCheck, Undo2 } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
+import { listingCancellationAnchorHref } from '@/lib/listing/listing-cancellation-anchor.js'
+import { resolveListingCancellationPolicy } from '@/lib/listing/listing-good-to-know'
+import { resolveListingBookingTrustCancelLabel } from '@/lib/listing/listing-booking-trust-cancel.js'
+
+export { resolveListingBookingTrustCancelLabel } from '@/lib/listing/listing-booking-trust-cancel.js'
 
 /**
  * @param {{
  *   language?: string
  *   listingCategorySlug?: string | null
  *   wizardProfile?: string | null
+ *   listing?: object | null
+ *   cancellationPolicy?: string | null
  *   className?: string
  *   compact?: boolean
  * }} props
@@ -23,6 +30,8 @@ export function BookingTrustSignals({
   language = 'ru',
   listingCategorySlug = null,
   wizardProfile = null,
+  listing = null,
+  cancellationPolicy = null,
   className,
   compact = false,
 }) {
@@ -31,8 +40,11 @@ export function BookingTrustSignals({
     listingCategorySlug: listingCategorySlug || 'apartments',
     wizardProfile: wizardProfile || null,
   }
+  const policyRaw =
+    cancellationPolicy ?? resolveListingCancellationPolicy(listing) ?? null
   const escrow = getUIText('listingBookingTrust_escrow', language).replace(/\{brand\}/g, brand)
-  const cancel = getUIText('listingBookingTrust_cancel', language)
+  const cancel = resolveListingBookingTrustCancelLabel(policyRaw, language)
+  const cancelHref = listingCancellationAnchorHref()
   const chat = getUIText('listingBookingTrust_chat', language, uiCtx)
   const aria = getUIText('listingBookingTrust_aria', language).replace(/\{brand\}/g, brand)
 
@@ -47,7 +59,7 @@ export function BookingTrustSignals({
       key: 'cancel',
       Icon: Undo2,
       label: cancel,
-      href: null,
+      href: cancelHref,
     },
     {
       key: 'chat',
@@ -68,11 +80,23 @@ export function BookingTrustSignals({
         aria-label={aria}
       >
         <ShieldCheck className="h-3 w-3 shrink-0 text-brand" aria-hidden />
-        <span data-testid="listing-booking-trust-escrow">{escrow}</span>
+        <Link
+          href="/help/escrow-protection"
+          className="underline-offset-2 hover:text-brand-hover hover:underline"
+          data-testid="listing-booking-trust-escrow"
+        >
+          {escrow}
+        </Link>
         <span className="text-slate-300" aria-hidden>
           ·
         </span>
-        <span data-testid="listing-booking-trust-cancel">{cancel}</span>
+        <a
+          href={cancelHref}
+          className="underline-offset-2 hover:text-brand-hover hover:underline"
+          data-testid="listing-booking-trust-cancel"
+        >
+          {cancel}
+        </a>
         <span className="text-slate-300" aria-hidden>
           ·
         </span>
@@ -94,13 +118,23 @@ export function BookingTrustSignals({
         <li key={key} className="flex items-start gap-2">
           <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
           {href ? (
-            <Link
-              href={href}
-              className="min-w-0 font-medium text-slate-700 underline-offset-2 hover:text-brand-hover hover:underline"
-              data-testid={`listing-booking-trust-${key}`}
-            >
-              {label}
-            </Link>
+            href.startsWith('#') ? (
+              <a
+                href={href}
+                className="min-w-0 font-medium text-slate-700 underline-offset-2 hover:text-brand-hover hover:underline"
+                data-testid={`listing-booking-trust-${key}`}
+              >
+                {label}
+              </a>
+            ) : (
+              <Link
+                href={href}
+                className="min-w-0 font-medium text-slate-700 underline-offset-2 hover:text-brand-hover hover:underline"
+                data-testid={`listing-booking-trust-${key}`}
+              >
+                {label}
+              </Link>
+            )
           ) : (
             <span className="min-w-0" data-testid={`listing-booking-trust-${key}`}>
               {label}

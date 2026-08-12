@@ -1,17 +1,14 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Calendar as CalendarIcon, X, Plus, Loader2, AlertCircle, CheckCircle, Trash2 } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarIcon, Plus, Loader2, AlertCircle, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { format, addDays, differenceInDays, eachDayOfInterval, isWithinInterval, parseISO } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { format, differenceInDays, parseISO } from 'date-fns'
 import {
   deleteListingCalendarBlock,
   fetchListingCalendarBlocks,
@@ -24,23 +21,45 @@ import {
   WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 import { PARTNER_FIELD_LABEL_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
+import { resolvePartnerDateFnsLocale } from '@/lib/ui/partner-date-fns-locale'
+import { PartnerDateRangeFields } from '@/components/partner/PartnerDateRangeFields'
 
+/**
+ * Stage 200.118 Wave C — full getUIText i18n (ru/en/zh/th) for wizard block dates UI.
+ */
 export default function AvailabilityCalendar({
   listingId,
   syncErrors = [],
   embedInPartnerSection = false,
 }) {
+  const { language } = useI18n()
+  const dateLocale = resolvePartnerDateFnsLocale(language)
+  const t = useCallback((key) => getUIText(key, language), [language])
+  const tr = useCallback(
+    (key, vars) => {
+      let s = getUIText(key, language)
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          s = s.split(`{{${k}}}`).join(String(v))
+        }
+      }
+      return s
+    },
+    [language],
+  )
+
   const [loading, setLoading] = useState(true)
   const [blocks, setBlocks] = useState([])
   const [blockedDates, setBlockedDates] = useState([])
   const [adding, setAdding] = useState(false)
   const [deleting, setDeleting] = useState(null)
-  
-  // New block form
+
   const [newBlock, setNewBlock] = useState({
     startDate: null,
     endDate: null,
-    reason: ''
+    reason: '',
   })
 
   useEffect(() => {
@@ -65,7 +84,7 @@ export default function AvailabilityCalendar({
 
   async function addBlock() {
     if (!newBlock.startDate || !newBlock.endDate) {
-      toast.error('Выберите даты')
+      toast.error(t('partnerCal_pickDate'))
       return
     }
 
@@ -74,18 +93,18 @@ export default function AvailabilityCalendar({
       const { ok, error } = await postListingCalendarBlock(listingId, {
         startDate: format(newBlock.startDate, 'yyyy-MM-dd'),
         endDate: format(newBlock.endDate, 'yyyy-MM-dd'),
-        reason: newBlock.reason || 'Ручная блокировка',
+        reason: newBlock.reason || t('partnerAvail_defaultReason'),
       })
 
       if (ok) {
-        toast.success('Даты заблокированы')
+        toast.success(t('partnerCal_toast_blockSuccess'))
         setNewBlock({ startDate: null, endDate: null, reason: '' })
         loadBlocks()
       } else {
-        throw new Error(error || 'Ошибка')
+        throw new Error(error || t('partnerAvail_genericError'))
       }
     } catch (error) {
-      toast.error(error.message || 'Ошибка при блокировке дат')
+      toast.error(error.message || t('partnerCal_toast_blockError'))
     } finally {
       setAdding(false)
     }
@@ -97,24 +116,21 @@ export default function AvailabilityCalendar({
       const { ok, error } = await deleteListingCalendarBlock(listingId, blockId)
 
       if (ok) {
-        toast.success('Блокировка удалена')
+        toast.success(t('partnerCal_toast_unblockSuccess'))
         loadBlocks()
       } else {
-        throw new Error(error || 'Ошибка')
+        throw new Error(error || t('partnerAvail_genericError'))
       }
     } catch (error) {
-      toast.error(error.message || 'Ошибка при удалении')
+      toast.error(error.message || t('partnerCal_toast_unblockError'))
     } finally {
       setDeleting(null)
     }
   }
 
-  // Separate manual and ical blocks
-  const manualBlocks = blocks.filter(b => b.source === 'manual')
-  const icalBlocks = blocks.filter(b => b.source !== 'manual')
-
-  // Calculate disabled dates for calendar (already blocked)
-  const disabledDates = blockedDates.map(d => parseISO(d))
+  const manualBlocks = blocks.filter((b) => b.source === 'manual')
+  const icalBlocks = blocks.filter((b) => b.source !== 'manual')
+  const disabledDates = blockedDates.map((d) => parseISO(d))
 
   if (loading) {
     return (
@@ -129,8 +145,7 @@ export default function AvailabilityCalendar({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Sync Error Warning */}
+    <div className="space-y-6" data-testid="availability-calendar">
       {syncErrors.length > 0 && (
         <Card
           className={cn(
@@ -142,18 +157,14 @@ export default function AvailabilityCalendar({
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
               <div>
-                <p className="font-medium text-amber-800">Ошибка синхронизации календаря</p>
-                <p className="mt-1 text-sm text-amber-700">
-                  Последняя синхронизация с внешними календарями завершилась с ошибкой. Проверьте
-                  настройки iCal.
-                </p>
+                <p className="font-medium text-amber-800">{t('partnerAvail_syncErrorTitle')}</p>
+                <p className="mt-1 text-sm text-amber-700">{t('partnerAvail_syncErrorBody')}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Add New Block */}
       <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
           <CardTitle
@@ -163,102 +174,55 @@ export default function AvailabilityCalendar({
             )}
           >
             <Plus className="h-4 w-4" />
-            Заблокировать даты
+            {t('partnerAvail_blockTitle')}
           </CardTitle>
           <CardDescription className={cn(embedInPartnerSection && 'text-xs leading-relaxed')}>
-            Заблокируйте даты для личного использования или внешних бронирований
+            {t('partnerAvail_blockDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           <div className="space-y-4">
-            {/* Date Selection */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Начало</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newBlock.startDate 
-                        ? format(newBlock.startDate, 'd MMM yyyy', { locale: ru })
-                        : 'Выберите дату'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={newBlock.startDate}
-                      onSelect={(date) => setNewBlock(prev => ({ 
-                        ...prev, 
-                        startDate: date,
-                        endDate: prev.endDate && date > prev.endDate ? date : prev.endDate
-                      }))}
-                      disabled={(date) => date < new Date() || disabledDates.some(d => 
-                        d.toDateString() === date.toDateString()
-                      )}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+            <PartnerDateRangeFields
+              startDate={newBlock.startDate}
+              endDate={newBlock.endDate}
+              onChange={({ startDate, endDate }) =>
+                setNewBlock((prev) => ({ ...prev, startDate, endDate }))
+              }
+              startLabel={t('partnerCal_dateStart')}
+              endLabel={t('partnerCal_dateEnd')}
+              disablePast
+              disabledDates={disabledDates}
+              startTestId="availability-block-start-trigger"
+              endTestId="availability-block-end-trigger"
+            />
 
-              <div className="space-y-2">
-                <Label>Конец</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newBlock.endDate 
-                        ? format(newBlock.endDate, 'd MMM yyyy', { locale: ru })
-                        : 'Выберите дату'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={newBlock.endDate}
-                      onSelect={(date) => setNewBlock(prev => ({ ...prev, endDate: date }))}
-                      disabled={(date) => {
-                        if (!newBlock.startDate) return true
-                        if (date < newBlock.startDate) return true
-                        return disabledDates.some(d => d.toDateString() === date.toDateString())
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Reason */}
             <div className="space-y-2">
-              <Label>Причина (необязательно)</Label>
+              <Label>{t('partnerAvail_reasonLabel')}</Label>
               <Input
-                placeholder="Например: личное бронирование, ремонт..."
+                placeholder={t('partnerAvail_reasonPh')}
                 value={newBlock.reason}
-                onChange={(e) => setNewBlock(prev => ({ ...prev, reason: e.target.value }))}
+                onChange={(e) => setNewBlock((prev) => ({ ...prev, reason: e.target.value }))}
               />
             </div>
 
-            {/* Summary & Submit */}
             {newBlock.startDate && newBlock.endDate && (
               <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
                 <div className="text-sm text-slate-600">
-                  <span className="font-medium">
-                    {differenceInDays(newBlock.endDate, newBlock.startDate) + 1}
-                  </span> дней будет заблокировано
+                  {tr('partnerAvail_daysWillBlock', {
+                    count: differenceInDays(newBlock.endDate, newBlock.startDate) + 1,
+                  })}
                 </div>
-                <Button 
+                <Button
                   onClick={addBlock}
                   disabled={adding}
-                  className="bg-brand hover:bg-brand-hover"
+                  className="min-h-[44px] bg-brand hover:bg-brand-hover"
                 >
                   {adding ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
                       <Plus className="h-4 w-4 mr-1" />
-                      Заблокировать
+                      {t('partnerCal_blockSubmit')}
                     </>
                   )}
                 </Button>
@@ -268,27 +232,24 @@ export default function AvailabilityCalendar({
         </CardContent>
       </Card>
 
-      {/* Manual Blocks List */}
       <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
           <CardTitle
             className={cn(embedInPartnerSection ? PARTNER_FIELD_LABEL_CLASS : 'text-base')}
           >
-            Ручные блокировки
+            {t('partnerAvail_manualTitle')}
           </CardTitle>
           <CardDescription className={cn(embedInPartnerSection && 'text-xs leading-relaxed')}>
-            Даты, которые вы заблокировали вручную
+            {t('partnerAvail_manualDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {manualBlocks.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4">
-              Нет ручных блокировок
-            </p>
+            <p className="text-sm text-slate-500 text-center py-4">{t('partnerAvail_manualEmpty')}</p>
           ) : (
             <div className="space-y-2">
-              {manualBlocks.map(block => (
-                <div 
+              {manualBlocks.map((block) => (
+                <div
                   key={block.id}
                   className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
                 >
@@ -296,10 +257,12 @@ export default function AvailabilityCalendar({
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4 text-slate-400" />
                       <span className="text-sm font-medium">
-                        {format(parseISO(block.start_date), 'd MMM', { locale: ru })} — {format(parseISO(block.end_date), 'd MMM yyyy', { locale: ru })}
+                        {format(parseISO(block.start_date), 'd MMM', { locale: dateLocale })} —{' '}
+                        {format(parseISO(block.end_date), 'd MMM yyyy', { locale: dateLocale })}
                       </span>
                       <Badge variant="outline" className="text-xs">
-                        {differenceInDays(parseISO(block.end_date), parseISO(block.start_date)) + 1} дн.
+                        {differenceInDays(parseISO(block.end_date), parseISO(block.start_date)) + 1}{' '}
+                        {t('partnerAvail_daysShort')}
                       </Badge>
                     </div>
                     {block.reason && (
@@ -312,6 +275,7 @@ export default function AvailabilityCalendar({
                     onClick={() => removeBlock(block.id)}
                     disabled={deleting === block.id}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    aria-label={t('partnerCal_unblockSubmit')}
                   >
                     {deleting === block.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -326,31 +290,30 @@ export default function AvailabilityCalendar({
         </CardContent>
       </Card>
 
-      {/* iCal Blocks (read-only) */}
       {icalBlocks.length > 0 && (
         <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
           <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
             <CardTitle
               className={cn(embedInPartnerSection ? PARTNER_FIELD_LABEL_CLASS : 'text-base')}
             >
-              Синхронизировано из iCal
+              {t('partnerAvail_icalTitle')}
             </CardTitle>
-            <CardDescription>Автоматически импортировано из внешних календарей</CardDescription>
+            <CardDescription>{t('partnerAvail_icalDesc')}</CardDescription>
           </CardHeader>
           <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <div className="space-y-2">
-              {icalBlocks.slice(0, 10).map(block => (
-                <div 
-                  key={block.id}
-                  className="flex items-center p-3 bg-blue-50 rounded-lg"
-                >
+              {icalBlocks.slice(0, 10).map((block) => (
+                <div key={block.id} className="flex items-center p-3 bg-blue-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4 text-blue-400" />
                       <span className="text-sm font-medium text-blue-900">
-                        {format(parseISO(block.start_date), 'd MMM', { locale: ru })} — {format(parseISO(block.end_date), 'd MMM yyyy', { locale: ru })}
+                        {format(parseISO(block.start_date), 'd MMM', { locale: dateLocale })} —{' '}
+                        {format(parseISO(block.end_date), 'd MMM yyyy', { locale: dateLocale })}
                       </span>
-                      <Badge className="bg-blue-100 text-blue-700 text-xs">iCal</Badge>
+                      <Badge className="bg-blue-100 text-blue-700 text-xs">
+                        {t('partnerCal_chipIcal')}
+                      </Badge>
                     </div>
                     {block.reason && (
                       <p className="text-xs text-blue-600 mt-1 ml-6">{block.reason}</p>
@@ -360,7 +323,7 @@ export default function AvailabilityCalendar({
               ))}
               {icalBlocks.length > 10 && (
                 <p className="text-xs text-slate-500 text-center">
-                  + ещё {icalBlocks.length - 10} записей
+                  {tr('partnerAvail_moreRecords', { count: icalBlocks.length - 10 })}
                 </p>
               )}
             </div>

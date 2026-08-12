@@ -224,6 +224,16 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
           })
         )}
       </Button>
+      {p.paymentMethod === 'CARD' || p.paymentMethod === 'MIR' ? (
+        <p
+          className="text-xs leading-relaxed text-slate-500 px-0.5"
+          data-testid="checkout-issuer-fee-disclaimer"
+        >
+          {c.interpolateTemplate(getUIText('checkout_issuerFeeDisclaimer', c.language), {
+            amount: c.payableText,
+          })}
+        </p>
+      ) : null}
 
       <Dialog open={p.cryptoModalOpen} onOpenChange={p.setCryptoModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
