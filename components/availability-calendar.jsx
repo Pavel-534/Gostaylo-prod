@@ -185,6 +185,7 @@ export default function AvailabilityCalendar({
             <PartnerDateRangeFields
               startDate={newBlock.startDate}
               endDate={newBlock.endDate}
+              autoOpenEnd={false}
               onChange={({ startDate, endDate }) =>
                 setNewBlock((prev) => ({ ...prev, startDate, endDate }))
               }

@@ -19,6 +19,7 @@ import {
   Send,
   AlertCircle,
   Trash2,
+  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,17 +40,41 @@ export function PartnerListingCardActions({
   visibilityBusyId,
   canHideFromSite,
   canRestoreToSite,
+  showUndeleteCta = false,
+  undeleteBusyId = null,
   onPublish,
   onOpenQualityModal,
   onHide,
   onRestore,
+  onUndelete,
   onDelete,
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const isPublishing = publishingId === listing.id
   const isVisibilityBusy = visibilityBusyId === listing.id
+  const isUndeleteBusy = undeleteBusyId === listing.id
 
-  const primaryVisibility = showConciergeReviewCta ? (
+  const primaryVisibility = showUndeleteCta ? (
+    <Button
+      variant="brand"
+      className="min-h-11 flex-1 text-sm"
+      disabled={isUndeleteBusy}
+      onClick={(e) => {
+        e.preventDefault()
+        onUndelete?.(listing)
+      }}
+      data-testid={`undelete-btn-${listing.id}`}
+    >
+      {isUndeleteBusy ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <>
+          <RotateCcw className="mr-1 h-4 w-4" />
+          <span className="truncate">{t('partnerListings_undelete')}</span>
+        </>
+      )}
+    </Button>
+  ) : showConciergeReviewCta ? (
     <Button variant="brand" className="min-h-11 min-h-[44px] flex-1 text-sm" asChild>
       <Link
         href={`/partner/listings/${listing.id}`}
@@ -241,18 +266,39 @@ export function PartnerListingCardActions({
                 {t('partnerListings_editPhotos')}
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              className="min-h-11 w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
-              data-testid={`delete-btn-${listing.id}`}
-              onClick={() => {
-                setMoreOpen(false)
-                onDelete?.(listing.id)
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('partnerListings_delete')}
-            </Button>
+            {showUndeleteCta ? null : (
+              <Button
+                variant="outline"
+                className="min-h-11 w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
+                data-testid={`delete-btn-${listing.id}`}
+                onClick={() => {
+                  setMoreOpen(false)
+                  onDelete?.(listing.id)
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('partnerListings_delete')}
+              </Button>
+            )}
+            {showUndeleteCta ? (
+              <Button
+                variant="brand"
+                className="min-h-11 w-full justify-start"
+                disabled={isUndeleteBusy}
+                data-testid={`undelete-sheet-btn-${listing.id}`}
+                onClick={() => {
+                  setMoreOpen(false)
+                  onUndelete?.(listing)
+                }}
+              >
+                {isUndeleteBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                )}
+                {t('partnerListings_undelete')}
+              </Button>
+            ) : null}
           </div>
         </SheetContent>
       </Sheet>

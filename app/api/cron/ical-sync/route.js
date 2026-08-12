@@ -27,6 +27,7 @@ import {
   isPlatformIcalSyncError,
   tripInstantBookingIcalCircuitBreaker,
 } from '@/lib/ical/instant-booking-ical-guard.js'
+import { isListingNotSoftDeleted } from '@/lib/listing/listing-soft-delete.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -97,6 +98,7 @@ async function runSync() {
   }
 
   const toSync = (listings || []).filter((l) => {
+    if (!isListingNotSoftDeleted(l)) return false
     const settings = l.sync_settings
     if (!settings?.sources?.length) return false
     if (!settings.auto_sync) return false

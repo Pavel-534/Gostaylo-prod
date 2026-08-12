@@ -368,15 +368,15 @@ export default function SeasonalPriceManager({
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="flex h-[min(92dvh,calc(100vh-1rem))] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full">
+        <DialogContent className="flex h-[min(92dvh,calc(100vh-1rem))] w-[calc(100vw-1.5rem)] max-w-3xl min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full">
           <div className="shrink-0 border-b px-4 pb-3 pt-12 sm:px-6 sm:pt-14">
             <DialogHeader className="text-left">
               <DialogTitle>{editingPrice ? t('seasonalMgr_titleEdit') : t('seasonalMgr_titleAdd')}</DialogTitle>
             </DialogHeader>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
-          <div className="space-y-6">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+          <div className="min-w-0 space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="label">{t('seasonalMgr_seasonName')}</Label>
@@ -421,6 +421,7 @@ export default function SeasonalPriceManager({
               <PartnerDateRangeFields
                 startDate={dateRange.from}
                 endDate={dateRange.to}
+                autoOpenEnd={false}
                 onChange={({ startDate, endDate }) =>
                   setDateRange({ from: startDate, to: endDate })
                 }

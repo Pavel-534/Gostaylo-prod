@@ -22,6 +22,7 @@ import { toListingDate, listingDateToday, addListingDays } from '@/lib/listing-d
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { inferDominantCategorySlug } from '@/lib/booking/payout-release-config'
+import { filterOutSoftDeletedListings } from '@/lib/listing/listing-soft-delete.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,9 +134,9 @@ export async function GET(request) {
       const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
       const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd')
       
-      // Fetch listings
+      // Fetch listings (exclude soft-deleted — Stage 200.127)
       const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,base_price_thb,category_id`,
+        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,base_price_thb,category_id,metadata`,
         {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -144,11 +145,12 @@ export async function GET(request) {
           cache: 'no-store'
         }
       )
-      const listings = await listingsRes.json()
+      const listingsRaw = await listingsRes.json()
       
-      if (!Array.isArray(listings)) {
+      if (!Array.isArray(listingsRaw)) {
         throw new Error('Invalid listings response')
       }
+      const listings = filterOutSoftDeletedListings(listingsRaw)
 
       const categoryIds = [...new Set(listings.map((l) => l.category_id).filter(Boolean))]
       const categorySlugById = {}

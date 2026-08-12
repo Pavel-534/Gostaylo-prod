@@ -20,6 +20,7 @@ import { CalendarService } from '@/lib/services/calendar.service'
 import { loadPartnerCalendarRaw } from '@/lib/services/calendar/partner-calendar-bulk-load.js'
 import { promoIsActiveAt } from '@/lib/promo/promo-engine'
 import { mapListingPriceFieldsForApi } from '@/lib/listing/listing-base-price-canon'
+import { filterOutSoftDeletedListings } from '@/lib/listing/listing-soft-delete.js'
 import { runWithConcurrency } from '@/lib/partner/run-with-concurrency.js'
 
 export const dynamic = 'force-dynamic'
@@ -150,7 +151,7 @@ export async function GET(request) {
         )
         .eq('owner_id', userId)
       if (listingsErr) throw listingsErr
-      listings = listingsData || []
+      listings = filterOutSoftDeletedListings(listingsData)
 
       if (filterListingId) {
         const fid = String(filterListingId)

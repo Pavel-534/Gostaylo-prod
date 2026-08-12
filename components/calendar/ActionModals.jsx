@@ -540,21 +540,21 @@ export function ActionModals({
   }
 
   const renderPriceBody = () => (
-    <div className="grid gap-4">
-      <div>
+    <div className="grid min-w-0 gap-4 overflow-x-hidden">
+      <div className="min-w-0">
         <Label>{t('partnerCal_listing')}</Label>
         <Select
           value={priceForm.listingId}
           onValueChange={(v) => setPriceForm((prev) => ({ ...prev, listingId: v }))}
         >
-          <SelectTrigger className="mt-1 min-h-11">
+          <SelectTrigger className="mt-1 min-h-11 min-w-0 max-w-full overflow-hidden">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
             <SelectItem value="all">{t('partnerCal_allListings')}</SelectItem>
             {listings.map((item) => (
-              <SelectItem key={item.listing.id} value={item.listing.id}>
-                {item.listing.title}
+              <SelectItem key={item.listing.id} value={item.listing.id} title={item.listing.title}>
+                <span className="block max-w-[min(85vw,22rem)] truncate">{item.listing.title}</span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -563,6 +563,7 @@ export function ActionModals({
       <PartnerDateRangeFields
         startDate={parsePartnerYmd(priceForm.startDate)}
         endDate={parsePartnerYmd(priceForm.endDate)}
+        autoOpenEnd={false}
         onChange={({ startDate, endDate }) =>
           setPriceForm((prev) => ({
             ...prev,
@@ -576,8 +577,8 @@ export function ActionModals({
         startTestId="master-price-start"
         endTestId="master-price-end"
       />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0">
           <Label>{t('partnerCal_pricePerDay')}</Label>
           <Input
             type="number"
@@ -587,13 +588,13 @@ export function ActionModals({
             className="mt-1 min-h-11"
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label>{t('partnerCal_seasonType')}</Label>
           <Select
             value={priceForm.seasonType}
             onValueChange={(v) => setPriceForm((prev) => ({ ...prev, seasonType: v }))}
           >
-            <SelectTrigger className="mt-1 min-h-11">
+            <SelectTrigger className="mt-1 min-h-11 min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className={SELECT_IN_OVERLAY_CLASS} position="popper">
@@ -605,7 +606,7 @@ export function ActionModals({
           </Select>
         </div>
       </div>
-      <div>
+      <div className="min-w-0">
         <Label>{t('partnerCal_minNights')}</Label>
         <Input
           type="number"
@@ -615,9 +616,9 @@ export function ActionModals({
           placeholder="1"
           className="mt-1 min-h-11"
         />
-        <p className="mt-1 text-xs text-slate-500">{t('partnerCal_minNightsHint')}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t('partnerCal_minNightsHint')}</p>
       </div>
-      <div>
+      <div className="min-w-0">
         <Label>{t('partnerCal_labelNameOptional')}</Label>
         <Input
           value={priceForm.label}
@@ -626,8 +627,8 @@ export function ActionModals({
           className="mt-1 min-h-11"
         />
       </div>
-      <div className="rounded-lg border border-brand/25 bg-brand/10 p-3 text-sm text-brand">
-        <p className="mb-1 font-medium">🔧 {t('partnerCal_conflictTitle')}</p>
+      <div className="rounded-2xl border border-brand/25 bg-brand/10 p-3 text-sm text-brand">
+        <p className="mb-1 font-medium">{t('partnerCal_conflictTitle')}</p>
         <p className="text-xs text-brand-hover">{t('partnerCal_conflictBody')}</p>
       </div>
     </div>

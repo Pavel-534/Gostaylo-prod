@@ -106,6 +106,7 @@
 
 | Задача | Приоритет |
 |--------|-----------|
+| Partner listing Restore | **Done (200.128)** — `POST …/restore`, trash filter, iCal `auto_sync_before_soft_delete` |
 | Split fat `reporting.service` (funnel → module) | P2 |
 | API integration tests — top 20 financial routes | P2 |
 | ROI/FI cache invalidation completeness | P2 |

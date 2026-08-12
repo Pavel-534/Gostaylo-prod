@@ -2,7 +2,8 @@
 
 /**
  * PartnerDateRangeFields — SSOT start/end date pickers for partner wizard & hub.
- * Stage 200.117 Wave B / 200.120 Wave E: Popover + ui/calendar; optional lockStart for master calendar.
+ * Stage 200.117 Wave B / 200.120 Wave E / 200.129: Popover + ui/calendar; optional lockStart;
+ * autoOpenEnd defaults false (pick start → close; end opens only on tap).
  * Do not use for storefront SearchCalendar / PlatformCalendar (guest booking).
  */
 
@@ -56,7 +57,7 @@ export function PartnerDateRangeFields({
   disablePast = false,
   disabledDates = [],
   requireStartBeforeEnd = true,
-  autoOpenEnd = true,
+  autoOpenEnd = false,
   endRequiresStart = true,
   lockStart = false,
   popoverContentClassName,
@@ -87,7 +88,7 @@ export function PartnerDateRangeFields({
     <Button
       type="button"
       variant="outline"
-      className="min-h-[44px] w-full justify-start text-left font-normal"
+      className="min-h-[44px] w-full min-w-0 justify-start text-left font-normal"
       disabled={lockStart}
       data-testid={startTestId}
     >
@@ -97,8 +98,8 @@ export function PartnerDateRangeFields({
   )
 
   return (
-    <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2', className)}>
-      <div className="space-y-2">
+    <div className={cn('grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2', className)}>
+      <div className="min-w-0 space-y-2">
         <Label>{labelStart}</Label>
         {lockStart ? (
           startTrigger
@@ -128,14 +129,14 @@ export function PartnerDateRangeFields({
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <Label>{labelEnd}</Label>
         <Popover open={endOpen} onOpenChange={setEndOpen}>
           <PopoverTrigger asChild>
             <Button
               type="button"
               variant="outline"
-              className="min-h-[44px] w-full justify-start text-left font-normal"
+              className="min-h-[44px] w-full min-w-0 justify-start text-left font-normal"
               disabled={endRequiresStart && !startDate}
               data-testid={endTestId}
             >

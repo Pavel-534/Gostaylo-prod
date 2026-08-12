@@ -31,6 +31,10 @@ import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-b
 import { assertListingFinancialEditAllowed, checkListingFinancialLock } from '@/lib/listing/listing-financial-lock.js';
 import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
 import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js';
+import {
+  buildSoftDeleteMetadataFields,
+  buildSoftDeleteSyncSettingsPatch,
+} from '@/lib/listing/listing-soft-delete.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -544,8 +548,8 @@ export async function PATCH(request, context) {
 
 /**
  * DELETE /api/v2/partner/listings/[id]
- * Soft delete a listing (set status to 'DELETED')
- * Keeps message history intact
+ * Soft delete a listing (`INACTIVE` + `metadata.is_deleted`)
+ * Keeps message history, bookings, and media for a future Restore
  */
 export async function DELETE(request, context) {
   const params = await Promise.resolve(context.params);
@@ -564,10 +568,10 @@ export async function DELETE(request, context) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // First get listing to check ownership
+  // First get listing to check ownership (+ sync_settings to pause iCal)
   const { data: listing } = await supabase
     .from('listings')
-    .select('owner_id, images, status, metadata')
+    .select('owner_id, images, status, metadata, sync_settings')
     .eq('id', listingId)
     .single();
   
@@ -584,6 +588,8 @@ export async function DELETE(request, context) {
     listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
       ? listing.metadata
       : {}
+  const nextSync = buildSoftDeleteSyncSettingsPatch(listing.sync_settings)
+
   const { error } = await supabase
     .from('listings')
     .update({
@@ -591,11 +597,12 @@ export async function DELETE(request, context) {
       available: false,
       metadata: {
         ...prevMeta,
-        is_deleted: true,
-        deleted_at: new Date().toISOString(),
-        deleted_by: userId,
-        previous_status: listing.status,
+        ...buildSoftDeleteMetadataFields({
+          userId,
+          previousStatus: listing.status,
+        }),
       },
+      ...(nextSync ? { sync_settings: nextSync } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', listingId);

@@ -15,13 +15,14 @@ function read(rel) {
 }
 
 describe('Stage 200.117 — PartnerDateRangeFields SSOT', () => {
-  it('PartnerDateRangeFields uses ui/calendar + controlled popovers + auto-open end', () => {
+  it('PartnerDateRangeFields uses ui/calendar + controlled popovers; autoOpenEnd opt-in only', () => {
     const src = read('components/partner/PartnerDateRangeFields.jsx')
     assert.match(src, /from '@\/components\/ui\/calendar'/)
     assert.match(src, /open=\{startOpen\}/)
     assert.match(src, /open=\{endOpen\}/)
     assert.match(src, /setStartOpen\(false\)/)
-    assert.match(src, /setEndOpen\(true\)/)
+    assert.match(src, /autoOpenEnd = false/)
+    assert.match(src, /if \(autoOpenEnd\) setEndOpen\(true\)/)
     assert.match(src, /setEndOpen\(false\)/)
     assert.match(src, /PARTNER_DATE_POPOVER_IN_OVERLAY_CLASS/)
     assert.match(src, /z-\[400\]/)

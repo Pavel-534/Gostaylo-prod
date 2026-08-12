@@ -106,7 +106,7 @@ Proposed tables (additive, TEXT ids, GRANT → RLS → POLICY per Supabase const
 1. Ingest may set `sync_settings.sources[]` + `auto_sync: true` on **draft** (`INACTIVE`).  
 2. Cron already syncs `INACTIVE` — keep that.  
 3. Soft-launch policy: prefer calendar configured (or exclusive manual calendar ack) before trusting Instant Book / heavy traffic.  
-4. Follow-up: exclude `metadata.is_deleted` from iCal cron.
+4. Soft-deleted listings (`metadata.is_deleted`) excluded from iCal cron + soft DELETE pauses `auto_sync` (**Stage 200.127**).
 
 ### 2.8 Inbound API (design only until implementation)
 

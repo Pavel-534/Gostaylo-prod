@@ -26,6 +26,10 @@ import {
 import { applyListingBaseCurrencyInvariant } from '@/lib/listing/apply-listing-base-currency-invariant.js';
 import { assertListingGeoCodes } from '@/lib/geo/assert-listing-geo-codes.js';
 import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-ical-policy.js';
+import {
+  filterOnlySoftDeletedListings,
+  filterOutSoftDeletedListings,
+} from '@/lib/listing/listing-soft-delete.js';
 
 export async function GET(request) {
   try {
@@ -36,6 +40,11 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const partnerId = searchParams.get('partnerId');
+    const filter = String(searchParams.get('filter') || '').trim().toLowerCase();
+    const includeDeleted =
+      filter === 'deleted' ||
+      searchParams.get('include_deleted') === '1' ||
+      searchParams.get('include_deleted') === 'true';
     
     if (!partnerId) {
       return NextResponse.json({ 
@@ -66,11 +75,10 @@ export async function GET(request) {
 
     const defaultListingCommission = await resolveDefaultCommissionPercent();
 
-    // Transform for frontend (hide soft-deleted rows)
-    const visible = (listings || []).filter((l) => {
-      const meta = l?.metadata
-      return !(meta && typeof meta === 'object' && meta.is_deleted === true)
-    })
+    // Stage 200.128: trash only when filter=deleted / include_deleted=1; else exclude soft-deleted
+    const visible = includeDeleted
+      ? filterOnlySoftDeletedListings(listings)
+      : filterOutSoftDeletedListings(listings)
 
     const transformed = visible.map(l => ({
       id: l.id,

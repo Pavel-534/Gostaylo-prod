@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.129 | 2026-08-12 | Season price sheet: mobile overflow fit; date range no auto-open end | Done |
+| 200.128 | 2026-08-12 | Listing Restore: POST …/restore, filter=deleted trash UX, safe iCal auto_sync resume | Done |
+| 200.127 | 2026-08-12 | Soft-delete SSOT: hide from calendar/stats/iCal; pause auto_sync; honest delete copy | Done |
 | 200.126 | 2026-08-12 | Partner sidebar: compact footer (short labels, no logout) for taller primary nav | Done |
 | 200.125 | 2026-08-12 | Build fix: season-type pure module (wizard no longer pulls currency→node:crypto) | Done |
 | 200.124 | 2026-08-12 | Build fix: split invoice system message out of payment-window-policy (no node:module in checkout client) | Done |

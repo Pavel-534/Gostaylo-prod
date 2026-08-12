@@ -51,6 +51,7 @@ import {
   usePartnerListings,
   usePartnerListingPatch,
   usePartnerListingDelete,
+  usePartnerListingRestore,
 } from '@/lib/hooks/use-partner-listings'
 import { resolvePostPublishCalendarOnboardingUrl } from '@/lib/partner/post-publish-redirect.js'
 import { evaluateCalendarFreshness } from '@/lib/partner/calendar-freshness.js'
@@ -80,22 +81,26 @@ export default function PartnerListings() {
   const { language, t } = useI18n()
   const { user, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const partnerId = user?.id
+  const [listFilter, setListFilter] = useState(
+    /** @type {'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'deleted'} */ ('all')
+  )
+  const trashMode = listFilter === 'deleted'
   const {
     data: listingsData,
     isLoading: listingsLoading,
   } = usePartnerListings(partnerId, {
     enabled: !authLoading && isAuthenticated && !!partnerId,
+    filter: trashMode ? 'deleted' : null,
   })
   const patchListing = usePartnerListingPatch(partnerId)
   const deleteListingMutation = usePartnerListingDelete(partnerId)
+  const restoreListingMutation = usePartnerListingRestore(partnerId)
   const listings = listingsData?.listings ?? []
   const loading = authLoading || (isAuthenticated && listingsLoading)
   const [deleteId, setDeleteId] = useState(null)
   const [publishingId, setPublishingId] = useState(null)
-  const [listFilter, setListFilter] = useState(
-    /** @type {'all' | 'active' | 'draft' | 'pending' | 'rejected'} */ ('all')
-  )
   const [visibilityBusyId, setVisibilityBusyId] = useState(null)
+  const [undeleteBusyId, setUndeleteBusyId] = useState(null)
   const [qualityModalListing, setQualityModalListing] = useState(null)
   const [showConciergeWelcome, setShowConciergeWelcome] = useState(false)
 
@@ -255,6 +260,7 @@ export default function PartnerListings() {
 
   /** Должен вызываться до любых return — иначе ломается порядок хуков */
   const filteredListings = useMemo(() => {
+    if (listFilter === 'deleted') return listings
     return listings.filter((l) => {
       const md = l.metadata || {}
       if (listFilter === 'all') return true
@@ -265,6 +271,25 @@ export default function PartnerListings() {
       return true
     })
   }, [listings, listFilter])
+
+  async function undeleteListing(listing) {
+    if (!listing?.id) return
+    setUndeleteBusyId(listing.id)
+    try {
+      await restoreListingMutation.mutateAsync({ listingId: listing.id })
+      toast({ title: t('partnerListings_toastUndeleteOkTitle') })
+      setListFilter('all')
+    } catch (e) {
+      console.error(e)
+      toast({
+        title: t('partnerListings_toastUndeleteErrTitle'),
+        description: e.message || undefined,
+        variant: 'destructive',
+      })
+    } finally {
+      setUndeleteBusyId(null)
+    }
+  }
 
   // Stats calculation (API: bookingsCount → bookings_count)
   const stats = {
@@ -398,6 +423,7 @@ export default function PartnerListings() {
             { id: 'draft', label: t('partnerListings_filterDraft') },
             { id: 'pending', label: t('partnerListings_filterPending') },
             { id: 'rejected', label: t('partnerListings_filterRejected') },
+            { id: 'deleted', label: t('partnerListings_filterDeleted') },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -516,12 +542,18 @@ export default function PartnerListings() {
             const isConcierge = isConciergeImportListing(listing)
             const isConciergeDraft = isConciergeDraftListing(listing)
             const showPublishCta =
-              !isDraftListing && (status === 'INACTIVE' || status === 'REJECTED')
+              !trashMode &&
+              !isDraftListing &&
+              (status === 'INACTIVE' || status === 'REJECTED') &&
+              !isPartnerHiddenMetadata(listing.metadata)
             const publishChecklist = getPublishChecklist(listing)
             const ready = publishChecklist.ok
             const canHideFromSite =
-              listing.status === 'ACTIVE' && listing.metadata?.is_draft !== true
+              !trashMode &&
+              listing.status === 'ACTIVE' &&
+              listing.metadata?.is_draft !== true
             const canRestoreToSite =
+              !trashMode &&
               isPartnerHiddenMetadata(listing.metadata) &&
               listing.status === 'INACTIVE' &&
               listing.metadata?.is_draft !== true
@@ -692,10 +724,13 @@ export default function PartnerListings() {
                   visibilityBusyId={visibilityBusyId}
                   canHideFromSite={canHideFromSite}
                   canRestoreToSite={canRestoreToSite}
+                  showUndeleteCta={trashMode}
+                  undeleteBusyId={undeleteBusyId}
                   onPublish={publishListing}
                   onOpenQualityModal={setQualityModalListing}
                   onHide={(item) => setListingOnSite(item, false)}
                   onRestore={(item) => setListingOnSite(item, true)}
+                  onUndelete={undeleteListing}
                   onDelete={setDeleteId}
                 />
               </Card>

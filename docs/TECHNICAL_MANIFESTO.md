@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.107 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.126** partner sidebar footer compact.
+> **Version**: 13.2.110 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.129** season price sheet UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,26 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.129 — season price sheet fit + date pickers
+
+- `PartnerDateRangeFields`: `autoOpenEnd` default **false** (start closes; end only on tap) — master calendar, wizard seasons, availability blocks.
+- `CalendarActionOverlay` / price modal: `min-w-0` + `overflow-x-hidden`, token borders; listing Select truncates (fixes mobile left clip).
+- Tests: `__tests__/stage200-129-partner-season-price-sheet.test.js`.
+
+### Stage 200.128 — Listing Restore & trash UX
+
+- `POST /api/v2/partner/listings/[id]/restore` + `lib/listing/listing-soft-delete-restore.js` (status from `previous_status`; ACTIVE without re-moderation).
+- Soft DELETE stores `sync_settings.auto_sync_before_soft_delete`; restore resumes only if `paused_by_soft_delete`.
+- GET listings `filter=deleted`; partner UI chip «Удалённые» + `partnerListings_undelete*` (not hide/unhide).
+- Tests: `__tests__/stage200-128-listing-restore.test.js`.
+
+### Stage 200.127 — listing soft-delete filter SSOT
+
+- SSOT: `lib/listing/listing-soft-delete.js` (`metadata.is_deleted`).
+- Partner calendar / stats / listings GET + iCal cron exclude soft-deleted; DELETE pauses `sync_settings.auto_sync`.
+- Honest delete dialog copy (not “data wiped”). Restore shipped in **200.128**.
+- Tests: `__tests__/stage200-127-listing-soft-delete-filter.test.js`.
 
 ### Stage 200.126 — Partner sidebar footer compact
 
