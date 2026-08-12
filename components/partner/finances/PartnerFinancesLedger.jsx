@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PartnerHostLedgerAmountCell } from '@/components/partner/finances/partner-host-amount-display'
@@ -21,6 +20,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function ledgerRowKey(row) {
@@ -123,12 +123,15 @@ export function PartnerFinancesLedger({
 
   return (
     <>
-      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+      <Card
+        className={cn(
+          MOBILE_FLAT_CARD_CLASS,
+          PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+          'min-w-0 overflow-hidden',
+        )}
+      >
         <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5 text-slate-600 shrink-0" />
-            {t('partnerFinances_ledgerTitle')}
-          </CardTitle>
+          <CardTitle className="sr-only">{t('partnerFinances_ledgerTitle')}</CardTitle>
           <CardDescription>{t('partnerFinances_ledgerDesc')}</CardDescription>
         </CardHeader>
         <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>

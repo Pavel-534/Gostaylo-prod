@@ -10,6 +10,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPdfCard({
@@ -24,7 +25,13 @@ export function PartnerFinancesPdfCard({
   onPresetPrev,
 }) {
   return (
-    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-slate-50/40')}>
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'sm:border-slate-200 sm:bg-slate-50/40',
+      )}
+    >
       <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-base">{t('partnerFinances_pdfSectionTitle')}</CardTitle>
         <CardDescription className="text-xs sm:text-sm">{t('partnerFinances_pdfSectionDesc')}</CardDescription>

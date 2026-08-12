@@ -7,11 +7,12 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesStatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
   return (
-    <Card className={MOBILE_FLAT_CARD_CLASS}>
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
       <CardHeader
         className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'flex flex-row items-center justify-between sm:pb-2')}
       >

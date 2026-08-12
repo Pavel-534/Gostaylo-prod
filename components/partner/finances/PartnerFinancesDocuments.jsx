@@ -17,6 +17,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 function fmtWhen(iso, language) {
@@ -84,7 +85,13 @@ export function PartnerFinancesDocuments({ t, language }) {
     s === 'batch' ? t('partnerFinances_docsSourceBatch') : t('partnerFinances_docsSourcePayout')
 
   return (
-    <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+    <Card
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'min-w-0 overflow-hidden',
+      )}
+    >
       <CardHeader
         className={cn(
           MOBILE_FLAT_CARD_HEADER_CLASS,

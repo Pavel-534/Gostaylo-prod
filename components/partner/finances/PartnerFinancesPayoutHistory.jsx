@@ -18,6 +18,7 @@ import {
   MOBILE_FLAT_EMPTY_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPayoutHistory({
@@ -34,7 +35,7 @@ export function PartnerFinancesPayoutHistory({
   }
 
   return (
-    <Card className={MOBILE_FLAT_CARD_CLASS}>
+    <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
       <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-lg flex items-center gap-2">
           <ArrowDownToLine className="h-5 w-5 text-slate-600" />

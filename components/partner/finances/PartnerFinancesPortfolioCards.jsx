@@ -7,6 +7,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
@@ -42,7 +43,10 @@ export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
     <div className="space-y-2">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {cards.map((card) => (
-          <Card key={card.id} className={MOBILE_FLAT_CARD_CLASS}>
+          <Card
+            key={card.id}
+            className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}
+          >
             <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
               <CardTitle className="text-sm font-medium text-slate-600">{card.title}</CardTitle>
             </CardHeader>

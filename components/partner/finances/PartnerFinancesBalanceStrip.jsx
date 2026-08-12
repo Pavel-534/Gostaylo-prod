@@ -2,13 +2,15 @@
 
 import { Shield, Clock, Wallet, Banknote } from 'lucide-react'
 import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 const ACCENTS = {
-  escrow: 'border-amber-200 bg-amber-50/80',
-  thaw: 'border-sky-200 bg-sky-50/80',
-  available: 'border-brand/25 bg-brand/10',
-  paid: 'border-slate-200 bg-slate-50/80',
+  escrow: 'sm:border-amber-200 sm:bg-amber-50/80',
+  thaw: 'sm:border-sky-200 sm:bg-sky-50/80',
+  available: 'sm:border-brand/25 sm:bg-brand/10',
+  paid: 'sm:border-slate-200 sm:bg-slate-50/80',
 }
 
 function buildBalanceItems(t, summary, thawHoldHint, escrowHint) {
@@ -77,7 +79,13 @@ function BalanceCompactStrip({ t, items, loading }) {
   }
 
   return (
-    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 md:hidden">
+    <div
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 text-sm md:hidden',
+      )}
+    >
       {parts.map((part, index) => (
         <span key={part.key} className="inline-flex flex-wrap items-center gap-2">
           {index > 0 ? (
@@ -105,7 +113,12 @@ export function PartnerFinancesBalanceStrip({ t, summary, loading, thawHoldHint,
         {items.map(({ id, icon: Icon, title, hint, value, accent }) => (
           <div
             key={id}
-            className={cn('rounded-xl border p-4 min-h-[6.5rem] flex flex-col', ACCENTS[accent])}
+            className={cn(
+              MOBILE_FLAT_CARD_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              'flex min-h-[6.5rem] flex-col p-4 sm:rounded-xl',
+              ACCENTS[accent],
+            )}
           >
             <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <Icon className="h-4 w-4 shrink-0 opacity-80" />

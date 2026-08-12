@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.87 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.104** partner dashboard hub rhythm.
+> **Version**: 13.2.88 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.105** partner finances hub rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.105 — Partner finances hub rhythm
+
+- `/partner/finances` overview/ledger/reports: `PARTNER_SECTION_TITLE` + `PartnerSectionDivider` for Balance / Withdraw / Transactions / Reports.
+- Balance tiles + payout math / history / portfolio cards: `MOBILE_FLAT_*` + `PARTNER_HUB_LIST_CARD_SURFACE_CLASS`.
+- `/partner/payout-profiles`: settings vs requisites sections with same rhythm + hub surface.
+- No change to ledger hooks, withdraw eligibility, payout-profiles API payloads, or transaction status mapping.
+- Tests: `__tests__/stage200-105-partner-finances-rhythm.test.js`.
 
 ### Stage 200.104 — Partner dashboard hub rhythm
 

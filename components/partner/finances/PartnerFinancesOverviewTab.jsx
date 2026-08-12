@@ -8,6 +8,8 @@ import { PartnerFinancesStatCard } from '@/components/partner/finances/PartnerFi
 import { PartnerFinancesStatusAlerts } from '@/components/partner/finances/PartnerFinancesStatusAlerts'
 import { PartnerFinancesWithdrawStickyCta } from '@/components/partner/finances/PartnerFinancesWithdrawStickyCta'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import { PARTNER_SECTION_TITLE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 export function PartnerFinancesOverviewTab({
   t,
@@ -31,58 +33,66 @@ export function PartnerFinancesOverviewTab({
   const hasProfile = !!defaultPayoutProfile?.id
 
   return (
-    <div className="space-y-6 pb-2 md:pb-0">
+    <div className="space-y-0 pb-2 md:pb-0">
       <PartnerConciergePayoutBanner t={t} body={conciergeBody} />
 
-      <PartnerFinancesBalanceStrip
-        t={t}
-        summary={financesSummary}
-        loading={summaryLoadingCombined}
-        thawHoldHint={payoutPolicyTexts.thawHoldShort}
-        escrowHint={payoutPolicyTexts.protected}
-      />
-
-      <PartnerFinancesStatusAlerts
-        t={t}
-        summaryError={summaryError}
-        summaryErr={summaryErr}
-        onRefetchSummary={onRefetchSummary}
-        financesSummary={financesSummary}
-      />
-
-      {pendingThb > 0 ? (
-        <PartnerFinancesStatCard
-          icon={Calendar}
-          title={t('partnerFinances_bucketPendingTitle')}
-          value={<PartnerHostLedgerAmount thb={pendingThb} />}
-          subtitle={t('partnerFinances_bucketPendingDesc')}
+      <section data-partner-section="finances-balance" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionBalance')}</h2>
+        <PartnerFinancesBalanceStrip
+          t={t}
+          summary={financesSummary}
           loading={summaryLoadingCombined}
+          thawHoldHint={payoutPolicyTexts.thawHoldShort}
+          escrowHint={payoutPolicyTexts.protected}
         />
-      ) : null}
 
-      <PartnerFinancesPayoutMathCard
-        t={t}
-        language={language}
-        financesSummary={financesSummary}
-        summaryLoading={summaryLoadingCombined}
-        partnerId={partnerId}
-        partnerProfileVerified={partnerProfileVerified}
-        defaultPayoutProfile={defaultPayoutProfile}
-        payoutPreview={payoutPreview}
-        payoutPreviewLoading={payoutPreviewLoading}
-        onOpenWithdraw={onOpenWithdraw}
-      />
+        <PartnerFinancesStatusAlerts
+          t={t}
+          summaryError={summaryError}
+          summaryErr={summaryErr}
+          onRefetchSummary={onRefetchSummary}
+          financesSummary={financesSummary}
+        />
 
-      <PartnerFinancesWithdrawStickyCta
-        t={t}
-        summaryLoading={summaryLoadingCombined}
-        payoutPreviewLoading={payoutPreviewLoading}
-        partnerId={partnerId}
-        partnerProfileVerified={partnerProfileVerified}
-        hasProfile={hasProfile}
-        payoutPreview={payoutPreview}
-        onOpenWithdraw={onOpenWithdraw}
-      />
+        {pendingThb > 0 ? (
+          <PartnerFinancesStatCard
+            icon={Calendar}
+            title={t('partnerFinances_bucketPendingTitle')}
+            value={<PartnerHostLedgerAmount thb={pendingThb} />}
+            subtitle={t('partnerFinances_bucketPendingDesc')}
+            loading={summaryLoadingCombined}
+          />
+        ) : null}
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section="finances-withdraw" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionWithdraw')}</h2>
+        <PartnerFinancesPayoutMathCard
+          t={t}
+          language={language}
+          financesSummary={financesSummary}
+          summaryLoading={summaryLoadingCombined}
+          partnerId={partnerId}
+          partnerProfileVerified={partnerProfileVerified}
+          defaultPayoutProfile={defaultPayoutProfile}
+          payoutPreview={payoutPreview}
+          payoutPreviewLoading={payoutPreviewLoading}
+          onOpenWithdraw={onOpenWithdraw}
+        />
+
+        <PartnerFinancesWithdrawStickyCta
+          t={t}
+          summaryLoading={summaryLoadingCombined}
+          payoutPreviewLoading={payoutPreviewLoading}
+          partnerId={partnerId}
+          partnerProfileVerified={partnerProfileVerified}
+          hasProfile={hasProfile}
+          payoutPreview={payoutPreview}
+          onOpenWithdraw={onOpenWithdraw}
+        />
+      </section>
     </div>
   )
 }

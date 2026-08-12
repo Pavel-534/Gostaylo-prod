@@ -17,6 +17,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 function BookingStatusCell({ booking, t, language }) {
@@ -72,9 +73,16 @@ export function PartnerFinancesTransactionHistory({
   onOpenSnapshot,
 }) {
   return (
-    <Card ref={transactionSectionRef} className={cn(MOBILE_FLAT_CARD_CLASS, 'min-w-0 overflow-hidden')}>
+    <Card
+      ref={transactionSectionRef}
+      className={cn(
+        MOBILE_FLAT_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'min-w-0 overflow-hidden',
+      )}
+    >
       <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-        <CardTitle>{t('transactionHistory')}</CardTitle>
+        <CardTitle className="sr-only">{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
         <PartnerHostMidFxFootnote t={t} className="mt-1" />
         {escrowBookingFilter ? (

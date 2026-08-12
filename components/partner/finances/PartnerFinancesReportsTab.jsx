@@ -8,10 +8,15 @@ import { PartnerFinancesPdfCard } from '@/components/partner/finances/PartnerFin
 import { PartnerFinancesPayoutHistory } from '@/components/partner/finances/PartnerFinancesPayoutHistory'
 import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
 import { PartnerFinancesReportsSubNav } from '@/components/partner/finances/PartnerFinancesReportsSubNav'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import {
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesReportsTab({
@@ -38,11 +43,14 @@ export function PartnerFinancesReportsTab({
   const [activeSubTab, setActiveSubTab] = useState('statements')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       <PartnerFinancesReportsSubNav t={t} activeSubTab={activeSubTab} onSubTabChange={setActiveSubTab} />
 
+      <PartnerSectionDivider />
+
       {activeSubTab === 'statements' ? (
-        <div className="space-y-8">
+        <section data-partner-section="finances-statements" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionReports')}</h2>
           <PartnerFinancesPortfolioCards
             t={t}
             financesSummary={financesSummary}
@@ -62,32 +70,44 @@ export function PartnerFinancesReportsTab({
           />
 
           <PartnerFinancesDocuments t={t} language={language} />
-        </div>
+        </section>
       ) : null}
 
       {activeSubTab === 'payouts' ? (
-        <PartnerFinancesPayoutHistory
-          t={t}
-          payouts={payouts}
-          payoutsLoading={payoutsLoading}
-          payoutsError={payoutsError}
-          payoutsErr={payoutsErr}
-          onRefetchPayouts={onRefetchPayouts}
-        />
+        <section data-partner-section="finances-payout-history" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_payoutHistoryTitle')}</h2>
+          <PartnerFinancesPayoutHistory
+            t={t}
+            payouts={payouts}
+            payoutsLoading={payoutsLoading}
+            payoutsError={payoutsError}
+            payoutsErr={payoutsErr}
+            onRefetchPayouts={onRefetchPayouts}
+          />
+        </section>
       ) : null}
 
       {activeSubTab === 'help' ? (
-        <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-sky-200 sm:bg-sky-50/80')}>
-          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-sky-700 mt-0.5 shrink-0" aria-hidden />
-              <div>
-                <h4 className="font-semibold text-sky-950 mb-1">{t('howPayoutsWork')}</h4>
-                <p className="text-sm text-sky-900/90 leading-relaxed">{payoutsInfoText}</p>
+        <section data-partner-section="finances-payout-help" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('howPayoutsWork')}</h2>
+          <Card
+            className={cn(
+              MOBILE_FLAT_CARD_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              'sm:border-sky-200 sm:bg-sky-50/80',
+            )}
+          >
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" aria-hidden />
+                <div>
+                  <p className="mb-1 font-semibold text-sky-950">{t('howPayoutsWork')}</p>
+                  <p className="text-sm leading-relaxed text-sky-900/90">{payoutsInfoText}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
       ) : null}
     </div>
   )

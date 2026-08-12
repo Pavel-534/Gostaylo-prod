@@ -11,6 +11,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPayoutMathCard({
@@ -28,7 +29,13 @@ export function PartnerFinancesPayoutMathCard({
   const hasProfile = !!defaultPayoutProfile?.id
 
   return (
-    <Card className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'min-w-0 sm:bg-brand/5')}>
+    <Card
+      className={cn(
+        MOBILE_FLAT_BRAND_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'min-w-0 sm:bg-brand/5',
+      )}
+    >
       <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
         <CardTitle className="text-lg">{t('partnerFinances_payoutMathTitle')}</CardTitle>
         <CardDescription>

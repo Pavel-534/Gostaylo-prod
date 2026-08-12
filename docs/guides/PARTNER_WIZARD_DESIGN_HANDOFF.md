@@ -1,6 +1,6 @@
 # Partner Wizard Design Handoff (SSOT)
 
-> **Status:** agreed corridor through **Stage 200.104** (2026-08-12)  
+> **Status:** agreed corridor through **Stage 200.105** (2026-08-12)  
 > **Product brand:** **`getSiteDisplayName()`** / i18n `{brand}` only in UI (prod env: Airento)  
 > **Audience:** engineers / agents polishing partner listing UX without redesigning the product
 
@@ -98,7 +98,8 @@ Concierge drafts open the **same** wizard routes and shell (`ListingWizardProvid
 | **200.102** | **Dark Mode Input/`--input` tokens + brand-mint focus (Input/Textarea/Select)** |
 | **200.103** | **`/partner/bookings` hub list surface + section rhythm** |
 | **200.104** | **`/partner/dashboard` section rhythm + hub mint metrics** |
-| **200.105** | Next free — pick **one** focus (see §8) |
+| **200.105** | **`/partner/finances` + `/partner/payout-profiles` section rhythm + hub mint** |
+| **200.106** | Next free — pick **one** focus (see §8) |
 
 Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
@@ -117,14 +118,16 @@ Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
 ---
 
-## 8. Next Stage candidates (200.105+)
+## 8. Next Stage candidates (200.106+)
 
 Pick **one** corridor slice per Stage:
 
 | Candidate | Why | Blast radius |
 |-----------|-----|--------------|
 | **C. Calendar step typography** | Align Seasonal/Availability section titles with `PARTNER_SECTION_*` without rewriting widgets | Small–medium |
-| **E. Settings / finances section titles** | Partner hub forms still CardTitle-heavy | Medium |
+| **F. Partner settings forms** | Remaining CardTitle-heavy hub forms | Medium |
+
+**Done in 200.105:** `/partner/finances` + `/partner/payout-profiles` — section titles/dividers + hub mint surface (candidate E).
 
 **Done in 200.104:** `/partner/dashboard` — section titles/dividers + hub mint metric surface (candidate D).
 

@@ -35,6 +35,11 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 function getChannelIcon(channel) {
   if (channel === 'BANK') return Landmark
@@ -291,10 +296,10 @@ export default function PartnerPayoutProfilesPage() {
   }
 
   return (
-    <div className='space-y-6'>
-      <div>
+    <div className='space-y-0'>
+      <div className='mb-4'>
         <h1 className='text-3xl font-bold text-slate-900'>{t('payoutProfiles_pageTitle')}</h1>
-        <p className='text-slate-600 mt-1 max-w-2xl'>
+        <p className='mt-1 max-w-2xl text-sm text-slate-600'>
           {t('payoutProfiles_pageSubtitle')}
         </p>
       </div>
@@ -397,141 +402,150 @@ export default function PartnerPayoutProfilesPage() {
         </DialogContent>
       </Dialog>
 
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle>{t('payoutProfiles_newProfileTitle')}</CardTitle>
-          <CardDescription>
-            {t('payoutProfiles_newProfileDesc')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
-          {loading ? (
-            <div className='py-4 flex items-center justify-center'>
-              <Loader2 className='h-5 w-5 animate-spin text-brand' />
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className='text-sm text-slate-600 block mb-1'>{t('payoutProfiles_methodLabel')}</label>
-                <select
-                  value={methodId}
-                  onChange={(e) => setMethodId(e.target.value)}
-                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-                >
-                  {methods.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.name} ({method.channel}) — {formatPayoutMethodOptionSuffix(method)}
-                    </option>
-                  ))}
-                </select>
+      <section data-partner-section="payout-profiles-settings" className='space-y-3'>
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('payoutProfiles_sectionWithdrawSettings')}</h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className='sr-only'>{t('payoutProfiles_newProfileTitle')}</CardTitle>
+            <CardDescription>
+              {t('payoutProfiles_newProfileDesc')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+            {loading ? (
+              <div className='py-4 flex items-center justify-center'>
+                <Loader2 className='h-5 w-5 animate-spin text-brand' />
               </div>
-
-              <PayoutCredentialFields
-                channel={selectedMethod?.channel || 'CARD'}
-                formData={formData}
-                setFormData={setFormData}
-                t={t}
-              />
-
-              <Button
-                onClick={() => setConfirmCreateOpen(true)}
-                disabled={saving || !methodId}
-                variant='brand'
-              >
-                {saving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : null}
-                {t('payoutProfiles_saveProfile')}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle>{t('payoutProfiles_myRequisitesTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
-          {profiles.length === 0 ? (
-            <p className='text-sm text-slate-500'>{t('payoutProfiles_empty')}</p>
-          ) : (
-            profiles.map((profile) => {
-              const method = profile.method || {}
-              const Icon = getChannelIcon(method.channel)
-              return (
-                <div
-                  key={profile.id}
-                  className={cn(
-                    MOBILE_FLAT_INSET_CLASS,
-                    'flex flex-col md:flex-row md:items-start justify-between gap-3',
-                  )}
-                >
-                  <div className='flex items-start gap-3 min-w-0'>
-                    <div className='h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0'>
-                      <Icon className='h-5 w-5 text-slate-600' />
-                    </div>
-                    <div className='min-w-0'>
-                      <p className='font-semibold text-slate-900'>{method.name || t('payoutProfiles_methodDefaultName')}</p>
-                      <p className='text-sm text-slate-600 break-all'>{maskField(method.channel, profile.data || {}, t)}</p>
-                      <div className='flex flex-wrap items-center gap-2 mt-2'>
-                        {profile.is_default ? (
-                          <Badge className='bg-emerald-50 text-emerald-800 border-emerald-200'>{t('payoutProfiles_badgeDefault')}</Badge>
-                        ) : null}
-                        {profile.is_verified ? (
-                          <Badge variant='secondary' className='gap-1'>
-                            <CheckCircle2 className='h-3 w-3' />
-                            {t('payoutProfiles_badgeVerified')}
-                          </Badge>
-                        ) : (
-                          <Badge variant='outline' className='text-amber-800 border-amber-200 bg-amber-50'>
-                            {t('payoutProfiles_badgePending')}
-                          </Badge>
-                        )}
-                      </div>
-                      {profile.is_verified ? (
-                        <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
-                          {t('payoutProfiles_verifiedSupportHintPrefix')}
-                          <a
-                            href={supportTelegramHref}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='font-medium text-brand-hover underline underline-offset-2 hover:text-brand'
-                          >
-                            {`Telegram (@${getTelegramBotUsername()})`}
-                          </a>
-                          .
-                        </p>
-                      ) : null}
-                      {profile.is_default ? (
-                        <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
-                          {t('payoutProfiles_defaultChangeHint')}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className='flex flex-wrap gap-2 shrink-0'>
-                    {!profile.is_verified ? (
-                      <Button variant='outline' size='sm' onClick={() => openEdit(profile)} className='gap-1'>
-                        <Pencil className='h-3.5 w-3.5' />
-                        {t('payoutProfiles_editBtn')}
-                      </Button>
-                    ) : null}
-                    {!profile.is_default ? (
-                      <>
-                        <Button variant='outline' size='sm' onClick={() => handleSetDefault(profile)}>
-                          {t('payoutProfiles_makeDefault')}
-                        </Button>
-                        <Button variant='destructive' size='sm' onClick={() => handleDelete(profile.id)}>
-                          {t('payoutProfiles_delete')}
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
+            ) : (
+              <>
+                <div>
+                  <label className='text-sm text-slate-600 block mb-1'>{t('payoutProfiles_methodLabel')}</label>
+                  <select
+                    value={methodId}
+                    onChange={(e) => setMethodId(e.target.value)}
+                    className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                  >
+                    {methods.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.name} ({method.channel}) — {formatPayoutMethodOptionSuffix(method)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )
-            })
-          )}
-        </CardContent>
-      </Card>
+
+                <PayoutCredentialFields
+                  channel={selectedMethod?.channel || 'CARD'}
+                  formData={formData}
+                  setFormData={setFormData}
+                  t={t}
+                />
+
+                <Button
+                  onClick={() => setConfirmCreateOpen(true)}
+                  disabled={saving || !methodId}
+                  variant='brand'
+                  className='min-h-[44px]'
+                >
+                  {saving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : null}
+                  {t('payoutProfiles_saveProfile')}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section="payout-profiles-requisites" className='space-y-3'>
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('payoutProfiles_sectionRequisites')}</h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className='sr-only'>{t('payoutProfiles_myRequisitesTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
+            {profiles.length === 0 ? (
+              <p className='text-sm text-slate-500'>{t('payoutProfiles_empty')}</p>
+            ) : (
+              profiles.map((profile) => {
+                const method = profile.method || {}
+                const Icon = getChannelIcon(method.channel)
+                return (
+                  <div
+                    key={profile.id}
+                    className={cn(
+                      MOBILE_FLAT_INSET_CLASS,
+                      'flex flex-col md:flex-row md:items-start justify-between gap-3',
+                    )}
+                  >
+                    <div className='flex items-start gap-3 min-w-0'>
+                      <div className='h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0'>
+                        <Icon className='h-5 w-5 text-slate-600' />
+                      </div>
+                      <div className='min-w-0'>
+                        <p className='font-semibold text-slate-900'>{method.name || t('payoutProfiles_methodDefaultName')}</p>
+                        <p className='text-sm text-slate-600 break-all'>{maskField(method.channel, profile.data || {}, t)}</p>
+                        <div className='flex flex-wrap items-center gap-2 mt-2'>
+                          {profile.is_default ? (
+                            <Badge className='bg-emerald-50 text-emerald-800 border-emerald-200'>{t('payoutProfiles_badgeDefault')}</Badge>
+                          ) : null}
+                          {profile.is_verified ? (
+                            <Badge variant='secondary' className='gap-1'>
+                              <CheckCircle2 className='h-3 w-3' />
+                              {t('payoutProfiles_badgeVerified')}
+                            </Badge>
+                          ) : (
+                            <Badge variant='outline' className='text-amber-800 border-amber-200 bg-amber-50'>
+                              {t('payoutProfiles_badgePending')}
+                            </Badge>
+                          )}
+                        </div>
+                        {profile.is_verified ? (
+                          <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
+                            {t('payoutProfiles_verifiedSupportHintPrefix')}
+                            <a
+                              href={supportTelegramHref}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='font-medium text-brand-hover underline underline-offset-2 hover:text-brand'
+                            >
+                              {`Telegram (@${getTelegramBotUsername()})`}
+                            </a>
+                            .
+                          </p>
+                        ) : null}
+                        {profile.is_default ? (
+                          <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
+                            {t('payoutProfiles_defaultChangeHint')}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className='flex flex-wrap gap-2 shrink-0'>
+                      {!profile.is_verified ? (
+                        <Button variant='outline' size='sm' onClick={() => openEdit(profile)} className='min-h-[44px] gap-1'>
+                          <Pencil className='h-3.5 w-3.5' />
+                          {t('payoutProfiles_editBtn')}
+                        </Button>
+                      ) : null}
+                      {!profile.is_default ? (
+                        <>
+                          <Button variant='outline' size='sm' className='min-h-[44px]' onClick={() => handleSetDefault(profile)}>
+                            {t('payoutProfiles_makeDefault')}
+                          </Button>
+                          <Button variant='destructive' size='sm' className='min-h-[44px]' onClick={() => handleDelete(profile.id)}>
+                            {t('payoutProfiles_delete')}
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }

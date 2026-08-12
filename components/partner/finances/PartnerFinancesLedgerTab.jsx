@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { PartnerFinancesLedger } from '@/components/partner/finances/PartnerFinancesLedger'
 import { PartnerFinancesLedgerSubNav } from '@/components/partner/finances/PartnerFinancesLedgerSubNav'
 import { PartnerFinancesTransactionHistory } from '@/components/partner/finances/PartnerFinancesTransactionHistory'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import { PARTNER_SECTION_TITLE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 export function PartnerFinancesLedgerTab({
   t,
@@ -51,30 +53,40 @@ export function PartnerFinancesLedgerTab({
   }, [initialBookingId])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       <PartnerFinancesLedgerSubNav
         t={t}
         activeSubTab={activeSubTab}
         onSubTabChange={setActiveSubTab}
       />
 
+      <PartnerSectionDivider />
+
       {activeSubTab === 'ledger' ? (
-        <PartnerFinancesLedger
-          t={t}
-          language={language}
-          balanceBreakdown={balanceBreakdown}
-          initialBookingId={initialBookingId}
-          onInitialBookingConsumed={onInitialBookingConsumed}
-          initialLedgerEntryId={initialLedgerEntryId}
-          resolvedLedgerEntry={resolvedLedgerEntry}
-          onInitialLedgerEntryConsumed={onInitialLedgerEntryConsumed}
-          ledgerHasMore={ledgerHasMore}
-          ledgerLoadingMore={ledgerLoadingMore}
-          onLoadMore={onLoadMoreLedger}
-        />
+        <section data-partner-section="finances-ledger" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_ledgerTitle')}</h2>
+          <PartnerFinancesLedger
+            t={t}
+            language={language}
+            balanceBreakdown={balanceBreakdown}
+            initialBookingId={initialBookingId}
+            onInitialBookingConsumed={onInitialBookingConsumed}
+            initialLedgerEntryId={initialLedgerEntryId}
+            resolvedLedgerEntry={resolvedLedgerEntry}
+            onInitialLedgerEntryConsumed={onInitialLedgerEntryConsumed}
+            ledgerHasMore={ledgerHasMore}
+            ledgerLoadingMore={ledgerLoadingMore}
+            onLoadMore={onLoadMoreLedger}
+          />
+        </section>
       ) : (
-        <div ref={transactionSectionRef}>
-          <p className="text-sm text-slate-600 mb-4">{t('partnerFinances_ledgerBookingsIntro')}</p>
+        <section
+          ref={transactionSectionRef}
+          data-partner-section="finances-transactions"
+          className="space-y-3"
+        >
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionTransactions')}</h2>
+          <p className="text-xs leading-relaxed text-slate-500">{t('partnerFinances_ledgerBookingsIntro')}</p>
           <PartnerFinancesTransactionHistory
             t={t}
             language={language}
@@ -91,7 +103,7 @@ export function PartnerFinancesLedgerTab({
             hasPayoutProfile={hasPayoutProfile}
             onOpenSnapshot={onOpenSnapshot}
           />
-        </div>
+        </section>
       )}
     </div>
   )
