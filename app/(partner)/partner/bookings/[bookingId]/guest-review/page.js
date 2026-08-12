@@ -2,6 +2,7 @@
 
 /**
  * Partner — review the guest after THAWED / COMPLETED (one review per booking).
+ * Stage 200.112 — UI copy via getUIText (no guest-review API change).
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -13,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft, Star, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
@@ -41,6 +44,8 @@ async function fetchBookingForPartner(bookingId) {
 export default function PartnerGuestReviewPage() {
   const params = useParams()
   const router = useRouter()
+  const { language } = useI18n()
+  const t = useCallback((key, ctx) => getUIText(key, language, ctx), [language])
   const bookingId = params?.bookingId
 
   const [loading, setLoading] = useState(true)
@@ -72,7 +77,7 @@ export default function PartnerGuestReviewPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!bookingId || rating < 1 || rating > 5) {
-      toast.error('Выберите оценку от 1 до 5')
+      toast.error(t('partnerGuestReview_needRating'))
       return
     }
     setSubmitting(true)
@@ -85,9 +90,9 @@ export default function PartnerGuestReviewPage() {
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Не удалось отправить отзыв')
+        throw new Error(json.error || t('partnerGuestReview_submitFailed'))
       }
-      toast.success('Спасибо! Отзыв о госте сохранён.')
+      toast.success(t('partnerGuestReview_success'))
       router.push('/partner/bookings')
     } catch (err) {
       toast.error(err.message)
@@ -98,8 +103,8 @@ export default function PartnerGuestReviewPage() {
 
   if (!bookingId) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4">
-        <p className="text-slate-600">Некорректная ссылка.</p>
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <p className="text-slate-600">{t('partnerGuestReview_invalidLink')}</p>
       </div>
     )
   }
@@ -114,13 +119,13 @@ export default function PartnerGuestReviewPage() {
 
   if (loadError || !booking) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4 space-y-4">
-        <div className="flex items-center gap-2 text-red-700 text-sm">
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-12">
+        <div className="flex items-center gap-2 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {loadError || 'Бронирование не найдено'}
+          {loadError || t('partnerGuestReview_notFound')}
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/partner/bookings">К списку бронирований</Link>
+        <Button variant="outline" asChild className="min-h-[44px]">
+          <Link href="/partner/bookings">{t('partnerGuestReview_toBookingsList')}</Link>
         </Button>
       </div>
     )
@@ -131,18 +136,17 @@ export default function PartnerGuestReviewPage() {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-12">
         <section data-partner-section="guest-review-blocked" className="space-y-3">
-          <h2 className={PARTNER_SECTION_TITLE_CLASS}>Отзыв о госте</h2>
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerGuestReview_pageTitle')}</h2>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
             <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-              <CardTitle className="sr-only">Отзыв о госте</CardTitle>
+              <CardTitle className="sr-only">{t('partnerGuestReview_pageTitle')}</CardTitle>
               <CardDescription className="text-xs leading-relaxed">
-                Оценка гостя доступна после разморозки средств (THAWED) или после завершения
-                проживания (COMPLETED).
+                {t('partnerGuestReview_blockedBody')}
               </CardDescription>
             </CardHeader>
             <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <Button asChild variant="brand" className="min-h-[44px]">
-                <Link href="/partner/bookings">Назад к бронированиям</Link>
+                <Link href="/partner/bookings">{t('partnerGuestReview_backBookings')}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -155,17 +159,17 @@ export default function PartnerGuestReviewPage() {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-12">
         <section data-partner-section="guest-review-done" className="space-y-3">
-          <h2 className={PARTNER_SECTION_TITLE_CLASS}>Отзыв о госте</h2>
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerGuestReview_pageTitle')}</h2>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
             <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-              <CardTitle className="sr-only">Отзыв о госте</CardTitle>
+              <CardTitle className="sr-only">{t('partnerGuestReview_pageTitle')}</CardTitle>
               <CardDescription className="text-xs leading-relaxed">
-                Отзыв по этой брони уже оставлен.
+                {t('partnerGuestReview_alreadyDone')}
               </CardDescription>
             </CardHeader>
             <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <Button asChild variant="brand" className="min-h-[44px]">
-                <Link href="/partner/bookings">Назад к бронированиям</Link>
+                <Link href="/partner/bookings">{t('partnerGuestReview_backBookings')}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -174,31 +178,33 @@ export default function PartnerGuestReviewPage() {
     )
   }
 
-  const guestLabel = booking.guestName || 'Гость'
-  const listingTitle = booking.listing?.title || 'Объект'
+  const guestLabel = booking.guestName || t('partnerGuestReview_guestFallback')
+  const listingTitle = booking.listing?.title || t('partnerGuestReview_listingFallback')
 
   return (
     <div className="mx-auto max-w-lg space-y-0 px-4 py-8">
       <Button variant="ghost" className="-ml-2 mb-4 min-h-[44px]" asChild>
         <Link href="/partner/bookings" className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Бронирования
+          {t('partnerGuestReview_bookingsNav')}
         </Link>
       </Button>
 
       <section data-partner-section="guest-review-form" className="space-y-3">
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>Оцените гостя</h2>
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerGuestReview_rateTitle')}</h2>
         <p className="text-xs leading-relaxed text-slate-500">
           {listingTitle} · {guestLabel}
         </p>
         <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
           <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-            <CardTitle className="sr-only">Оцените гостя</CardTitle>
+            <CardTitle className="sr-only">{t('partnerGuestReview_rateTitle')}</CardTitle>
           </CardHeader>
           <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-1.5">
-                <Label className={PARTNER_FIELD_LABEL_CLASS}>Оценка (обязательно)</Label>
+                <Label className={PARTNER_FIELD_LABEL_CLASS}>
+                  {t('partnerGuestReview_ratingLabel')}
+                </Label>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
@@ -206,7 +212,7 @@ export default function PartnerGuestReviewPage() {
                       type="button"
                       onClick={() => setRating(n)}
                       className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1 transition-colors hover:bg-amber-50"
-                      aria-label={`${n} stars`}
+                      aria-label={t('partnerGuestReview_starAria', { count: n })}
                     >
                       <Star
                         className={`h-9 w-9 ${
@@ -219,14 +225,14 @@ export default function PartnerGuestReviewPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="comment" className={PARTNER_FIELD_LABEL_CLASS}>
-                  Комментарий (по желанию)
+                  {t('partnerGuestReview_commentLabel')}
                 </Label>
                 <Textarea
                   id="comment"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   className="min-h-[120px]"
-                  placeholder="Как прошло общение, пунктуальность, бережное отношение к объекту…"
+                  placeholder={t('partnerGuestReview_commentPlaceholder')}
                   maxLength={4000}
                 />
               </div>
@@ -239,10 +245,10 @@ export default function PartnerGuestReviewPage() {
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Отправка…
+                    {t('partnerGuestReview_submitting')}
                   </>
                 ) : (
-                  'Отправить отзыв'
+                  t('partnerGuestReview_submit')
                 )}
               </Button>
             </form>

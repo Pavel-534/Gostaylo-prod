@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Loader2, AlertCircle, ChevronRight, LogIn } from 'lucide-react'
+import { Plus, Eye, Edit, Loader2, AlertCircle, ChevronRight, LogIn, Briefcase } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
@@ -23,10 +23,9 @@ import {
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
-  MOBILE_FLAT_CARD_CONTENT_CLASS,
-  MOBILE_FLAT_EMPTY_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { WorkspaceEmptyState } from '@/components/empty-state'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
@@ -492,31 +491,23 @@ export default function PartnerListings() {
           {t('partnerListings_sectionList')}
         </h2>
         {listings.length === 0 ? (
-          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col items-center justify-center max-sm:p-0 sm:py-12')}>
-              <div className='w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3'>
-                <Plus className='h-6 w-6 text-slate-400' />
-              </div>
-              <h3 className='text-base font-semibold text-slate-900 mb-1'>
-                {t('partnerListings_emptyTitle')}
-              </h3>
-              <p className='text-sm text-slate-500 mb-4 text-center'>
-                {t('partnerListings_emptyBody')}
-              </p>
-              <Button asChild variant='brand' className='min-h-[44px]'>
-                <Link href='/partner/listings/new'>
-                  <Plus className='h-4 w-4 mr-2' />
-                  {t('partnerListings_emptyCta')}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <WorkspaceEmptyState
+            icon={Briefcase}
+            title={t('partnerListings_emptyTitle')}
+            hint={t('partnerListings_emptyBody')}
+            ctaLabel={t('partnerListings_emptyCta')}
+            ctaHref="/partner/listings/new"
+            className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS}
+            testId="partner-listings-empty"
+          />
         ) : filteredListings.length === 0 ? (
-          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:p-0 sm:py-8 text-center text-sm text-slate-500')}>
-              {t('partnerListings_emptyFilter')}
-            </CardContent>
-          </Card>
+          <WorkspaceEmptyState
+            icon={Briefcase}
+            title={t('partnerListings_emptyFilter')}
+            hint={t('partnerListings_emptyFilterHint')}
+            className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS}
+            testId="partner-listings-empty-filter"
+          />
         ) : (
           filteredListings.map((listing) => {
             const status = getStatus(listing)

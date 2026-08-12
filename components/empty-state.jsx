@@ -141,7 +141,8 @@ export function EmptyState({
 }
 
 /**
- * WorkspaceEmptyState — единый dashed-empty для кабинета партнёра (bookings, calendar, promo).
+ * WorkspaceEmptyState — единый dashed-empty для кабинета партнёра
+ * (bookings, calendar, listings, reviews, promo — Stage 200.113).
  * @param {object} p
  * @param {import('lucide-react').LucideIcon} [p.icon]
  * @param {string} p.title

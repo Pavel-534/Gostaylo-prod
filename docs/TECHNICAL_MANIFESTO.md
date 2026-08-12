@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.94 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.111** partner listings list hub rhythm.
+> **Version**: 13.2.96 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.113** partner WorkspaceEmptyState adoption.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,18 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.113 — Partner WorkspaceEmptyState adoption
+
+- Listings / reviews / promo empty (and listings filter-empty) use existing `WorkspaceEmptyState` + hub surface class — no new `PartnerEmptyState`.
+- Reviews loading uses `LoadingPageShell`; listing/review/promo APIs unchanged.
+- Tests: `__tests__/stage200-113-partner-empty-states.test.js`.
+
+### Stage 200.112 — Partner guest-review / toast i18n
+
+- Guest-review page: all UI/toasts via `getUIText` (`partnerGuestReview_*`); POST `/api/v2/partner/guest-reviews` unchanged.
+- Promo Flash extend toasts + settings save-error fallback use i18n keys.
+- Tests: `__tests__/stage200-112-partner-i18n-sweep.test.js`.
 
 ### Stage 200.111 — Partner listings list hub rhythm
 

@@ -301,7 +301,7 @@ function PartnerSettingsContent() {
       } else if (res.ok) {
         toast.success(getUIText('partnerSettingsSaved', language))
       } else {
-        toast.error(data.error || 'Ошибка сохранения')
+        toast.error(data.error || getUIText('partnerSettingsSaveError', language))
       }
     } catch (error) {
       toast.error(`${getUIText('partnerSettingsSaveFailed', language)} ${error.message}`)

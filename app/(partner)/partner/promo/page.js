@@ -29,6 +29,7 @@ import {
   MOBILE_FLAT_INSET_CLASS,
   MOBILE_FLAT_NESTED_PANEL_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { WorkspaceEmptyState } from '@/components/empty-state'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_FIELD_LABEL_CLASS,
@@ -159,13 +160,18 @@ export default function PartnerPromoPage() {
       )
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось продлить Flash Sale')
+        toast.error(json.error || t('partnerPromo_flashExtendError'))
         return
       }
-      toast.success(`Flash Sale ${quickFlashCode} продлен на ${quickExtendHours} ч`)
+      toast.success(
+        t('partnerPromo_flashExtendSuccess', {
+          code: quickFlashCode,
+          hours: quickExtendHours,
+        }),
+      )
       void loadPartnerPromos()
     } catch {
-      toast.error('Ошибка сети при продлении Flash Sale')
+      toast.error(t('partnerPromo_flashExtendNetwork'))
     } finally {
       setExtendingFlashCode(false)
     }
@@ -466,19 +472,25 @@ export default function PartnerPromoPage() {
       <section data-partner-section="promo-list" className="space-y-3">
         <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerPromo_sectionList')}</h2>
         <p className="text-xs leading-relaxed text-slate-500">{t('partnerPromo_listDesc')}</p>
-        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-            <CardTitle className="sr-only">{t('partnerPromo_sectionList')}</CardTitle>
-          </CardHeader>
-          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-            {loadingPromos ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('partnerPromo_loadingCodes')}
-              </div>
-            ) : promoCodes.length === 0 ? (
-              <p className="text-sm text-slate-500">{t('partnerPromo_emptyCodes')}</p>
-            ) : (
+        {loadingPromos ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t('partnerPromo_loadingCodes')}
+          </div>
+        ) : promoCodes.length === 0 ? (
+          <WorkspaceEmptyState
+            icon={Tag}
+            title={t('partnerPromo_emptyCodes')}
+            hint={t('partnerPromo_listDesc')}
+            className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS}
+            testId="partner-promo-empty"
+          />
+        ) : (
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+              <CardTitle className="sr-only">{t('partnerPromo_sectionList')}</CardTitle>
+            </CardHeader>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
               <div className="space-y-2">
                 {promoCodes.map((promo) => {
                   const limitText =
@@ -520,9 +532,9 @@ export default function PartnerPromoPage() {
                   )
                 })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </div>
   )

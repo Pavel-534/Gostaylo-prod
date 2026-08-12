@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.113 | 2026-08-12 | Partner empty states: WorkspaceEmptyState on listings/reviews/promo (no API change) | Done |
+| 200.112 | 2026-08-12 | Partner i18n sweep: guest-review UI + promo flash/settings save toasts (no API change) | Done |
 | 200.111 | 2026-08-12 | Partner listings list: section rhythm + hub mint stats (no listing patch/delete API change) | Done |
 | 200.110 | 2026-08-12 | Partner promo: section rhythm + field labels + hub mint (no promo-codes API change) | Done |
 | 200.109 | 2026-08-12 | Partner master calendar: section rhythm + hub mint on education (no calendar/iCal API change) | Done |

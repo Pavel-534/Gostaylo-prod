@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Star, MessageSquare, CheckCircle2, Loader2, Reply } from 'lucide-react'
 import { toast } from 'sonner'
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
+import { WorkspaceEmptyState } from '@/components/empty-state'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
-  MOBILE_FLAT_EMPTY_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
@@ -181,20 +182,18 @@ export default function PartnerReviewsPage() {
           {getUIText('partnerReviews_sectionList', language)}
         </h2>
         {loading ? (
-          <div className='py-12 text-center text-slate-500'>
-            <Loader2 className='mx-auto mb-2 h-8 w-8 animate-spin' />
-            {getUIText('partnerReviewsLoading', language)}
-          </div>
+          <LoadingPageShell
+            variant="inline"
+            label={getUIText('partnerReviewsLoading', language)}
+          />
         ) : reviews.length === 0 ? (
-          <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
-              <Star className='mx-auto mb-4 h-12 w-12 text-slate-300' />
-              <p className='text-slate-500'>{getUIText('partnerReviewsEmpty', language)}</p>
-              <p className='mt-1 text-xs text-slate-400'>
-                {getUIText('partnerReviewsEmptyHint', language)}
-              </p>
-            </CardContent>
-          </Card>
+          <WorkspaceEmptyState
+            icon={Star}
+            title={getUIText('partnerReviewsEmpty', language)}
+            hint={getUIText('partnerReviewsEmptyHint', language)}
+            className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS}
+            testId="partner-reviews-empty"
+          />
         ) : (
           <div className='space-y-3'>
             {reviews.map((review) => (

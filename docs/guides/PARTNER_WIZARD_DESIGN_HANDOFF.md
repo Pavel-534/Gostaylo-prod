@@ -105,7 +105,9 @@ Concierge drafts open the **same** wizard routes and shell (`ListingWizardProvid
 | **200.109** | **Global `/partner/calendar` section rhythm + hub mint education** |
 | **200.110** | **`/partner/promo` section rhythm + field labels + hub mint** |
 | **200.111** | **`/partner/listings` Filters / Stats / List section rhythm + hub mint** |
-| **200.112+** | Corridor closed for partner-hub rhythm — see §8 |
+| **200.112** | **Guest-review + promo/settings toast i18n sweep** |
+| **200.113** | **`WorkspaceEmptyState` on listings / reviews / promo** |
+| **200.114+** | Pick next focus (see §8) |
 
 Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
@@ -124,18 +126,24 @@ Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
 ---
 
-## 8. Corridor status (after 200.111)
+## 8. Corridor status (after 200.113)
 
-**Partner cabinet + wizard rhythm SSOT is complete** for hub screens in `/partner/*` (dashboard → listings → bookings → calendar → finances → payout-profiles → settings → reviews → promo) and wizard Photos/Preview/Calendar.
+**Partner cabinet + wizard rhythm SSOT is complete** (through 200.111). Post-rhythm polish:
+
+| Stage | Focus |
+|-------|--------|
+| **200.112** | Done — guest-review UI + promo flash / settings save toasts i18n |
+| **200.113** | Done — `WorkspaceEmptyState` on listings / reviews / promo (+ listings filter-empty) |
 
 | Deferred | Why not now | Safer later |
 |----------|-------------|-------------|
 | **`/messages`** | Shared guest + partner hall; already `MOBILE_FLAT_SHELL`. Forcing `PARTNER_*` mint would leak partner chrome onto renters. | Separate product Stage only if chat shell gets its own shared tokens (not partner mint). |
 | **`/profile/referral`** | Ambassador storefront for all roles; partner nav is redirect only. Partner mint here would rebrand guest ambassador UX. | Profile/product shell polish without `PARTNER_HUB_*`. |
+| **New onboarding checklist** | Already SSOT: `PartnerOnboardingChecklist` + `/api/v2/partner/onboarding-status`. | Optional hub polish only — no second FSM. |
 
-**Not next:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork, global `border-slate-500`, forcing partner mint onto guest/admin.
+**Not next:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork, global `border-slate-500`, forcing partner mint onto guest/admin, inventing `PartnerEmptyState`.
 
-**Done recently:** 200.102–200.111 (input dark tokens → listings list).
+**Done recently:** 200.102–200.113.
 
 ---
 
