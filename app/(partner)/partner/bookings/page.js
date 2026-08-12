@@ -33,6 +33,8 @@ import { PartnerBookingStatusTabs } from '@/components/partner/bookings/PartnerB
 import { PartnerBookingList } from '@/components/partner/bookings/PartnerBookingList'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { PartnerPageShell } from '@/components/product/PartnerPageShell'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import { PARTNER_SECTION_TITLE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import {
   filterPartnerBookingsByTab,
   countPartnerBookingsByTab,
@@ -271,40 +273,50 @@ export default function PartnerBookings() {
       <OrdersSummary role="partner" partnerStats={stats} language={language} />
       <PartnerHostMidFxFootnote t={(key) => getUIText(key, language)} className="mb-4" />
 
-      <PartnerBookingStatusTabs
-        activeTab={activeTab}
-        counters={tabCounters}
-        onChange={setActiveTab}
-        language={language}
-      />
+      <PartnerSectionDivider />
 
-      <OrderTypeFilter
-        activeType={activeType}
-        counters={typeCounters}
-        onChange={setActiveType}
-        language={language}
-      />
+      <section data-partner-section="bookings-filters" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerBookings_filtersSectionTitle', language)}
+        </h2>
+        <PartnerBookingStatusTabs
+          activeTab={activeTab}
+          counters={tabCounters}
+          onChange={setActiveTab}
+          language={language}
+        />
 
-      <p className="text-sm text-slate-500 mb-3">
-        {getUIText('partnerBookings_shownCount', language, { count: visibleBookings.length })}
-      </p>
+        <OrderTypeFilter
+          activeType={activeType}
+          counters={typeCounters}
+          onChange={setActiveType}
+          language={language}
+        />
 
-      <PartnerBookingList
-        bookings={visibleBookings}
-        language={language}
-        activeTab={activeTab}
-        selectedBookingId={selectedBookingId}
-        drawerOpen={drawerOpen}
-        onDrawerOpenChange={handleDrawerOpenChange}
-        onSelectBooking={openBookingDrawer}
-        isBusy={updateStatusMutation.isPending}
-        onConfirm={handleConfirm}
-        onDecline={handleRejectClick}
-        onComplete={handleComplete}
-        onQuickConfirm={handleConfirm}
-        onQuickDecline={handleRejectClick}
-      />
+        <p className="text-xs text-slate-500">
+          {getUIText('partnerBookings_shownCount', language, { count: visibleBookings.length })}
+        </p>
+      </section>
 
+      <PartnerSectionDivider />
+
+      <section data-partner-section="bookings-list" className="space-y-3">
+        <PartnerBookingList
+          bookings={visibleBookings}
+          language={language}
+          activeTab={activeTab}
+          selectedBookingId={selectedBookingId}
+          drawerOpen={drawerOpen}
+          onDrawerOpenChange={handleDrawerOpenChange}
+          onSelectBooking={openBookingDrawer}
+          isBusy={updateStatusMutation.isPending}
+          onConfirm={handleConfirm}
+          onDecline={handleRejectClick}
+          onComplete={handleComplete}
+          onQuickConfirm={handleConfirm}
+          onQuickDecline={handleRejectClick}
+        />
+      </section>
       <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ open, bookingId: null })}>
         <DialogContent>
           <DialogHeader>

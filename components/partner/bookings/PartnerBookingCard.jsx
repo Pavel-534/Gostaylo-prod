@@ -16,9 +16,12 @@ import {
   resolvePartnerOrderFooterAmounts,
 } from '@/lib/partner/partner-booking-card-model'
 import { cn } from '@/lib/utils'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 /**
  * Compact partner booking row — tap opens detail drawer.
+ * Stage 200.103 — hub list surface + mobile flat (same rhythm as /partner/listings).
  */
 export function PartnerBookingCard({
   booking,
@@ -48,26 +51,26 @@ export function PartnerBookingCard({
       data-booking-card={booking?.id}
       data-testid={`booking-card-${booking?.id}`}
       className={cn(
-        'bg-white transition-shadow',
-        'max-sm:rounded-none max-sm:border-0 max-sm:border-b max-sm:border-slate-200 max-sm:shadow-none',
-        'sm:rounded-2xl sm:border',
+        MOBILE_FLAT_CARD_CLASS,
+        PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+        'overflow-hidden transition-colors',
         selected
           ? 'max-sm:bg-brand/5 sm:border-brand sm:ring-2 sm:ring-brand/25 sm:shadow-md'
-          : 'sm:border-slate-200 sm:shadow-sm sm:hover:shadow-md',
+          : 'sm:hover:shadow-md',
       )}
     >
       <button
         type="button"
         onClick={() => onOpen?.(booking)}
-        className="flex w-full items-start gap-3 rounded-2xl p-3 text-left min-h-[44px] transition-colors active:bg-slate-50"
+        className="flex w-full min-h-[44px] items-start gap-3 p-3 text-left transition-colors active:bg-slate-50/80"
         aria-label={getUIText('partnerBookings_openDetails', language)}
       >
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-slate-100">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
           {image ? (
             <ProxiedImage src={image} alt="" fill className="object-cover" sizes="56px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Home className="h-6 w-6 text-slate-300" aria-hidden />
+              <Home className="h-6 w-6 text-muted-foreground" aria-hidden />
             </div>
           )}
         </div>
@@ -114,7 +117,7 @@ export function PartnerBookingCard({
       </button>
 
       {showQuickActions ? (
-        <div className="flex gap-2 border-t border-slate-100 px-3 py-2">
+        <div className="flex gap-2 border-t border-border/80 px-3 py-2 max-sm:border-border/60">
           {showQuickConfirm ? (
             <Button
               type="button"
@@ -135,7 +138,7 @@ export function PartnerBookingCard({
               type="button"
               variant="outline"
               size="sm"
-              className="min-h-[44px] flex-1 border-red-200 text-red-700 hover:bg-red-50"
+              className="min-h-[44px] flex-1 border-destructive/30 text-destructive hover:bg-destructive/5"
               disabled={isBusy}
               onClick={(e) => {
                 e.stopPropagation()

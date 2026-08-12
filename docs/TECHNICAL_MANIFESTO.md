@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.84 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.101** Photos+Preview partner section rhythm.
+> **Version**: 13.2.86 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.103** partner bookings hub rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,20 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.103 — Partner bookings hub rhythm
+
+- `/partner/bookings`: `PARTNER_SECTION_TITLE` + `PartnerSectionDivider` for filters vs list; list groups by status buckets when tab=`all` (presentation only).
+- `PartnerBookingCard`: `MOBILE_FLAT_CARD` + `PARTNER_HUB_LIST_CARD_SURFACE_CLASS` (alias of listing mint surface); touch CTAs ≥44px.
+- No change to FSM, pricing, `buildPartnerUnifiedOrder`, tab filter SSOT, or mutate handlers.
+- Tests: `__tests__/stage200-103-partner-bookings-rhythm.test.js`.
+
+### Stage 200.102 — Dark Mode Input borders via tokens
+
+- **Root cause:** `.dark --input` / `--border` matched muted (~17.5% L) → fields blended into `bg` (~5% L).
+- **Fix:** raise dark `--input` (~36% L) and `--border` (~26% L) in `app/globals.css`; `Input` / `Textarea` / `SelectTrigger` use `border-input`, hover `border-ring/45`, focus `border-brand-mint` + `ring-brand-mint/40` (no `border-slate-*`, no hex).
+- Wizard forms inherit via shared `components/ui/*` — no step logic change.
+- Tests: `__tests__/stage200-102-input-dark-tokens.test.js`.
 
 ### Stage 200.101 — Photos + Preview on partner section rhythm
 

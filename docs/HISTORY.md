@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.103 | 2026-08-12 | Partner bookings list: hub mint card surface + section titles/dividers (no FSM/price change) | Done |
+| 200.102 | 2026-08-12 | Dark Mode Input contrast: raise `--input`/`--border` tokens + brand-mint focus on Input/Textarea/Select | Done |
 | 200.101 | 2026-08-12 | Wizard Photos+Preview: PartnerSectionDivider / TITLE / FIELD + flat rhythm (no upload/preview logic change) | Done |
 | 200.100 | 2026-08-12 | Safe polish: RU plurals, cancellation section title, trust text-xs, shorter geo helpers | Done |
 | 200.99 | 2026-08-12 | Stay arrival hours in wizard + soft early/late on-request (informational only) | Done |

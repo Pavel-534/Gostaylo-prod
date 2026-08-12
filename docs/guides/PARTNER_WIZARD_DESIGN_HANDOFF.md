@@ -1,7 +1,7 @@
 # Partner Wizard Design Handoff (SSOT)
 
-> **Status:** agreed corridor through **Stage 200.101** (2026-08-12)  
-> **Product brand:** Airento — `getSiteDisplayName()` / i18n `{brand}` (not GoStayLo in UI)  
+> **Status:** agreed corridor through **Stage 200.103** (2026-08-12)  
+> **Product brand:** **`getSiteDisplayName()`** / i18n `{brand}` only in UI (prod env: Airento)  
 > **Audience:** engineers / agents polishing partner listing UX without redesigning the product
 
 Use this file instead of re-deriving rules from chat. Code is SSOT; this is the **policy brief**.
@@ -95,7 +95,9 @@ Concierge drafts open the **same** wizard routes and shell (`ListingWizardProvid
 | 200.99 | Stay arrival hours + soft flexibility |
 | 200.100 | RU plurals; cancellation as section title; trust/helpers compact |
 | **200.101** | **Photos + Preview on section rhythm SSOT** |
-| **200.102** | Next free — pick **one** focus (see §8) |
+| **200.102** | **Dark Mode Input/`--input` tokens + brand-mint focus (Input/Textarea/Select)** |
+| **200.103** | **`/partner/bookings` hub list surface + section rhythm** |
+| **200.104** | Next free — pick **one** focus (see §8) |
 
 Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
@@ -114,17 +116,20 @@ Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
 ---
 
-## 8. Next Stage candidates (200.102+)
+## 8. Next Stage candidates (200.104+)
 
 Pick **one** corridor slice per Stage:
 
 | Candidate | Why | Blast radius |
 |-----------|-----|--------------|
-| **A. Dark Mode Input borders** via `border-input` / theme tokens in `components/ui/input.jsx` (+ related form controls) | Cross-cutting polish; must stay token-based (no global `border-slate-500`) | Medium — shared Input |
-| **B. Rhythm on `/partner/bookings` cards** | Scale listing-card pattern outside wizard | Medium — bookings UI only |
 | **C. Calendar step typography** | Align Seasonal/Availability section titles with `PARTNER_SECTION_*` without rewriting widgets | Small–medium |
+| **D. Dashboard section rhythm** | `/partner/dashboard` groups + dividers | Medium |
 
-**Not 200.102:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork.
+**Done in 200.103:** `/partner/bookings` — `PARTNER_HUB_LIST_CARD_SURFACE_CLASS` + section titles/dividers (candidate B).
+
+**Done in 200.102:** Dark Mode Input borders via `--input` / `--border` + mint focus.
+
+**Not next:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork, global `border-slate-500`.
 
 ---
 
