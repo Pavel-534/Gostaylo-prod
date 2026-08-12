@@ -20,7 +20,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function ledgerRowKey(row) {
@@ -130,11 +130,11 @@ export function PartnerFinancesLedger({
           'min-w-0 overflow-hidden',
         )}
       >
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS)}>
           <CardTitle className="sr-only">{t('partnerFinances_ledgerTitle')}</CardTitle>
           <CardDescription>{t('partnerFinances_ledgerDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS)}>
           {!displayRows.length && !ledgerLoadingMore ? (
             <p className="text-sm text-slate-500 py-2">{t('partnerFinances_ledgerEmpty')}</p>
           ) : (

@@ -22,6 +22,7 @@ import {
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_HUB_SOFT_CARD_PAD_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 
@@ -140,7 +141,7 @@ export default function PartnerReviewsPage() {
         </h2>
         <div className='grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4'>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:pt-6')}>
               <div className='text-center'>
                 <p className='text-3xl font-bold tabular-nums text-slate-900'>{stats.total}</p>
                 <p className='text-xs text-slate-500'>{getUIText('partnerReviewsStatTotal', language)}</p>
@@ -148,7 +149,7 @@ export default function PartnerReviewsPage() {
             </CardContent>
           </Card>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:pt-6')}>
               <div className='text-center'>
                 <div className='flex items-center justify-center gap-2'>
                   <p className='text-3xl font-bold tabular-nums text-amber-500'>
@@ -161,7 +162,7 @@ export default function PartnerReviewsPage() {
             </CardContent>
           </Card>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:pt-6')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:pt-6')}>
               <div className='text-center'>
                 <p className='text-3xl font-bold tabular-nums text-brand'>
                   {reviews.filter((r) => !r.partnerReply).length}
@@ -201,7 +202,7 @@ export default function PartnerReviewsPage() {
                 key={review.id}
                 className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}
               >
-                <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:py-4 sm:pt-6')}>
+                <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:pt-6')}>
                   <div className='flex items-start gap-4'>
                     <div className='flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand/15'>
                       <span className='text-lg font-semibold text-brand-hover'>

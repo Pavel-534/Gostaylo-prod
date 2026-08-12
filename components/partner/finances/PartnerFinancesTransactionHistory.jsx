@@ -17,7 +17,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 function BookingStatusCell({ booking, t, language }) {
@@ -81,7 +81,7 @@ export function PartnerFinancesTransactionHistory({
         'min-w-0 overflow-hidden',
       )}
     >
-      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS)}>
         <CardTitle className="sr-only">{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
         <PartnerHostMidFxFootnote t={t} className="mt-1" />
@@ -97,7 +97,7 @@ export function PartnerFinancesTransactionHistory({
           </div>
         ) : null}
       </CardHeader>
-      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'min-w-0')}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, 'min-w-0')}>
         {isLoading ? (
           <div className="space-y-3 md:space-y-4">
             {[...Array(5)].map((_, i) => (

@@ -15,6 +15,7 @@ import {
 } from '@/lib/ui/mobile-flat-canvas'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_HUB_SOFT_CARD_PAD_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
@@ -97,7 +98,7 @@ export function PartnerFinancesReportsTab({
               'sm:border-sky-200 sm:bg-sky-50/80',
             )}
           >
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:p-6')}>
               <div className="flex items-start gap-3">
                 <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" aria-hidden />
                 <div>

@@ -11,7 +11,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPayoutMathCard({
@@ -36,16 +36,24 @@ export function PartnerFinancesPayoutMathCard({
         'min-w-0 sm:bg-brand/5',
       )}
     >
-      <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS)}>
         <CardTitle className="text-lg">{t('partnerFinances_payoutMathTitle')}</CardTitle>
-        <CardDescription>
-          {defaultPayoutProfile?.method?.name
-            ? `${t('partnerFinances_payoutMathDefaultMethod')}: ${defaultPayoutProfile.method.name}`
-            : t('partnerFinances_payoutMathDescNoProfile')}
-        </CardDescription>
+        {hasProfile ? (
+          <CardDescription>
+            {defaultPayoutProfile?.method?.name
+              ? `${t('partnerFinances_payoutMathDefaultMethod')}: ${defaultPayoutProfile.method.name}`
+              : null}
+          </CardDescription>
+        ) : (
+          <CardDescription>{t('partnerFinances_payoutMathDescNoProfile')}</CardDescription>
+        )}
       </CardHeader>
       <CardContent
-        className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 text-sm min-w-0 overflow-x-auto')}
+        className={cn(
+          MOBILE_FLAT_CARD_CONTENT_CLASS,
+          PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS,
+          'min-w-0 space-y-2 overflow-x-auto text-sm',
+        )}
       >
         {hasProfile ? (
           <PartnerPayoutPreviewFields
@@ -56,9 +64,7 @@ export function PartnerFinancesPayoutMathCard({
             financesSummary={financesSummary}
             variant="card"
           />
-        ) : (
-          <p className="text-slate-600 text-sm">{t('partnerFinances_payoutMathDescNoProfile')}</p>
-        )}
+        ) : null}
         {partnerProfileVerified === false ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
             <p>{t('partnerFinances_payoutKycBlockedHint')}</p>

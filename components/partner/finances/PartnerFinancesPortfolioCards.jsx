@@ -7,7 +7,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
@@ -47,10 +47,10 @@ export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
             key={card.id}
             className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}
           >
-            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS, 'sm:pb-2')}>
               <CardTitle className="text-sm font-medium text-slate-600">{card.title}</CardTitle>
             </CardHeader>
-            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS)}>
               <div className={card.className}>
                 {loading ? '—' : <PartnerHostLedgerAmount thb={card.valueThb} />}
               </div>

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.131 | 2026-08-13 | Partner hub soft-card mobile pad SSOT (stats/metrics/finances) | Done |
+| 200.130 | 2026-08-12 | Partner listings: live stats in trash + center active filter chip | Done |
 | 200.129 | 2026-08-12 | Season price sheet: mobile overflow fit; date range no auto-open end | Done |
 | 200.128 | 2026-08-12 | Listing Restore: POST …/restore, filter=deleted trash UX, safe iCal auto_sync resume | Done |
 | 200.127 | 2026-08-12 | Soft-delete SSOT: hide from calendar/stats/iCal; pause auto_sync; honest delete copy | Done |

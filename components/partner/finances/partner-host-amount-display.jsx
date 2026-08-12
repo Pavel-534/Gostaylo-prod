@@ -15,9 +15,9 @@ export function PartnerHostLedgerAmount({ thb, className }) {
   }
 
   return (
-    <span className={cn('inline-flex items-baseline whitespace-nowrap tabular-nums', className)}>
-      <span className="opacity-75 font-semibold shrink-0" aria-hidden>
-        ≈&nbsp;
+    <span className={cn('inline-flex items-baseline gap-x-1 whitespace-nowrap tabular-nums', className)}>
+      <span className="shrink-0 font-semibold opacity-75" aria-hidden>
+        ≈
       </span>
       <span>{formatted}</span>
     </span>
@@ -55,10 +55,10 @@ export function PartnerHostPayoutAmount({ preview, className, secondaryClassName
 
   return (
     <span className={cn('inline-flex flex-col items-end gap-0.5', className)}>
-      <span className="inline-flex items-baseline whitespace-nowrap tabular-nums font-semibold">
+      <span className="inline-flex items-baseline gap-x-1 whitespace-nowrap tabular-nums font-semibold">
         {isConvertedDisplay ? (
-          <span className="opacity-75 font-semibold shrink-0" aria-hidden>
-            ≈&nbsp;
+          <span className="shrink-0 font-semibold opacity-75" aria-hidden>
+            ≈
           </span>
         ) : null}
         <span>{primary}</span>

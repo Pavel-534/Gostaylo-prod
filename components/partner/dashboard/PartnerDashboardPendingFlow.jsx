@@ -26,7 +26,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 /**
  * Pending approvals queue + detail drawer + decline confirmation (Stage 187.0).
@@ -100,7 +100,7 @@ export function PartnerDashboardPendingFlow({ pending, partnerId, language = 'ru
           'sm:border-amber-300 sm:shadow-sm sm:ring-2 sm:ring-amber-400/60',
         )}
       >
-        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-3')}>
+        <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS, 'sm:pb-3')}>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-lg text-amber-900 max-sm:text-amber-800">
@@ -114,7 +114,7 @@ export function PartnerDashboardPendingFlow({ pending, partnerId, language = 'ru
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, 'space-y-2')}>
           {items.length > 0 ? (
             items.map((booking) => (
               <PendingBookingCard

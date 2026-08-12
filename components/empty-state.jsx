@@ -169,7 +169,7 @@ export function WorkspaceEmptyState({
       <CardContent
         className={cn(
           MOBILE_FLAT_CARD_CONTENT_CLASS,
-          'flex flex-col items-center justify-center max-sm:py-8 sm:px-4 sm:py-12',
+          'flex flex-col items-center justify-center max-sm:px-4 max-sm:py-8 sm:px-4 sm:py-12',
         )}
       >
         <Icon className="h-12 w-12 text-slate-300 mb-4" aria-hidden />

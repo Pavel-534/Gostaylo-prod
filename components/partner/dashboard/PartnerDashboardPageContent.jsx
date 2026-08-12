@@ -49,6 +49,7 @@ import {
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_HUB_SOFT_CARD_PAD_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 
@@ -255,12 +256,12 @@ export default function PartnerDashboardPageContent() {
                 'sm:hover:shadow-md sm:transition-shadow',
               )}
             >
-              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
-                <div className="mb-2 flex items-center justify-between">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:p-4')}>
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-slate-500">
                     {getUIText('partnerDashboard_revenueLabel', language)}
                   </span>
-                  <DollarSign className="h-4 w-4 text-brand" />
+                  <DollarSign className="h-4 w-4 shrink-0 text-brand" />
                 </div>
                 <div className="flex items-end justify-between">
                   <div>
@@ -293,12 +294,12 @@ export default function PartnerDashboardPageContent() {
                 'sm:hover:shadow-md sm:transition-shadow',
               )}
             >
-              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
-                <div className="mb-2 flex items-center justify-between">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:p-4')}>
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-slate-500">
                     {getUIText('partnerDashboard_occupancyLabel', language)}
                   </span>
-                  <Calendar className="h-4 w-4 text-brand" />
+                  <Calendar className="h-4 w-4 shrink-0 text-brand" />
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">
@@ -320,14 +321,14 @@ export default function PartnerDashboardPageContent() {
                 stats?.pending?.count > 0 && 'sm:ring-2 sm:ring-amber-400',
               )}
             >
-              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
-                <div className="mb-2 flex items-center justify-between">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:p-4')}>
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-slate-500">
                     {getUIText('partnerDashboard_pendingLabel', language)}
                   </span>
                   <Bell
                     className={cn(
-                      'h-4 w-4',
+                      'h-4 w-4 shrink-0',
                       stats?.pending?.count > 0 ? 'animate-pulse text-amber-500' : 'text-slate-400',
                     )}
                   />
@@ -359,15 +360,15 @@ export default function PartnerDashboardPageContent() {
                 'sm:hover:shadow-md sm:transition-shadow',
               )}
             >
-              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-4')}>
-                <div className="mb-2 flex items-center justify-between">
+              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:p-4')}>
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-slate-500">
                     {getUIText('partnerDashboard_bookingsLabel', language)}
                   </span>
-                  <Users className="h-4 w-4 text-brand" />
+                  <Users className="h-4 w-4 shrink-0 text-brand" />
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{stats?.bookings?.total || 0}</p>
-                <div className="mt-2 flex gap-3 text-xs">
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
                   <span className="text-brand">✓ {stats?.bookings?.confirmed || 0}</span>
                   <span className="text-amber-600">◔ {stats?.bookings?.pending || 0}</span>
                   <span className="text-slate-400">✓✓ {stats?.bookings?.completed || 0}</span>

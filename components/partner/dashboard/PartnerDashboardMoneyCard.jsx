@@ -16,7 +16,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 function MoneyRow({ label, thb, highlight = false }) {
   return (
@@ -90,13 +90,13 @@ export function PartnerDashboardMoneyCard({ language = 'ru' }) {
       )}
       data-testid="partner-dashboard-money-card"
     >
-      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
+      <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS, 'sm:pb-2')}>
         <CardTitle className="text-lg flex items-center gap-2">
           <Wallet className="h-5 w-5 text-brand" aria-hidden />
           {t('partnerDashboard_moneyCardTitle', 'Балансы')}
         </CardTitle>
       </CardHeader>
-      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, 'space-y-3')}>
         <MoneyRow
           label={t('partnerDashboard_moneyAvailable', 'Доступно к выводу')}
           thb={availableThb}

@@ -3,7 +3,7 @@
 import { Shield, Clock, Wallet, Banknote } from 'lucide-react'
 import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 const ACCENTS = {
@@ -83,7 +83,8 @@ function BalanceCompactStrip({ t, items, loading }) {
       className={cn(
         MOBILE_FLAT_CARD_CLASS,
         PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-        'mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 text-sm md:hidden',
+        PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+        'mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm md:hidden',
       )}
     >
       {parts.map((part, index) => (

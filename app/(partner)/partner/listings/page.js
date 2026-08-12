@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
@@ -29,6 +29,7 @@ import { WorkspaceEmptyState } from '@/components/empty-state'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_HUB_SOFT_CARD_PAD_CLASS,
   PARTNER_LISTING_CARD_SURFACE_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
@@ -85,24 +86,38 @@ export default function PartnerListings() {
     /** @type {'all' | 'active' | 'draft' | 'pending' | 'rejected' | 'deleted'} */ ('all')
   )
   const trashMode = listFilter === 'deleted'
+  // Stage 200.130: keep active list for stats/banners even in trash (deleted drafts still have is_draft).
+  const listQueryEnabled = !authLoading && isAuthenticated && !!partnerId
   const {
-    data: listingsData,
-    isLoading: listingsLoading,
+    data: activeListingsData,
+    isLoading: activeListingsLoading,
   } = usePartnerListings(partnerId, {
-    enabled: !authLoading && isAuthenticated && !!partnerId,
-    filter: trashMode ? 'deleted' : null,
+    enabled: listQueryEnabled,
+    filter: null,
+  })
+  const {
+    data: deletedListingsData,
+    isLoading: deletedListingsLoading,
+  } = usePartnerListings(partnerId, {
+    enabled: listQueryEnabled && trashMode,
+    filter: 'deleted',
   })
   const patchListing = usePartnerListingPatch(partnerId)
   const deleteListingMutation = usePartnerListingDelete(partnerId)
   const restoreListingMutation = usePartnerListingRestore(partnerId)
-  const listings = listingsData?.listings ?? []
-  const loading = authLoading || (isAuthenticated && listingsLoading)
+  const activeListings = activeListingsData?.listings ?? []
+  const deletedListings = deletedListingsData?.listings ?? []
+  const listings = trashMode ? deletedListings : activeListings
+  const loading =
+    authLoading ||
+    (isAuthenticated && (trashMode ? deletedListingsLoading : activeListingsLoading))
   const [deleteId, setDeleteId] = useState(null)
   const [publishingId, setPublishingId] = useState(null)
   const [visibilityBusyId, setVisibilityBusyId] = useState(null)
   const [undeleteBusyId, setUndeleteBusyId] = useState(null)
   const [qualityModalListing, setQualityModalListing] = useState(null)
   const [showConciergeWelcome, setShowConciergeWelcome] = useState(false)
+  const filterTabRefs = useRef(/** @type {Record<string, HTMLButtonElement | null>} */ ({}))
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -118,6 +133,12 @@ export default function PartnerListings() {
       /* ignore */
     }
   }, [])
+
+  useEffect(() => {
+    const el = filterTabRefs.current[listFilter]
+    if (!el || typeof el.scrollIntoView !== 'function') return
+    el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [listFilter])
 
   function dismissConciergeWelcome() {
     setShowConciergeWelcome(false)
@@ -291,16 +312,16 @@ export default function PartnerListings() {
     }
   }
 
-  // Stats calculation (API: bookingsCount → bookings_count)
+  // Stats always from live (non-trash) list — Stage 200.130
   const stats = {
-    total: listings.length,
-    active: listings.filter(l => l.status === 'ACTIVE').length,
-    drafts: listings.filter(
+    total: activeListings.length,
+    active: activeListings.filter((l) => l.status === 'ACTIVE').length,
+    drafts: activeListings.filter(
       (l) => l.metadata?.is_draft === true || l.metadata?.is_draft === 'true',
     ).length,
-    conciergeDrafts: countConciergeDraftListings(listings),
-    views: listings.reduce((sum, l) => sum + (l.views || 0), 0),
-    bookings: listings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
+    conciergeDrafts: countConciergeDraftListings(activeListings),
+    views: activeListings.reduce((sum, l) => sum + (l.views || 0), 0),
+    bookings: activeListings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
   }
 
   async function setListingOnSite(listing, onSite) {
@@ -397,7 +418,12 @@ export default function PartnerListings() {
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>
-            <p className='text-xs text-slate-500'>{t('partnerListings_count').replace('{count}', stats.total)}</p>
+            <p className='text-xs text-slate-500'>
+              {t('partnerListings_count').replace(
+                '{count}',
+                String(trashMode ? listings.length : stats.total),
+              )}
+            </p>
           </div>
           <Button
             asChild
@@ -416,7 +442,10 @@ export default function PartnerListings() {
 
       <section data-partner-section='listings-filters' className='space-y-3 px-4 pt-2'>
         <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionFilters')}</h2>
-        <div className='flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1'>
+        <div
+          className='-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-thin'
+          data-testid='partner-listings-filter-tabs'
+        >
           {[
             { id: 'all', label: t('partnerListings_filterAll') },
             { id: 'active', label: t('partnerListings_filterActive') },
@@ -428,6 +457,11 @@ export default function PartnerListings() {
             <button
               key={tab.id}
               type='button'
+              ref={(node) => {
+                filterTabRefs.current[tab.id] = node
+              }}
+              data-testid={`partner-listings-filter-${tab.id}`}
+              data-active={listFilter === tab.id ? 'true' : 'false'}
               onClick={() => setListFilter(tab.id)}
               className={cn(
                 'inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-xs font-medium border transition-colors',
@@ -468,7 +502,10 @@ export default function PartnerListings() {
           </div>
         ) : null}
 
-        {stats.drafts > 0 && listFilter !== 'draft' && !showConciergeWelcome ? (
+        {stats.drafts > 0 &&
+        listFilter !== 'draft' &&
+        listFilter !== 'deleted' &&
+        !showConciergeWelcome ? (
           <div className="flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-800">
               {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
@@ -490,20 +527,48 @@ export default function PartnerListings() {
 
       <section data-partner-section='listings-stats' className='space-y-3 px-4'>
         <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionStats')}</h2>
-        <div className='grid grid-cols-2 gap-2 max-sm:py-0 sm:py-1'>
-          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+        <div className='grid grid-cols-2 gap-2.5 max-sm:py-0 sm:py-1'>
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+              'sm:bg-white',
+            )}
+          >
             <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
             <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
           </div>
-          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+              'sm:bg-white',
+            )}
+          >
             <div className='text-xl font-bold text-brand'>{stats.active}</div>
             <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
           </div>
-          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+              'sm:bg-white',
+            )}
+          >
             <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
             <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
           </div>
-          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+              'sm:bg-white',
+            )}
+          >
             <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
             <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
           </div>
@@ -622,19 +687,19 @@ export default function PartnerListings() {
                         <span className='text-xs text-slate-400'>{t('partnerListings_perDay')}</span>
                       </div>
                       
-                      <div className='flex items-center gap-3 mt-1.5 text-xs text-slate-500'>
-                        <span className='flex items-center gap-1'>
-                          <Eye className='h-3 w-3' />
+                      <div className='mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-slate-500'>
+                        <span className='inline-flex items-center gap-1.5'>
+                          <Eye className='h-3.5 w-3.5 shrink-0' />
                           {listing.views || 0}
                         </span>
                         <PartnerListingStatusBadge
                           tone={partnerListingStatusToTone(status)}
-                          className="text-[10px] px-1.5 py-0 h-5"
+                          className="h-5 px-2 py-0 text-[10px]"
                         >
                           {statusLabel}
                         </PartnerListingStatusBadge>
                         {isTelegramDraft(listing) && (
-                          <Badge variant='outline' className='text-[10px] px-1.5 py-0 h-5 border-blue-200 text-blue-700 bg-blue-50'>
+                          <Badge variant='outline' className='h-5 border-blue-200 bg-blue-50 px-2 py-0 text-[10px] text-blue-700'>
                             Telegram
                           </Badge>
                         )}

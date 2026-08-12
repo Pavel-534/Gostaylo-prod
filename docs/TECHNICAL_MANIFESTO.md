@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.110 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.129** season price sheet UX.
+> **Version**: 13.2.112 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.131** hub soft-card pad SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,20 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.131 — partner hub soft-card pad SSOT
+
+- `PARTNER_HUB_SOFT_CARD_PAD_*` in `lib/ui/partner-section-rhythm.js` — restores `max-sm:p-3` when soft surface + `MOBILE_FLAT_*` (`max-sm:p-0`).
+- Applied: listings сводка, dashboard metrics/balances, finances strip/math/stats/portfolio/docs/history, reviews, calendar education; ≈ amounts use `gap-x-1`.
+- Payout math: no-profile copy once (no duplicate body).
+- Tests: `__tests__/stage200-131-partner-hub-soft-card-pad.test.js`.
+
+### Stage 200.130 — partner listings trash stats + filter chip
+
+- Dual TanStack queries: live list always for сводка / resume-drafts banner; `filter=deleted` only for trash rows.
+- Resume banner hidden on «Удалённые» (soft-deleted drafts still have `is_draft`).
+- Filter chips `scrollIntoView({ inline: 'center' })` when `listFilter` changes.
+- Tests: `__tests__/stage200-130-partner-listings-trash-stats.test.js`.
 
 ### Stage 200.129 — season price sheet fit + date pickers
 

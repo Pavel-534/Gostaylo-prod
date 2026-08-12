@@ -17,7 +17,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
 
 function fmtWhen(iso, language) {
@@ -95,6 +95,7 @@ export function PartnerFinancesDocuments({ t, language }) {
       <CardHeader
         className={cn(
           MOBILE_FLAT_CARD_HEADER_CLASS,
+          PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS,
           'flex flex-row items-start justify-between gap-4 space-y-0',
         )}
       >
@@ -110,7 +111,7 @@ export function PartnerFinancesDocuments({ t, language }) {
           {t('retry')}
         </Button>
       </CardHeader>
-      <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_CONTENT_PAD_CLASS)}>
         {loading ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -124,7 +125,11 @@ export function PartnerFinancesDocuments({ t, language }) {
               {rows.map((row) => (
                 <div
                   key={row.id}
-                  className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2 text-sm min-w-0')}
+                  className={cn(
+                    MOBILE_FLAT_INSET_CLASS,
+                    PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+                    'min-w-0 space-y-2 text-sm max-sm:rounded-xl max-sm:bg-slate-50/80 max-sm:ring-1 max-sm:ring-slate-200/50',
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2 min-w-0">
                     <span className="text-slate-500 text-xs shrink-0">{fmtWhen(row.generatedAt, language)}</span>

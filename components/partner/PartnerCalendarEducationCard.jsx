@@ -17,6 +17,7 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_BRAND_CARD_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_HUB_SOFT_CARD_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 export function PartnerCalendarEducationCard({
   variant = 'wizard',
@@ -30,7 +31,7 @@ export function PartnerCalendarEducationCard({
   if (manualCalendarOnly) {
     return (
       <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-2 sm:p-5')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'space-y-2 sm:p-5')}>
           <h3 className="font-semibold text-slate-900">{tr('partnerCal_eduVehicleTitle')}</h3>
           <p className="text-sm leading-relaxed text-slate-600">{tr('partnerCal_eduVehicleBody')}</p>
         </CardContent>
@@ -50,6 +51,7 @@ export function PartnerCalendarEducationCard({
         <CardContent
           className={cn(
             MOBILE_FLAT_CARD_CONTENT_CLASS,
+            PARTNER_HUB_SOFT_CARD_PAD_CLASS,
             'flex flex-col gap-4 sm:flex-row sm:items-center sm:p-5',
           )}
         >
@@ -76,7 +78,7 @@ export function PartnerCalendarEducationCard({
   // wizard — shown while creating listing (before listing id exists)
   return (
     <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:bg-slate-50/80', className)}>
-      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-5')}>
+      <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'space-y-4 sm:p-5')}>
         <div className="flex items-start gap-3">
           <CalendarSync className="mt-0.5 h-6 w-6 shrink-0 text-brand" />
           <div>
