@@ -30,6 +30,7 @@
 |-----------------|------|
 | `docs/HISTORY.md` | Хронология Stage (не правила) |
 | `docs/ROADMAP.md` | Планы после запуска |
+| `docs/CURRENCY_FX_SSOT.md` | Валюты: base / UI / payment, retail vs checkout FX |
 | `docs/ARCHITECTURAL_PASSPORT.md` | **Индекс-алиас** → ссылки на живые доки |
 | `docs/archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md` | Архив монолита — **только чтение** (stub: `docs/ARCHITECTURAL_PASSPORT_ARCHIVE.md`) |
 | `docs/runbooks/` · `docs/guides/` | Ops и продуктовые гайды |

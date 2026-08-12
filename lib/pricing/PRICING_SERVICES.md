@@ -31,6 +31,18 @@ await BookingSettlementPricing.attachSettlementSnapshotForBooking(bookingId)
 
 **Settlement / `pricing_snapshot` / ledger / payout preview** — только **mid** FX (`retail=0`, `getMidMarketDisplayRateMap`, `getRawRateMap` в `pricing-fx-helpers.js`). Не подставлять витринный `rateMap` в breakdown брони.
 
+### Currency & FX policy (Stage 200.115)
+
+**SSOT narrative + scenarios:** [`docs/CURRENCY_FX_SSOT.md`](../../docs/CURRENCY_FX_SSOT.md)  
+**Pure helpers:** `lib/pricing/fx-policy.js` (`shouldApplyCheckoutFxMarkup`, `shouldApplyRetailDisplayMarkup`).
+
+| Layer | Config | When |
+|-------|--------|------|
+| Retail (витрина) | `chatInvoiceRateMultiplier` | THB → non-THB display only |
+| Checkout FX | `fx_markup_pct` | `payment_currency ≠ listing_base_currency` |
+
+Payable currencies today: `BOOKING_PAYMENT_CURRENCIES` = THB\|USD\|RUB\|CNY\|USDT (**no EUR** — Berlin L1 EUR always settles cross-currency).
+
 ### `fx-display.js` / `fx-display-client.js` (Stage 110.4)
 
 - **Клиент:** `fx-display-client.js` — `getDisplayPriceInCurrency`, `formatDisplayPriceInCurrency`, wizard preview (без Supabase).

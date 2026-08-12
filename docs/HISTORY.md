@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.115 | 2026-08-12 | Currency/FX SSOT: retail vs checkout FX matrix; wizard hint; fx-policy helpers | Done |
+| 200.114 | 2026-08-12 | Guest catalog `/listings`: empty i18n, skeleton CLS, AI banner brand, load-more touch | Done |
 | 200.113 | 2026-08-12 | Partner empty states: WorkspaceEmptyState on listings/reviews/promo (no API change) | Done |
 | 200.112 | 2026-08-12 | Partner i18n sweep: guest-review UI + promo flash/settings save toasts (no API change) | Done |
 | 200.111 | 2026-08-12 | Partner listings list: section rhythm + hub mint stats (no listing patch/delete API change) | Done |

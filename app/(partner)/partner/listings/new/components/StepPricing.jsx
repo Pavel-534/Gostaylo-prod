@@ -231,10 +231,13 @@ function StepPricingInner() {
             </Select>
             {baseCurrencyLocked ? (
               <p className="mt-1.5 text-xs leading-relaxed text-amber-800">{t('wizardBaseCurrencyLockedActiveBookings')}</p>
-            ) : currencyLockedToCountry ? (
-              <p className="mt-1 text-xs text-slate-500">{t('wizardBaseCurrencyFromCountryHint')}</p>
             ) : (
-              <p className="mt-1 text-xs text-slate-500">{t('wizardBaseCurrencyFxHint')}</p>
+              <div className="mt-1 space-y-1">
+                {currencyLockedToCountry ? (
+                  <p className="text-xs text-slate-500">{t('wizardBaseCurrencyFromCountryHint')}</p>
+                ) : null}
+                <p className="text-xs text-slate-500">{t('wizardBaseCurrencyFxHint')}</p>
+              </div>
             )}
           </div>
         </div>

@@ -79,12 +79,11 @@ function ListingSidebarComponent({
         <div
           className={cn(
             MOBILE_FLAT_INSET_CLASS,
-            'mb-4 flex items-center gap-2 text-sm font-medium text-violet-900 max-sm:shadow-none sm:border-violet-200 sm:bg-violet-50/90 sm:shadow-sm',
+            'mb-4 flex items-center gap-2 text-sm font-medium text-brand-hover max-sm:shadow-none sm:border-brand/20 sm:bg-brand/5 sm:shadow-sm',
           )}
+          data-testid="catalog-ai-search-banner"
         >
-          <span aria-hidden className="text-base">
-            ✨
-          </span>
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand" aria-hidden />
           {getUIText('aiSearchLoadingBanner', language)}
         </div>
       ) : null}
@@ -145,7 +144,7 @@ function ListingSidebarComponent({
       <EmptyState
         language={language}
         hint={unavailText}
-        ctaLabel={getUIText('noResults', language) && (language === 'ru' ? 'Показать все объекты' : 'Show all listings')}
+        ctaLabel={getUIText('catalogShowAllListings', language)}
         ctaHref="/listings"
       >
         {(meta?.availabilityFiltered || transportMode || showBroaden) && (
@@ -303,10 +302,10 @@ function ListingSidebarComponent({
                 <span>{getUIText('loadingMore', language)}</span>
               </div>
             ) : (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={onLoadMore}
-                className="border-brand/30 text-brand-hover hover:bg-brand/10"
+                className="min-h-[44px] border-brand/30 text-brand-hover hover:bg-brand/10"
               >
                 {(() => {
                   const remaining = allListings.length - displayedCount

@@ -187,6 +187,9 @@ Lock: смена `base_currency` / базовой цены при активны
 
 ## 3. FX-политика (retail vs mid)
 
+> Полная матрица (listing base × UI × payment), сценарии Berlin/MIR/инвойс: **`docs/CURRENCY_FX_SSOT.md`**.  
+> Helpers: **`lib/pricing/fx-policy.js`** (Stage **200.115**).
+
 ### 3.1 Когда какой курс
 
 | Режим | Когда использовать | Как получить |
@@ -195,6 +198,12 @@ Lock: смена `base_currency` / базовой цены при активны
 | **Mid** | Settlement, ledger, payout preview (партнёр), referral stats / ambassador balance, admin risk, listing asset→THB на save | `getMidMarketDisplayRateMap` / `retail=0` / `useMidMarketDisplayFx` |
 
 **Не менять mid+invoice логику:** `pricing_snapshot`, checkout breakdown math, `getCheckoutRateToThb`.
+
+**Две наценки (не смешивать):**
+- **Retail** — `chatInvoiceRateMultiplier` только при THB→не-THB на витрине (UI=THB не маркируется).
+- **Checkout FX** — `fx_markup_pct` когда `payment_currency ≠ listing_base_currency` (в т.ч. pay=THB × base≠THB, Stage 200.88).
+
+Payable сегодня: `BOOKING_PAYMENT_CURRENCIES` = THB\|USD\|RUB\|CNY\|USDT (**без EUR**).
 
 ### 3.2 Четыре слоя FX (не смешивать)
 
@@ -255,6 +264,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Цены / fee** | `lib/services/pricing.service.js`, `lib/pricing/price-truth.js`, `lib/pricing/guest-display-price.js`, `lib/config/platform-split-fee-defaults.js`, `calculateCommissionFromGuestPayable` (chat invoice) |
 | **Guest breakdown UI** | `lib/booking/guest-price-breakdown.js`, `components/orders/OrderPriceBreakdown` |
 | **FX display** | `lib/pricing/fx-display.js`, `lib/hooks/use-fx-rates-query.js`, `lib/client-data.js` |
+| **FX policy matrix** | `docs/CURRENCY_FX_SSOT.md`, `lib/pricing/fx-policy.js` |
 | **Listing asset currency** | `lib/listing/listing-base-price-canon.js`, `listing-asset-currency.js`, `listing-financial-lock.js` |
 | **Бронирование (оркестратор)** | `lib/services/booking.service.js` + `lib/services/booking/*` |
 | **Unified order UI** | `lib/models/unified-order.js`, `components/orders/UnifiedOrderCard.jsx` |

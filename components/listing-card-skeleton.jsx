@@ -1,19 +1,13 @@
 'use client'
 
 /**
- * ListingCardSkeleton — premium loading placeholder for listing cards (ListingCard layout)
- * 
- * Features:
- * - Shimmer effect for premium feel
- * - Exact layout match with real card
- * - Smooth, eye-catching animation
- * 
- * @created 2026-03-13
- * @updated 2026-03-14 - Added shimmer effect
+ * ListingCardSkeleton — loading placeholder aligned with ListingCard layout SSOT
+ * (Stage 200.114 — BODY_PAD + LISTING_CARD_MEDIA_ASPECT to avoid CLS).
  */
 
 import { cn } from "@/lib/utils"
 import {
+  LISTING_CARD_BODY_PAD,
   LISTING_CARD_CONTENT_MIN_H,
   LISTING_CARD_MEDIA_ASPECT,
   LISTING_CARD_PRICE_ROW_MIN_H,
@@ -26,55 +20,47 @@ import {
 } from '@/lib/listing/listing-card-layout'
 
 /**
- * Shimmer component - reusable skeleton block with premium shine effect
+ * Shimmer block — uses design-system `.gsl-shimmer` (globals.css).
  */
 function Shimmer({ className }) {
   return (
-    <div 
-      className={cn(
-        "relative overflow-hidden bg-slate-200 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent",
-        className
-      )}
+    <div
+      className={cn('gsl-shimmer bg-slate-200', className)}
     />
   )
 }
 
 /**
- * Точное совпадение с `TopListingsGrid` карточкой:
- * - `rounded-2xl` + `border-slate-200` + такая же мягкая тень.
- * - Image: `aspect-[4/3]` (SSOT с реальной карточкой), без фиксированной высоты.
- * - Content: `p-5`, ритм title (18px) → location → specs → price.
+ * Match ListingCard chrome:
+ * - `rounded-2xl` + `border-slate-200`
+ * - Media: `LISTING_CARD_MEDIA_ASPECT` (5/4 mobile, 4/3 sm+)
+ * - Body: `LISTING_CARD_BODY_PAD` (`p-3 sm:p-4`)
  */
 export function ListingCardSkeleton({ className, style }) {
   return (
     <div
       style={style}
       className={cn(
-        "h-full flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)]",
+        "h-full flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm",
         className,
       )}
+      data-testid="listing-card-skeleton"
     >
-      {/* Image — тот же aspect-ratio, что у реальной карточки */}
       <Shimmer className={cn("flex-shrink-0", LISTING_CARD_MEDIA_ASPECT)} />
 
-      {/* Content — p-5, как реальная */}
-      <div className={cn("flex flex-col flex-grow p-5 gap-3", LISTING_CARD_CONTENT_MIN_H)}>
-        {/* Title 18px */}
+      <div className={cn("flex flex-col flex-grow gap-3", LISTING_CARD_BODY_PAD, LISTING_CARD_CONTENT_MIN_H)}>
         <Shimmer className={cn("h-[18px] rounded w-3/4", LISTING_CARD_TITLE_ROW_MIN_H)} />
 
-        {/* Location row */}
         <div className={LISTING_CARD_TRUST_ROW_MIN_H}>
           <Shimmer className="h-3 rounded w-1/2 bg-slate-100" />
         </div>
 
-        {/* Specs row */}
         <div className={cn("flex items-center gap-3", LISTING_CARD_SPEC_ROW_MIN_H)}>
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
           <Shimmer className="h-3 w-8 rounded bg-slate-100" />
         </div>
 
-        {/* Price row — pinned to bottom (mt-auto), как реальная */}
         <div className={cn("mt-auto flex items-baseline justify-between", LISTING_CARD_PRICE_ROW_MIN_H)}>
           <Shimmer className="h-7 w-28 rounded" />
           <Shimmer className="h-4 w-12 rounded bg-slate-100" />

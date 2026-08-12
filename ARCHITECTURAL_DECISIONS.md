@@ -761,6 +761,8 @@ Stage **180.6** исправил **отображение** (wizard inputs в `b
 
 **Инварианты (сохраняются):** `getCheckoutRateToThb` (нет retail markup при `payment === listing_base`); payout preview только server-side; Stage 180 display hooks.
 
+**Checkout FX vs retail (Stage 200.115):** две независимые наценки — витринный `chatInvoiceRateMultiplier` (THB→non-THB UI) и `fx_markup_pct` при `payment_currency ≠ base_currency`. Полная матрица и сценарии (Berlin EUR, MIR RUB, инвойс): **`docs/CURRENCY_FX_SSOT.md`**, helpers **`lib/pricing/fx-policy.js`**. Payable set: `BOOKING_PAYMENT_CURRENCIES` (без EUR).
+
 ### Implementation waves
 
 | Wave | Scope | Priority |

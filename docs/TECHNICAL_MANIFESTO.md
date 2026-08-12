@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.96 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.113** partner WorkspaceEmptyState adoption.
+> **Version**: 13.2.97 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.115** FX SSOT; **200.114** guest catalog rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,14 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.114 — Guest catalog rhythm polish (`/listings`)
+
+- Empty CTA → i18n `catalogShowAllListings` (all locales; no ru/en hardcode).
+- Skeleton CLS: `LISTING_CARD_BODY_PAD` + `LISTING_CARD_MEDIA_ASPECT` + `.gsl-shimmer`.
+- AI pending banner → brand tokens (no violet / emoji); load-more CTA `min-h-[44px]`.
+- No discovery API / filter FSM / map / `PARTNER_*` mint on guest UI.
+- Tests: `__tests__/stage200-114-guest-catalog-rhythm.test.js`.
 
 ### Stage 200.113 — Partner WorkspaceEmptyState adoption
 
@@ -190,6 +198,13 @@
 - **Why empty suggest for «Славянска»:** search needle appended already-typed house (`Славянска, 12`) — Nominatim often returns nothing mid-name. Street typing now searches **street-only**; house field searches `street, house`.
 - House blur / CTA auto-picks top geocode hit so partner need not tap the list twice.
 - Tests: `__tests__/stage200-89-street-house-row.test.js`.
+
+### Stage 200.115 — Currency / FX SSOT (display vs checkout)
+
+- **Doc:** [`docs/CURRENCY_FX_SSOT.md`](./CURRENCY_FX_SSOT.md) — listing base vs UI vs payment; retail vs `fx_markup_pct`; Berlin/MIR/invoice scenarios.
+- **Helpers:** `lib/pricing/fx-policy.js` (+ tests). No ledger / PricingEngine math change.
+- **UX:** partner wizard always shows FX hint (not only when currency unlocked); copy clarifies header ≠ payment.
+- Pointers: `lib/pricing/PRICING_SERVICES.md`, ADR-181 invariants, Constitution §3.
 
 ### Stage 200.88 — FX markup when guest pays THB for non-THB listing
 

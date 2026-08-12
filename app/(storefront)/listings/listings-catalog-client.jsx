@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * GoStayLo - Search Results Page (client)
+ * Storefront catalog search results (client).
  * Stage 171.26 — TanStack hydrate from RSC bootstrap (`CatalogHydrationBoundary`).
+ * Stage 200.114 — guest catalog rhythm polish (empty/skeleton/banner; no discovery API change).
  * @see app/(storefront)/listings/page.js — server bootstrap + dehydrate
  */
 
