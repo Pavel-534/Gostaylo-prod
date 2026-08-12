@@ -279,7 +279,7 @@ export default function PartnerLayout({ children }) {
         {/* Mobile backdrop — inside frame so z-50 sidebar stacks above z-40 (not under viewport overlay). */}
         {sidebarOpen ? (
           <div
-            className="fixed inset-x-0 bottom-0 top-[var(--app-header-height,64px)] z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-x-0 bottom-[var(--app-bottom-nav-height,0px)] top-[var(--app-header-height,64px)] z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />
@@ -293,10 +293,10 @@ export default function PartnerLayout({ children }) {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } border-r border-slate-200 bg-white shadow-lg max-lg:backdrop-blur-none lg:bg-white/95 lg:backdrop-blur-sm lg:shadow-sm lg:shadow-brand/5`}
         >
-          {/* Stage 200.11 — dense chrome: profile + close in one row (no barren X-only strip) */}
-          <div className="shrink-0 border-b border-slate-100 bg-slate-50/60 px-3 py-2.5">
-            <div className="flex items-center gap-2.5">
-              <Avatar className="h-10 w-10 shrink-0 border border-slate-200">
+          {/* Stage 200.11 / 200.123 — dense chrome; mobile height clears bottom dock via app-workspace-sidebar */}
+          <div className="shrink-0 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-9 w-9 shrink-0 border border-slate-200">
                 {user?.avatar ? (
                   <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
                 ) : null}
@@ -305,10 +305,10 @@ export default function PartnerLayout({ children }) {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-sm font-semibold leading-tight text-slate-900">
                   {user?.name || 'Partner'}
                 </p>
-                <p className="truncate text-xs text-slate-500">{user?.email}</p>
+                <p className="truncate text-xs leading-tight text-slate-500">{user?.email}</p>
               </div>
               <button
                 type="button"
@@ -319,12 +319,12 @@ export default function PartnerLayout({ children }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="mt-2.5">
+            <div className="mt-2">
               <HeaderWalletCompact density="expanded" className="w-full max-w-none justify-between" />
             </div>
           </div>
 
-          <div className="shrink-0 px-3 pt-2.5 pb-1">
+          <div className="shrink-0 px-3 pt-2 pb-1">
             <Button
               asChild
               className="h-11 w-full rounded-2xl shadow-sm"
@@ -339,7 +339,7 @@ export default function PartnerLayout({ children }) {
           </div>
 
           {/* Navigation */}
-          <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 py-1.5">
+          <nav className="min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-y-contain px-2 py-1">
             {sidebarItems.map((item) => {
               const Icon = item.icon
               const isMessagesItem = item.href === '/messages'
@@ -365,7 +365,7 @@ export default function PartnerLayout({ children }) {
                     }
                   }}
                   className={cn(
-                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 transition-colors touch-manipulation',
+                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 transition-colors touch-manipulation',
                     'active:scale-[0.99] active:bg-brand/10',
                     active ? 'gsl-nav-item-active' : 'gsl-nav-item-idle',
                   )}
@@ -404,8 +404,8 @@ export default function PartnerLayout({ children }) {
             })}
           </nav>
 
-          {/* Footer — same density/typography as primary nav */}
-          <div className="shrink-0 space-y-0.5 border-t border-slate-100 px-2 py-2">
+          {/* Footer — same density/typography as primary nav (Stage 200.123: tighter py; stays above dock) */}
+          <div className="shrink-0 space-y-0 border-t border-slate-100 px-2 py-1.5">
             <Link
               href="/my-bookings"
               onClick={() => {
@@ -414,7 +414,7 @@ export default function PartnerLayout({ children }) {
                   setSidebarOpen(false)
                 }
               }}
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
               data-testid="partner-switch-to-guest"
             >
               <CalendarDays className="h-[18px] w-[18px] shrink-0" />
@@ -424,7 +424,7 @@ export default function PartnerLayout({ children }) {
               href="/legal/partner-terms/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
               <Shield className="h-[18px] w-[18px] shrink-0 text-slate-400" />
               <span className="min-w-0 leading-snug">{getUIText('footerPartnerTerms', language)}</span>
@@ -432,7 +432,7 @@ export default function PartnerLayout({ children }) {
             <Link
               href="/"
               onClick={() => markPending('/')}
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 touch-manipulation active:scale-[0.99]"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 touch-manipulation active:scale-[0.99]"
             >
               <ExternalLink className="h-[18px] w-[18px] shrink-0 text-slate-400" />
               <span className="min-w-0 leading-snug">{getUIText('partnerNav_publicSite', language)}</span>
@@ -440,7 +440,7 @@ export default function PartnerLayout({ children }) {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" />
               <span>{getUIText('logout', language)}</span>

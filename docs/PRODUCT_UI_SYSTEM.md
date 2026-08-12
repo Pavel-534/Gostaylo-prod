@@ -124,7 +124,7 @@ npm run export-tokens
 
 **PDP + renter (Stage 170.3):** PDP — bottom nav скрыт; `MobileBookingBar` flush bottom + `.app-padb-safe-screen-bottom`; `ListingPageNav` sticky below header. Renter — `app/renter/layout.js` insets via CSS vars; `.pb-bottom-nav` = `var(--app-bottom-nav-height)`.
 
-**Partner / admin workspace (Stage 170.4):** `.app-workspace-sidebar`; `main` `pt-[var(--app-header-height)]` на всех breakpoints; desktop breadcrumb + page toolbars — `.app-sticky-below-header`.
+**Partner / admin workspace (Stage 170.4 / 200.123):** `.app-workspace-sidebar` — mobile `top` = `--app-header-height`, `bottom` = `--app-bottom-nav-height` (drawer clears partner dock / home indicator); lg in-flow `height:100%`. Desktop breadcrumb + page toolbars — `.app-sticky-below-header` where still used.
 
 **Long tail (Stage 170.5):** `.app-fixed-below-header` (fixed under header); `.app-fixed-above-bottom-nav` (FAB, PWA, Geo); `.app-pad-mobile-booking-chrome` (PDP scroll); Sonner top offset via CSS var.
 

@@ -54,7 +54,7 @@ const PRIMARY_TABS = [
     id: 'bookings',
     href: '/partner/bookings',
     icon: Inbox,
-    labelKey: 'partnerNav_bookings',
+    labelKey: 'partnerNav_bookingsShort',
     match: (p) => p === '/partner/bookings' || p.startsWith('/partner/bookings/'),
   },
 ]

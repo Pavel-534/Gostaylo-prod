@@ -256,15 +256,20 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
       padding-bottom: 2rem;
     }
   }
-  /** Partner / admin sidebar: mobile overlay below header; lg in-flow inside workspace frame */
+  /**
+   * Partner / admin sidebar: mobile overlay below header and above bottom dock (ADR-100).
+   * Stage 200.123: use `bottom` inset — do not use 100dvh−header alone (draws under PartnerMobileBottomNav / home indicator).
+   */
   .app-workspace-sidebar {
     top: var(--app-header-height, 64px);
-    height: calc(100dvh - var(--app-header-height, 64px));
-    max-height: calc(100dvh - var(--app-header-height, 64px));
+    bottom: var(--app-bottom-nav-height, 0px);
+    height: auto;
+    max-height: none;
   }
   @screen lg {
     .app-workspace-sidebar {
       top: auto;
+      bottom: auto;
       height: 100%;
       max-height: none;
     }

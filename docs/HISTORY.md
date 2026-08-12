@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.124 | 2026-08-12 | Build fix: split invoice system message out of payment-window-policy (no node:module in checkout client) | Done |
+| 200.123 | 2026-08-12 | Partner mobile sidebar: dock inset + denser rows + short bookings dock label | Done |
 | 200.122 | 2026-08-12 | PDP UX: mobile breakdown exclusions, cancel trust SSOT, rounding line, touch/flat polish | Done |
 | 200.121 | 2026-08-12 | Checkout FX UX: issuer fee disclaimer, cancel refund in pay currency, hold-expired initiate gate | Done |
 | 200.120 | 2026-08-12 | Master calendar ActionModals: PartnerDateRangeFields SSOT (Wave E) | Done |

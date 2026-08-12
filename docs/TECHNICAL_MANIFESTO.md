@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.103 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.122** PDP UX SSOT polish.
+> **Version**: 13.2.105 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.124** payment-window browser-safe split.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,19 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.124 — payment-window browser-safe (build fix)
+
+- Removed `createRequire` / `node:module` from `payment-window-policy.js` (was breaking Next client bundle via `CheckoutHoldTimer` → `checkout-hold-policy`).
+- Invoice system copy → `lib/booking/payment-window-system-message.js` (server chat invoice path).
+- Tests: `__tests__/stage200-124-payment-window-browser-safe.test.js`.
+
+### Stage 200.123 — Partner mobile sidebar dock inset
+
+- `.app-workspace-sidebar`: mobile `bottom: var(--app-bottom-nav-height)` (no `100dvh−header` under dock / home indicator).
+- Partner drawer: slightly denser rows (`py-1.5`, still `min-h-11`); backdrop clears dock.
+- Bottom dock: `partnerNav_bookingsShort` («Брони») to avoid «Бронирова…».
+- Tests: `__tests__/stage200-123-partner-sidebar-dock-inset.test.js`.
 
 ### Stage 200.122 — PDP UX SSOT polish
 
