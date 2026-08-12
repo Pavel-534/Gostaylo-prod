@@ -23,8 +23,13 @@ import {
   WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS,
   WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PARTNER_FIELD_LABEL_CLASS } from '@/lib/ui/partner-section-rhythm'
 
-export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
+export default function AvailabilityCalendar({
+  listingId,
+  syncErrors = [],
+  embedInPartnerSection = false,
+}) {
   const [loading, setLoading] = useState(true)
   const [blocks, setBlocks] = useState([])
   const [blockedDates, setBlockedDates] = useState([])
@@ -151,11 +156,16 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       {/* Add New Block */}
       <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle
+            className={cn(
+              'flex items-center gap-2',
+              embedInPartnerSection ? PARTNER_FIELD_LABEL_CLASS : 'text-base',
+            )}
+          >
             <Plus className="h-4 w-4" />
             Заблокировать даты
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={cn(embedInPartnerSection && 'text-xs leading-relaxed')}>
             Заблокируйте даты для личного использования или внешних бронирований
           </CardDescription>
         </CardHeader>
@@ -261,8 +271,14 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       {/* Manual Blocks List */}
       <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
-          <CardTitle className="text-base">Ручные блокировки</CardTitle>
-          <CardDescription>Даты, которые вы заблокировали вручную</CardDescription>
+          <CardTitle
+            className={cn(embedInPartnerSection ? PARTNER_FIELD_LABEL_CLASS : 'text-base')}
+          >
+            Ручные блокировки
+          </CardTitle>
+          <CardDescription className={cn(embedInPartnerSection && 'text-xs leading-relaxed')}>
+            Даты, которые вы заблокировали вручную
+          </CardDescription>
         </CardHeader>
         <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>
           {manualBlocks.length === 0 ? (
@@ -314,7 +330,11 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       {icalBlocks.length > 0 && (
         <Card className={WIZARD_MOBILE_FLAT_CARD_CLASS}>
           <CardHeader className={cn('pb-3', WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS)}>
-            <CardTitle className="text-base">Синхронизировано из iCal</CardTitle>
+            <CardTitle
+              className={cn(embedInPartnerSection ? PARTNER_FIELD_LABEL_CLASS : 'text-base')}
+            >
+              Синхронизировано из iCal
+            </CardTitle>
             <CardDescription>Автоматически импортировано из внешних календарей</CardDescription>
           </CardHeader>
           <CardContent className={WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS}>

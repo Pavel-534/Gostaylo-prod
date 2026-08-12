@@ -11,7 +11,6 @@ import { StepCalendarSection } from './StepCalendarSection'
 import { useListingWizard } from '../context/ListingWizardContext'
 import {
   WIZARD_STEP_ROOT_CLASS,
-  WIZARD_STEP_SUBTITLE_CLASS,
   WIZARD_STEP_TITLE_CLASS,
   WIZARD_MOBILE_FLAT_INSET_CLASS,
 } from './wizard-step-layout'
@@ -61,8 +60,8 @@ function StepCalendarInner() {
   return (
     <div className={WIZARD_STEP_ROOT_CLASS} data-testid="wizard-step-calendar">
       <div>
-        <h2 className={WIZARD_STEP_TITLE_CLASS}>{t('wizardStep_calendar')}</h2>
-        <p className={`mt-1 ${WIZARD_STEP_SUBTITLE_CLASS}`}>{t('wizardStep_calendarHint')}</p>
+        <h2 className={`mb-1 ${WIZARD_STEP_TITLE_CLASS}`}>{t('wizardStep_calendar')}</h2>
+        <p className="text-xs leading-relaxed text-slate-500">{t('wizardStep_calendarHint')}</p>
       </div>
 
       {showTools ? (

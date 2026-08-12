@@ -53,7 +53,12 @@ function seasonUiLabel(seasonType, t) {
   return t(row?.labelKey || 'seasonNormal')
 }
 
-export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurrency = 'THB' }) {
+export default function SeasonalPriceManager({
+  listingId,
+  basePriceThb,
+  baseCurrency = 'THB',
+  embedInPartnerSection = false,
+}) {
   const { language } = useI18n()
   const t = useCallback((key) => getUIText(key, language), [language])
   const tr = useCallback(
@@ -250,12 +255,19 @@ export default function SeasonalPriceManager({ listingId, basePriceThb, baseCurr
         <CardHeader className={WIZARD_MOBILE_FLAT_CARD_HEADER_CLASS}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <CardTitle
+                className={cn(
+                  'flex items-center gap-2 text-lg sm:text-xl',
+                  embedInPartnerSection && 'sr-only',
+                )}
+              >
                 <Calendar className="h-5 w-5 shrink-0 text-brand" />
                 {t('seasonalPricing')}
               </CardTitle>
-              <CardDescription className="mt-2 space-y-1">
-                <span className="block">{t('seasonalMgr_cardIntro')}</span>
+              <CardDescription className={cn('mt-2 space-y-1', embedInPartnerSection && 'mt-0')}>
+                <span className="block text-xs leading-relaxed text-slate-500 sm:text-sm">
+                  {t('seasonalMgr_cardIntro')}
+                </span>
                 <span className="block text-slate-700">
                   <strong>{t('seasonalMgr_baseHint')}</strong>{' '}
                   <strong>

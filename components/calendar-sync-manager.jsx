@@ -75,7 +75,7 @@ function getPlatformBadge(platform) {
   return <Badge className={`${config.color} border`}>{config.label}</Badge>
 }
 
-export default function CalendarSyncManager({ listingId, onSync }) {
+export default function CalendarSyncManager({ listingId, onSync, embedInPartnerSection = false }) {
   const { language } = useI18n()
   const tr = (k) => getUIText(k, language)
 
@@ -378,8 +378,19 @@ export default function CalendarSyncManager({ listingId, onSync }) {
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg text-slate-900 sm:text-xl">{tr('partnerCal_mainTitle')}</CardTitle>
-              <CardDescription className="mt-1 text-sm">{tr('partnerCal_mainSubtitle')}</CardDescription>
+              <CardTitle
+                className={cn(
+                  'text-lg text-slate-900 sm:text-xl',
+                  embedInPartnerSection && 'sr-only',
+                )}
+              >
+                {tr('partnerCal_mainTitle')}
+              </CardTitle>
+              <CardDescription
+                className={cn('mt-1 text-sm', embedInPartnerSection && 'text-xs leading-relaxed')}
+              >
+                {tr('partnerCal_mainSubtitle')}
+              </CardDescription>
             </div>
           </div>
         </div>

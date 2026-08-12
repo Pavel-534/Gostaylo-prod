@@ -1,6 +1,6 @@
 # Partner Wizard Design Handoff (SSOT)
 
-> **Status:** agreed corridor through **Stage 200.105** (2026-08-12)  
+> **Status:** agreed corridor through **Stage 200.108** (2026-08-12)  
 > **Product brand:** **`getSiteDisplayName()`** / i18n `{brand}` only in UI (prod env: Airento)  
 > **Audience:** engineers / agents polishing partner listing UX without redesigning the product
 
@@ -51,7 +51,7 @@ Ship a **shared visual rhythm** for the partner listing wizard (`/partner/listin
 | 2 | Location | `StepLocation.jsx` | SSOT (200.94+) |
 | 3 | Photos | `StepPhotos.jsx` | SSOT (200.101) |
 | 4 | Pricing | `StepPricing.jsx` | SSOT (200.95+) |
-| 5 | Calendar | `StepCalendarSection.jsx` | Dividers yes; widget titles mostly sr-only / internal |
+| 5 | Calendar | `StepCalendarSection.jsx` | SSOT (200.107) — section titles for sync/blocks/seasons |
 | 6 | Preview | `StepPreview.jsx` | SSOT (200.101); live L1 price from **200.96** |
 
 Do **not** confuse **service type** (radio) with **category** (`PartnerCategoryPickerTwoStep`).
@@ -99,7 +99,13 @@ Concierge drafts open the **same** wizard routes and shell (`ListingWizardProvid
 | **200.103** | **`/partner/bookings` hub list surface + section rhythm** |
 | **200.104** | **`/partner/dashboard` section rhythm + hub mint metrics** |
 | **200.105** | **`/partner/finances` + `/partner/payout-profiles` section rhythm + hub mint** |
-| **200.106** | Next free — pick **one** focus (see §8) |
+| **200.106** | **`/partner/settings` section rhythm + field labels + hub mint** |
+| **200.107** | **Wizard Calendar step section titles (sync / blocks / seasons)** |
+| **200.108** | **`/partner/reviews` + guest-review section rhythm + hub mint** |
+| **200.109** | **Global `/partner/calendar` section rhythm + hub mint education** |
+| **200.110** | **`/partner/promo` section rhythm + field labels + hub mint** |
+| **200.111** | **`/partner/listings` Filters / Stats / List section rhythm + hub mint** |
+| **200.112+** | Corridor closed for partner-hub rhythm — see §8 |
 
 Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
@@ -118,24 +124,18 @@ Docs: `docs/HISTORY.md`, tip in `docs/TECHNICAL_MANIFESTO.md`.
 
 ---
 
-## 8. Next Stage candidates (200.106+)
+## 8. Corridor status (after 200.111)
 
-Pick **one** corridor slice per Stage:
+**Partner cabinet + wizard rhythm SSOT is complete** for hub screens in `/partner/*` (dashboard → listings → bookings → calendar → finances → payout-profiles → settings → reviews → promo) and wizard Photos/Preview/Calendar.
 
-| Candidate | Why | Blast radius |
-|-----------|-----|--------------|
-| **C. Calendar step typography** | Align Seasonal/Availability section titles with `PARTNER_SECTION_*` without rewriting widgets | Small–medium |
-| **F. Partner settings forms** | Remaining CardTitle-heavy hub forms | Medium |
+| Deferred | Why not now | Safer later |
+|----------|-------------|-------------|
+| **`/messages`** | Shared guest + partner hall; already `MOBILE_FLAT_SHELL`. Forcing `PARTNER_*` mint would leak partner chrome onto renters. | Separate product Stage only if chat shell gets its own shared tokens (not partner mint). |
+| **`/profile/referral`** | Ambassador storefront for all roles; partner nav is redirect only. Partner mint here would rebrand guest ambassador UX. | Profile/product shell polish without `PARTNER_HUB_*`. |
 
-**Done in 200.105:** `/partner/finances` + `/partner/payout-profiles` — section titles/dividers + hub mint surface (candidate E).
+**Not next:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork, global `border-slate-500`, forcing partner mint onto guest/admin.
 
-**Done in 200.104:** `/partner/dashboard` — section titles/dividers + hub mint metric surface (candidate D).
-
-**Done in 200.103:** `/partner/bookings` — hub list surface + section titles/dividers (candidate B).
-
-**Done in 200.102:** Dark Mode Input borders via `--input` / `--border` + mint focus.
-
-**Not next:** full-product design sweep, paid early/late, weakening mint dividers, Concierge layout fork, global `border-slate-500`.
+**Done recently:** 200.102–200.111 (input dark tokens → listings list).
 
 ---
 

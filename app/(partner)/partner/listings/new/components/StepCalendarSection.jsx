@@ -6,6 +6,7 @@ import CalendarSyncManager from '@/components/calendar-sync-manager'
 import AvailabilityCalendar from '@/components/availability-calendar'
 import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import { PARTNER_SECTION_TITLE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepCalendarSectionInner() {
@@ -30,23 +31,48 @@ function StepCalendarSectionInner() {
           <h2 id="partner-listing-calendar-heading" className="sr-only">
             {t('partnerCal_mainTitle')}
           </h2>
+
           {transport ? null : (
             <>
-              <div data-partner-section="calendar-sync">
-                <CalendarSyncManager listingId={listingId} onSync={() => {}} />
+              <div data-partner-section="calendar-sync" className="space-y-3">
+                <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_calendarSync')}</h3>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  {t('wizardSection_calendarSyncHint')}
+                </p>
+                <CalendarSyncManager
+                  listingId={listingId}
+                  onSync={() => {}}
+                  embedInPartnerSection
+                />
               </div>
               <PartnerSectionDivider />
             </>
           )}
-          <div data-partner-section="calendar-blocks">
-            <AvailabilityCalendar listingId={listingId} syncErrors={[]} />
+
+          <div data-partner-section="calendar-blocks" className="space-y-3">
+            <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_calendarBlocks')}</h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              {t('wizardSection_calendarBlocksHint')}
+            </p>
+            <AvailabilityCalendar
+              listingId={listingId}
+              syncErrors={[]}
+              embedInPartnerSection
+            />
           </div>
+
           <PartnerSectionDivider />
-          <div data-partner-section="calendar-seasons">
+
+          <div data-partner-section="calendar-seasons" className="space-y-3">
+            <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_calendarSeasons')}</h3>
+            <p className="text-xs leading-relaxed text-slate-500">
+              {t('wizardSection_calendarSeasonsHint')}
+            </p>
             <SeasonalPriceManager
               listingId={listingId}
               basePriceThb={basePrice}
               baseCurrency={baseCurrency}
+              embedInPartnerSection
             />
           </div>
         </div>

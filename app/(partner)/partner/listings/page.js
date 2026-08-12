@@ -27,7 +27,12 @@ import {
   MOBILE_FLAT_EMPTY_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { PARTNER_LISTING_CARD_SURFACE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_LISTING_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 import { ProxiedImage } from '@/components/proxied-image'
 import {
   buildListingPublishQualityChecklist,
@@ -362,18 +367,19 @@ export default function PartnerListings() {
   }
 
   return (
-    <div className='max-w-full overflow-x-hidden'>
+    <div className='max-w-full space-y-0 overflow-x-hidden'>
       {/* Header - Mobile optimized */}
-      <div className={`px-4 py-4 ${WORKSPACE_SCROLL_STICKY_CLASS} z-30`}>
+      <div className={`px-4 py-4 ${WORKSPACE_SCROLL_STICKY_CLASS} z-30 mb-1`}>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>
             <p className='text-xs text-slate-500'>{t('partnerListings_count').replace('{count}', stats.total)}</p>
           </div>
-          <Button 
-            asChild 
+          <Button
+            asChild
             size='sm'
             variant='brand'
+            className='min-h-[44px]'
             data-testid='add-listing-btn'
           >
             <Link href='/partner/listings/new'>
@@ -384,9 +390,9 @@ export default function PartnerListings() {
         </div>
       </div>
 
-      {/* Filters — как вкладки Airbnb: быстрый доступ к черновикам и модерации */}
-      <div className='px-4 pt-2 pb-1'>
-        <div className='flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1'>
+      <section data-partner-section='listings-filters' className='space-y-3 px-4 pt-2'>
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionFilters')}</h2>
+        <div className='flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin -mx-1 px-1'>
           {[
             { id: 'all', label: t('partnerListings_filterAll') },
             { id: 'active', label: t('partnerListings_filterActive') },
@@ -409,76 +415,84 @@ export default function PartnerListings() {
             </button>
           ))}
         </div>
-        <p className='text-[11px] text-slate-500 pb-2'>
+        <p className='text-xs leading-relaxed text-slate-500'>
           {t('partnerListings_telegramHint')}
         </p>
-      </div>
 
-      {showConciergeWelcome ? (
-        <PartnerConciergeWelcomeBanner
-          count={stats.conciergeDrafts}
-          t={t}
-          onDismiss={dismissConciergeWelcome}
-          onReviewDrafts={() => {
-            setListFilter('draft')
-            dismissConciergeWelcome()
-          }}
-        />
-      ) : null}
+        {showConciergeWelcome ? (
+          <PartnerConciergeWelcomeBanner
+            count={stats.conciergeDrafts}
+            t={t}
+            onDismiss={dismissConciergeWelcome}
+            onReviewDrafts={() => {
+              setListFilter('draft')
+              dismissConciergeWelcome()
+            }}
+          />
+        ) : null}
 
-      {!showConciergeWelcome && listFilter === 'draft' && stats.conciergeDrafts > 0 ? (
-        <div
-          className="mx-4 mb-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:mx-0 max-sm:rounded-none max-sm:border-x-0"
-          data-testid="concierge-drafts-checklist-strip"
-        >
-          <p className="text-sm font-semibold text-slate-900">
-            {t('partnerListings_conciergeWelcomeTitle')}
-          </p>
-          <ConciergePartnerChecklist t={t} />
-        </div>
-      ) : null}
-
-      {stats.drafts > 0 && listFilter !== 'draft' && !showConciergeWelcome ? (
-        <div className="mx-4 mb-2 flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-800">
-            {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
-          </p>
-          <Button
-            type="button"
-            variant="brand"
-            className="min-h-[44px] w-full shrink-0 sm:w-auto"
-            onClick={() => setListFilter('draft')}
-            data-testid="resume-drafts-banner-btn"
+        {!showConciergeWelcome && listFilter === 'draft' && stats.conciergeDrafts > 0 ? (
+          <div
+            className="rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:rounded-none max-sm:border-x-0"
+            data-testid="concierge-drafts-checklist-strip"
           >
-            {t('partnerListings_resumeDraftsCta')}
-          </Button>
-        </div>
-      ) : null}
+            <p className="text-sm font-semibold text-slate-900">
+              {t('partnerListings_conciergeWelcomeTitle')}
+            </p>
+            <ConciergePartnerChecklist t={t} />
+          </div>
+        ) : null}
 
-      {/* Stats - 2x2 grid on mobile */}
-      <div className='grid grid-cols-2 gap-2 max-sm:px-0 max-sm:py-2 sm:p-4'>
-        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
-          <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
-          <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
-        </div>
-        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
-          <div className='text-xl font-bold text-brand'>{stats.active}</div>
-          <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
-        </div>
-        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
-          <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
-          <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
-        </div>
-        <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-white')}>
-          <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
-          <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
-        </div>
-      </div>
+        {stats.drafts > 0 && listFilter !== 'draft' && !showConciergeWelcome ? (
+          <div className="flex flex-col gap-2 rounded-2xl border border-brand/20 bg-brand/5 px-3 py-3 max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-800">
+              {t('partnerListings_resumeDraftsBanner').replace('{count}', String(stats.drafts))}
+            </p>
+            <Button
+              type="button"
+              variant="brand"
+              className="min-h-[44px] w-full shrink-0 sm:w-auto"
+              onClick={() => setListFilter('draft')}
+              data-testid="resume-drafts-banner-btn"
+            >
+              {t('partnerListings_resumeDraftsCta')}
+            </Button>
+          </div>
+        ) : null}
+      </section>
 
-      {/* Listings */}
-      <div className='max-sm:px-0 sm:px-4 pb-4 space-y-3'>
+      <PartnerSectionDivider />
+
+      <section data-partner-section='listings-stats' className='space-y-3 px-4'>
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionStats')}</h2>
+        <div className='grid grid-cols-2 gap-2 max-sm:py-0 sm:py-1'>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+            <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
+            <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
+          </div>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+            <div className='text-xl font-bold text-brand'>{stats.active}</div>
+            <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
+          </div>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+            <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
+            <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
+          </div>
+          <div className={cn(MOBILE_FLAT_INSET_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS, 'sm:bg-white')}>
+            <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
+            <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
+          </div>
+        </div>
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section='listings-list' className='space-y-3 px-4 pb-4 max-sm:px-0'>
+        <h2 className={cn(PARTNER_SECTION_TITLE_CLASS, 'max-sm:px-4')}>
+          {t('partnerListings_sectionList')}
+        </h2>
         {listings.length === 0 ? (
-          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
             <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-col items-center justify-center max-sm:p-0 sm:py-12')}>
               <div className='w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3'>
                 <Plus className='h-6 w-6 text-slate-400' />
@@ -489,7 +503,7 @@ export default function PartnerListings() {
               <p className='text-sm text-slate-500 mb-4 text-center'>
                 {t('partnerListings_emptyBody')}
               </p>
-              <Button asChild variant='brand'>
+              <Button asChild variant='brand' className='min-h-[44px]'>
                 <Link href='/partner/listings/new'>
                   <Plus className='h-4 w-4 mr-2' />
                   {t('partnerListings_emptyCta')}
@@ -498,7 +512,7 @@ export default function PartnerListings() {
             </CardContent>
           </Card>
         ) : filteredListings.length === 0 ? (
-          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS)}>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, MOBILE_FLAT_EMPTY_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
             <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:p-0 sm:py-8 text-center text-sm text-slate-500')}>
               {t('partnerListings_emptyFilter')}
             </CardContent>
@@ -697,7 +711,7 @@ export default function PartnerListings() {
             )
           })
         )}
-      </div>
+      </section>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -26,6 +26,12 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 export default function PartnerSettingsPage() {
   return (
@@ -318,334 +324,461 @@ function PartnerSettingsContent() {
   const isPending = partnerApp?.hasApplication && partnerApp?.status === 'PENDING'
 
   return (
-    <div className="max-sm:p-0 sm:p-4 lg:p-8 space-y-8 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
-        <p className="text-slate-600 mt-1">Управление профилем и уведомлениями</p>
+    <div className="mx-auto max-w-4xl space-y-0 max-sm:p-0 sm:p-4 lg:p-8">
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold text-slate-900">
+          {getUIText('partnerSettings_pageTitle', language)}
+        </h1>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          {getUIText('partnerSettings_pageDesc', language)}
+        </p>
       </div>
 
-      <Card id="partner-verification-panel" className={cn(MOBILE_FLAT_BRAND_CARD_CLASS, 'sm:bg-brand/5')}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Shield className="h-5 w-5 text-brand" aria-hidden />
-            {getUIText('partnerSettingsVerification_title', language)}
-          </CardTitle>
-          <CardDescription>{getUIText('partnerSettingsVerification_body', language)}</CardDescription>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
-          {loadingPartnerApp ? (
-            <div className="flex items-center gap-2 text-slate-600 text-sm py-2">
-              <Loader2 className="h-4 w-4 animate-spin text-brand" />
-              …
-            </div>
-          ) : !partnerApp?.hasApplication ? (
-            <div className="space-y-3 text-sm text-slate-700">
-              <p>{getUIText('partnerSettingsVerification_noApplication', language)}</p>
-              <Button asChild size="sm" variant="brand">
-                <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
-              </Button>
-            </div>
-          ) : partnerApp.status === 'REJECTED' ? (
-            <div className="space-y-3">
-              <p className="text-sm text-slate-700">
-                {getUIText('partnerSettingsVerification_rejected', language)}
-              </p>
-              {partnerApp.rejectionReason?.trim() ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900">
-                  <p className="font-semibold text-red-800">
-                    {getUIText('partnerSettingsVerification_rejectionReason', language)}
-                  </p>
-                  <p className="mt-1 leading-relaxed">{partnerApp.rejectionReason.trim()}</p>
-                </div>
-              ) : null}
-              <Button asChild size="sm" variant="brand">
-                <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
-              </Button>
-            </div>
-          ) : isPending ? (
-            <div className="space-y-3">
-              {partnerApp.hasVerificationDoc ? (
-                <p className="text-xs text-slate-600">{getUIText('partnerPendingKycAttachDesc', language)}</p>
-              ) : null}
-              <KycUploader
-                value={kycDraftUrl}
-                onChange={(url) => setKycDraftUrl(url)}
-                disabled={savingKyc}
-                onUploadError={(msg) => toast.error(msg)}
-                onUploadSuccess={() => toast.success(getUIText('partnerKycUploadSuccess', language))}
-              />
-              <Button
-                type="button"
-                variant="brand"
-                disabled={savingKyc || !String(kycDraftUrl || '').trim()}
-                onClick={() => void handleAttachKycToApplication()}
-              >
-                {savingKyc ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {getUIText('partnerPendingKycSaving', language)}
-                  </>
-                ) : (
-                  getUIText('partnerPendingKycSave', language)
-                )}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-700">
-              {getUIText('partnerSettingsVerification_notPending', language)}{' '}
-              <span className="font-semibold">{partnerApp.status || '—'}</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle>Информация о профиле</CardTitle>
-          <CardDescription>Основные данные вашего аккаунта</CardDescription>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <Avatar className="h-24 w-24 border border-slate-200">
-              {avatarRaw ? (
-                <AvatarImage src={resolveAvatarDisplaySrc(avatarRaw) || ''} alt="" className="object-cover" />
-              ) : null}
-              <AvatarFallback className="bg-brand/15 text-brand-hover text-2xl font-semibold">{initial}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col gap-2 w-full sm:w-auto">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleAvatarFile}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={uploadingAvatar || !user?.id}
-                onClick={() => fileRef.current?.click()}
-              >
-                {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {getUIText('renterSettingsChoosePhoto', language)}
-              </Button>
-              {avatarRaw ? (
-                <Button type="button" variant="ghost" className="text-slate-600" onClick={() => setAvatarRaw(null)}>
-                  {getUIText('renterSettingsRemoveAvatar', language)}
+      <section data-partner-section="settings-profile" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerSettings_sectionProfile', language)}
+        </h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="sr-only">
+              {getUIText('partnerSettings_sectionProfile', language)}
+            </CardTitle>
+            <CardDescription>
+              {getUIText('partnerSettings_profileDesc', language)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
+            <div className="flex flex-col items-center gap-6 sm:flex-row">
+              <Avatar className="h-24 w-24 border border-border">
+                {avatarRaw ? (
+                  <AvatarImage
+                    src={resolveAvatarDisplaySrc(avatarRaw) || ''}
+                    alt=""
+                    className="object-cover"
+                  />
+                ) : null}
+                <AvatarFallback className="bg-brand/15 text-2xl font-semibold text-brand-hover">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex w-full flex-col gap-2 sm:w-auto">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAvatarFile}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-[44px]"
+                  disabled={uploadingAvatar || !user?.id}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {uploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {getUIText('renterSettingsChoosePhoto', language)}
                 </Button>
-              ) : null}
-              <p className="text-xs text-slate-500 max-w-sm">{getUIText('renterSettingsProfileCardDesc', language)}</p>
+                {avatarRaw ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-[44px] text-slate-600"
+                    onClick={() => setAvatarRaw(null)}
+                  >
+                    {getUIText('renterSettingsRemoveAvatar', language)}
+                  </Button>
+                ) : null}
+                <p className="max-w-sm text-xs text-slate-500">
+                  {getUIText('renterSettingsProfileCardDesc', language)}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="agencyName">Имя / Название агентства</Label>
-            <Input
-              id="agencyName"
-              value={settings.agencyName}
-              onChange={(e) => setSettings({ ...settings, agencyName: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={settings.email} disabled className="bg-slate-50" />
-              <p className="text-xs text-slate-500">Email нельзя изменить</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Телефон</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="agencyName" className={PARTNER_FIELD_LABEL_CLASS}>
+                {getUIText('partnerSettings_fieldAgency', language)}
+              </Label>
               <Input
-                id="phone"
-                value={settings.phone}
-                onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                placeholder="+66 XXX XXX XXXX"
+                id="agencyName"
+                value={settings.agencyName}
+                onChange={(e) => setSettings({ ...settings, agencyName: e.target.value })}
               />
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-brand" />
-            Telegram
-          </CardTitle>
-          <CardDescription>Статус подключения к Telegram боту</CardDescription>
-        </CardHeader>
-        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-          {telegramLinked ? (
-            <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-green-50 sm:border-green-200')}>
-              <div className="flex items-center gap-3">
-                <div className="bg-green-600 rounded-full p-2">
-                  <Check className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900">Telegram подключён</p>
-                  {telegramUsername && <p className="text-sm text-green-700">@{telegramUsername}</p>}
-                </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className={PARTNER_FIELD_LABEL_CLASS}>
+                  {getUIText('partnerSettings_fieldEmail', language)}
+                </Label>
+                <Input id="email" type="email" value={settings.email} disabled className="bg-muted/40" />
+                <p className="text-xs text-slate-500">
+                  {getUIText('partnerSettings_fieldEmailHint', language)}
+                </p>
               </div>
-              <p className="text-sm text-green-700 mt-3">
-                Вы получаете уведомления о бронированиях и сообщениях через Telegram.
-              </p>
-              <p className="text-xs text-slate-500 mt-2">
-                Для отключения перейдите в{' '}
-                <a href="/profile" className="text-brand hover:underline">
-                  профиль
-                </a>
-              </p>
-            </div>
-          ) : (
-            <div className={MOBILE_FLAT_INSET_CLASS}>
-              <div className="flex items-center gap-3">
-                <div className="bg-slate-300 rounded-full p-2">
-                  <MessageSquare className="h-5 w-5 text-slate-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Telegram не подключён</p>
-                  <p className="text-sm text-slate-600">Подключите для получения уведомлений</p>
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className={PARTNER_FIELD_LABEL_CLASS}>
+                  {getUIText('partnerSettings_fieldPhone', language)}
+                </Label>
+                <Input
+                  id="phone"
+                  value={settings.phone}
+                  onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                  placeholder="+66 XXX XXX XXXX"
+                />
               </div>
-              <Button asChild variant="brand" className="mt-4">
-                <a href="/profile">
-                  Подключить в профиле
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </a>
-              </Button>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section="settings-security" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerSettings_sectionSecurity', language)}
+        </h2>
+        <Card
+          id="partner-verification-panel"
+          className={cn(
+            MOBILE_FLAT_BRAND_CARD_CLASS,
+            PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+            'sm:bg-brand/5',
           )}
-        </CardContent>
-      </Card>
+        >
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900">
+              <Shield className="h-5 w-5 text-brand" aria-hidden />
+              {getUIText('partnerSettingsVerification_title', language)}
+            </CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              {getUIText('partnerSettingsVerification_body', language)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
+            {loadingPartnerApp ? (
+              <div className="flex items-center gap-2 py-2 text-sm text-slate-600">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                …
+              </div>
+            ) : !partnerApp?.hasApplication ? (
+              <div className="space-y-3 text-sm text-slate-700">
+                <p>{getUIText('partnerSettingsVerification_noApplication', language)}</p>
+                <Button asChild size="sm" variant="brand" className="min-h-[44px]">
+                  <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
+                </Button>
+              </div>
+            ) : partnerApp.status === 'REJECTED' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-700">
+                  {getUIText('partnerSettingsVerification_rejected', language)}
+                </p>
+                {partnerApp.rejectionReason?.trim() ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900">
+                    <p className="font-semibold text-red-800">
+                      {getUIText('partnerSettingsVerification_rejectionReason', language)}
+                    </p>
+                    <p className="mt-1 leading-relaxed">{partnerApp.rejectionReason.trim()}</p>
+                  </div>
+                ) : null}
+                <Button asChild size="sm" variant="brand" className="min-h-[44px]">
+                  <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
+                </Button>
+              </div>
+            ) : isPending ? (
+              <div className="space-y-3">
+                {partnerApp.hasVerificationDoc ? (
+                  <p className="text-xs text-slate-600">
+                    {getUIText('partnerPendingKycAttachDesc', language)}
+                  </p>
+                ) : null}
+                <KycUploader
+                  value={kycDraftUrl}
+                  onChange={(url) => setKycDraftUrl(url)}
+                  disabled={savingKyc}
+                  onUploadError={(msg) => toast.error(msg)}
+                  onUploadSuccess={() =>
+                    toast.success(getUIText('partnerKycUploadSuccess', language))
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="brand"
+                  className="min-h-[44px]"
+                  disabled={savingKyc || !String(kycDraftUrl || '').trim()}
+                  onClick={() => void handleAttachKycToApplication()}
+                >
+                  {savingKyc ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {getUIText('partnerPendingKycSaving', language)}
+                    </>
+                  ) : (
+                    getUIText('partnerPendingKycSave', language)
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-700">
+                {getUIText('partnerSettingsVerification_notPending', language)}{' '}
+                <span className="font-semibold">{partnerApp.status || '—'}</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-brand" />
-            Настройки уведомлений
-          </CardTitle>
-          <CardDescription>Выберите, какие уведомления вы хотите получать</CardDescription>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
-          <div className="space-y-4">
-            <h4 className="font-semibold text-slate-900">Каналы уведомлений</h4>
+      <PartnerSectionDivider />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-slate-400" />
-                <div>
-                  <p className="font-medium text-slate-900">Telegram</p>
-                  <p className="text-sm text-slate-600">Мгновенные push-уведомления</p>
+      <section data-partner-section="settings-notifications" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerSettings_sectionNotifications', language)}
+        </h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="sr-only flex items-center gap-2">
+              <Bell className="h-5 w-5 text-brand" />
+              {getUIText('partnerSettings_sectionNotifications', language)}
+            </CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              {getUIText('partnerSettings_notificationsDesc', language)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
+            <div className="space-y-4">
+              <p className={PARTNER_FIELD_LABEL_CLASS}>
+                {getUIText('partnerSettings_notifChannels', language)}
+              </p>
+
+              <div className="flex min-h-[44px] items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="h-5 w-5 shrink-0 text-slate-400" />
+                  <div>
+                    <p className="font-medium text-slate-900">Telegram</p>
+                    <p className="text-xs text-slate-500">
+                      {getUIText('partnerSettings_notifTelegramHint', language)}
+                    </p>
+                  </div>
                 </div>
+                <Switch
+                  checked={settings.notifyTelegram}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, notifyTelegram: checked })
+                  }
+                  disabled={!telegramLinked}
+                />
               </div>
-              <Switch
-                checked={settings.notifyTelegram}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyTelegram: checked })}
-                disabled={!telegramLinked}
-              />
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-slate-400" />
-                <div>
-                  <p className="font-medium text-slate-900">Email</p>
-                  <p className="text-sm text-slate-600">Ежедневная сводка</p>
+              <div className="flex min-h-[44px] items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 shrink-0 text-slate-400" />
+                  <div>
+                    <p className="font-medium text-slate-900">Email</p>
+                    <p className="text-xs text-slate-500">
+                      {getUIText('partnerSettings_notifEmailHint', language)}
+                    </p>
+                  </div>
                 </div>
+                <Switch
+                  checked={settings.notifyEmail}
+                  onCheckedChange={(checked) => setSettings({ ...settings, notifyEmail: checked })}
+                />
               </div>
-              <Switch
-                checked={settings.notifyEmail}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyEmail: checked })}
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-semibold text-slate-900">События</h4>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-900">Новые бронирования</p>
-                <p className="text-sm text-slate-600">Запросы на бронирование</p>
-              </div>
-              <Switch
-                checked={settings.notifyNewBooking}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyNewBooking: checked })}
-              />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-900">Новые сообщения</p>
-                <p className="text-sm text-slate-600">Сообщения в чате</p>
+            <Separator />
+
+            <div className="space-y-4">
+              <p className={PARTNER_FIELD_LABEL_CLASS}>
+                {getUIText('partnerSettings_notifEvents', language)}
+              </p>
+
+              <div className="flex min-h-[44px] items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {getUIText('partnerSettings_notifNewBooking', language)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {getUIText('partnerSettings_notifNewBookingHint', language)}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.notifyNewBooking}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, notifyNewBooking: checked })
+                  }
+                />
               </div>
-              <Switch
-                checked={settings.notifyNewMessage}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyNewMessage: checked })}
-              />
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-900">Изменение статуса</p>
-                <p className="text-sm text-slate-600">Подтверждения и отмены</p>
+              <div className="flex min-h-[44px] items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {getUIText('partnerSettings_notifNewMessage', language)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {getUIText('partnerSettings_notifNewMessageHint', language)}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.notifyNewMessage}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, notifyNewMessage: checked })
+                  }
+                />
               </div>
-              <Switch
-                checked={settings.notifyStatusChange}
-                onCheckedChange={(checked) => setSettings({ ...settings, notifyStatusChange: checked })}
-              />
+
+              <div className="flex min-h-[44px] items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {getUIText('partnerSettings_notifStatusChange', language)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {getUIText('partnerSettings_notifStatusChangeHint', language)}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.notifyStatusChange}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, notifyStatusChange: checked })
+                  }
+                />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </section>
 
-      <PwaInstallSettingsCard />
+      <PartnerSectionDivider />
 
-      <PushEnableSettingsCard />
+      <section data-partner-section="settings-integrations" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerSettings_sectionIntegrations', language)}
+        </h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900">
+              <MessageSquare className="h-5 w-5 text-brand" />
+              Telegram
+            </CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              {getUIText('partnerSettings_telegramDesc', language)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+            {telegramLinked ? (
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:border-green-200 sm:bg-green-50')}>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-green-600 p-2">
+                    <Check className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-green-900">
+                      {getUIText('partnerSettings_telegramLinked', language)}
+                    </p>
+                    {telegramUsername ? (
+                      <p className="text-sm text-green-700">@{telegramUsername}</p>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-green-700">
+                  {getUIText('partnerSettings_telegramLinkedHint', language)}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  {getUIText('partnerSettings_telegramUnlinkHint', language)}{' '}
+                  <a href="/profile" className="text-brand hover:underline">
+                    {getUIText('partnerSettings_telegramProfileLink', language)}
+                  </a>
+                </p>
+              </div>
+            ) : (
+              <div className={MOBILE_FLAT_INSET_CLASS}>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-slate-300 p-2">
+                    <MessageSquare className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      {getUIText('partnerSettings_telegramNotLinked', language)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {getUIText('partnerSettings_telegramNotLinkedHint', language)}
+                    </p>
+                  </div>
+                </div>
+                <Button asChild variant="brand" className="mt-4 min-h-[44px]">
+                  <a href="/profile">
+                    {getUIText('partnerSettings_telegramConnectCta', language)}
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle className="text-lg">{getUIText('partnerSettingsLegalTitle', language)}</CardTitle>
-          <CardDescription>{getUIText('partnerSettingsLegalDesc', language)}</CardDescription>
-        </CardHeader>
-        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap gap-3 text-sm')}>
-          <Link
-            href="/legal/partner-terms/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-brand-hover hover:underline font-medium"
+        <PwaInstallSettingsCard className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS} />
+        <PushEnableSettingsCard className={PARTNER_HUB_LIST_CARD_SURFACE_CLASS} />
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section="settings-legal" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerSettingsLegalTitle', language)}
+        </h2>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="sr-only">
+              {getUIText('partnerSettingsLegalTitle', language)}
+            </CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              {getUIText('partnerSettingsLegalDesc', language)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent
+            className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'flex flex-wrap gap-3 text-sm')}
           >
-            {getUIText('footerPartnerTerms', language)}
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-          <Link
-            href="/legal/public-offer/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
-          >
-            {getUIText('footerPublicOffer', language)}
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-          <Link
-            href="/legal/refund/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
-          >
-            {getUIText('footerRefundPolicy', language)}
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-        </CardContent>
-      </Card>
+            <Link
+              href="/legal/partner-terms/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-1 font-medium text-brand-hover hover:underline"
+            >
+              {getUIText('footerPartnerTerms', language)}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/legal/public-offer/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
+            >
+              {getUIText('footerPublicOffer', language)}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/legal/refund/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-1 text-slate-600 hover:text-brand-hover hover:underline"
+            >
+              {getUIText('footerRefundPolicy', language)}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} disabled={saving} variant="brand">
+      <div className="flex justify-end pt-4">
+        <Button
+          onClick={handleSaveSettings}
+          disabled={saving}
+          variant="brand"
+          className="min-h-[44px]"
+        >
           {saving ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {getUIText('renterSettingsSaving', language)}
             </>
           ) : (

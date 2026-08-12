@@ -18,6 +18,12 @@ import {
   MOBILE_FLAT_CARD_CONTENT_CLASS,
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import {
+  PARTNER_FIELD_LABEL_CLASS,
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
+import { cn } from '@/lib/utils'
 
 async function fetchBookingForPartner(bookingId) {
   const res = await fetch(`/api/v2/partner/bookings?limit=500`, {
@@ -123,38 +129,47 @@ export default function PartnerGuestReviewPage() {
   const allowed = booking.status === 'THAWED' || booking.status === 'COMPLETED'
   if (!allowed) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4 space-y-4">
-        <Card className={MOBILE_FLAT_CARD_CLASS}>
-          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-            <CardTitle>Отзыв о госте</CardTitle>
-            <CardDescription>
-              Оценка гостя доступна после разморозки средств (THAWED) или после завершения проживания (COMPLETED).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-            <Button asChild>
-              <Link href="/partner/bookings">Назад к бронированиям</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-12">
+        <section data-partner-section="guest-review-blocked" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>Отзыв о госте</h2>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+              <CardTitle className="sr-only">Отзыв о госте</CardTitle>
+              <CardDescription className="text-xs leading-relaxed">
+                Оценка гостя доступна после разморозки средств (THAWED) или после завершения
+                проживания (COMPLETED).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+              <Button asChild variant="brand" className="min-h-[44px]">
+                <Link href="/partner/bookings">Назад к бронированиям</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     )
   }
 
   if (!booking.canSubmitGuestReview) {
     return (
-      <div className="max-w-lg mx-auto py-12 px-4 space-y-4">
-        <Card className={MOBILE_FLAT_CARD_CLASS}>
-          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-            <CardTitle>Отзыв о госте</CardTitle>
-            <CardDescription>Отзыв по этой брони уже оставлен.</CardDescription>
-          </CardHeader>
-          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-            <Button asChild>
-              <Link href="/partner/bookings">Назад к бронированиям</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-12">
+        <section data-partner-section="guest-review-done" className="space-y-3">
+          <h2 className={PARTNER_SECTION_TITLE_CLASS}>Отзыв о госте</h2>
+          <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+            <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+              <CardTitle className="sr-only">Отзыв о госте</CardTitle>
+              <CardDescription className="text-xs leading-relaxed">
+                Отзыв по этой брони уже оставлен.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+              <Button asChild variant="brand" className="min-h-[44px]">
+                <Link href="/partner/bookings">Назад к бронированиям</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     )
   }
@@ -163,72 +178,77 @@ export default function PartnerGuestReviewPage() {
   const listingTitle = booking.listing?.title || 'Объект'
 
   return (
-    <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
-      <Button variant="ghost" className="-ml-2 min-h-[48px]" asChild>
+    <div className="mx-auto max-w-lg space-y-0 px-4 py-8">
+      <Button variant="ghost" className="-ml-2 mb-4 min-h-[44px]" asChild>
         <Link href="/partner/bookings" className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Бронирования
         </Link>
       </Button>
 
-      <Card className={MOBILE_FLAT_CARD_CLASS}>
-        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
-          <CardTitle>Оцените гостя</CardTitle>
-          <CardDescription>
-            {listingTitle} · {guestLabel}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Label className="mb-3 block">Оценка (обязательно)</Label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setRating(n)}
-                    className="p-1 rounded-md hover:bg-amber-50 transition-colors"
-                    aria-label={`${n} stars`}
-                  >
-                    <Star
-                      className={`h-9 w-9 ${
-                        n <= rating ? 'fill-amber-400 text-amber-500' : 'text-slate-300'
-                      }`}
-                    />
-                  </button>
-                ))}
+      <section data-partner-section="guest-review-form" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>Оцените гостя</h2>
+        <p className="text-xs leading-relaxed text-slate-500">
+          {listingTitle} · {guestLabel}
+        </p>
+        <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
+          <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+            <CardTitle className="sr-only">Оцените гостя</CardTitle>
+          </CardHeader>
+          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-1.5">
+                <Label className={PARTNER_FIELD_LABEL_CLASS}>Оценка (обязательно)</Label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setRating(n)}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1 transition-colors hover:bg-amber-50"
+                      aria-label={`${n} stars`}
+                    >
+                      <Star
+                        className={`h-9 w-9 ${
+                          n <= rating ? 'fill-amber-400 text-amber-500' : 'text-slate-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="comment">Комментарий (по желанию)</Label>
-              <Textarea
-                id="comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="mt-2 min-h-[120px]"
-                placeholder="Как прошло общение, пунктуальность, бережное отношение к объекту…"
-                maxLength={4000}
-              />
-            </div>
-            <Button
-              type="submit"
-              variant="brand"
-              className="min-h-[48px] w-full"
-              disabled={submitting || rating < 1}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Отправка…
-                </>
-              ) : (
-                'Отправить отзыв'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="space-y-1.5">
+                <Label htmlFor="comment" className={PARTNER_FIELD_LABEL_CLASS}>
+                  Комментарий (по желанию)
+                </Label>
+                <Textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="min-h-[120px]"
+                  placeholder="Как прошло общение, пунктуальность, бережное отношение к объекту…"
+                  maxLength={4000}
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="brand"
+                className="min-h-[44px] w-full"
+                disabled={submitting || rating < 1}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Отправка…
+                  </>
+                ) : (
+                  'Отправить отзыв'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }

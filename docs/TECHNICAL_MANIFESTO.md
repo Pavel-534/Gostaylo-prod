@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.88 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.105** partner finances hub rhythm.
+> **Version**: 13.2.94 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.111** partner listings list hub rhythm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,44 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.111 — Partner listings list hub rhythm
+
+- `/partner/listings`: Filters / Stats / List sections with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider`; stats + empty states use hub mint; cards keep `PARTNER_LISTING_CARD_SURFACE_CLASS`.
+- No change to `usePartnerListings` / patch / delete / publish paths.
+- Tests: `__tests__/stage200-111-partner-listings-rhythm.test.js`.
+
+### Stage 200.110 — Partner promo hub rhythm
+
+- `/partner/promo`: Create / List (/ Flash) sections with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider` + `PARTNER_FIELD_LABEL`; cards use hub mint surface.
+- Hardcoded RU list/flash copy moved to i18n; promo create/list/extend API paths unchanged.
+- Tests: `__tests__/stage200-110-partner-promo-rhythm.test.js`.
+
+### Stage 200.109 — Partner master calendar hub rhythm
+
+- `/partner/calendar`: Context / Controls / Board sections with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider`; education card uses `PARTNER_HUB_LIST_CARD_SURFACE_CLASS`.
+- No change to calendar query, block/booking/price mutate, or iCal sync handlers.
+- Tests: `__tests__/stage200-109-partner-calendar-rhythm.test.js`.
+
+### Stage 200.108 — Partner reviews hub rhythm
+
+- `/partner/reviews`: Stats / List sections with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider`; cards use `PARTNER_HUB_LIST_CARD_SURFACE_CLASS`.
+- Guest-review form: section title + `PARTNER_FIELD_LABEL` + hub surface; star touch ≥44px.
+- No change to `/api/v2/reviews` reply or `/api/v2/partner/guest-reviews` submit payloads.
+- Tests: `__tests__/stage200-108-partner-reviews-rhythm.test.js`.
+
+### Stage 200.107 — Wizard Calendar section rhythm
+
+- Wizard step 5 (`StepCalendarSection`): `PARTNER_SECTION_TITLE` + helpers + `PartnerSectionDivider` for OTA sync / availability / seasonal prices.
+- Widgets accept `embedInPartnerSection` (sr-only or demoted CardTitle) — no change to iCal/block/seasonal fetch or save paths.
+- Tests: `__tests__/stage200-107-wizard-calendar-rhythm.test.js`.
+
+### Stage 200.106 — Partner settings hub rhythm
+
+- `/partner/settings`: sections Profile / Security / Notifications / Integrations (+ legal) with `PARTNER_SECTION_TITLE` + `PartnerSectionDivider`; field labels via `PARTNER_FIELD_LABEL_CLASS`.
+- Cards: `MOBILE_FLAT_*` + `PARTNER_HUB_LIST_CARD_SURFACE_CLASS`; touch CTAs ≥44px.
+- No change to save handlers, avatar upload, KYC attach, notification preference payload, or auth/me fetch.
+- Tests: `__tests__/stage200-106-partner-settings-rhythm.test.js`.
 
 ### Stage 200.105 — Partner finances hub rhythm
 

@@ -6,6 +6,12 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.111 | 2026-08-12 | Partner listings list: section rhythm + hub mint stats (no listing patch/delete API change) | Done |
+| 200.110 | 2026-08-12 | Partner promo: section rhythm + field labels + hub mint (no promo-codes API change) | Done |
+| 200.109 | 2026-08-12 | Partner master calendar: section rhythm + hub mint on education (no calendar/iCal API change) | Done |
+| 200.108 | 2026-08-12 | Partner reviews + guest-review: section rhythm + hub mint (no review API change) | Done |
+| 200.107 | 2026-08-12 | Wizard Calendar step: PARTNER_SECTION titles for sync/blocks/seasons (no calendar API change) | Done |
+| 200.106 | 2026-08-12 | Partner settings: section titles/dividers + field labels + hub mint (no save/auth API change) | Done |
 | 200.105 | 2026-08-12 | Partner finances + payout-profiles: section titles/dividers + hub mint surface (no ledger/payout API change) | Done |
 | 200.104 | 2026-08-12 | Partner dashboard: section titles/dividers + hub mint surface on metrics (no analytics API change) | Done |
 | 200.103 | 2026-08-12 | Partner bookings list: hub mint card surface + section titles/dividers (no FSM/price change) | Done |

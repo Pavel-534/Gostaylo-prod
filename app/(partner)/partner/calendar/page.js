@@ -59,6 +59,11 @@ import { applyBulkSeasonalPrices } from '@/lib/partner/partner-calendar-bulk-pri
 import { usePartnerCalendarRangeSelection } from '@/lib/hooks/use-partner-calendar-range.js'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
+import {
+  PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_SECTION_TITLE_CLASS,
+} from '@/lib/ui/partner-section-rhythm'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -706,195 +711,236 @@ function MasterCalendarContent() {
   const dayWidth = DAY_WIDTHS[viewMode]
 
   return (
-    <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
-      <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
-      <div
-        className={cn(
-          MOBILE_FLAT_INSET_CLASS,
-          'max-w-[1600px] mx-auto flex gap-2 items-start space-y-0 text-xs text-brand sm:border-brand/20 sm:bg-brand/10 sm:p-2.5 sm:px-3',
-        )}
+    <div className="max-w-full space-y-0 overflow-hidden px-2 sm:px-0">
+      <section
+        data-partner-section="calendar-context"
+        className="mx-auto max-w-[1600px] space-y-3"
       >
-        <Sparkles className="h-4 w-4 shrink-0 text-brand mt-0.5" aria-hidden />
-        <p className="leading-relaxed">{calendarDominantHint}</p>
-      </div>
-      {openedFromChat ? (
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerCal_sectionContext', language)}
+        </h2>
+        <PartnerCalendarEducationCard
+          variant="calendar-page"
+          className={cn('mx-auto max-w-[1600px]', PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}
+        />
         <div
           className={cn(
             MOBILE_FLAT_INSET_CLASS,
-            'max-w-[1600px] mx-auto space-y-0 text-xs text-slate-700 sm:p-2 sm:px-3',
+            'mx-auto flex max-w-[1600px] items-start gap-2 space-y-0 text-xs text-brand sm:border-brand/20 sm:bg-brand/10 sm:p-2.5 sm:px-3',
           )}
         >
-          {getUIText('partnerCal_openedFromChatHint', language)}
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
+          <p className="leading-relaxed">{calendarDominantHint}</p>
         </div>
-      ) : null}
-      {onboardingBannerOpen ? (
-        <Alert className="max-w-[1600px] mx-auto max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 border-brand/30 bg-brand/10 text-brand [&>svg]:text-brand sm:rounded-xl">
-          <Sparkles className="h-4 w-4" aria-hidden />
-          <AlertTitle>{getUIText('partnerCal_onboardingWelcomeTitle', language)}</AlertTitle>
-          <AlertDescription className="text-brand-hover">
-            {getUIText('partnerCal_onboardingWelcomeBody', language)}
-          </AlertDescription>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-3 min-h-[44px] border-brand/30 text-brand-hover"
-            onClick={() => setOnboardingBannerOpen(false)}
-          >
-            {getUIText('partnerCal_holdInfoClose', language)}
-          </Button>
-        </Alert>
-      ) : null}
-      {filterListingId ? (
-        <div
-          className={cn(
-            MOBILE_FLAT_INSET_CLASS,
-            'max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 space-y-0 text-sm text-brand sm:border-brand/25 sm:bg-brand/10 sm:p-2.5 sm:px-3',
-          )}
-        >
-          <span className="font-medium">{getUIText('partnerCal_singleListingMode', language)}</span>
-          <span className="text-brand-hover/80">{getUIText('partnerCal_singleListingHint', language)}</span>
-          <Button asChild variant="outline" size="sm" className="h-8 text-xs border-brand/30 ml-auto">
-            <Link href="/partner/calendar">{getUIText('partnerCal_allListings', language)}</Link>
-          </Button>
-        </div>
-      ) : null}
-      {calendarMeta?.isDemoFallback && (
-        <Alert className="max-w-[1600px] mx-auto border-amber-500/50 bg-amber-50 text-amber-950 [&>svg]:text-amber-600">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{getUIText('partnerCal_demoTitle', language)}</AlertTitle>
-          <AlertDescription>
-            {getUIText('partnerCal_demoBody', language)}
-            {calendarMeta?.demoErrorMessage
-              ? ` ${getUIText('partnerCal_demoReason', language).replace('{{reason}}', calendarMeta.demoErrorMessage)}`
-              : ''}
-          </AlertDescription>
-        </Alert>
-      )}
-      <CalendarHeader
-        startDate={startDate}
-        endDate={endDate}
-        viewMode={viewMode}
-        summary={summary}
-        language={language}
-        dateLabelMode={
-          mobileOverviewMode ? 'overview' : mobileMonthMode ? 'month' : 'range'
-        }
-        onToday={goToToday}
-        onBack={goBack}
-        onForward={goForward}
-        onJumpToMonth={isNarrowCalendar ? jumpToMonth : undefined}
-        onViewModeChange={setViewMode}
-        onRefresh={refetch}
-        onIcalSyncAll={handleIcalSyncAll}
-        icalSyncing={icalSyncing}
-        onPriceModalOpen={() => setPriceModal({ open: true })}
-      />
-      
-      <div className="hidden max-w-[1600px] mx-auto lg:block">
-        <CalendarGrid
-          dates={dates}
-          listings={listings}
-          dayWidth={dayWidth}
-          viewMode={viewMode}
-          onCellClick={handleCellClick}
-          getCellRangeRole={getCellRangeRole}
-          todayRef={isNarrowCalendar ? null : todayGridRef}
-          scrollContainerRef={scrollContainerRef}
-          language={language}
-        />
-      </div>
-
-      <div className="mx-auto max-w-[1600px] lg:hidden space-y-3">
-        <CalendarMobileQuickActions
-          language={language}
-          icalHref={icalHref}
-          mobilePane={mobilePane}
-          onMobilePaneChange={(pane) => {
-            clearRangeSelection()
-            // Align startDate in the same turn as pane change — avoids double fetch
-            // (effect-only startOfMonth used to change the query key twice).
-            if (pane === 'near') {
-              setStartDate(format(new Date(), 'yyyy-MM-dd'))
-            } else if (pane === 'month' || pane === 'overview') {
-              setStartDate((prev) => {
-                try {
-                  return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
-                } catch {
-                  return format(startOfMonth(new Date()), 'yyyy-MM-dd')
-                }
-              })
-            }
-            setMobilePane(pane)
-          }}
-          onQuickBlock={handleQuickBlock}
-          onOpenPrices={() => setPriceModal({ open: true })}
-          onIcalSyncAll={handleIcalSyncAll}
-          icalSyncing={icalSyncing}
-        />
-        {isFetching && !isInitialLoading ? (
+        {openedFromChat ? (
           <div
-            className="flex items-center gap-2 text-xs text-slate-500"
-            role="status"
-            aria-live="polite"
-            data-testid="partner-cal-range-refreshing"
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'mx-auto max-w-[1600px] space-y-0 text-xs text-slate-700 sm:p-2 sm:px-3',
+            )}
           >
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" aria-hidden />
-            <span>{getUIText('partnerCal_pageLoading', language)}</span>
+            {getUIText('partnerCal_openedFromChatHint', language)}
           </div>
         ) : null}
-        <p
-          className={cn(
-            MOBILE_FLAT_INSET_CLASS,
-            'space-y-0 text-sm text-slate-700 sm:p-2 sm:px-3',
-          )}
-        >
-          {getUIText(
-            mobilePane === 'overview'
-              ? 'partnerCal_overviewBanner'
-              : mobilePane === 'month'
-                ? 'partnerCal_monthHint'
-                : 'partnerCal_agendaHint',
-            language,
-          )}
-        </p>
-        {mobilePane === 'overview' ? (
-          <CalendarMobileOverview
+        {onboardingBannerOpen ? (
+          <Alert className="mx-auto max-w-[1600px] border-brand/30 bg-brand/10 text-brand max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 [&>svg]:text-brand sm:rounded-xl">
+            <Sparkles className="h-4 w-4" aria-hidden />
+            <AlertTitle>{getUIText('partnerCal_onboardingWelcomeTitle', language)}</AlertTitle>
+            <AlertDescription className="text-brand-hover">
+              {getUIText('partnerCal_onboardingWelcomeBody', language)}
+            </AlertDescription>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 min-h-[44px] border-brand/30 text-brand-hover"
+              onClick={() => setOnboardingBannerOpen(false)}
+            >
+              {getUIText('partnerCal_holdInfoClose', language)}
+            </Button>
+          </Alert>
+        ) : null}
+        {filterListingId ? (
+          <div
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'mx-auto flex max-w-[1600px] flex-wrap items-center gap-2 space-y-0 text-sm text-brand sm:border-brand/25 sm:bg-brand/10 sm:p-2.5 sm:px-3',
+            )}
+          >
+            <span className="font-medium">
+              {getUIText('partnerCal_singleListingMode', language)}
+            </span>
+            <span className="text-brand-hover/80">
+              {getUIText('partnerCal_singleListingHint', language)}
+            </span>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="ml-auto h-8 border-brand/30 text-xs"
+            >
+              <Link href="/partner/calendar">{getUIText('partnerCal_allListings', language)}</Link>
+            </Button>
+          </div>
+        ) : null}
+        {calendarMeta?.isDemoFallback ? (
+          <Alert className="mx-auto max-w-[1600px] border-amber-500/50 bg-amber-50 text-amber-950 [&>svg]:text-amber-600">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{getUIText('partnerCal_demoTitle', language)}</AlertTitle>
+            <AlertDescription>
+              {getUIText('partnerCal_demoBody', language)}
+              {calendarMeta?.demoErrorMessage
+                ? ` ${getUIText('partnerCal_demoReason', language).replace('{{reason}}', calendarMeta.demoErrorMessage)}`
+                : ''}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section
+        data-partner-section="calendar-controls"
+        className="mx-auto max-w-[1600px] space-y-3"
+      >
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerCal_sectionControls', language)}
+        </h2>
+        <CalendarHeader
+          startDate={startDate}
+          endDate={endDate}
+          viewMode={viewMode}
+          summary={summary}
+          language={language}
+          dateLabelMode={
+            mobileOverviewMode ? 'overview' : mobileMonthMode ? 'month' : 'range'
+          }
+          onToday={goToToday}
+          onBack={goBack}
+          onForward={goForward}
+          onJumpToMonth={isNarrowCalendar ? jumpToMonth : undefined}
+          onViewModeChange={setViewMode}
+          onRefresh={refetch}
+          onIcalSyncAll={handleIcalSyncAll}
+          icalSyncing={icalSyncing}
+          onPriceModalOpen={() => setPriceModal({ open: true })}
+        />
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section
+        data-partner-section="calendar-board"
+        className="mx-auto max-w-[1600px] space-y-3"
+      >
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
+          {getUIText('partnerCal_sectionBoard', language)}
+        </h2>
+        <div className="hidden lg:block">
+          <CalendarGrid
             dates={dates}
             listings={listings}
-            language={language}
-            monthAnchor={startDate}
-            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
-            initialListingId={filterListingId || undefined}
-            onOpenMonth={openMonthFromOverview}
-            rangePending={rangeCoveragePending}
-          />
-        ) : mobilePane === 'month' ? (
-          <CalendarMobileMonthGrid
-            dates={dates}
-            listings={listings}
+            dayWidth={dayWidth}
+            viewMode={viewMode}
             onCellClick={handleCellClick}
             getCellRangeRole={getCellRangeRole}
-            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
-            initialExpandedListingId={filterListingId || undefined}
+            todayRef={isNarrowCalendar ? null : todayGridRef}
+            scrollContainerRef={scrollContainerRef}
             language={language}
-            monthAnchor={startDate}
-            rangePending={rangeCoveragePending}
           />
-        ) : (
-          <CalendarMobileAgenda
-            dates={dates}
-            listings={listings}
-            onCellClick={handleCellClick}
-            getCellRangeRole={getCellRangeRole}
-            todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
-            initialExpandedListingId={filterListingId || undefined}
+        </div>
+
+        <div className="space-y-3 lg:hidden">
+          <CalendarMobileQuickActions
             language={language}
-            forceFullWindow={false}
+            icalHref={icalHref}
+            mobilePane={mobilePane}
+            onMobilePaneChange={(pane) => {
+              clearRangeSelection()
+              // Align startDate in the same turn as pane change — avoids double fetch
+              // (effect-only startOfMonth used to change the query key twice).
+              if (pane === 'near') {
+                setStartDate(format(new Date(), 'yyyy-MM-dd'))
+              } else if (pane === 'month' || pane === 'overview') {
+                setStartDate((prev) => {
+                  try {
+                    return format(startOfMonth(parseISO(prev)), 'yyyy-MM-dd')
+                  } catch {
+                    return format(startOfMonth(new Date()), 'yyyy-MM-dd')
+                  }
+                })
+              }
+              setMobilePane(pane)
+            }}
+            onQuickBlock={handleQuickBlock}
+            onOpenPrices={() => setPriceModal({ open: true })}
+            onIcalSyncAll={handleIcalSyncAll}
+            icalSyncing={icalSyncing}
           />
-        )}
-      </div>
-      
+          {isFetching && !isInitialLoading ? (
+            <div
+              className="flex items-center gap-2 text-xs text-slate-500"
+              role="status"
+              aria-live="polite"
+              data-testid="partner-cal-range-refreshing"
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" aria-hidden />
+              <span>{getUIText('partnerCal_pageLoading', language)}</span>
+            </div>
+          ) : null}
+          <p
+            className={cn(
+              MOBILE_FLAT_INSET_CLASS,
+              'space-y-0 text-sm text-slate-700 sm:p-2 sm:px-3',
+            )}
+          >
+            {getUIText(
+              mobilePane === 'overview'
+                ? 'partnerCal_overviewBanner'
+                : mobilePane === 'month'
+                  ? 'partnerCal_monthHint'
+                  : 'partnerCal_agendaHint',
+              language,
+            )}
+          </p>
+          {mobilePane === 'overview' ? (
+            <CalendarMobileOverview
+              dates={dates}
+              listings={listings}
+              language={language}
+              monthAnchor={startDate}
+              todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+              initialListingId={filterListingId || undefined}
+              onOpenMonth={openMonthFromOverview}
+              rangePending={rangeCoveragePending}
+            />
+          ) : mobilePane === 'month' ? (
+            <CalendarMobileMonthGrid
+              dates={dates}
+              listings={listings}
+              onCellClick={handleCellClick}
+              getCellRangeRole={getCellRangeRole}
+              todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+              initialExpandedListingId={filterListingId || undefined}
+              language={language}
+              monthAnchor={startDate}
+              rangePending={rangeCoveragePending}
+            />
+          ) : (
+            <CalendarMobileAgenda
+              dates={dates}
+              listings={listings}
+              onCellClick={handleCellClick}
+              getCellRangeRole={getCellRangeRole}
+              todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+              initialExpandedListingId={filterListingId || undefined}
+              language={language}
+              forceFullWindow={false}
+            />
+          )}
+        </div>
+      </section>
+
       <ActionModals
         actionModal={actionModal}
         setActionModal={setActionModal}
