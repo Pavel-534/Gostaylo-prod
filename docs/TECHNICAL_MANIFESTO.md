@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.106 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.125** season-type browser-safe split.
+> **Version**: 13.2.107 | **Last Updated**: 2026-08-12 | **Tip of tree:** Stage **203**; **200.126** partner sidebar footer compact.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.126 — Partner sidebar footer compact
+
+- Shorter sidebar labels: `partnerNav_switchToGuestMode` → «Режим гостя»; `partnerNav_partnerTerms` (legal footer copy unchanged).
+- Removed sidebar logout (still in header UserMenu); slightly denser nav/footer `py-1` (touch `min-h-11`).
+- Tests: `__tests__/stage200-126-partner-sidebar-footer-compact.test.js`.
 
 ### Stage 200.125 — season-type browser-safe (build fix)
 

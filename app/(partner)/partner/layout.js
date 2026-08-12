@@ -31,7 +31,6 @@ import {
   Banknote,
   Wallet,
   Settings,
-  LogOut,
   X,
   Home,
   ChevronRight,
@@ -106,7 +105,7 @@ export default function PartnerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { totalUnread } = useChatUnreadBadge()
   const [language, setLanguage] = useState('ru')
-  const { user, loading: authLoading, isAuthenticated, logout } = useAuth()
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
   const { pendingHref, markPending } = useOptimisticNavHref({
     prefetchPaths: PARTNER_SIDEBAR_PREFETCH_PATHS,
   })
@@ -204,7 +203,6 @@ export default function PartnerLayout({ children }) {
   }
 
   const handleReturnToAdmin = () => router.push('/admin/users')
-  const handleLogout = () => logout()
 
   // Loading state
   if (authLoading) {
@@ -293,7 +291,7 @@ export default function PartnerLayout({ children }) {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           } border-r border-slate-200 bg-white shadow-lg max-lg:backdrop-blur-none lg:bg-white/95 lg:backdrop-blur-sm lg:shadow-sm lg:shadow-brand/5`}
         >
-          {/* Stage 200.11 / 200.123 — dense chrome; mobile height clears bottom dock via app-workspace-sidebar */}
+          {/* Stage 200.11 / 200.123 / 200.126 — dense chrome; footer compact so primary nav gets height */}
           <div className="shrink-0 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
             <div className="flex items-center gap-2">
               <Avatar className="h-9 w-9 shrink-0 border border-slate-200">
@@ -338,8 +336,8 @@ export default function PartnerLayout({ children }) {
             </Button>
           </div>
 
-          {/* Navigation */}
-          <nav className="min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-y-contain px-2 py-1">
+          {/* Navigation — flex-1 scroll; denser rows free height for full IA */}
+          <nav className="min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-y-contain px-2 py-0.5">
             {sidebarItems.map((item) => {
               const Icon = item.icon
               const isMessagesItem = item.href === '/messages'
@@ -365,7 +363,7 @@ export default function PartnerLayout({ children }) {
                     }
                   }}
                   className={cn(
-                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 transition-colors touch-manipulation',
+                    'group flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1 transition-colors touch-manipulation',
                     'active:scale-[0.99] active:bg-brand/10',
                     active ? 'gsl-nav-item-active' : 'gsl-nav-item-idle',
                   )}
@@ -382,7 +380,7 @@ export default function PartnerLayout({ children }) {
                     ) : null}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <span className={cn('block text-sm', active ? 'font-semibold' : 'font-medium')}>
+                    <span className={cn('block text-sm leading-tight', active ? 'font-semibold' : 'font-medium')}>
                       {item.name}
                     </span>
                     <span className="hidden truncate text-[10px] leading-tight text-slate-400 lg:block">
@@ -404,8 +402,8 @@ export default function PartnerLayout({ children }) {
             })}
           </nav>
 
-          {/* Footer — same density/typography as primary nav (Stage 200.123: tighter py; stays above dock) */}
-          <div className="shrink-0 space-y-0 border-t border-slate-100 px-2 py-1.5">
+          {/* Footer — Stage 200.126: short labels, no logout (header UserMenu); keeps primary nav taller */}
+          <div className="shrink-0 space-y-0 border-t border-slate-100 px-2 py-1">
             <Link
               href="/my-bookings"
               onClick={() => {
@@ -414,37 +412,29 @@ export default function PartnerLayout({ children }) {
                   setSidebarOpen(false)
                 }
               }}
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1 text-sm font-medium leading-tight text-brand-hover transition-colors hover:bg-brand/10 touch-manipulation active:scale-[0.99]"
               data-testid="partner-switch-to-guest"
             >
               <CalendarDays className="h-[18px] w-[18px] shrink-0" />
-              <span className="min-w-0 leading-snug">{getUIText('partnerNav_switchToGuestMode', language)}</span>
+              <span className="min-w-0 truncate">{getUIText('partnerNav_switchToGuestMode', language)}</span>
             </Link>
             <Link
               href="/legal/partner-terms/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1 text-sm font-medium leading-tight text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
               <Shield className="h-[18px] w-[18px] shrink-0 text-slate-400" />
-              <span className="min-w-0 leading-snug">{getUIText('footerPartnerTerms', language)}</span>
+              <span className="min-w-0 truncate">{getUIText('partnerNav_partnerTerms', language)}</span>
             </Link>
             <Link
               href="/"
               onClick={() => markPending('/')}
-              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 touch-manipulation active:scale-[0.99]"
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-1 text-sm font-medium leading-tight text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 touch-manipulation active:scale-[0.99]"
             >
               <ExternalLink className="h-[18px] w-[18px] shrink-0 text-slate-400" />
-              <span className="min-w-0 leading-snug">{getUIText('partnerNav_publicSite', language)}</span>
+              <span className="min-w-0 truncate">{getUIText('partnerNav_publicSite', language)}</span>
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-            >
-              <LogOut className="h-[18px] w-[18px] shrink-0" />
-              <span>{getUIText('logout', language)}</span>
-            </button>
           </div>
         </aside>
 

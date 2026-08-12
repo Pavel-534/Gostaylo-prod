@@ -28,8 +28,11 @@ describe('Stage 200.123 — partner sidebar dock inset', () => {
     const src = readFileSync(join(root, 'app/(partner)/partner/layout.js'), 'utf8')
     assert.ok(src.includes('overflow-y-auto'))
     assert.ok(src.includes('min-h-11'))
-    assert.ok(src.includes('py-1.5'))
+    assert.ok(src.includes('py-1'))
     assert.ok(src.includes('bottom-[var(--app-bottom-nav-height,0px)]'))
+    assert.ok(src.includes("partnerNav_partnerTerms"))
+    assert.doesNotMatch(src, /handleLogout|getUIText\('logout'/)
+    assert.doesNotMatch(src, /footerPartnerTerms/)
   })
 
   it('bottom dock uses short bookings label key + RU «Брони»', () => {

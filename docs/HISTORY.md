@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.126 | 2026-08-12 | Partner sidebar: compact footer (short labels, no logout) for taller primary nav | Done |
 | 200.125 | 2026-08-12 | Build fix: season-type pure module (wizard no longer pulls currency→node:crypto) | Done |
 | 200.124 | 2026-08-12 | Build fix: split invoice system message out of payment-window-policy (no node:module in checkout client) | Done |
 | 200.123 | 2026-08-12 | Partner mobile sidebar: dock inset + denser rows + short bookings dock label | Done |
