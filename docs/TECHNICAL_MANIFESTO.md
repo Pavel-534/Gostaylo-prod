@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.117 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.134** dialog visualViewport / keyboard.
+> **Version**: 13.2.119 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.135** iOS keyboard vv fill pin.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,19 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.135 — iOS keyboard visualViewport fill pin
+
+- Root cause of mid-form / number-pad regression: `bottom: bottomInset` breaks when Safari shifts `visualViewport.offsetTop`.
+- SSOT: `buildVisualViewportPinStyle({ mode: 'fill' })` → `top: offsetTop` + `height: vv.height` (Dialog `mobileAnchor="bottom"`, Sheet `side="bottom"`).
+- Focus sync + `scrollIntoView` inside dialog; form dialogs (withdraw, support, cancel, invoice, …) use `mobileAnchor="bottom"`.
+- Constitution §5 row **Mobile keyboard / overlays**. Tests: `__tests__/stage200-135-ios-keyboard-vv-pin.test.js`.
+
+### Stage 201.06 — partner finance clarity
+
+- Overview «В обработке / эскроу» = frozen + thaw hold (no PAID_ESCROW double-count via `pendingPayouts`).
+- Header «Сводка по балансу»: partner CTA → `/partner/finances`; escrow label without «хостинг».
+- `PARTNER_PENDING_PAYMENT_BOOKING_STATUSES` SSOT for stats + finances (`PENDING` / `CONFIRMED` / `AWAITING_PAYMENT`).
 
 ### Stage 200.134 — dialog visualViewport / iOS keyboard gap
 

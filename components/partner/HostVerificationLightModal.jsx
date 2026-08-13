@@ -51,7 +51,7 @@ export default function HostVerificationLightModal({ open, onOpenChange, languag
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent mobileAnchor="bottom" className="sm:max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{getUIText('partnerHostVerify_modalTitle', language)}</DialogTitle>
           <DialogDescription>{getUIText('partnerHostVerify_modalDesc', language)}</DialogDescription>

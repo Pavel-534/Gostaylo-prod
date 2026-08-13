@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 200.135 | 2026-08-13 | iOS keyboard: vv fill pin (fix mid-form / number-pad sheet sink) | Done |
+| 201.06 | 2026-08-13 | Partner finances: escrow double-count fix; header CTA to Finances; pending-payment SSOT | Done |
 | 200.134 | 2026-08-13 | Dialog visualViewport pin + seasonal bottom sheet (iOS keyboard gap) | Done |
 | 200.133 | 2026-08-13 | Referral UX: tab clip, wallet spacing, plain-language copy (no codes/markup jargon) | Done |
 | 200.132 | 2026-08-13 | Renter profile: break auth-change refresh loop; keep session on /me network errors | Done |

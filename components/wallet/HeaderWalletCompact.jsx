@@ -48,6 +48,13 @@ export function HeaderWalletCompact({ className = '', variant = 'default', densi
   const { data, isLoading, isError } = useWalletMeQuery({ enabled: !!user })
   const [open, setOpen] = useState(false)
   const expanded = density === 'expanded'
+  const role = String(user?.role || '').toUpperCase()
+  const showPartnerFinancesCta =
+    role === 'PARTNER' || role === 'ADMIN' || role === 'MODERATOR' || String(pathname || '').startsWith('/partner')
+  const detailsHref = showPartnerFinancesCta ? '/partner/finances' : '/profile/referral'
+  const detailsLabel = showPartnerFinancesCta
+    ? t('stage73_walletHeaderFinancesCta')
+    : t('stage73_walletHeaderDetails')
 
   useEffect(() => {
     setOpen(false)
@@ -154,13 +161,13 @@ export function HeaderWalletCompact({ className = '', variant = 'default', densi
         <div className="px-2 pb-2">
           <Button asChild variant="outline" size="sm" className="w-full min-h-[44px]">
             <Link
-              href="/profile/referral"
+              href={detailsHref}
               onClick={() => {
-                dispatchOptimisticNavPending('/profile/referral')
+                dispatchOptimisticNavPending(detailsHref)
                 setOpen(false)
               }}
             >
-              {t('stage73_walletHeaderDetails')}
+              {detailsLabel}
             </Link>
           </Button>
         </div>

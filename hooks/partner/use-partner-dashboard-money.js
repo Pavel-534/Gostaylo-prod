@@ -3,6 +3,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchPartnerBalanceBreakdown } from '@/lib/api/partner-finances-client'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { resolvePartnerDashboardInProcessingThb } from '@/lib/partner/partner-dashboard-money.js'
+
+export { resolvePartnerDashboardInProcessingThb } from '@/lib/partner/partner-dashboard-money.js'
 
 export const partnerDashboardMoneyKeys = {
   all: ['partner-dashboard-money'],
@@ -38,12 +41,7 @@ export function usePartnerDashboardMoney(options = {}) {
 
   const breakdown = breakdownQuery.data
   const availableThb = Number(breakdown?.availableBalanceThb ?? 0)
-  const inProcessingThb = Math.max(
-    0,
-    Number(breakdown?.frozenBalanceThb ?? 0)
-      + Number(breakdown?.thawHoldBalanceThb ?? 0)
-      + Number(breakdown?.pendingPayoutsThb ?? 0),
-  )
+  const inProcessingThb = resolvePartnerDashboardInProcessingThb(breakdown)
 
   return {
     availableThb,

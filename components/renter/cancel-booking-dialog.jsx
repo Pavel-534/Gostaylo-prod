@@ -97,7 +97,7 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileAnchor="bottom" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('renterCancel_title')}</DialogTitle>
           <DialogDescription>{t('renterCancel_subtitle')}</DialogDescription>

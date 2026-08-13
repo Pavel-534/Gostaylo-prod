@@ -23,6 +23,7 @@ import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-fin
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { inferDominantCategorySlug } from '@/lib/booking/payout-release-config'
 import { filterOutSoftDeletedListings } from '@/lib/listing/listing-soft-delete.js'
+import { PARTNER_PENDING_PAYMENT_BOOKING_STATUSES } from '@/lib/booking/status-sets.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -216,20 +217,34 @@ export async function GET(request) {
         }
       }
       
-      // Calculate stats
-      const confirmedStatuses = ['CONFIRMED', 'PAID', 'PAID_ESCROW', 'COMPLETED']
-      const pendingStatuses = ['PENDING']
-      
-      const confirmedBookings = allBookings.filter(b => confirmedStatuses.includes(b.status))
-      const pendingBookings = allBookings.filter(b => pendingStatuses.includes(b.status))
-      
-      // Revenue
-      const confirmedRevenue = confirmedBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
+      // Occupancy: calendar-blocking paid/confirmed stays (not the unpaid «ожидает» bucket).
+      const occupancyStatuses = ['CONFIRMED', 'PAID', 'PAID_ESCROW', 'COMPLETED']
+      const paidRevenueStatuses = new Set([
+        'PAID',
+        'PAID_ESCROW',
+        'CHECKED_IN',
+        'THAWED',
+        'READY_FOR_PAYOUT',
+        'COMPLETED',
+      ])
+
+      const occupancyBookings = allBookings.filter((b) => occupancyStatuses.includes(b.status))
+      const pendingBookings = allBookings.filter((b) =>
+        PARTNER_PENDING_PAYMENT_BOOKING_STATUSES.has(String(b.status || '')),
+      )
+      const paidRevenueBookings = allBookings.filter((b) =>
+        paidRevenueStatuses.has(String(b.status || '')),
+      )
+
+      const confirmedRevenue = paidRevenueBookings.reduce(
+        (sum, b) => sum + partnerNetThbFromBookingRow(b),
+        0,
+      )
 
       const pendingRevenue = pendingBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
       
       // Occupancy (this month)
-      const monthBookings = confirmedBookings.filter(b => {
+      const monthBookings = occupancyBookings.filter(b => {
         return b.check_out >= monthStart && b.check_in <= monthEnd
       })
       
@@ -249,15 +264,15 @@ export async function GET(request) {
       const occupancyRate = totalCapacity > 0 ? Math.round((occupiedDays / totalCapacity) * 100) : 0
       
       // Today's activity (listing calendar YMD, matches TIMESTAMPTZ + occupancy)
-      const todayCheckIns = confirmedBookings.filter(
+      const todayCheckIns = occupancyBookings.filter(
         (b) => toListingDate(b.check_in) === listingToday,
       )
-      const todayCheckOuts = confirmedBookings.filter(
+      const todayCheckOuts = occupancyBookings.filter(
         (b) => toListingDate(b.check_out) === listingToday,
       )
       
       // Upcoming arrivals
-      const upcoming = confirmedBookings
+      const upcoming = occupancyBookings
         .filter((b) => {
           const cin = toListingDate(b.check_in)
           return cin && cin >= listingToday && cin <= next7Listing
@@ -298,7 +313,7 @@ export async function GET(request) {
       for (let i = 6; i >= 0; i--) {
         const date = addListingDays(listingToday, -(6 - i))
         const dayStr = format(parseISO(date), 'EEE')
-        const dayRevenue = confirmedBookings
+        const dayRevenue = paidRevenueBookings
           .filter((b) => toListingDate(b.check_in) === date)
           .reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
         trend.push({ day: dayStr, revenue: dayRevenue })
@@ -316,7 +331,7 @@ export async function GET(request) {
           for (let i = 0; i < 30; i++) {
             const date = format(addDays(today, i), 'yyyy-MM-dd')
 
-            const isBooked = confirmedBookings.some((b) => {
+            const isBooked = occupancyBookings.some((b) => {
               const checkIn = parseISO(b.check_in)
               const checkOut = parseISO(b.check_out)
               const currentDate = parseISO(date)
@@ -412,7 +427,7 @@ export async function GET(request) {
         upcoming,
         bookings: {
           total: allBookings.length,
-          confirmed: confirmedBookings.length,
+          confirmed: occupancyBookings.length,
           pending: pendingBookings.length,
           completed: allBookings.filter(b => b.status === 'COMPLETED').length
         },

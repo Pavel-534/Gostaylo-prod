@@ -282,6 +282,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Промо** | `lib/promo/promo-engine.js` + `PricingService.validatePromoCode` |
 | **Query keys (клиент)** | `lib/query-keys.js` |
 | **Design tokens** | `lib/theme/tokens.ts` / `tokens.cjs` → Tailwind / `globals.css` |
+| **Mobile keyboard / overlays** | `hooks/use-visual-viewport-frame.js` (`buildVisualViewportPinStyle`) → `components/ui/dialog.jsx` (`mobileAnchor`) + `components/ui/sheet.jsx` (`side="bottom"`). Pin to **visualViewport** `top+height`, never `bottomInset` alone. Form sheets: `mobileAnchor="bottom"`. |
 | **Бренд / site name** | `lib/site-url.js` → `getSiteDisplayName()` |
 | **Resend transport guard** | `lib/email/resend-transport-guard.js` |
 | **Критичная телеметрия** | `lib/critical-telemetry.js` |

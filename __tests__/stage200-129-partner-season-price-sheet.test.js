@@ -35,6 +35,7 @@ describe('Stage 200.129 — partner season price sheet + date UX', () => {
     assert.match(src, /min-w-0/)
     assert.match(src, /border-border/)
     assert.doesNotMatch(src, /border-slate-200/)
+    assert.doesNotMatch(src, /!bottom-\[/)
   })
 
   it('wizard seasonal + availability date ranges also disable auto-open end', () => {

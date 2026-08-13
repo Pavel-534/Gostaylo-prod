@@ -103,7 +103,7 @@ export function PartnerFinancesWithdrawDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent mobileAnchor="bottom" className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('partnerFinances_withdrawDialogTitle')}</DialogTitle>
           <DialogDescription>{t('partnerFinances_withdrawDialogDesc')}</DialogDescription>

@@ -28,8 +28,7 @@ describe('Stage 200.134 — dialog visualViewport + seasonal sheet', () => {
     const src = read('components/ui/dialog.jsx')
     assert.match(src, /useVisualViewportFrame/)
     assert.match(src, /mobileAnchor/)
-    assert.match(src, /bottomInset/)
-    assert.match(src, /offsetTop/)
+    assert.match(src, /buildVisualViewportPinStyle/)
     assert.match(src, /classHintsBottom/)
   })
 

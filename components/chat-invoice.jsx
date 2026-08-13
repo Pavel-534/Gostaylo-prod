@@ -391,7 +391,7 @@ export function SendInvoiceDialog({
           </Button>
         </DialogTrigger>
       ) : null}
-      <DialogContent className="max-w-md max-h-[min(92dvh,720px)] overflow-y-auto">
+      <DialogContent mobileAnchor="bottom" className="max-w-md max-h-[min(92dvh,720px)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-brand" />
