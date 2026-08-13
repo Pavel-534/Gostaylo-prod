@@ -25,8 +25,9 @@ import { ReferralPartnerSupplyStrip } from '@/components/referral/ReferralPartne
 const TAB_ACTIVE =
   'rounded-lg shrink-0 snap-start scroll-mx-3 data-[state=active]:bg-brand data-[state=active]:text-white'
 
+/** justify-start beats TabsList default justify-center (otherwise overflow clips both ends). */
 const TABS_LIST_CLASS =
-  'flex w-full overflow-x-auto sm:flex-wrap h-auto gap-1.5 gsl-card p-1.5 shadow-sm scrollbar-thin snap-x snap-proximity scroll-pl-3 scroll-pr-3 [-webkit-overflow-scrolling:touch]'
+  'flex w-full min-w-0 justify-start overflow-x-auto sm:flex-wrap h-auto gap-1.5 gsl-card p-1.5 shadow-sm scrollbar-thin snap-x snap-proximity scroll-pl-2 scroll-pr-2 [-webkit-overflow-scrolling:touch]'
 
 /**
  * Stage 114.3 / 115.0 — `/profile/referral` с табами (useReferralMeQuery SSOT).
@@ -57,9 +58,12 @@ export function ReferralProfilePage() {
   useEffect(() => {
     const el = tabsListRef.current
     if (!el) return
-    el.scrollLeft = 0
     const active = el.querySelector('[data-state="active"]')
-    active?.scrollIntoView?.({ block: 'nearest', inline: 'start' })
+    if (active && typeof active.scrollIntoView === 'function') {
+      active.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    } else {
+      el.scrollLeft = 0
+    }
   }, [referralLoading])
 
   useEffect(() => {

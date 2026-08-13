@@ -51,7 +51,6 @@ export function ReferralPayoutBlockers({ blockerDetails = [], className = '', co
             <AlertCircle className="h-5 w-5 shrink-0 text-amber-700 mt-0.5" aria-hidden />
             <div className="min-w-0">
               <p className="text-sm text-amber-950 leading-relaxed break-words">{resolveMessage(row)}</p>
-              {!compact ? <p className="text-[11px] text-amber-900/60 mt-1 font-mono">{row.code}</p> : null}
             </div>
           </div>
           {row.actionHref && resolveActionLabel(row) ? (

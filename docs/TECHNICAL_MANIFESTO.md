@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.114 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.05** RUB locked-rate guard.
+> **Version**: 13.2.117 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.134** dialog visualViewport / keyboard.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,27 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 200.134 — dialog visualViewport / iOS keyboard gap
+
+- `DialogContent` pins to `visualViewport` (`offsetTop` + `bottomInset`); `mobileAnchor="bottom"` for form sheets.
+- Seasonal price editor: bottom sheet + sticky footer (no fixed `100vh` height fighting the keyboard).
+- Hook SSOT: `hooks/use-visual-viewport-frame.js`. Tests: `__tests__/stage200-134-dialog-visual-viewport.test.js`.
+
+### Stage 200.133 — referral UX plain copy / mobile pad
+
+- Tabs on `/profile/referral`: `justify-start` + soft `scrollIntoView` so the first tab is not clipped.
+- Wallet: more space between display-currency control and «Статус выплат».
+- Hide payout blocker machine codes (`BELOW_MIN_*`); localized tier names (Новичок / …).
+- User copy: no mid-market / rate lock / витринная наценка / storefront markup in referral (and partner midFx hint).
+- Tests: `__tests__/stage200-133-referral-ux-plain-copy.test.js`.
+
+### Stage 200.132 — renter profile auth hang / false logout
+
+- `/renter/profile` listened to `auth-change` and re-called `refreshUserFromServer` → infinite `/api/v2/auth/me` storm → spinner then session wipe.
+- Fix: hydrate from AuthProvider; apply `auth-change` detail only; one soft refresh per user id.
+- `getCurrentUser`: null only on 401/403; throw on network/5xx. Session sync keeps cached user on transient failure.
+- Tests: `__tests__/stage200-132-renter-profile-auth-loop.test.js`.
 
 ### Stage 201.05 — ledger RUB locked-rate guard
 

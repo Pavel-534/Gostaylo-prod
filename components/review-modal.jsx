@@ -153,10 +153,9 @@ export function ReviewModal({
     >
       <DialogContent
         showCloseButton={false}
+        mobileAnchor="bottom"
         className={cn(
           'gap-0 overflow-hidden p-0',
-          'bottom-0 top-auto max-h-[min(92dvh,calc(100dvh-0.5rem))] translate-y-0 rounded-t-2xl rounded-b-none border-b-0',
-          'sm:bottom-auto sm:top-[50%] sm:max-h-none sm:translate-y-[-50%] sm:rounded-lg sm:border-b',
           'w-full max-w-2xl',
         )}
       >

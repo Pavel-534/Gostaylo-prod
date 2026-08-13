@@ -368,8 +368,11 @@ export default function SeasonalPriceManager({
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="flex h-[min(92dvh,calc(100vh-1rem))] w-[calc(100vw-1.5rem)] max-w-3xl min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full">
-          <div className="shrink-0 border-b px-4 pb-3 pt-12 sm:px-6 sm:pt-14">
+        <DialogContent
+          mobileAnchor="bottom"
+          className="flex max-h-[min(92dvh,calc(100dvh-0.5rem))] w-full max-w-3xl min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full"
+        >
+          <div className="shrink-0 border-b px-4 pb-3 pt-4 sm:px-6 sm:pt-14">
             <DialogHeader className="text-left">
               <DialogTitle>{editingPrice ? t('seasonalMgr_titleEdit') : t('seasonalMgr_titleAdd')}</DialogTitle>
             </DialogHeader>
@@ -497,12 +500,12 @@ export default function SeasonalPriceManager({
           </div>
           </div>
 
-          <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
+          <div className="shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
             <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
-              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full min-h-[44px] sm:w-auto">
                 {t('seasonalMgr_cancel')}
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="w-full bg-brand hover:bg-brand-hover sm:w-auto">
+              <Button onClick={handleSave} disabled={saving} className="w-full min-h-[44px] bg-brand hover:bg-brand-hover sm:w-auto">
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

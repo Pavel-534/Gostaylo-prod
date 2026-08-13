@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { HelpCircle } from 'lucide-react'
+import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
 
 function levelTooltipKey(level) {
   const n = Number(level)
@@ -46,7 +47,8 @@ export function ReferralAmbassadorLevels({ levels = [], directPartnersInvited = 
               <div className="flex items-center justify-between gap-2 text-sm flex-wrap">
                 <span className="font-medium text-slate-900 inline-flex items-center gap-1 min-w-0">
                   <span className="truncate">
-                    {t('stage1143_ambassadorLevelLabel').replace('{n}', String(row.level))} — {row.name}
+                    {t('stage1143_ambassadorLevelLabel').replace('{n}', String(row.level))} —{' '}
+                    {localizeReferralTierName(row.name, t)}
                   </span>
                   <Tooltip>
                     <TooltipTrigger asChild>

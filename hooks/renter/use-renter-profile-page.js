@@ -20,11 +20,12 @@ import {
 
 /**
  * Stage 111.0 — логика страницы профиля арендатора.
+ * Stage 200.132 — no auth-change → refresh loop (apply event.detail only).
  */
 export function useRenterProfilePage() {
   const router = useRouter()
   const { language } = useI18n()
-  const { refreshUserFromServer } = useAuth()
+  const { user: authUser, loading: authLoading, refreshUserFromServer } = useAuth()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [applicationStatus, setApplicationStatus] = useState(null)
@@ -35,6 +36,7 @@ export function useRenterProfilePage() {
   const [submittingApplication, setSubmittingApplication] = useState(false)
   const [pendingKycUrl, setPendingKycUrl] = useState(null)
   const [savingPendingKyc, setSavingPendingKyc] = useState(false)
+  const softRefreshDoneForUserId = useRef(null)
 
   const dateLocale = { ru, en: enUS, zh: zhCN, th: thLocale }[language] || enUS
 
@@ -48,36 +50,43 @@ export function useRenterProfilePage() {
     setTelegramLinked(!!(u.telegram_id || u.telegram_username))
   }, [])
 
+  // Hydrate from AuthProvider first — avoid spinner while /me is in flight
   useEffect(() => {
+    if (authLoading) return
+    applyUser(authUser || null)
+    setLoading(false)
+  }, [authLoading, authUser, applyUser])
+
+  // One soft refresh per user id (session sync already owns gostaylo-refresh-session)
+  useEffect(() => {
+    if (authLoading) return
+    if (!authUser?.id) {
+      softRefreshDoneForUserId.current = null
+      return
+    }
+    if (softRefreshDoneForUserId.current === authUser.id) return
+    softRefreshDoneForUserId.current = authUser.id
     let cancelled = false
-    ;(async () => {
-      setLoading(true)
-      try {
-        const u = await refreshUserFromServer()
-        if (!cancelled) applyUser(u)
-      } catch (e) {
-        console.error('[PROFILE] refresh failed', e)
-        if (!cancelled) applyUser(null)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+    void refreshUserFromServer().then((u) => {
+      if (cancelled) return
+      // undefined = transient failure — keep authUser; null = logged out
+      if (u !== undefined) applyUser(u)
+    })
     return () => {
       cancelled = true
     }
-  }, [refreshUserFromServer, applyUser])
+  }, [authLoading, authUser?.id, refreshUserFromServer, applyUser])
 
+  // Apply auth-change detail only — never re-call refresh (infinite loop → logout)
   useEffect(() => {
-    const sync = () => {
-      refreshUserFromServer().then((u) => applyUser(u))
+    const onAuthChange = (e) => {
+      applyUser(e?.detail ?? null)
     }
-    window.addEventListener('gostaylo-refresh-session', sync)
-    window.addEventListener('auth-change', sync)
+    window.addEventListener('auth-change', onAuthChange)
     return () => {
-      window.removeEventListener('gostaylo-refresh-session', sync)
-      window.removeEventListener('auth-change', sync)
+      window.removeEventListener('auth-change', onAuthChange)
     }
-  }, [refreshUserFromServer, applyUser])
+  }, [applyUser])
 
   const loadPartnerApplicationStatus = useCallback(async (userId, { silent = false } = {}) => {
     if (!userId) return

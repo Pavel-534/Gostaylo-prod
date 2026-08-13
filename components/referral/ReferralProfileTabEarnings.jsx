@@ -22,6 +22,7 @@ import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetr
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
 
 export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
   const router = useRouter()
@@ -146,7 +147,9 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
         >
           <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-6')}>
             <Gift className="h-8 w-8" />
-            <p className="text-xl font-bold">{data?.ambassador?.currentTier?.name || 'Ambassador'}</p>
+            <p className="text-xl font-bold">
+              {localizeReferralTierName(data?.ambassador?.currentTier?.name, t)}
+            </p>
             <Progress value={tierProgress} className="h-2 bg-white/20" />
             <Button
               type="button"

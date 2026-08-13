@@ -17,6 +17,7 @@ import {
 } from '@/lib/ui/mobile-flat-canvas'
 import { getSiteDisplayName, getSiteBrandSlug } from '@/lib/site-url'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
 
 function round2Display(value) {
   const n = Number(value)
@@ -101,7 +102,7 @@ export function ReferralYourStatusCard({
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-brand-hover">{brandChip}</p>
           <p className="mt-6 px-1 text-[17px] font-bold leading-snug text-slate-900">{heroName}</p>
           <p className="mt-2 text-[13px] font-medium text-slate-700">
-            {amb.currentTier?.name || t('stage73_tierFallbackBeginner')}
+            {localizeReferralTierName(amb.currentTier?.name, t)}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2 px-2">
             {orderedMedals.length ? (
@@ -173,7 +174,7 @@ export function ReferralYourStatusCard({
             <div className="text-sm text-slate-600 flex flex-wrap items-center gap-2">
               <span>
                 {t('referralStage726_ambassadorTier')}:{' '}
-                <strong>{amb.currentTier?.name || t('stage73_tierFallbackBeginner')}</strong>
+                <strong>{localizeReferralTierName(amb.currentTier?.name, t)}</strong>
               </span>
               {turboActive ? (
                 <TooltipProvider delayDuration={150}>

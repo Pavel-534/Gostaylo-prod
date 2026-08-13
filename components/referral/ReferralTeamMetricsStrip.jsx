@@ -36,7 +36,7 @@ export function ReferralTeamMetricsStrip({
   const partnersLabel = t?.('stage1315_metricPartnersLabel') || 'Активные партнёры'
   const partnersTip =
     t?.('stage1315_metricPartnersTooltip') ||
-    'Активированные хосты в вашей прямой команде. Именно они повышают уровень (Beginner → Pro → Ambassador) и долю к выводу.'
+    'Активированные хосты в вашей прямой команде. Именно они повышают уровень (Новичок → Профи → Амбассадор) и долю к выводу.'
 
   const showExtended = teamEarningsThb != null || retentionRatePercent != null
   const gridCols = showExtended ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'

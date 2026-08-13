@@ -190,19 +190,19 @@ export default function ProfileWalletPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className={cn('lg:col-span-2', GSL_CARD, MOBILE_FLAT_CARD_CLASS, 'gsl-card-hover')}>
-            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-3')}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'max-sm:space-y-3 max-sm:px-3 max-sm:pt-3 max-sm:pb-3 sm:pb-3')}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     <Wallet className="h-5 w-5 text-brand" />
                     {t('stage1321_walletPayoutTitle')}
                   </CardTitle>
                   <CardDescription>{t('stage1321_walletPayoutSubtitle')}</CardDescription>
                 </div>
-                <div className="w-full sm:w-[220px] space-y-1">
+                <div className="w-full sm:w-[220px] space-y-1.5">
                   <Label htmlFor="referral-display-currency">{t('stage1321_walletDisplayCurrency')}</Label>
                   <Select value={currency} onValueChange={(v) => void saveDisplayCurrency(v)}>
-                    <SelectTrigger id="referral-display-currency"><SelectValue placeholder={currency} /></SelectTrigger>
+                    <SelectTrigger id="referral-display-currency" className="min-h-11"><SelectValue placeholder={currency} /></SelectTrigger>
                     <SelectContent>
                       {REFERRAL_DISPLAY_CURRENCY_CODES.map((code) => (
                         <SelectItem key={code} value={code}>{code}</SelectItem>
@@ -212,10 +212,10 @@ export default function ProfileWalletPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
-              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'sm:bg-slate-50/80')}>
-                <p className="text-xs text-slate-500 uppercase">{t('stage1321_walletPayoutStatusLabel')}</p>
-                <p className={`text-sm font-medium mt-1 ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>
+            <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'max-sm:space-y-4 max-sm:px-3 max-sm:pt-4 max-sm:pb-3 space-y-4')}>
+              <div className={cn(MOBILE_FLAT_INSET_CLASS, 'max-sm:rounded-xl max-sm:bg-slate-50/80 max-sm:p-3 sm:bg-slate-50/80')}>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('stage1321_walletPayoutStatusLabel')}</p>
+                <p className={`text-sm font-medium mt-1.5 ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>
                   {payoutStatusLabel}
                 </p>
               </div>

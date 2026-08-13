@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useVisualViewportFrame } from "@/hooks/use-visual-viewport-frame"
 
 const Dialog = DialogPrimitive.Root
 
@@ -25,39 +26,53 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-const DialogContent = React.forwardRef(({ className, children, showCloseButton = true, ...props }, ref) => {
-  const [viewportHeight, setViewportHeight] = React.useState('100vh')
-  
-  React.useEffect(() => {
-    // Handle visual viewport changes (keyboard open/close)
-    const handleResize = () => {
-      if (window.visualViewport) {
-        setViewportHeight(`${window.visualViewport.height}px`)
-      }
-    }
-    
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize)
-      handleResize() // Initial call
-    }
-    
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize)
-      }
-    }
-  }, [])
-  
+/**
+ * @param {'top' | 'bottom'} [mobileAnchor='top'] — mobile placement inside visualViewport.
+ *   `bottom` = sheet above keyboard (forms). `top` = fill visible viewport (no black gap under sheet).
+ */
+const DialogContent = React.forwardRef(({
+  className,
+  children,
+  showCloseButton = true,
+  mobileAnchor = 'top',
+  style,
+  ...props
+}, ref) => {
+  const frame = useVisualViewportFrame()
+  const heightExpr = frame.heightPx != null ? `${frame.heightPx}px` : '100dvh'
+  // Legacy callers that already pass bottom-0 / top-auto (review sheets, etc.)
+  const classHintsBottom =
+    /\bbottom-0\b/.test(className || '') || /\btop-auto\b/.test(className || '')
+  const anchor = mobileAnchor === 'bottom' || classHintsBottom ? 'bottom' : 'top'
+
+  const viewportStyle =
+    anchor === 'bottom'
+      ? {
+          // Glue sheet to bottom of *visible* viewport (moves up with soft keyboard on iOS).
+          top: 'auto',
+          bottom: `${frame.bottomInset}px`,
+          maxHeight: `calc(${heightExpr} - 0.5rem)`,
+        }
+      : {
+          // Pin into visible viewport — avoids dead overlay strip between dialog and keyboard.
+          top: `calc(${frame.offsetTop}px + 0.5rem)`,
+          maxHeight: `calc(${heightExpr} - 1rem)`,
+        }
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
-        style={{ maxHeight: `calc(${viewportHeight} - 1rem)` }}
+        style={{ ...viewportStyle, ...style }}
         className={cn(
           "fixed left-[50%] z-[220] flex flex-col w-full min-w-0 max-w-[calc(100vw-1rem)] sm:max-w-lg translate-x-[-50%] gap-2 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-t-xl sm:rounded-lg",
-          // Mobile: anchor to top, Desktop: center vertically
-          "top-2 sm:top-[50%] sm:translate-y-[-50%] overflow-hidden",
+          anchor === 'bottom'
+            ? "bottom-0 top-auto translate-y-0 rounded-t-2xl rounded-b-none border-b-0 sm:bottom-auto sm:top-[50%] sm:translate-y-[-50%] sm:rounded-lg sm:border-b"
+            : "top-2 sm:top-[50%] sm:translate-y-[-50%]",
+          "overflow-hidden",
+          // Desktop: ignore mobile vv pinning; restore classic center.
+          "sm:!top-[50%] sm:!bottom-auto sm:!max-h-[min(90dvh,720px)] sm:translate-y-[-50%]",
           className
         )}
         {...props}>

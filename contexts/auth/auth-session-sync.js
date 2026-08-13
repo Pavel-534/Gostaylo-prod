@@ -2,6 +2,11 @@
 
 import { useEffect, useCallback } from 'react'
 
+/**
+ * Session hydrate + refresh (Stage 200.132: transient /me failures must not wipe session).
+ * `auth-change` is emitted after refresh — listeners must apply `event.detail`, not re-call refresh
+ * (avoids infinite refresh loops, e.g. former renter profile bug).
+ */
 export function useAuthSessionSync({ setUser, setLoading, normalizeAuthUser, getCurrentUser }) {
   // Load user on mount (from cookie session)
   useEffect(() => {
@@ -15,14 +20,20 @@ export function useAuthSessionSync({ setUser, setLoading, normalizeAuthUser, get
         }
       }
 
-      const serverUser = await getCurrentUser()
-      if (serverUser) {
-        const normalized = normalizeAuthUser(serverUser)
-        setUser(normalized)
-        localStorage.setItem('gostaylo_user', JSON.stringify(normalized))
-      } else if (stored) {
-        localStorage.removeItem('gostaylo_user')
-        setUser(null)
+      try {
+        const serverUser = await getCurrentUser()
+        if (serverUser) {
+          const normalized = normalizeAuthUser(serverUser)
+          setUser(normalized)
+          localStorage.setItem('gostaylo_user', JSON.stringify(normalized))
+        } else if (stored) {
+          // Explicit unauthenticated from server — drop stale client cache
+          localStorage.removeItem('gostaylo_user')
+          setUser(null)
+        }
+      } catch (e) {
+        // Network / 5xx — keep optimistic stored user
+        console.warn('[AUTH] session hydrate failed; keeping cached user', e)
       }
 
       setLoading(false)
@@ -53,14 +64,15 @@ export function useAuthSessionSync({ setUser, setLoading, normalizeAuthUser, get
       setUser(null)
       window.dispatchEvent(new CustomEvent('auth-change', { detail: null }))
       return null
-    } catch {
-      return null
+    } catch (e) {
+      console.warn('[AUTH] refreshUserFromServer transient failure; session kept', e)
+      return undefined
     }
   }, [setUser, normalizeAuthUser, getCurrentUser])
 
   useEffect(() => {
     const onSessionRefresh = () => {
-      refreshUserFromServer()
+      void refreshUserFromServer()
     }
     window.addEventListener('gostaylo-refresh-session', onSessionRefresh)
     window.addEventListener('gostaylo-switch-role', onSessionRefresh)

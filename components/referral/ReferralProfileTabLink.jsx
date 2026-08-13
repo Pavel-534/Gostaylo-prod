@@ -22,6 +22,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 import { toast } from 'sonner'
+import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
 
 const CHANNEL_LABEL_KEYS = {
   telegram: 'stage192_utmChannelTelegram',
@@ -74,7 +75,10 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
   )
   const stories = data?.referralStoriesCopy || {}
   const storiesCardHeadline = String(t('stage73_storiesCardHeadline')).replace(/\{brand\}/g, brand)
-  const tierName = String(stories.tierName || data?.ambassador?.currentTier?.name || '').trim()
+  const tierName = localizeReferralTierName(
+    stories.tierName || data?.ambassador?.currentTier?.name,
+    t,
+  )
   const badgeFromStories = String(stories.ambassadorBadgeLine || '').replace(/^🏆\s*/, '').trim()
   const storiesTierStatusLine = String(t('stage74_storiesTierLine'))
     .replace(/\{brand\}/g, brand)
