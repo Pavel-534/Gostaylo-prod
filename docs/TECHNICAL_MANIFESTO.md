@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.113 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.04** ADR-300 (docs).
+> **Version**: 13.2.114 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.05** RUB locked-rate guard.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.05 — ledger RUB locked-rate guard
+
+- `buildRubPostingFields` no longer fills RUB columns from live `getRawRateMap` / `exchange_rates`.
+- Locked only: `bookings.exchange_rate` or snapshot `fx_*`; missing → omit RUB fields + log `LEDGER_RUB_LOCKED_RATE_MISSING`. Guest charge still snapshot/`price_paid`.
 
 ### Stage 201.04 — ADR-300 RF–KR–TH 3.0 (docs only)
 

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.05 | 2026-08-13 | Ledger RUB reporting: locked booking FX only (no live mid fallback) | Done |
 | 201.04 | 2026-08-13 | ADR-300: RF–KR–TH 3.0 overlay + Phase 0 manual treasury (docs only; runtime unchanged) | Done |
 | 200.131 | 2026-08-13 | Partner hub soft-card mobile pad SSOT (stats/metrics/finances) | Done |
 | 200.130 | 2026-08-12 | Partner listings: live stats in trash + center active filter chip | Done |
