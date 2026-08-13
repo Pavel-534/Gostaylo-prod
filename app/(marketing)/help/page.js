@@ -53,17 +53,17 @@ export default function HelpPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Hero */}
+      {/* Hero — top inset already from MainContent app-shell-main (fixed header) */}
       <section id="top" className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-amber-50/40 border-b border-slate-100">
-        <div className="container mx-auto px-4 pt-24 sm:pt-28 pb-14 sm:pb-16 max-w-4xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700">
+        <div className="container mx-auto max-w-4xl px-4 pt-6 pb-8 sm:pt-8 sm:pb-10">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700">
             <MessageCircle className="h-3 w-3" />
             Help Center
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900 leading-[1.05] mb-5">
+          <h1 className="mb-3 font-serif text-3xl font-semibold leading-[1.1] tracking-tight text-slate-900 sm:mb-4 sm:text-4xl lg:text-5xl">
             Центр помощи {getSiteDisplayName()}
           </h1>
-          <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">
+          <p className="max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
             FAQ ниже или письмо на поддержку — обычно отвечаем в течение нескольких часов
             (на этапе обкатки без обещания круглосуточного call-center).
           </p>
@@ -71,14 +71,14 @@ export default function HelpPage() {
       </section>
 
       {/* FAQ sections */}
-      <section className="container mx-auto px-4 py-16 sm:py-20 max-w-4xl space-y-14">
+      <section className="container mx-auto max-w-4xl space-y-8 px-4 py-8 sm:space-y-10 sm:py-12">
         {SECTIONS.map(({ icon: Icon, title, items, cta }) => (
           <div key={title}>
-            <div className="mb-6 flex items-center gap-3">
+            <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-muted text-brand">
                 <Icon className="h-5 w-5" />
               </div>
-              <h2 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
+              <h2 className="font-serif text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
                 {title}
               </h2>
             </div>
@@ -91,20 +91,20 @@ export default function HelpPage() {
               {items.map(({ q, a }) => (
                 <details
                   key={q}
-                  className="group px-5 sm:px-6 py-4 sm:py-5 transition-colors [&_summary::-webkit-details-marker]:hidden hover:bg-slate-50/50"
+                  className="group px-5 py-4 transition-colors hover:bg-slate-50/50 sm:px-6 sm:py-5 [&_summary::-webkit-details-marker]:hidden"
                 >
-                  <summary className="flex cursor-pointer items-start justify-between gap-4 list-none">
-                    <span className="text-base sm:text-lg font-semibold text-slate-900">{q}</span>
-                    <span className="mt-1 shrink-0 text-slate-400 transition-transform group-open:rotate-45 text-xl leading-none">
+                  <summary className="flex list-none cursor-pointer items-start justify-between gap-4">
+                    <span className="text-base font-semibold text-slate-900 sm:text-lg">{q}</span>
+                    <span className="mt-1 shrink-0 text-xl leading-none text-slate-400 transition-transform group-open:rotate-45">
                       +
                     </span>
                   </summary>
-                  <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">{a}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">{a}</p>
                 </details>
               ))}
             </div>
             {cta && (
-              <div className="mt-4">
+              <div className="mt-3">
                 <Link
                   href={cta.href}
                   className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
@@ -118,16 +118,16 @@ export default function HelpPage() {
       </section>
 
       {/* Terms anchor */}
-      <section id="terms" className="bg-slate-50 border-y border-slate-100">
-        <div className="container mx-auto px-4 py-14 sm:py-16 max-w-3xl">
-          <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-4">
+      <section id="terms" className="border-y border-slate-100 bg-slate-50">
+        <div className="container mx-auto max-w-3xl px-4 py-10 sm:py-12">
+          <h2 className="mb-3 font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             Условия использования
           </h2>
-          <p className="text-slate-600 leading-relaxed mb-6">
+          <p className="mb-5 leading-relaxed text-slate-600">
             Используя {getSiteDisplayName()}, вы соглашаетесь с нашими условиями сервиса и политикой
             конфиденциальности. Полная версия документа доступна по запросу в поддержку.
           </p>
-          <ul className="space-y-3 text-sm text-slate-600 list-disc pl-5 mb-6">
+          <ul className="mb-5 list-disc space-y-2 pl-5 text-sm text-slate-600">
             <li>Мы являемся технологической платформой — посредником между гостями и владельцами.</li>
             <li>Все платежи защищены escrow и возвращаются при подтверждённых нарушениях.</li>
             <li>Персональные данные обрабатываются в соответствии с GDPR и PDPA Таиланда.</li>
@@ -143,26 +143,26 @@ export default function HelpPage() {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="container mx-auto px-4 py-16 sm:py-20 max-w-3xl text-center">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-brand text-white shadow-brand-icon">
+      <section id="contact" className="container mx-auto max-w-3xl px-4 py-10 text-center sm:py-14">
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-brand text-white shadow-brand-icon">
           <Mail className="h-5 w-5" />
         </div>
-        <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
+        <h2 className="mb-2 font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           Связаться с нами
         </h2>
-        <p className="text-slate-600 mb-8 max-w-xl mx-auto">
+        <p className="mx-auto mb-6 max-w-xl text-slate-600">
           Не нашли ответ? Напишите на почту — живые люди из команды, обычно в течение нескольких часов.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <a
             href={`mailto:${supportEmail}`}
-            className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-brand px-7 py-3.5 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
           >
             {supportEmail}
           </a>
           <Link
             href="/listings"
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
           >
             Вернуться к поиску
           </Link>

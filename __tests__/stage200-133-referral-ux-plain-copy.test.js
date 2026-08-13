@@ -79,10 +79,12 @@ describe('Stage 200.133 — referral UX plain copy', () => {
     assert.doesNotMatch(src, /витринн/i)
   })
 
-  it('wallet payout status has breathing room under currency selector on mobile', () => {
-    const src = read('app/(storefront)/profile/wallet/page.js')
-    assert.match(src, /max-sm:pt-4/)
-    assert.match(src, /max-sm:pb-3/)
-    assert.doesNotMatch(src, /max-sm:mt-1 max-sm:rounded-xl/)
+  it('referral balance / monthly goal do not show always-on ≈ FX course line', () => {
+    const balance = read('components/referral/ReferralBalanceBreakdown.jsx')
+    assert.doesNotMatch(balance, /MidFxFootnote/)
+    assert.doesNotMatch(balance, /stage1797_midFxHint/)
+    const goal = read('components/referral/ReferralMonthlyGoalCard.jsx')
+    assert.doesNotMatch(goal, /stage1797_midFxHint/)
+    assert.doesNotMatch(goal, /isConvertedDisplay/)
   })
 })

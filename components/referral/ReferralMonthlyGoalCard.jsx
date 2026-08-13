@@ -31,7 +31,7 @@ export function ReferralMonthlyGoalCard({
   turboEnabled = false,
   t,
 }) {
-  const { isConvertedDisplay, formatThbAsDisplay } = useReferralLedgerDisplay()
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
 
   const goal = Math.max(1, Number(monthlyGoalThb) || 10000)
   const current = Number(monthlyEarnedThb) || 0
@@ -66,9 +66,6 @@ export function ReferralMonthlyGoalCard({
         <p className="text-xs text-slate-600">
           {t('stage73_monthlyGoalPercentLine', { goalAmount, percent: String(Math.round(pct)) })}
         </p>
-        {isConvertedDisplay ? (
-          <p className="text-[10px] text-slate-500 leading-snug">{t('stage1797_midFxHint')}</p>
-        ) : null}
         {goalMet ? (
           <div className="flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2 text-sm text-violet-950">
             <Zap className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" />

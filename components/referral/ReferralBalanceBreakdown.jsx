@@ -47,17 +47,10 @@ function FxAmount({ thbAmount, formatAmount, className }) {
   return <span className={className}>{formatAmount(thbAmount)}</span>
 }
 
-function MidFxFootnote({ t }) {
-  return (
-    <p className="text-[10px] text-slate-500 flex items-center gap-1 leading-snug pt-0.5">
-      <span>{t('stage1797_midFxHint')}</span>
-      <BalanceHintPopover tooltip={t('stage1797_midFxTooltip')} ariaLabel={t('stage1797_midFxAria')} />
-    </p>
-  )
-}
-
 /**
  * Stage 132.0 / 179.7 / 192.0 — Ambassador balance triad (Available / 14-day hold / Paid out).
+ * Display = header currency (THB ledger under the hood). No always-on «≈ FX» line — Stage 188
+ * already formats without hybrid ≈; RF users see ₽ without being told about baht mid-market.
  *
  * @param {{
  *   walletData?: object | null,
@@ -75,7 +68,7 @@ export function ReferralBalanceBreakdown({
   className = '',
 }) {
   const { language } = useI18n()
-  const { isConvertedDisplay, formatThbAsDisplay: formatAmount } = useReferralLedgerDisplay()
+  const { formatThbAsDisplay: formatAmount } = useReferralLedgerDisplay()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
   const amounts = useMemo(() => {
@@ -227,7 +220,6 @@ export function ReferralBalanceBreakdown({
       <div className={cn('rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3', className)}>
         <div className="space-y-1">
           <p className="text-sm font-semibold text-slate-900">{t('stage1321_balanceBreakdownTitle')}</p>
-          {isConvertedDisplay ? <MidFxFootnote t={t} /> : null}
         </div>
         <div className="space-y-2">
           {[...triadRows, ...extraRows].map((row) => {
@@ -271,7 +263,6 @@ export function ReferralBalanceBreakdown({
     <div className={cn('space-y-3', className)} data-testid="referral-balance-triad">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <p className="text-sm font-semibold text-slate-900">{t('stage1321_balanceBreakdownTitle')}</p>
-        {isConvertedDisplay ? <MidFxFootnote t={t} /> : null}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {triadRows.map((row) => {

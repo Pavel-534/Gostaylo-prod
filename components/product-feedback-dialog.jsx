@@ -132,7 +132,7 @@ export function ProductFeedbackDialog({ open, onOpenChange, language = 'ru' }) {
               <SelectTrigger className="min-h-[44px]">
                 <SelectValue placeholder={isRu ? 'Выберите…' : 'Choose…'} />
               </SelectTrigger>
-              <SelectContent className="z-[130]">
+              <SelectContent className="z-[230]" position="popper">
                 {PRODUCT_FEEDBACK_CATEGORIES.map((r) => (
                   <SelectItem key={r.slug} value={r.slug}>
                     {isRu ? r.labelRu : r.labelEn}
