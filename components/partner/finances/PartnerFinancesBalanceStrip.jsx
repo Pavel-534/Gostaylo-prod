@@ -1,7 +1,7 @@
 'use client'
 
 import { Shield, Clock, Wallet, Banknote } from 'lucide-react'
-import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { PARTNER_HUB_LIST_CARD_SURFACE_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS } from '@/lib/ui/partner-section-rhythm'
 import { cn } from '@/lib/utils'
@@ -132,7 +132,6 @@ export function PartnerFinancesBalanceStrip({ t, summary, loading, thawHoldHint,
           </div>
         ))}
       </div>
-      <PartnerHostMidFxFootnote t={t} />
     </div>
   )
 }

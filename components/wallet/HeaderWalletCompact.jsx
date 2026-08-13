@@ -23,7 +23,6 @@ import { usePathname } from 'next/navigation'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import {
   PartnerHostLedgerAmount,
-  PartnerHostMidFxFootnote,
 } from '@/components/partner/finances/partner-host-amount-display'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
 import { useAuth } from '@/contexts/auth-context'
@@ -174,7 +173,6 @@ export function HeaderWalletCompact({ className = '', variant = 'default', densi
           <p className="text-lg font-semibold tabular-nums text-slate-900">
             <PartnerHostLedgerAmount thb={summary?.headerTotal ?? 0} />
           </p>
-          <PartnerHostMidFxFootnote t={t} />
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="space-y-3 px-2 py-2 text-sm">

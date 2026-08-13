@@ -28,7 +28,6 @@ import { getUIText } from '@/lib/translations'
 import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
 import { OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
-import { PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
 import { PartnerBookingStatusTabs } from '@/components/partner/bookings/PartnerBookingStatusTabs'
 import { PartnerBookingList } from '@/components/partner/bookings/PartnerBookingList'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
@@ -271,7 +270,6 @@ export default function PartnerBookings() {
       />
 
       <OrdersSummary role="partner" partnerStats={stats} language={language} />
-      <PartnerHostMidFxFootnote t={(key) => getUIText(key, language)} className="mb-4" />
 
       <PartnerSectionDivider />
 

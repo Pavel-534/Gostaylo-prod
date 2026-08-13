@@ -6,7 +6,7 @@ import { Calendar, Receipt } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/finances/partner-finances-shared'
 import { getHostMoneyStage } from '@/lib/booking/host-money-stage'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
@@ -84,7 +84,6 @@ export function PartnerFinancesTransactionHistory({
       <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, PARTNER_HUB_SOFT_CARD_HEADER_PAD_CLASS)}>
         <CardTitle className="sr-only">{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
-        <PartnerHostMidFxFootnote t={t} className="mt-1" />
         {escrowBookingFilter ? (
           <div className="mt-3 flex flex-col gap-2 rounded-lg border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand sm:flex-row sm:items-center sm:justify-between">
             <span>{t('partnerFinances_escrowFilterBanner')}</span>

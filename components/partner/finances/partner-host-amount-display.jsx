@@ -4,28 +4,17 @@ import { usePartnerHostDisplayFx } from '@/lib/hooks/use-partner-host-display-fx
 import { cn } from '@/lib/utils'
 
 /**
- * Ledger / escrow bucket amount in header currency (mid FX, ≈ when converted).
+ * Ledger / escrow bucket amount in header currency (mid FX under the hood).
+ * Plain display currency only — no approximate-prefix or course footnote in UI.
  */
 export function PartnerHostLedgerAmount({ thb, className }) {
-  const { formatLedgerThb, isConvertedDisplay } = usePartnerHostDisplayFx()
+  const { formatLedgerThb } = usePartnerHostDisplayFx()
   const formatted = formatLedgerThb(Number(thb) || 0)
-
-  if (!isConvertedDisplay) {
-    return <span className={className}>{formatted}</span>
-  }
-
-  return (
-    <span className={cn('inline-flex items-baseline gap-x-1 whitespace-nowrap tabular-nums', className)}>
-      <span className="shrink-0 font-semibold opacity-75" aria-hidden>
-        ≈
-      </span>
-      <span>{formatted}</span>
-    </span>
-  )
+  return <span className={cn('tabular-nums', className)}>{formatted}</span>
 }
 
 /**
- * Ledger row: THB accounting primary; header-currency equivalent as subline when converted.
+ * Ledger row: amount in header display currency.
  */
 export function PartnerHostLedgerAmountCell({ thb, className }) {
   const { formatThbLedgerSecondary, isConvertedDisplay } = usePartnerHostDisplayFx()
@@ -50,36 +39,17 @@ export function PartnerHostLedgerAmountCell({ thb, className }) {
  * Payout preview: display currency primary; payout rail (e.g. USDT) secondary.
  */
 export function PartnerHostPayoutAmount({ preview, className, secondaryClassName }) {
-  const { getPayoutDisplay, isConvertedDisplay } = usePartnerHostDisplayFx()
+  const { getPayoutDisplay } = usePartnerHostDisplayFx()
   const { primary, secondary, usesServerPayout } = getPayoutDisplay(preview)
 
   return (
     <span className={cn('inline-flex flex-col items-end gap-0.5', className)}>
-      <span className="inline-flex items-baseline gap-x-1 whitespace-nowrap tabular-nums font-semibold">
-        {isConvertedDisplay ? (
-          <span className="shrink-0 font-semibold opacity-75" aria-hidden>
-            ≈
-          </span>
-        ) : null}
-        <span>{primary}</span>
-      </span>
+      <span className="whitespace-nowrap tabular-nums font-semibold">{primary}</span>
       {usesServerPayout && secondary ? (
         <span className={cn('text-xs text-slate-500 tabular-nums font-normal', secondaryClassName)}>
           {secondary}
         </span>
       ) : null}
     </span>
-  )
-}
-
-/**
- * Footnote for mid FX conversion on partner finances surfaces.
- */
-export function PartnerHostMidFxFootnote({ t, className }) {
-  const { isConvertedDisplay } = usePartnerHostDisplayFx()
-  if (!isConvertedDisplay) return null
-
-  return (
-    <p className={cn('text-[10px] text-slate-500 leading-snug', className)}>{t('stage180_midFxHint')}</p>
   )
 }

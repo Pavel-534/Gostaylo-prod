@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { PAYOUT_STATUS_COLORS, resolvePayoutStatusLabel } from '@/components/partner/finances/partner-finances-shared'
 import {
   PartnerHostLedgerAmount,
-  PartnerHostMidFxFootnote,
   PartnerHostPayoutAmount,
 } from '@/components/partner/finances/partner-host-amount-display'
 import {
@@ -170,7 +169,6 @@ export function PartnerFinancesPayoutHistory({
                 </tbody>
               </table>
             </div>
-            <PartnerHostMidFxFootnote t={t} className="mt-3" />
           </>
         )}
       </CardContent>

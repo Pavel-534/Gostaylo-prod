@@ -66,7 +66,7 @@
 
 - Compact wallet splits **listings** (escrow from orders, always shown for partner/staff) vs **invites** (to card / for bookings).
 - Partner: primary CTA → `/partner/finances`; secondary → `/profile/referral`. Renter: referral only.
-- Short labels + existing i18n tooltips on `i`; `≈` footnote via `PartnerHostMidFxFootnote`.
+- Short labels + existing i18n tooltips on `i`; no always-on midFX / approximate-prefix on money amounts.
 
 ### Stage 200.136 — wizard preview card solo layout
 

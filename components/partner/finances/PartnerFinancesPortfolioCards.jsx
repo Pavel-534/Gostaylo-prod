@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { PartnerHostLedgerAmount, PartnerHostMidFxFootnote } from '@/components/partner/finances/partner-host-amount-display'
+import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
@@ -59,7 +59,6 @@ export function PartnerFinancesPortfolioCards({ t, financesSummary, loading }) {
           </Card>
         ))}
       </div>
-      <PartnerHostMidFxFootnote t={t} />
     </div>
   )
 }

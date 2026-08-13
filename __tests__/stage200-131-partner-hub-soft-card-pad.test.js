@@ -44,10 +44,12 @@ describe('Stage 200.131 — partner hub soft-card pad SSOT', () => {
     assert.equal(noProfileHits, 1, 'no-profile copy should render once')
   })
 
-  it('ledger amount ≈ uses gap-x-1 (not cramped nbsp)', () => {
+  it('ledger amount is plain display currency (no approx prefix in JSX)', () => {
     const amt = read('components/partner/finances/partner-host-amount-display.jsx')
-    assert.match(amt, /gap-x-1/)
-    assert.doesNotMatch(amt, /≈&nbsp;/)
+    assert.doesNotMatch(amt, />\s*≈\s*</)
+    assert.doesNotMatch(amt, /aria-hidden>\s*\n\s*≈/)
+    assert.doesNotMatch(amt, /PartnerHostMidFxFootnote/)
+    assert.match(amt, /formatLedgerThb/)
   })
 
   it('reviews + calendar education + empty state get mobile horizontal pad', () => {

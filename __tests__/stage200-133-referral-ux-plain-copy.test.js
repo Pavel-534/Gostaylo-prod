@@ -73,18 +73,26 @@ describe('Stage 200.133 — referral UX plain copy', () => {
     assert.match(src, /stage1143_tabLink:\s*"Ссылка"/)
   })
 
-  it('partner finances midFx hint does not mention storefront markup', () => {
-    const src = read('lib/translations/slices/partner-finances.js')
-    assert.doesNotMatch(src, /storefront markup/i)
-    assert.doesNotMatch(src, /витринн/i)
+  it('partner host amounts show display currency without midFx footnote', () => {
+    const amt = read('components/partner/finances/partner-host-amount-display.jsx')
+    assert.doesNotMatch(amt, /PartnerHostMidFxFootnote/)
+    assert.doesNotMatch(amt, /stage180_midFxHint/)
+    assert.doesNotMatch(amt, />\s*≈\s*</)
+    assert.match(amt, /formatLedgerThb/)
   })
 
-  it('referral balance / monthly goal do not show always-on ≈ FX course line', () => {
-    const balance = read('components/referral/ReferralBalanceBreakdown.jsx')
-    assert.doesNotMatch(balance, /MidFxFootnote/)
-    assert.doesNotMatch(balance, /stage1797_midFxHint/)
-    const goal = read('components/referral/ReferralMonthlyGoalCard.jsx')
-    assert.doesNotMatch(goal, /stage1797_midFxHint/)
-    assert.doesNotMatch(goal, /isConvertedDisplay/)
+  it('partner money surfaces do not mount midFx footnotes', () => {
+    const files = [
+      'components/wallet/HeaderWalletCompact.jsx',
+      'components/partner/dashboard/PartnerDashboardMoneyCard.jsx',
+      'components/partner/finances/PartnerFinancesBalanceStrip.jsx',
+      'components/partner/finances/PartnerFinancesPortfolioCards.jsx',
+      'components/partner/finances/PartnerFinancesTransactionHistory.jsx',
+      'components/partner/finances/PartnerFinancesPayoutHistory.jsx',
+      'app/(partner)/partner/bookings/page.js',
+    ]
+    for (const rel of files) {
+      assert.doesNotMatch(read(rel), /PartnerHostMidFxFootnote/, rel)
+    }
   })
 })

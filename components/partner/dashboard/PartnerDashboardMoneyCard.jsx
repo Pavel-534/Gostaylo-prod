@@ -5,7 +5,6 @@ import { ChevronRight, Wallet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   PartnerHostLedgerAmount,
-  PartnerHostMidFxFootnote,
 } from '@/components/partner/finances/partner-host-amount-display'
 import { getUIText } from '@/lib/translations'
 import { usePartnerDashboardMoney } from '@/hooks/partner/use-partner-dashboard-money'
@@ -112,7 +111,6 @@ export function PartnerDashboardMoneyCard({ language = 'ru' }) {
             thb={bonusesThb}
           />
         ) : null}
-        <PartnerHostMidFxFootnote t={t} className="pt-0.5" />
         <Link
           href="/partner/finances"
           className="flex min-h-[44px] w-full items-center justify-center gap-1 rounded-xl border border-brand/20 bg-white/80 px-3 text-sm font-medium text-brand-hover transition-colors hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
