@@ -227,6 +227,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 ### Financial Model v2.0 (Stage 97.0 — ADR-097)
 
 - **ADR:** **`docs/ADR/097-financial-model-v2.md`** — Pricing Profiles, RU/KG internal split, Netto/Brutto, batch payouts.
+- **Geo / Phase 0 overlay:** **`docs/ADR/300-russia-kyrgyzstan-thailand-3.0.md`** — RF–KR–TH 3.0 mapped to existing symbols; manual USDT from RF allowed until a successor ADR. Runtime unchanged.
 - **Миграция (схема):** **`database/migrations/053_financial_model_v2.sql`** — таблицы **`pricing_profiles`**, **`pricing_profile_assignments`**, **`payout_batches`**, **`payout_batch_items`**; колонки RUB на **`ledger_entries`**; FK **`pricing_profile_id`** на **`profiles`** / **`listings`**. **`database/migrations/054_add_ready_for_payout_status.sql`** — enum **`booking_status`**: **`READY_FOR_PAYOUT`** (после 24h hold, до пула).
 - **Движок (код, Stage 97.0.2+):** **`lib/pricing-engine/`** — **`PricingEngine.computeFinalBreakdown`**, snapshot **`pricing_snapshot.v = 2`**. Проценты **только** из строк **`pricing_profiles`** + **`system_settings.general.default_pricing_profile_id`**; в БД **`ru_agent_share_pct + kr_service_share_pct = guest_fee_pct`** (по умолчанию 7+8=15). Production: **`PRICING_ENGINE_V2=true`** (см. **`docs/PRODUCTION_ENV.md`**).
 - **Конфиденциальность:** поля **`ru_fee_thb`**, **`kr_fee_thb`**, **`fx_markup_thb`**, **`platform_margin_pool_thb`** — **только админка и compliance**; партнёр/гость видят **Netto** и итог Brutto через **`toPartnerVisibleBreakdown`**.

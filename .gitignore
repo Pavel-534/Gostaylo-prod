@@ -126,3 +126,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Local treasury / accountant ops (public repo: no INN, bank templates, buffers)
+docs/private/**
+!docs/private/**/*.example.md

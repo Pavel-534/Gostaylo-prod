@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.112 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.131** hub soft-card pad SSOT.
+> **Version**: 13.2.113 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.04** ADR-300 (docs).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -19,13 +19,19 @@
 
 **Стек:** Next.js **14** (App Router), React, Supabase, cookie `gostaylo_session` + Supabase Auth OAuth, `prisma/schema.prisma` = schema doc only.
 
-**Financial model:** **3.8.0** (ADR-097 + Concierge treasury).
+**Financial model:** **3.8.0** (ADR-097 + Concierge treasury + [ADR-300](./ADR/300-russia-kyrgyzstan-thailand-3.0.md) Phase 0 overlay).
 
 ---
 
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.04 — ADR-300 RF–KR–TH 3.0 (docs only)
+
+- Policy overlay: [`docs/ADR/300-russia-kyrgyzstan-thailand-3.0.md`](./ADR/300-russia-kyrgyzstan-thailand-3.0.md) — scheme 3.0 ↔ existing code SSOT; Phase 0 = manual treasury from RF.
+- Runtime unchanged (no PricingEngine / ledger / escrow / payout execution / migrations).
+- Private treasurer checklist: `docs/private/*.example.md` only in git.
 
 ### Stage 200.131 — partner hub soft-card pad SSOT
 

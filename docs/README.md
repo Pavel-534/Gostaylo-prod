@@ -71,6 +71,7 @@ docs/
   runbooks/                 ← ops: cron, go-live, smoke, env
   guides/                   ← продукт/маркетинг/referral
   ADR/                      ← архитектурные решения (файлы)
+  private/                  ← gitignored ops; в git только `*.example.md`
   specs/ · proposals/       ← спецификации / предложения
   archive/                  ← аудиты, отчёты, старые Stage/планы, монолит-паспорт
   history/                  ← ещё более старые отчёты/SQL/тесты

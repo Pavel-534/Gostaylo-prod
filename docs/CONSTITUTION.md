@@ -271,7 +271,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Эскроу / thaw** | `lib/services/escrow.service.js`, `lib/escrow-thaw-rules.js` |
 | **Partner cash SoT (interim)** | Booking statuses → `getPartnerBalance` (`lib/services/escrow/balance.service.js`); ADR-203 Phase 1 shadow: `getPartnerBalanceFromLedger` — **не** SoT до flip |
 | **Ledger** | `lib/services/ledger.service.js`, `lib/services/ledger/*` |
-| **Выплаты / Concierge** | `lib/services/payout-batch.service.js` (+ `payout-batch-settlement.js` fail-closed; SKIPPED re-queue), `lib/partner/partner-payout-fx.js`, ADR-097 |
+| **Выплаты / Concierge** | `lib/services/payout-batch.service.js` (+ `payout-batch-settlement.js` fail-closed; SKIPPED re-queue), `lib/partner/partner-payout-fx.js`, ADR-097, ADR-300 (Phase 0 overlay) |
 | **Платежи** | `lib/services/payments-v3.service.js`, `lib/services/payment-adapters/*` |
 | **Чат** | `lib/chat/post-chat-message.server.js`, `post-chat-invoice.server.js`, `sync-booking-for-chat-invoice.server.js`, `conversation-api-client.js` |
 | **Referral / MLM** | `lib/services/marketing/referral-payout.service.js`, `referral-ledger.service.js`, `referral-distribute-atomic.service.js`, `system_fintech_settings` |
