@@ -37,8 +37,8 @@
     "clean:e2e-deep": "node scripts/clean-e2e-garbage.mjs --deep-profiles",
     "cleanup:storage": "node scripts/cleanup-storage.mjs",
     "cleanup:storage:execute": "node scripts/cleanup-storage.mjs --execute",
-    "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
-    "cleanup:test-data:execute": "node scripts/cleanup-test-data.mjs --execute",
+    "cleanup:test-data": "node --import ./scripts/node-test-alias-register.mjs scripts/cleanup-test-data.mjs",
+    "cleanup:test-data:execute": "node --import ./scripts/node-test-alias-register.mjs scripts/cleanup-test-data.mjs --execute",
     "analyze": "cross-env ANALYZE=true next build",
     "smoke:financial": "node scripts/financial-prelaunch-smoke.mjs",
     "smoke:full-financial": "node scripts/smoke-full-financial.mjs",
@@ -50,6 +50,7 @@
     "smoke:ledger-shadow-dry-run": "node scripts/smoke-ledger-shadow-dry-run.mjs",
     "test:visual-referral": "playwright test --project=referral-dashboard-visual",
     "test:discovery-analytics": "playwright test --project=discovery-analytics",
+    "test:e2e:nightly": "playwright test --project=setup --project=stage9-api-guard --project=stage12-escrow-regression --project=guest-inquiry-golden-path --project=chat-invoice-payment-golden-path --project=checkout-mock-smoke --project=accountant-bot --project=wizard-geo-location --project=partner-calendar-flow --project=rbac-partner --project=rbac-admin --project=rbac-renter --project=security-bot",
     "export-tokens": "node scripts/export-figma-tokens.mjs",
     "fonts:vendor": "node scripts/vendor-app-fonts.mjs"
   },

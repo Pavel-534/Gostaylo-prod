@@ -61,11 +61,11 @@ export default function HelpPage() {
             Help Center
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900 leading-[1.05] mb-5">
-            Мы на связи —<br />
-            <span className="text-brand">24 / 7, на 4 языках.</span>
+            Центр помощи {getSiteDisplayName()}
           </h1>
           <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">
-            Найдите ответ ниже или напишите в поддержку — отвечаем в среднем за 12 минут.
+            FAQ ниже или письмо на поддержку — обычно отвечаем в течение нескольких часов
+            (на этапе обкатки без обещания круглосуточного call-center).
           </p>
         </div>
       </section>
@@ -151,7 +151,7 @@ export default function HelpPage() {
           Связаться с нами
         </h2>
         <p className="text-slate-600 mb-8 max-w-xl mx-auto">
-          Не нашли ответ? Напишите — реальные люди, не боты.
+          Не нашли ответ? Напишите на почту — живые люди из команды, обычно в течение нескольких часов.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a

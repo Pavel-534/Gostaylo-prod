@@ -67,6 +67,7 @@ const productionSmokeProjects =
  * Speed Bot: `tests/e2e/speed-bot.spec.ts` — проект `speed-bot`.
  * Discovery analytics (169.0): `tests/e2e/discovery-analytics.spec.ts` — проект `discovery-analytics` (`npm run test:discovery-analytics`).
  *
+ * Nightly CI keep-list (no DB-spam fixtures): `npm run test:e2e:nightly`.
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
  * **Production smoke:** `RUN_PRODUCTION_SMOKE=1 npx playwright test --project=setup-production-smoke --project=production-smoke` (опц. `PRODUCTION_SMOKE_URL=…`). Teardown при этом отключён.

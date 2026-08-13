@@ -13,6 +13,7 @@
 
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,13 +26,14 @@ import {
   Home, Heart, Settings, LogOut,
   Send, Shield, TrendingUp, Clock, Zap,
   CheckCircle, XCircle, Loader2, Gift,
-  Sparkles, Circle
+  Sparkles, Circle, LifeBuoy, MessageSquareWarning,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { getUIText } from '@/lib/translations'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationModal'
+import { ProductFeedbackDialog } from '@/components/product-feedback-dialog'
 import { PwaInstallSettingsCard } from '@/components/pwa/PwaInstallSettingsCard'
 import { PushEnableSettingsCard } from '@/components/push/PushEnableSettingsCard'
 import { useRenterProfilePage } from '@/hooks/renter/use-renter-profile-page'
@@ -46,6 +48,7 @@ import {
 } from '@/lib/ui/mobile-flat-canvas'
 
 export default function RenterProfilePageContent() {
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false)
   const {
     language,
     user,
@@ -440,11 +443,11 @@ export default function RenterProfilePageContent() {
           <CardTitle className="text-lg">{getUIText('quickActions', language)}</CardTitle>
         </CardHeader>
         <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               asChild
               variant="outline"
-              className="flex flex-col h-auto py-4"
+              className="flex flex-col h-auto min-h-[44px] py-4"
             >
               <Link href="/my-bookings">
                 <Home className="h-6 w-6 mb-2" />
@@ -455,7 +458,7 @@ export default function RenterProfilePageContent() {
             <Button
               asChild
               variant="outline"
-              className="flex flex-col h-auto py-4"
+              className="flex flex-col h-auto min-h-[44px] py-4"
             >
               <Link href="/renter/favorites">
                 <Heart className="h-6 w-6 mb-2" />
@@ -466,7 +469,7 @@ export default function RenterProfilePageContent() {
             <Button
               asChild
               variant="outline"
-              className="flex flex-col h-auto py-4"
+              className="flex flex-col h-auto min-h-[44px] py-4"
             >
               <Link href="/profile/referral">
                 <Gift className="h-6 w-6 mb-2" />
@@ -477,18 +480,39 @@ export default function RenterProfilePageContent() {
             <Button
               asChild
               variant="outline"
-              className="flex flex-col h-auto py-4"
+              className="flex flex-col h-auto min-h-[44px] py-4"
             >
               <Link href="/renter/settings">
                 <Settings className="h-6 w-6 mb-2" />
                 <span className="text-sm">{getUIText('settings', language)}</span>
               </Link>
             </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              className="flex flex-col h-auto min-h-[44px] py-4"
+            >
+              <Link href="/help">
+                <LifeBuoy className="h-6 w-6 mb-2" />
+                <span className="text-sm">{getUIText('profileHelp', language)}</span>
+              </Link>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="flex flex-col h-auto min-h-[44px] py-4"
+              onClick={() => setShowFeedbackDialog(true)}
+            >
+              <MessageSquareWarning className="h-6 w-6 mb-2" />
+              <span className="text-sm">{getUIText('profileReportProblem', language)}</span>
+            </Button>
             
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="flex flex-col h-auto py-4 text-red-600 hover:bg-red-50"
+              className="col-span-2 flex flex-col h-auto min-h-[44px] py-4 text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-6 w-6 mb-2" />
               <span className="text-sm">{getUIText('logout', language)}</span>
@@ -503,6 +527,11 @@ export default function RenterProfilePageContent() {
         onClose={() => setShowApplicationModal(false)}
         onSubmit={handleApplicationSubmit}
         isSubmitting={submittingApplication}
+      />
+      <ProductFeedbackDialog
+        open={showFeedbackDialog}
+        onOpenChange={setShowFeedbackDialog}
+        language={language}
       />
     </div>
   )

@@ -144,6 +144,7 @@ function StepPreviewInner() {
               exchangeRates={exchangeRates}
               onFavorite={() => {}}
               isFavorited={false}
+              layout="solo"
             />
           </CardContent>
         </Card>

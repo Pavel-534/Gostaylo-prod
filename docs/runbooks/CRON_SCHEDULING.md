@@ -73,6 +73,7 @@ See **`docs/CRON_EXTERNAL_FINANCIAL.md`** for escrow / payout / financial-health
 | `Airento: referral-team-weekly-digest` | `/api/cron/referral-team-weekly-digest` | Mon `30 7 * * 1` | `30 7 * * 1` |
 | `Airento: partner-host-retention` | `/api/cron/partner-host-retention` | Daily | `0 9 * * *` |
 | `Airento: process-data-erasure` | `/api/cron/process-data-erasure` | Daily | `0 5 * * *` |
+| `Airento: cleanup-test-data` | `/api/cron/cleanup-test-data` | Daily | `20 4 * * *` |
 
 ---
 
@@ -81,7 +82,6 @@ See **`docs/CRON_EXTERNAL_FINANCIAL.md`** for escrow / payout / financial-health
 | cron-job.org title | API path | Schedule | Doc |
 |--------------------|----------|----------|-----|
 | `Airento: cleanup-storage` | `/api/cron/cleanup-storage?dryRun=false` | Daily ~03:00 UTC | README § Stage 95.1 |
-| `Airento: cleanup-test-data` | `/api/cron/cleanup-test-data?dryRun=false` | Nightly CI / manual | `TECHNICAL_MANIFESTO` §95.5 |
 | `Airento: promote-ready-for-payout` | `/api/cron/promote-ready-for-payout` | Hourly | `CRON_EXTERNAL_FINANCIAL.md` |
 | `Airento: payout-batch-pools` | `/api/cron/payout-batch-pools` | Mon & Thu 07:00 UTC | `CRON_EXTERNAL_FINANCIAL.md` |
 

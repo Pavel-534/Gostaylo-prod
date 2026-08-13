@@ -1,4 +1,6 @@
-# Ночной патруль: полный прогон Playwright (03:00 UTC).
+# Ночной патруль: короткий keep-list Playwright (03:00 UTC). Stage 201.11
+# Не гоняем stage72 / visual / chat-stress / bots витрины — они пишут мусор в БД.
+# Полный набор: npx playwright test (локально / staging).
 # Требуются секреты репозитория:
 #   PLAYWRIGHT_BASE_URL — URL стенда с уже запущенным приложением (Next.js).
 #   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — уведомление при любом падении job.
@@ -41,7 +43,7 @@ jobs:
           E2E_RENTER_EMAIL: ${{ secrets.E2E_RENTER_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: npx playwright test
+        run: npm run test:e2e:nightly
 
       - name: Send E2E summary to Telegram
         if: always()
@@ -114,4 +116,4 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/cleanup-test-data.mjs --execute
+        run: npm run cleanup:test-data:execute

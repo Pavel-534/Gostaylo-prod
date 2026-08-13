@@ -28,7 +28,7 @@ import { NotificationEvents, NotificationService } from '@/lib/services/notifica
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
-import { processExpiredAwaitingPaymentCheckouts } from '@/lib/booking/checkout-hold-expiry.js';
+import { processExpiredAwaitingPaymentCheckouts, processStaleUnpaidPastCheckout } from '@/lib/booking/checkout-hold-expiry.js';
 import { processUnpaidCheckoutNudges } from '@/lib/booking/unpaid-checkout-retention.js';
 import {
   LEGACY_INVOICE_EXPIRY_MINUTES,
@@ -184,6 +184,7 @@ async function processExpiredBookingRequests() {
     const statusResult = await BookingService.updateStatus(booking.id, 'CANCELLED', {
       reason: reasonCode,
       referralTrigger: 'cron_cleanup_drafts_cancel',
+      bookingStatusScope: 'cancel',
     });
     if (!statusResult?.success) {
       errors++;
@@ -523,6 +524,9 @@ export async function POST(request) {
     const checkoutHoldExpiry = await processExpiredAwaitingPaymentCheckouts({
       trigger: 'cron_cleanup_drafts_checkout_hold',
     });
+    const staleUnpaidPastCheckout = await processStaleUnpaidPastCheckout({
+      trigger: 'cron_cleanup_drafts_past_checkout',
+    });
     const unpaidCheckoutNudge = await processUnpaidCheckoutNudges({
       limit: 80,
     });
@@ -549,6 +553,7 @@ export async function POST(request) {
         expiryDays: DRAFT_CONTENTFUL_DAYS,
         bookingSla24h: bookingSla,
         checkoutHoldExpiry,
+        staleUnpaidPastCheckout,
         unpaidCheckoutNudge,
         invoiceExpiry,
         disputeEvidenceRetention,

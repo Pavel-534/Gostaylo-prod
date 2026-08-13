@@ -6,6 +6,13 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.11 | 2026-08-13 | Nightly Playwright keep-list (drop DB-spam fixtures from CI) | Done |
+| 201.10 | 2026-08-13 | Pre-launch: leftover demo profiles + E2E referral-tank reversals | Done |
+| 201.09 | 2026-08-13 | Test ledger/booking self-clean: RPC markers purge + nightly cron + stale unpaid cancel | Done |
+| 201.08 | 2026-08-13 | Test listing cleanup: do not treat live lst-villa-* / lst-yacht-* as E2E | Done |
+| 200.137 | 2026-08-13 | Profile Help/Report CTAs; POST /api/v2/feedback → ops; honest /help SLA | Done |
+| 201.07 | 2026-08-13 | Header wallet: listings vs invites groups, short labels, role CTAs | Done |
+| 200.136 | 2026-08-13 | Wizard preview ListingCard layout=solo (no empty stretch void) | Done |
 | 200.135 | 2026-08-13 | iOS keyboard: vv fill pin (fix mid-form / number-pad sheet sink) | Done |
 | 201.06 | 2026-08-13 | Partner finances: escrow double-count fix; header CTA to Finances; pending-payment SSOT | Done |
 | 200.134 | 2026-08-13 | Dialog visualViewport pin + seasonal bottom sheet (iOS keyboard gap) | Done |

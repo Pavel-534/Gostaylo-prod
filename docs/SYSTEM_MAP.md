@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.77 | **Last Updated**: 2026-08-12 | **200.100** safe polish; **200.99** stay arrival hours; **200.98** action bar balance.  
+> **Version**: 13.2.79 | **Last Updated**: 2026-08-13 | **201.11** nightly E2E keep-list; **201.09** test ledger self-clean.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -59,7 +59,7 @@
 | `promo_codes` | Промо PLATFORM/PARTNER, flash sale, allowlist |
 | `reviews` / `guest_reviews` | Отзывы гостя о листинге / партнёра о клиенте (+ moderation) |
 | `ledger_accounts` | План счетов (THB double-entry); Stage 203: +`DISPUTE_HOLD_RESERVE` |
-| `ledger_journals` | Журналы; append-only; `booking_id` ON DELETE SET NULL + `deleted_booking_id` |
+| `ledger_journals` | Журналы; append-only; `booking_id` ON DELETE SET NULL + `deleted_booking_id`; **201.09** `purge_test_ledger_rows` |
 | `ledger_entries` | DEBIT/CREDIT строки; append-only |
 | `payout_methods` | Рельсы выплат (CARD/BANK/CRYPTO) |
 | `partner_payout_profiles` | Реквизиты партнёра |
@@ -110,6 +110,7 @@
 | `POST /api/v2/promo-codes/validate` |
 | `POST /api/v2/push` |
 | `POST /api/v2/upload` · `DELETE /api/v2/upload` |
+| `POST /api/v2/feedback` — product feedback (session required) → TG system alert + optional `getSupportInboxEmail()` (`SUPPORT_INBOX_EMAIL`); Stage **200.137** |
 
 ### 3.2 Chat
 
@@ -190,7 +191,9 @@
 | `/api/cron/ical-sync` |
 | `/api/cron/push-sweeper` |
 | `/api/cron/review-reminder` |
-| `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d |
+| `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d; **201.09** stale unpaid past check-out cancel |
+| `/api/cron/cleanup-test-data` — Stage **201.09**: E2E/smoke + `purge_test_ledger_rows(markers)` |
+| GitHub Actions **`.github/workflows/playwright.yml`** — Stage **201.11**: nightly keep-list `npm run test:e2e:nightly` (03:00 UTC), then cleanup |
 | `/api/cron/exchange-rates-refresh` |
 | `/api/cron/referral-*` · financial health monitors |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |

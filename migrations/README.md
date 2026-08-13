@@ -37,7 +37,7 @@
 
 **Не применять 203.03 до 203.02.** Dual-SSOT / RPC fee-split — вне этого stage.
 
-Cleanup E2E: не удаляет `PAID_ESCROW`/`THAWED`/… брони и не DELETE `ledger_*` rows (`lib/e2e/cleanup-test-users.service.js`).
+Cleanup E2E (**Stage 201.09**): nightly `purge_test_ledger_rows('markers')` via SECURITY DEFINER RPC (service_role only) then delete smoke/E2E rows. Live capture stays append-only. `scope=all` is ops GUC only (`SET LOCAL airento.purge_test_ledger = 'on'`). Marker detector: **201.09b** (smoke/E2E ids — not unpaid/cancelled status).
 
 ## Stage 201 — AUDIT_02 money RPCs (порядок)
 

@@ -93,7 +93,7 @@
 | Soft back / optimistic nav | Частично shipped (200.13–200.17); дальнейший polish по ощущениям |
 | Partner cabinet mobile | Аудит `AUDIT_PARTNER_CABINET_MOBILE` — residual items |
 | Listing quality & conversion | Publish checklist, search ranking — post first live cohort |
-| Dispute / support loop | Медиация + SLA в TG — закрепить ops |
+| Dispute / support loop | **Phase 1 done (200.137):** profile Help + product feedback → TG/email. Phase 2: DB queue + admin list; booking disputes stay in chat escalate |
 | Design system UI-1+ | Component hex cleanup, partner `teal-*`, FinTech inline styles |
 | Referral 2.0 «Phase E» | Digest Excel, side-by-side campaigns — **только по боли владельца** |
 | Mobile apps (store) | Web-first до PMF; Cap — shell над web |

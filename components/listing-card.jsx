@@ -51,6 +51,11 @@ export function ListingCard({
   catalogCategories = null,
   /** Stage 171.18 — LCP for first catalog cards only. */
   imagePriority = false,
+  /**
+   * Stage 200.136 — `grid` stretches in catalog rows (equal height + price at bottom).
+   * `solo` hugs content (wizard preview / eye sheet) — no empty void under specs.
+   */
+  layout = 'grid',
 }) {
   const router = useRouter()
   const [isFavorite, setIsFavorite] = useState(isFavorited)
@@ -157,17 +162,20 @@ export function ListingCard({
     catalog_promo_badge && typeof catalog_promo_badge === 'object' && catalog_promo_badge.label
       ? String(catalog_promo_badge.label)
       : ''
+  const isSolo = layout === 'solo'
 
   return (
     <article
       id={`listing-card-${id}`}
       data-testid={`listing-card-${id}`}
       data-pdp-pending={pdpPending ? 'true' : undefined}
+      data-listing-card-layout={isSolo ? 'solo' : 'grid'}
       onMouseEnter={handlePrefetch}
       onTouchStart={handlePrefetch}
       className={cn(
         // Base
-        'group flex h-full min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
+        'group flex min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
+        isSolo ? 'h-auto' : 'h-full',
         // Premium hover: lift + deepen shadow + teal border accent
         'transition-all duration-300 ease-out touch-manipulation',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
@@ -220,7 +228,12 @@ export function ListingCard({
       <Link
         href={detailUrl}
         onClick={() => markPdpPending(detailUrl)}
-        className={cn('flex flex-1 flex-col', LISTING_CARD_BODY_PAD, LISTING_CARD_CONTENT_MIN_H)}
+        className={cn(
+          'flex flex-col',
+          LISTING_CARD_BODY_PAD,
+          !isSolo && LISTING_CARD_CONTENT_MIN_H,
+          isSolo ? 'flex-none' : 'flex-1',
+        )}
       >
           {/* Title Row */}
           <div
@@ -281,10 +294,11 @@ export function ListingCard({
             <ListingCardSpecsRow listing={listing} language={language} />
           </div>
 
-          {/* Price — pinned to card bottom via flex-1 + mt-auto */}
+          {/* Price — grid: pin to card bottom; solo: natural gap under specs */}
           <div
             className={cn(
-              'relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-2 sm:pt-3',
+              'relative z-10 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-2 sm:pt-3',
+              isSolo ? 'mt-3' : 'mt-auto',
               LISTING_CARD_PRICE_ROW_MIN_H,
             )}
           >

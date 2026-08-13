@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.119 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **200.135** iOS keyboard vv fill pin.
+> **Version**: 13.2.126 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.11** nightly E2E keep-list.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,53 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.11 — nightly Playwright keep-list
+
+- CI **`npm run test:e2e:nightly`**: escrow, inquiry/checkout/invoice, accountant-math, wizard/calendar, RBAC, security, stage9 API guard.
+- Out of nightly (still runnable locally): stage72 cashflow, referral visual, chat-stress, seo/speed/polyglot bots, CRO, discovery-analytics, `example.spec`.
+- Tests: `__tests__/stage201-11-nightly-e2e-keep-list.test.js`.
+
+### Stage 201.10 — pre-launch leftover demo profiles + E2E tank
+
+- Cleanup markers now catch disposable emails (`@test.com`, `@example.com`, `@demo.com`, `@funnyrent.com`, `@*.invalid`) and seed ids (`partner-test`, `partner-1`, `user-phantom-*`, `usr-stage*`). Real staff still protected by email allowlist (ADMIN role alone no longer shields test accounts).
+- `isTestTankLedgerRow` matches `metadata.trigger` `e2e_*` (nightly E2E left `host_activation_reversal` / `e2e_dispute_resolved` with null `booking_id`).
+- Live guests (Оксана, Pavel, early real signups) and platform promo `SAVE100` / `WELCOME10` kept.
+- Tests: `__tests__/stage201-10-prelaunch-demo-profile-cleanup.test.js`.
+
+### Stage 201.09 — test ledger / booking self-clean
+
+- Pre-launch: test journals/entries/intents/bookings wiped; live append-only stays on.
+- Nightly `/api/cron/cleanup-test-data` (Vercel `20 4 * * *`): `purge_test_ledger_rows('markers')` then E2E/smoke listings+users; never-paid (CANCELLED + unpaid past check-out) hard-delete.
+- `cleanup-drafts` auto-cancels unpaid INQUIRY/PENDING/CONFIRMED/AWAITING_PAYMENT after check-out (`scope: cancel`).
+- Markers RPC does **not** treat unpaid/cancelled status as test money (201.09b). `scope=all` is ops GUC only.
+- Tests: `__tests__/stage201-09-test-ledger-self-clean.test.js`.
+
+### Stage 201.08 — listing cleanup villa-id guard
+
+- `isTestListingId` no longer matches `lst-villa-*` / `lst-yacht-*` (live partner seeds, e.g. Rawai villa).
+- Cleanup still matches `[E2E_TEST_DATA]`, `lst-test*`, `lst-e2e-*`.
+- Tests: `__tests__/stage201-08-test-listing-cleanup-villa-id.test.js`.
+
+### Stage 200.137 — product feedback Phase 1
+
+- Renter profile quick actions: **Help** → `/help`, **Report a problem** → `ProductFeedbackDialog`; logout `col-span-2`.
+- `POST /api/v2/feedback` (session required) → Telegram system alert + optional email to `getSupportInboxEmail()` (`SUPPORT_INBOX_EMAIL` / `PROCESS_SUPPORT_EMAIL`); UI mailto stays `NEXT_PUBLIC_SUPPORT_EMAIL` / `getPublicSupportEmail()`.
+- Hidden ops meta: `pageUrl`, UA, server `audience` (`partner` / `guest` / `staff`) from `profiles.role`.
+- `/help` hero: honest early-stage SLA («обычно в течение нескольких часов»).
+- Phase 2 backlog: `product_feedback` table + admin queue (see ROADMAP).
+
+### Stage 201.07 — header wallet product groups
+
+- Compact wallet splits **listings** (escrow from orders, always shown for partner/staff) vs **invites** (to card / for bookings).
+- Partner: primary CTA → `/partner/finances`; secondary → `/profile/referral`. Renter: referral only.
+- Short labels + existing i18n tooltips on `i`; `≈` footnote via `PartnerHostMidFxFootnote`.
+
+### Stage 200.136 — wizard preview card solo layout
+
+- Empty white under specs/price in eye-preview + step 6 was **grid stretch** (`h-full` + `flex-1` + `mt-auto`), not missing description (storefront cards never show body text).
+- `ListingCard` `layout="solo"` for wizard preview; catalog keeps `layout="grid"`.
+- Tests: `__tests__/stage200-136-wizard-preview-card-solo.test.js`.
 
 ### Stage 200.135 — iOS keyboard visualViewport fill pin
 
@@ -1488,7 +1535,7 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 
 ## 10. E2E Hygiene System (правила и обязательность)
 
-0. **Nightly CI:** GitHub Actions **`.github/workflows/playwright.yml`** — расписание **03:00 UTC** (`cron: 0 3 * * *`), полный **`npx playwright test`** против **`PLAYWRIGHT_BASE_URL`** (секрет). Затем ( **`if: always()`** ) — сводка в Telegram (**`scripts/send-e2e-report.mjs`**) и **`node scripts/clean-e2e-garbage.mjs`**: удаляются только брони с **`[E2E_TEST_DATA]`** и связанные чаты; запись в **`ops_job_runs`** с текстом об уборке. Для шагов с БД нужны **`NEXT_PUBLIC_SUPABASE_URL`** и **`SUPABASE_SERVICE_ROLE_KEY`**. При **failure** job — сообщение в Telegram, артефакт **`playwright-report`**. Опционально: **`E2E_*`**, **`JWT_SECRET`**.
+0. **Nightly CI:** GitHub Actions **`.github/workflows/playwright.yml`** — **03:00 UTC**, **`npm run test:e2e:nightly`** (keep-list: escrow/inquiry/checkout/RBAC/wizard/calendar/accountant/security — Stage **201.11**). Не входит: stage72, visual referral, chat-stress, seo/speed/polyglot, CRO, discovery. Затем Telegram-сводка + **`cleanup-test-data.mjs --execute`**. Полный набор — локально / staging: **`npx playwright test`**.
 
 1. **Маркер данных (обязательно для автотестов):** любые автоматические тесты и фикстуры **обязаны** метить создаваемые данные флагом **`[E2E_TEST_DATA]`** (константа **`lib/e2e/test-data-tag.js`**). Система очистки (**`global-teardown`**, **`clean-e2e-garbage.mjs`**) **игнорирует** всё, что **не** содержит этот маркер в разрешённых полях (для броней: **`special_requests`**, **`guest_name`**), чтобы не затронуть ручные брони пользователей.
 2. **Фильтрация в коде:** поиск листингов, SSR, `BookingService.getBookings`, **`GET /api/v2/chat/conversations`** (для не-staff) исключают помеченные записи; для Playwright при заголовке **`x-e2e-test-mode`** фильтр можно обходить (см. роут conversations).

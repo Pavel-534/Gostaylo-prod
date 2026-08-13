@@ -72,6 +72,7 @@ export function ListingWizardPreviewContent({ showHints = true }) {
         exchangeRates={exchangeRates}
         onFavorite={() => {}}
         isFavorited={false}
+        layout="solo"
       />
       {showHints ? (
         <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/90 p-3 text-xs leading-relaxed text-slate-600">

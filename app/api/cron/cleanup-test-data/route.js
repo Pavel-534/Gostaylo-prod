@@ -2,17 +2,19 @@
  * GET/POST /api/cron/cleanup-test-data
  * Removes accumulated E2E/smoke listings (+ linked bookings, storage).
  *
- * Auth: CRON_SECRET. Query: dryRun=false to delete (default dryRun=true).
+ * Auth: CRON_SECRET. Query: dryRun=false to delete.
+ * Vercel Cron GET has no query — execute when `x-vercel-cron: 1`. Manual default dryRun=true.
  */
 
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
+import { resolveCleanupTestDataDryRun } from '@/lib/cron/cleanup-test-data-dry-run.js'
 import { runCleanupTestData } from '@/lib/e2e/cleanup-test-data.service'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 300
 
 async function handle(request) {
   const denied = assertCronAuthorized(request)
@@ -22,15 +24,18 @@ async function handle(request) {
     return NextResponse.json({ success: false, error: 'Supabase admin unavailable' }, { status: 503 })
   }
 
-  const url = new URL(request.url)
-  const dryRun = url.searchParams.get('dryRun') !== 'false'
+  const dryRun = resolveCleanupTestDataDryRun(request)
   const protectListingIds = String(process.env.CLEANUP_TEST_DATA_PROTECT_LISTING_IDS || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
 
   try {
-    const report = await runCleanupTestData(supabaseAdmin, { dryRun, protectListingIds })
+    const report = await runCleanupTestData(supabaseAdmin, {
+      dryRun,
+      protectListingIds,
+      maxProfiles: dryRun ? 0 : 80,
+    })
     return NextResponse.json({ success: true, ...report })
   } catch (e) {
     console.error('[cron/cleanup-test-data]', e)
