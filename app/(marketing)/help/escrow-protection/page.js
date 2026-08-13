@@ -2,10 +2,10 @@
 
 /**
  * Публичная справка: защита средств (эскроу) — мультиязычно через getUIText.
+ * Stage 201.12 — back via MarketingAppShell soft-back (fallback /help); no page-local back link.
  */
 
-import Link from 'next/link'
-import { ArrowLeft, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
@@ -18,14 +18,6 @@ export default function EscrowProtectionHelpPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
-      <Link
-        href="/messages"
-        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="break-words">{t('escrowProtection_backToMessages')}</span>
-      </Link>
-
       <div
         className={cn(
           MOBILE_FLAT_CARD_CLASS,

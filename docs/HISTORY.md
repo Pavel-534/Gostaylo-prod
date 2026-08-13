@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.12 | 2026-08-14 | Soft-back SSOT P0: MarketingAppShell → AppHeader leading chevron (iOS) | Done |
 | 201.11 | 2026-08-13 | Nightly Playwright keep-list (drop DB-spam fixtures from CI) | Done |
 | 201.10 | 2026-08-13 | Pre-launch: leftover demo profiles + E2E referral-tank reversals | Done |
 | 201.09 | 2026-08-13 | Test ledger/booking self-clean: RPC markers purge + nightly cron + stale unpaid cancel | Done |

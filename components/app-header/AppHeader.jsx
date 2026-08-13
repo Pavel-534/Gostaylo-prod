@@ -18,12 +18,13 @@
  *
  * @created 2026-02-05 Unified Header Sprint
  * @updated 2026-07-30 Stage 200.2 — dense mobile right cluster (icon wallet / symbol currency)
+ * @updated 2026-08-14 Stage 201.12 — optional soft-back leading chevron (useSoftBack)
  */
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Home as HomeIcon } from 'lucide-react'
+import { ArrowLeft, Menu, Home as HomeIcon } from 'lucide-react'
 import { CurrencySelector } from '@/components/currency-selector'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 import { AirentoLogo } from '@/components/brand/airento-logo'
@@ -42,6 +43,7 @@ import {
   matchesOptimisticNavHref,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href'
+import { useSoftBack } from '@/hooks/use-soft-back'
 
 /** Определить variant из pathname */
 function detectVariant(pathname) {
@@ -88,6 +90,9 @@ export function AppHeader({
   centerSlot,
   onMenuClick,
   showMenuButton = true,
+  /** Stage 201.12 — leading soft-back for nested / marketing screens (iOS). */
+  showSoftBack = false,
+  softBackFallback = '/',
 }) {
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
@@ -97,6 +102,7 @@ export function AppHeader({
   const { language } = useI18n()
   const { currency, setCurrency } = useCurrency()
   const { user } = useAuth()
+  const softBack = useSoftBack(softBackFallback)
   const { pendingHref, markPending } = useOptimisticNavHref({
     prefetchPaths: PUBLIC_HEADER_NAV_PREFETCH_PATHS,
   })
@@ -167,6 +173,18 @@ export function AppHeader({
 
           {/* LEFT */}
           <div className="flex items-center gap-2 min-w-0">
+            {showSoftBack ? (
+              <button
+                type="button"
+                onClick={softBack}
+                aria-label={getUIText('appHeader_softBackAria', language) || getUIText('back', language)}
+                data-testid="app-header-soft-back"
+                className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 touch-manipulation"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden />
+              </button>
+            ) : null}
+
             {isWorkspace && showMenuButton && (
               <button
                 type="button"

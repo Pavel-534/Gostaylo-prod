@@ -27,6 +27,14 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.12 — soft-back SSOT P0 (marketing / iOS)
+
+- Behavior SSOT: **`useSoftBack(fallbackHref)`** only (`hooks/use-soft-back.js`).
+- UI: `AppHeader` props `showSoftBack` / `softBackFallback`; **`MarketingAppShell`** defaults `showSoftBack=true` (fallback `/`; `/help/escrow-protection` → `/help`). Covers help/legal/terms/about children of `(marketing)`.
+- P1 backlog (not in this Stage): profile nested (`/profile/wallet|referral|status`, settings), partner «More» (finances/settings/payouts/referrals/reviews).
+- Leave alone: PDP/favorites/ChatTopBar, tab roots, checkout/auth/wizard, admin.
+- Tests: `__tests__/stage201-12-soft-back-marketing.test.js`.
+
 ### Stage 201.11 — nightly Playwright keep-list
 
 - CI **`npm run test:e2e:nightly`**: escrow, inquiry/checkout/invoice, accountant-math, wizard/calendar, RBAC, security, stage9 API guard.
@@ -971,7 +979,7 @@
 ### Wave J / optimistic chrome (200.13–200.19)
 
 - Pending dock/header paint: `hooks/use-optimistic-nav-href.js`, `airento:nav-pending`, docks `MobileBottomNav` / `PartnerMobileBottomNav`
-- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`
+- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`; **201.12** marketing chrome leading via `AppHeader` / `MarketingAppShell`
 - Catalog → PDP prefetch + hero transition pending; exclusive Search-tab pending on Home→catalog
 - PDP map: cooperative overlay clipped so it cannot cover `MobileBookingBar`
 
