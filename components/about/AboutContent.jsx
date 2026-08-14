@@ -144,7 +144,7 @@ export default function AboutContent() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
           {s.principles.map((p, i) => {
-            const Icon = PRINCIPLES[i].icon
+            const Icon = PRINCIPLES[i]?.icon || Shield
             return (
               <div
                 key={p.title}

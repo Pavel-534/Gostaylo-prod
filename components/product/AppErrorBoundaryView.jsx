@@ -3,6 +3,7 @@
 /**
  * Stage 200.75 — shared client shell for root / checkout error boundaries.
  * Never render error.message or stack.
+ * Stage 201.15 — chunk / soft-nav failures → hard reload on Retry.
  */
 
 import { useEffect } from 'react'
@@ -10,6 +11,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { isUnresolvedI18nKey } from '@/lib/i18n/is-unresolved-i18n-key'
+import { isClientNavFailure } from '@/lib/navigation/is-client-nav-failure'
 
 /**
  * @param {{
@@ -30,6 +32,7 @@ export function AppErrorBoundaryView({
   secondaryLabelKey = 'backToHome',
 }) {
   const { language } = useI18n()
+  const hardReloadOnRetry = isClientNavFailure(error)
 
   useEffect(() => {
     console.error(logLabel, error)
@@ -39,6 +42,14 @@ export function AppErrorBoundaryView({
   const bodyRaw = getUIText(bodyKey, language)
   const retryRaw = getUIText('retry', language)
   const homeRaw = getUIText(secondaryLabelKey, language)
+
+  const onPrimaryClick = () => {
+    if (hardReloadOnRetry && typeof window !== 'undefined') {
+      window.location.reload()
+      return
+    }
+    reset()
+  }
 
   return (
     <StorefrontStateView
@@ -52,7 +63,7 @@ export function AppErrorBoundaryView({
           : bodyRaw
       }
       primaryLabel={isUnresolvedI18nKey(retryRaw, 'retry') ? 'Try again' : retryRaw}
-      onPrimaryClick={reset}
+      onPrimaryClick={onPrimaryClick}
       secondaryLabel={isUnresolvedI18nKey(homeRaw, secondaryLabelKey) ? 'Home' : homeRaw}
       secondaryHref={secondaryHref}
     />

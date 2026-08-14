@@ -8,6 +8,7 @@
 import { usePathname } from 'next/navigation'
 import { AppHeader } from '@/components/app-header/AppHeader'
 import { MainContent } from '@/components/main-content'
+import { I18nSliceBootstrap } from '@/components/i18n/I18nSliceBootstrap'
 import { ChatUnreadBadgeProvider } from '@/lib/context/ChatUnreadBadgeContext'
 import { resolveMarketingSoftBackFallback } from '@/lib/navigation/soft-back-routes'
 
@@ -33,6 +34,7 @@ export function MarketingAppShell({
 
   return (
     <ChatUnreadBadgeProvider>
+      <I18nSliceBootstrap preset="marketing" />
       <AppHeader showSoftBack={showSoftBack} softBackFallback={fallback} />
       <MainContent>{children}</MainContent>
     </ChatUnreadBadgeProvider>

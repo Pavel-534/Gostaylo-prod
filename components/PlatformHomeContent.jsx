@@ -394,14 +394,15 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerCompany', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="/about" className="hover:text-brand/80 transition-colors">
+                  {/* Stage 201.15 — hard <a> into (marketing) avoids soft-nav chunk failures on PWA/Samsung */}
+                  <a href="/about/" className="hover:text-brand/80 transition-colors">
                     {getUIText('aboutUs', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="/help#contact" className="hover:text-brand/80 transition-colors">
+                  <a href="/help/#contact" className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -409,17 +410,17 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="/help/" className="hover:text-brand/80 transition-colors">
+                  <a href="/help/" className="hover:text-brand/80 transition-colors">
                     {getUIText('helpCenter', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link
-                    href="/help/escrow-protection"
+                  <a
+                    href="/help/escrow-protection/"
                     className="hover:text-brand/80 transition-colors"
                   >
                     {getUIText('footerEscrowPaymentLink', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
                   <a href={`mailto:${supportEmail}`} className="hover:text-brand/80 transition-colors">
@@ -427,29 +428,29 @@ export function PlatformHomeContent() {
                   </a>
                 </li>
                 <li>
-                  <Link href="/terms/" className="hover:text-brand/80 transition-colors">
+                  <a href="/terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('terms', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="/legal/public-offer/" className="hover:text-brand/80 transition-colors">
+                  <a href="/legal/public-offer/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPublicOffer', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="/legal/partner-terms/" className="hover:text-brand/80 transition-colors">
+                  <a href="/legal/partner-terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPartnerTerms', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="/legal/privacy/" className="hover:text-brand/80 transition-colors">
+                  <a href="/legal/privacy/" className="hover:text-brand/80 transition-colors">
                     {getUIText('privacyPolicy', language)}
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link href="/legal/refund/" className="hover:text-brand/80 transition-colors">
+                  <a href="/legal/refund/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerRefundPolicy', language)}
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>

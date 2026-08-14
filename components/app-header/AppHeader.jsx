@@ -19,9 +19,10 @@
  * @created 2026-02-05 Unified Header Sprint
  * @updated 2026-07-30 Stage 200.2 — dense mobile right cluster (icon wallet / symbol currency)
  * @updated 2026-08-14 Stage 201.12 — optional soft-back leading chevron (useSoftBack)
+ * @updated 2026-08-14 Stage 201.15 — Suspense around ScrollProgressBar (useSearchParams)
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowLeft, Menu, Home as HomeIcon } from 'lucide-react'
@@ -329,8 +330,10 @@ export function AppHeader({
         </div>
       </div>
 
-      {/* Premium scroll progress (2px teal gradient) */}
-      <ScrollProgressBar />
+      {/* Premium scroll progress — Suspense required for useSearchParams (Stage 201.15) */}
+      <Suspense fallback={null}>
+        <ScrollProgressBar />
+      </Suspense>
     </header>
   )
 }

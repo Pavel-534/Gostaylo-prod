@@ -27,6 +27,14 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.15 — marketing footer nav resilience
+
+- Home footer → marketing/legal: hard `<a href>` (full document nav) to avoid soft-nav chunk failures across `(storefront)` → `(marketing)` on PWA/Samsung.
+- `(marketing)` i18n: register storefront-common + errors; `I18nSliceBootstrap preset="marketing"`; local `error.js`.
+- `AppHeader`: `Suspense` around `ScrollProgressBar` (`useSearchParams`).
+- `AppErrorBoundaryView`: Retry on ChunkLoad/Failed-to-fetch → `location.reload()`.
+- Tests: `__tests__/stage201-15-marketing-footer-nav.test.js`.
+
 ### Stage 201.14 — soft-back hard-exit cleanup + marketing pad
 
 - Extended `soft-back-routes`: `/u/*`, `/go/*` → `/listings`; `/renter/reviews/*` → `/my-bookings`; partner guest-review → `/partner/bookings`. Removed page-local ArrowLeft on those screens.
