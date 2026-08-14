@@ -1,10 +1,8 @@
 ﻿'use client'
 
 /**
- * AboutContent — клиентский компонент с i18n.
- * Сервер-обёртка `/app/app/about/page.js` устанавливает metadata, делегирует UI сюда.
- *
- * @created 2026-02 Global Pivot — мультиязычная страница О нас
+ * AboutContent — i18n About page.
+ * Stage 201.31 — MarketingDocChrome shared with Terms / Help / Legal.
  */
 
 import Link from 'next/link'
@@ -14,6 +12,7 @@ import { Shield, Sparkles, HeartHandshake, Globe2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { MarketingDocChrome } from '@/components/marketing/MarketingDocChrome'
 
 const PRINCIPLES = [
   { iconKey: 'shield', icon: Shield },
@@ -126,28 +125,28 @@ export default function AboutContent() {
   const s = STR[language] || STR.ru
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-brand/10 via-white to-white">
-        <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-16 sm:pb-20 max-w-4xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-            {getSiteDisplayName()} · {s.eyebrow}
-          </p>
-          <h1 className="mb-6 text-4xl font-semibold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            {s.h1Line1}<br />
-            <span className="text-brand">{s.h1Line2}</span>
-          </h1>
-          <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">{s.sub}</p>
-        </div>
-      </section>
-
-      {/* Principles */}
-      <section className="container mx-auto px-4 py-16 sm:py-20 max-w-5xl">
+    <MarketingDocChrome
+      unwrapped
+      eyebrow={
+        <>
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />
+          {getSiteDisplayName()} · {s.eyebrow}
+        </>
+      }
+      title={
+        <>
+          {s.h1Line1}
+          <br />
+          <span className="text-brand">{s.h1Line2}</span>
+        </>
+      }
+      lead={s.sub}
+    >
+      <section className="container mx-auto max-w-5xl px-4 py-14 sm:py-16">
         <h2 className="mb-10 text-center text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {s.principlesH2}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
           {s.principles.map((p, i) => {
             const Icon = PRINCIPLES[i]?.icon || Shield
             return (
@@ -162,32 +161,32 @@ export default function AboutContent() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold text-slate-900">{p.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{p.desc}</p>
+                <p className="text-sm leading-relaxed text-slate-600">{p.desc}</p>
               </div>
             )
           })}
         </div>
       </section>
 
-      {/* Story */}
-      <section className="bg-slate-50 border-y border-slate-100">
-        <div className="container mx-auto px-4 py-16 sm:py-20 max-w-3xl">
+      <section className="border-y border-slate-100 bg-slate-50">
+        <div className="container mx-auto max-w-3xl px-4 py-14 sm:py-16">
           <h2 className="mb-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             {s.storyH2}
           </h2>
-          <div className="space-y-5 text-slate-600 text-lg leading-relaxed">
-            {s.storyParas.map((para, i) => <p key={i}>{para}</p>)}
+          <div className="space-y-5 text-lg leading-relaxed text-slate-600">
+            {s.storyParas.map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container mx-auto px-4 py-16 sm:py-20 max-w-4xl text-center">
+      <section className="container mx-auto max-w-4xl px-4 py-14 text-center sm:py-16">
         <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {s.ctaH2}
         </h2>
-        <p className="text-base sm:text-lg text-slate-600 mb-8 max-w-2xl mx-auto">{s.ctaSub}</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <p className="mx-auto mb-8 max-w-2xl text-base text-slate-600 sm:text-lg">{s.ctaSub}</p>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild variant="brand" size="lg" className="px-7 text-sm font-semibold">
             <Link href="/listings">{s.ctaPrimary}</Link>
           </Button>
@@ -196,6 +195,6 @@ export default function AboutContent() {
           </Button>
         </div>
       </section>
-    </main>
+    </MarketingDocChrome>
   )
 }

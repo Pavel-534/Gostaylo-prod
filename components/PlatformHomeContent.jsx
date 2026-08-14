@@ -11,7 +11,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
-import { LegalPublisherNote } from '@/components/legal/LegalPublisherNote'
 import { usePlatformHomePage } from '@/hooks/home/use-platform-home-page'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
@@ -456,13 +455,10 @@ export function PlatformHomeContent() {
               </ul>
             </div>
           </div>
-          <div className="mt-8 flex flex-col gap-4 border-t border-slate-800 pt-6 text-sm text-slate-400 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <p>
-                © {new Date().getFullYear()} {getSiteDisplayName()}. {getUIText('allRightsReserved', language)}
-              </p>
-              <LegalPublisherNote tone="onDark" />
-            </div>
+          <div className="mt-8 flex flex-col gap-4 border-t border-slate-800 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} {getSiteDisplayName()}. {getUIText('allRightsReserved', language)}
+            </p>
             <FooterSwitchers />
           </div>
         </div>

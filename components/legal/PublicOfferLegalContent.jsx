@@ -1,0 +1,279 @@
+'use client'
+
+import Link from 'next/link'
+import { LegalDocShell, LegalTranslationDisclaimer } from '@/components/legal/legal-doc-shell'
+import { useLegalDocLocale } from '@/components/legal/use-legal-doc-locale'
+import { getLegalPublisherDetails } from '@/lib/config/legal-details'
+import { getSiteDisplayName } from '@/lib/site-url'
+
+const linkClass = 'font-medium text-brand-hover hover:underline'
+
+export default function PublicOfferLegalContent() {
+  const brand = getSiteDisplayName()
+  const publisher = getLegalPublisherDetails()
+  const { isRu, showRussian } = useLegalDocLocale()
+
+  if (isRu) {
+    return (
+      <LegalDocShell
+        eyebrow="Публичная оферта"
+        title="Публичная оферта об оказании информационно-технологических и посреднических услуг"
+        lead={`Настоящий документ является официальным предложением (публичной офертой) ${brand} (далее — «Платформа», «Оператор») заключить договор на условиях ниже. Оплачивая бронирование или подтверждая действия в интерфейсе с отметкой о согласии, Пользователь принимает условия настоящей оферты.`}
+        publisher={publisher}
+      >
+        <RuBody brand={brand} />
+      </LegalDocShell>
+    )
+  }
+
+  return (
+    <LegalDocShell
+      eyebrow="Public offer"
+      title="Public offer for information technology and intermediary services"
+      lead={`This document is the official public offer of ${brand} (the “Platform”, “Operator”) to enter into an agreement on the terms below. By paying for a booking or confirming consent in the interface, the User accepts this offer.`}
+      publisher={publisher}
+      disclaimer={<LegalTranslationDisclaimer onShowRussian={showRussian} />}
+    >
+      <EnBody brand={brand} />
+    </LegalDocShell>
+  )
+}
+
+function RuBody({ brand }) {
+  return (
+    <>
+      <h2>1. Роли сторон</h2>
+      <p>
+        <strong>Платформа {brand}</strong> выступает в качестве <strong>посредника (агента)</strong> между{' '}
+        <strong>Гостем</strong> (лицом, оформляющим бронирование) и <strong>Партнёром</strong> — владельцем или
+        уполномоченным представителем объекта размещения либо иной услуги, размещённой на Платформе.
+      </p>
+      <p>
+        Оператор оказывает информационно-технологические услуги: размещение предложений, приём заявок на бронирование,
+        передачу данных Партнёру, сопровождение расчётов через подключённых платёжных партнёров. Оператор{' '}
+        <strong>не является</strong> арендодателем, собственником объекта или непосредственным исполнителем услуги
+        проживания, если иное прямо не указано в карточке конкретного предложения.
+      </p>
+      <p>
+        Договор о предоставлении услуги (проживание, аренда транспорта и т.п.) заключается <strong>между Гостем и
+        Партнёром</strong>. Оператор не подменяет стороны этого договора.
+      </p>
+      <p>
+        Оператор <strong>не является</strong> кредитной организацией или платёжной системой; приём платежных
+        инструментов осуществляется лицензированными платёжными провайдерами в порядке, предусмотренном их правилами и
+        договорами с Оператором.
+      </p>
+
+      <h2>2. Предмет оферты</h2>
+      <p>Предметом настоящей оферты является совокупность услуг Оператора по:</p>
+      <ul>
+        <li>представлению на Платформе предложений Партнёров и приёму заявок (бронирований) от Гостей;</li>
+        <li>передаче Партнёру сведений о подтверждённом бронировании;</li>
+        <li>
+          организации и техническому сопровождению расчётов по бронированию с использованием платёжных сервисов,
+          учёту сумм и отражению статусов в информационной системе Платформы до наступления условий, описанных ниже и в
+          правилах конкретного предложения.
+        </li>
+      </ul>
+
+      <h2>3. Платёж Гостя и обеспечение бронирования</h2>
+      <p>
+        Платформа {brand} выступает в качестве посредника (агента) между Гостем и Партнёром — владельцем объекта.
+      </p>
+      <p>
+        <strong>Денежные средства</strong>, уплаченные Гостем при бронировании, <strong>направляются на исполнение
+        обязательств по бронированию</strong> в порядке, определяемом правилами Платформы, карточкой предложения и
+        применимым правом. Средства проходят через платёжного провайдера; учёт в системе Платформы не означает, что
+        Оператор принимает денежные средства на свой расчётный счёт как кредитная организация.
+      </p>
+      <p>
+        До наступления условий, указанных в карточке предложения и{' '}
+        <Link href="/legal/refund/" className={linkClass}>
+          политике возвратов
+        </Link>
+        , сумма рассматривается сторонами как <strong>обеспечительный платёж</strong> в интересах Гостя и Партнёра (в
+        том числе для защиты от недопоставки услуги). Основным ориентиром для завершения расчётов с Партнёром является
+        дата заселения (check-in) или иное объективное подтверждение оказания услуги в интерфейсе Платформы, если в
+        карточке не установлен иной порядок.
+      </p>
+      <p>
+        За качество, состав и сроки услуги отвечает <strong>Партнёр</strong>. Оператор не гарантирует свойства услуги,
+        возлагаемые на Партнёра, за исключением обязанностей, прямо предусмотренных настоящей офертой и политикой
+        возвратов Платформы.
+      </p>
+
+      <h2>4. Вознаграждение Платформы</h2>
+      <p>
+        <strong>Вознаграждение Платформы</strong> за информационно-технологические услуги, организацию процесса и
+        сопровождение сделки <strong>включается в итоговую стоимость бронирования</strong> (либо отражается в разбивке
+        платежа) и <strong>указывается Гостю и Партнёру до оплаты</strong>. Размер и структура вознаграждения для
+        подтверждённого бронирования не изменяются задним числом.
+      </p>
+      <p>
+        Расчёты с использованием банковских карт и иных платёжных инструментов выполняются через лицензированных
+        посредников. Оператор не принимает оплату «наличными на руки» через Платформу.
+      </p>
+
+      <h2>5. Приоритет документов</h2>
+      <p>При расхождении формулировок применяется следующий порядок (от большего приоритета к меньшему):</p>
+      <ol>
+        <li>условия и правила в <strong>карточке конкретного предложения</strong> (в том числе политика отмены);</li>
+        <li>
+          <Link href="/legal/refund/" className={linkClass}>
+            политика возвратов и отмен
+          </Link>
+          ;
+        </li>
+        <li>настоящая публичная оферта;</li>
+        <li>
+          краткие{' '}
+          <Link href="/terms/" className={linkClass}>
+            условия использования
+          </Link>{' '}
+          (справочно).
+        </li>
+      </ol>
+
+      <h2>6. Ответственность и споры</h2>
+      <p>
+        Ограничения ответственности Оператора, порядок рассмотрения претензий между Гостем и Партнёром, а также случаи
+        возврата средств определяются политикой возвратов, правилами бронирования и применимым законодательством.
+        Технические сбои платёжных провайдеров могут влиять на сроки зачисления; Оператор содействует разрешению
+        инцидента в разумный срок.
+      </p>
+
+      <h2>7. Персональные данные</h2>
+      <p>
+        Обработка персональных данных регламентируется{' '}
+        <Link href="/legal/privacy/" className={linkClass}>
+          политикой конфиденциальности
+        </Link>
+        .
+      </p>
+
+      <h2>8. Изменение оферты</h2>
+      <p>
+        Оферта может обновляться; актуальная дата редакции указана в блоке «Оператор платформы». Существенные изменения
+        доводятся до пользователей через аккаунт и/или e-mail. При следующей оплате бронирования Пользователь может
+        быть приглашён повторно подтвердить согласие с новой редакцией.
+      </p>
+    </>
+  )
+}
+
+function EnBody({ brand }) {
+  return (
+    <>
+      <h2>1. Roles of the parties</h2>
+      <p>
+        <strong>Platform {brand}</strong> acts as an <strong>intermediary (agent)</strong> between the{' '}
+        <strong>Guest</strong> (the person making a booking) and the <strong>Partner</strong> — the owner or authorised
+        representative of the stay or other service listed on the Platform.
+      </p>
+      <p>
+        The Operator provides information technology services: listing offers, accepting booking requests, passing data
+        to the Partner, and supporting settlements via connected payment partners. The Operator is{' '}
+        <strong>not</strong> the landlord, property owner, or direct provider of the stay, unless expressly stated on a
+        specific listing.
+      </p>
+      <p>
+        The contract for the service (stay, vehicle rental, etc.) is concluded <strong>between the Guest and the
+        Partner</strong>. The Operator does not replace the parties to that contract.
+      </p>
+      <p>
+        The Operator is <strong>not</strong> a credit institution or payment system; payment instruments are accepted by
+        licensed payment providers under their rules and agreements with the Operator.
+      </p>
+
+      <h2>2. Subject of the offer</h2>
+      <p>This offer covers the Operator’s services to:</p>
+      <ul>
+        <li>present Partner offers on the Platform and accept booking requests from Guests;</li>
+        <li>pass confirmed booking details to the Partner;</li>
+        <li>
+          organise and technically support booking settlements via payment services, account for amounts, and reflect
+          statuses in the Platform system until the conditions below and in the listing rules are met.
+        </li>
+      </ul>
+
+      <h2>3. Guest payment and booking security</h2>
+      <p>
+        Platform {brand} acts as intermediary (agent) between the Guest and the Partner — the listing provider.
+      </p>
+      <p>
+        <strong>Funds</strong> paid by the Guest at booking are <strong>applied toward performance of the
+        booking</strong> under Platform rules, the listing card, and applicable law. Funds pass through a payment
+        provider; accounting in the Platform system does not mean the Operator receives funds on its own account as a
+        credit institution.
+      </p>
+      <p>
+        Until the conditions in the listing card and{' '}
+        <Link href="/legal/refund/" className={linkClass}>
+          refund policy
+        </Link>{' '}
+        are met, the amount is treated as a <strong>security payment</strong> in the interests of Guest and Partner
+        (including protection against non-delivery). The primary trigger for settling with the Partner is check-in date
+        or other objective confirmation of service in the Platform UI, unless the listing sets another order.
+      </p>
+      <p>
+        The <strong>Partner</strong> is responsible for quality, scope, and timing of the service. The Operator does not
+        guarantee Partner-side attributes except duties expressly set in this offer and the Platform refund policy.
+      </p>
+
+      <h2>4. Platform remuneration</h2>
+      <p>
+        <strong>Platform remuneration</strong> for IT services, process organisation, and deal support is{' '}
+        <strong>included in the booking total</strong> (or shown in the payment breakdown) and{' '}
+        <strong>disclosed to Guest and Partner before payment</strong>. Size and structure for a confirmed booking are
+        not changed retroactively.
+      </p>
+      <p>
+        Card and other instrument settlements run via licensed intermediaries. The Operator does not accept cash
+        “in hand” via the Platform.
+      </p>
+
+      <h2>5. Document priority</h2>
+      <p>If wording conflicts, the following order applies (highest first):</p>
+      <ol>
+        <li>terms on the <strong>specific listing card</strong> (including cancellation policy);</li>
+        <li>
+          <Link href="/legal/refund/" className={linkClass}>
+            refund and cancellation policy
+          </Link>
+          ;
+        </li>
+        <li>this public offer;</li>
+        <li>
+          short{' '}
+          <Link href="/terms/" className={linkClass}>
+            terms of use
+          </Link>{' '}
+          (informational).
+        </li>
+      </ol>
+
+      <h2>6. Liability and disputes</h2>
+      <p>
+        Limits of Operator liability, Guest–Partner claims, and refund cases follow the refund policy, booking rules,
+        and applicable law. Payment-provider outages may affect settlement timing; the Operator assists within a
+        reasonable period.
+      </p>
+
+      <h2>7. Personal data</h2>
+      <p>
+        Personal data processing is governed by the{' '}
+        <Link href="/legal/privacy/" className={linkClass}>
+          privacy policy
+        </Link>
+        .
+      </p>
+
+      <h2>8. Changes to the offer</h2>
+      <p>
+        The offer may be updated; the current revision date is in the “Platform operator” block. Material changes are
+        communicated via account and/or email. On the next booking payment the User may be asked to re-confirm the new
+        revision.
+      </p>
+    </>
+  )
+}

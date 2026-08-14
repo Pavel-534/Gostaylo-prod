@@ -34,12 +34,14 @@ describe('Stage 201.25 — marketing chrome', () => {
     assert.doesNotMatch(terms, /font-serif/)
     assert.doesNotMatch(terms, /amber-50/)
     assert.match(terms, /variant="brand"/)
+    assert.match(terms, /MarketingDocChrome/)
 
-    const help = read('app/(marketing)/help/page.js')
+    const help = read('components/help/HelpContent.jsx')
     assert.doesNotMatch(help, /font-serif/)
-    assert.doesNotMatch(help, /Help Center/)
+    assert.match(help, /Help Center/)
     assert.doesNotMatch(help, /teal-50|amber-50/)
     assert.match(help, /variant="brand"/)
+    assert.match(help, /MarketingDocChrome/)
   })
 
   it('referral metadata uses getSiteDisplayName', () => {

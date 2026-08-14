@@ -16,16 +16,19 @@ function read(rel) {
 }
 
 describe('Stage 201.26 — marketing copy ≤ offer', () => {
-  it('publisher note uses legal SSOT and appears on home + help', () => {
+  it('publisher note on Help contact only; home footer has legal links without ИНН line', () => {
     const note = read('components/legal/LegalPublisherNote.jsx')
     assert.match(note, /getLegalPublisherDetails/)
     assert.match(note, /ИНН/)
     assert.match(note, /ОГРНИП/)
 
     const home = read('components/PlatformHomeContent.jsx')
-    assert.match(home, /LegalPublisherNote/)
+    assert.doesNotMatch(home, /LegalPublisherNote/)
+    assert.match(home, /href="\/legal\/privacy\/"/)
+    assert.match(home, /href="\/legal\/public-offer\/"/)
+    assert.match(home, /href="\/legal\/refund\/"/)
 
-    const help = read('app/(marketing)/help/page.js')
+    const help = read('components/help/HelpContent.jsx')
     assert.match(help, /LegalPublisherNote/)
     assert.match(help, /href="\/legal\/public-offer\/"/)
     assert.match(help, /href="\/legal\/refund\/"/)
@@ -80,7 +83,7 @@ describe('Stage 201.26 — marketing copy ≤ offer', () => {
   })
 
   it('does not invent /legal/terms; PAID_ESCROW status id stays', () => {
-    const help = read('app/(marketing)/help/page.js')
+    const help = read('components/help/HelpContent.jsx')
     const about = read('components/about/AboutContent.jsx')
     const terms = read('components/terms/TermsContent.jsx')
     for (const src of [help, about, terms]) {

@@ -125,15 +125,18 @@ describe('Stage 200.137 — product feedback Phase 1', () => {
   })
 
   it('/help spacing avoids double header pad; honest SLA', () => {
-    const help = read('app/(marketing)/help/page.js')
+    const help = read('components/help/HelpContent.jsx')
+    const chrome = read('components/marketing/MarketingDocChrome.jsx')
     assert.doesNotMatch(help, /24\s*\/\s*7/)
     assert.doesNotMatch(help, /12 минут/)
     assert.match(help, /getPublicSupportEmail/)
     assert.match(help, /нескольких часов/)
-    // MainContent already pads for fixed header — page must not double large top pad classes
+    // MainContent already pads for fixed header — chrome must not double large top pad
     assert.doesNotMatch(help, /\bpt-24\b/)
     assert.doesNotMatch(help, /\bpt-28\b/)
-    assert.match(help, /\bpt-6\b/)
+    assert.doesNotMatch(chrome, /\bpt-24\b/)
+    assert.doesNotMatch(chrome, /\bpt-28\b/)
+    assert.match(chrome, /\bpt-6\b/)
   })
 
   it('feedback SelectContent stacks above Dialog (z-220)', () => {

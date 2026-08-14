@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.134 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.29** About founder story.
+> **Version**: 13.2.136 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.31** marketing/legal chrome + i18n.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,6 +27,18 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.31 — marketing/legal chrome + Help/legal i18n
+
+- **Chrome SSOT:** `components/marketing/MarketingDocChrome.jsx` — shared eyebrow pill, H1, lead, spacing for `/about`, `/terms`, `/help`, `/help/escrow-protection`, `/legal/*` (`LegalDocShell`).
+- **Help FAQ:** `components/help/HelpContent.jsx` — full RU/EN (UI language ≠ `ru` → EN).
+- **Legal:** RU body remains binding SSOT; non-RU → EN convenience + `LegalTranslationDisclaimer` (switch UI language to RU). Pages: `*LegalContent.jsx`.
+- About founder story unchanged (no middleman %); still via `getSiteDisplayName()`.
+- Tests: `__tests__/stage201-31-marketing-legal-chrome-i18n.test.js`.
+
+### Stage 201.30 — hide public publisher line on home/help
+
+- Removed `LegalPublisherNote` from **home** footer only. Kept under Help «Связаться с нами». Component + `getLegalPublisherDetails` remain for legal docs.
+
 ### Stage 201.29 — About founder story
 
 - `/about` «Наша история»: four honest founder paragraphs (Phuket + Russia travel pain → owners who want fair guests → small team building `{brand}` for ourselves → stay-first TH+RU). Brand via `getSiteDisplayName()`.
@@ -44,7 +56,7 @@
 ### Stage 201.26 — marketing copy ≤ public offer
 
 - Guest copy mirrors the offer: funds are held by the **payment partner**, not a platform escrow account. Status id `PAID_ESCROW` unchanged. Canon legal URLs stay `/terms/`, `/legal/public-offer/`, `/legal/privacy/`, `/legal/refund/` (no `/legal/terms`).
-- About: owners **and representatives**; stay-first TH+RU without housing-only; Phuket only in founding story. Help/checkout/home: no 24/7 SLA; refunds follow listing + offer. KYC chip: «Подтверждённый партнёр». Footer/help: `LegalPublisherNote` (ИНН/ОГРНИП).
+- About: owners **and representatives**; stay-first TH+RU without housing-only; Phuket only in founding story. Help/checkout/home: no 24/7 SLA; refunds follow listing + offer. KYC chip: «Подтверждённый партнёр». `LegalPublisherNote` on Help contact; not on home footer.
 - Tests: `__tests__/stage201-26-marketing-copy-offer.test.js`.
 
 ### Stage 201.25 — marketing chrome (no city hardcode)

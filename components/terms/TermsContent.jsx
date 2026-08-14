@@ -13,6 +13,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { ScrollText, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { MarketingDocChrome } from '@/components/marketing/MarketingDocChrome'
 
 const STR = {
   ru: {
@@ -187,33 +188,30 @@ export default function TermsContent() {
   const supportEmail = getPublicSupportEmail()
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-brand/10 via-white to-white">
-        <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-14 sm:pb-16 max-w-4xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
-            <ScrollText className="h-3 w-3" />
-            {s.eyebrow} · {getSiteDisplayName()}
-          </p>
-          <h1 className="mb-5 text-4xl font-semibold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            {s.h1}
-          </h1>
-          <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">{s.sub}</p>
-          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">{s.effectiveFrom}</p>
-          <Button asChild variant="outline" className="mt-6 px-6 text-sm font-semibold">
-            <Link href="/legal/public-offer/">{s.fullOfferCta}</Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* Sections */}
-      <section className="container mx-auto px-4 py-14 sm:py-20 max-w-4xl">
+    <MarketingDocChrome
+      unwrapped
+      eyebrow={
+        <>
+          <ScrollText className="h-3 w-3" aria-hidden />
+          {s.eyebrow} · {getSiteDisplayName()}
+        </>
+      }
+      title={s.h1}
+      lead={s.sub}
+      meta={s.effectiveFrom}
+      actions={
+        <Button asChild variant="outline" className="px-6 text-sm font-semibold">
+          <Link href="/legal/public-offer/">{s.fullOfferCta}</Link>
+        </Button>
+      }
+    >
+      <section className="container mx-auto max-w-4xl px-4 py-14 sm:py-16">
         <div className="space-y-10 sm:space-y-12">
           {s.sections.map((sec) => (
             <article
               key={sec.n}
               data-testid={`terms-section-${sec.n}`}
-              className="grid grid-cols-1 sm:grid-cols-[80px_1fr] gap-3 sm:gap-8"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-[80px_1fr] sm:gap-8"
             >
               <div>
                 <span className="text-3xl font-semibold tracking-tight text-brand/80 sm:text-4xl">
@@ -224,8 +222,10 @@ export default function TermsContent() {
                 <h2 className="mb-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
                   {sec.title}
                 </h2>
-                <div className="space-y-3 text-slate-600 leading-relaxed text-base sm:text-[17px]">
-                  {sec.body.map((p, i) => <p key={i}>{p}</p>)}
+                <div className="space-y-3 text-base leading-relaxed text-slate-600 sm:text-[17px]">
+                  {sec.body.map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
                 </div>
               </div>
             </article>
@@ -233,17 +233,16 @@ export default function TermsContent() {
         </div>
       </section>
 
-      {/* Contact */}
-      <section className="bg-slate-50 border-y border-slate-100">
-        <div className="container mx-auto px-4 py-14 sm:py-16 max-w-3xl text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)]">
+      <section className="border-y border-slate-100 bg-slate-50">
+        <div className="container mx-auto max-w-3xl px-4 py-14 text-center sm:py-16">
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-brand-icon">
             <Mail className="h-5 w-5" />
           </div>
           <h2 className="mb-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             {s.contactH2}
           </h2>
-          <p className="text-slate-600 mb-7 max-w-xl mx-auto">{s.contactSub}</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <p className="mx-auto mb-7 max-w-xl text-slate-600">{s.contactSub}</p>
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild variant="brand" size="lg" className="px-7 text-sm font-semibold">
               <Link href="/legal/public-offer/">{s.fullOfferCta}</Link>
             </Button>
@@ -256,6 +255,6 @@ export default function TermsContent() {
           </div>
         </div>
       </section>
-    </main>
+    </MarketingDocChrome>
   )
 }

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.31 | 2026-08-14 | Unified MarketingDocChrome; Help FAQ i18n; legal EN + disclaimer | Done |
+| 201.30 | 2026-08-14 | Hide publisher ИНН/ОГРНИП from home footer only; keep on Help contact | Done |
 | 201.29 | 2026-08-14 | About story: founder voice (Phuket/Russia travel pain → build for ourselves) | Done |
 | 201.28 | 2026-08-14 | Partner-terms intro: payment partner holds funds (align with offer) | Done |
 | 201.27 | 2026-08-14 | TrustBar: hide listings under 10 and rating without reviews; no 1200/4.9 vanity | Done |
