@@ -46,7 +46,7 @@ export const RecommendationRailShell = forwardRef(function RecommendationRailShe
           ) : null}
         </div>
 
-        <CarouselContent className="-ml-3 mt-4 sm:-ml-4">
+        <CarouselContent className="-ml-3 mt-3 sm:-ml-4 sm:mt-4">
           {slides.map((child) => (
             <CarouselItem
               key={child.key}

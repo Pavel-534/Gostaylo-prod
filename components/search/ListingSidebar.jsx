@@ -173,7 +173,7 @@ function ListingSidebarComponent({
   return (
     <>
       {(onCatalogSortChange || !mobileMapSheet || !showMap) ? (
-        <div className="mb-2.5 flex items-center justify-between gap-3 md:mb-4">
+        <div className="mb-2.5 flex items-center justify-between gap-2 md:mb-4 md:gap-3">
           {onCatalogSortChange ? (
             <CatalogSortSelect
               className="min-w-0"
@@ -189,7 +189,7 @@ function ListingSidebarComponent({
             <Button
               onClick={onToggleMap}
               variant="outline"
-              className="min-h-[44px] shrink-0 gap-2 rounded-2xl lg:hidden"
+              className="min-h-[44px] shrink-0 gap-2 rounded-2xl px-3 lg:hidden"
               data-testid="catalog-mobile-map-toggle"
             >
               {showMap && !mobileMapSheet ? (
@@ -200,7 +200,7 @@ function ListingSidebarComponent({
               ) : (
                 <>
                   <MapIcon className="h-4 w-4" />
-                  {getUIText('showMap', language)}
+                    {getUIText(isMobile ? 'showMapShort' : 'showMap', language)}
                 </>
               )}
             </Button>

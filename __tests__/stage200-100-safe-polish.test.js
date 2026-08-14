@@ -20,6 +20,7 @@ describe('Stage 200.100 — safe polish', () => {
       pluralizeBedrooms,
       pluralizeBathrooms,
       pluralizeGuests,
+      pluralizeListings,
       formatUpToGuestsLabel,
     } = await import('@/lib/i18n/pluralize.js')
     assert.equal(pluralizeBedrooms(1, 'ru'), 'спальня')
@@ -30,6 +31,12 @@ describe('Stage 200.100 — safe polish', () => {
     assert.equal(pluralizeBathrooms(3, 'ru'), 'ванные')
     assert.equal(pluralizeBathrooms(11, 'ru'), 'ванных')
     assert.equal(pluralizeGuests(1, 'ru'), 'гость')
+    assert.equal(pluralizeListings(1, 'ru'), 'объект')
+    assert.equal(pluralizeListings(2, 'ru'), 'объекта')
+    assert.equal(pluralizeListings(5, 'ru'), 'объектов')
+    assert.equal(pluralizeListings(21, 'ru'), 'объект')
+    assert.equal(pluralizeListings(22, 'ru'), 'объекта')
+    assert.equal(pluralizeListings(12, 'ru'), 'объектов')
     assert.equal(formatUpToGuestsLabel(1, 'ru'), 'До 1 гостя')
     assert.equal(formatUpToGuestsLabel(2, 'ru'), 'До 2 гостей')
     assert.equal(formatUpToGuestsLabel(5, 'ru'), 'До 5 гостей')
@@ -44,6 +51,11 @@ describe('Stage 200.100 — safe polish', () => {
     assert.match(pricing, /pricing-cancellation/)
     assert.match(pricing, /PARTNER_SECTION_TITLE_CLASS/)
     assert.match(pricing, /partnerEdit_cancellationPolicy/)
+  })
+
+  it('home top listings uses listing plural helper', () => {
+    assert.match(read('components/home/TopListingsGrid.jsx'), /pluralizeListings/)
+    assert.doesNotMatch(read('components/home/TopListingsGrid.jsx'), /объектов'/)
   })
 
   it('trust compact is at least text-xs', () => {

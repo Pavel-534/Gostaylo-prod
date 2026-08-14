@@ -306,7 +306,7 @@ export function PlatformHomeContent() {
         }
       />
 
-      <div className="gsl-page-container max-w-6xl space-y-8 py-8">
+      <div className="mx-auto max-w-6xl space-y-4 px-3 pt-3 pb-0 sm:space-y-8 sm:px-4 sm:py-8">
         <ForYouRail
           where={where}
           language={language}
