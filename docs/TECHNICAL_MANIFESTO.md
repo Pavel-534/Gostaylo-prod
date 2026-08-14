@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.127 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.22** catalog Back restore retry.
+> **Version**: 13.2.129 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.24** home Top listings spacing.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,18 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.24 — home Top listings breathing room
+
+- `TopListingsGrid` mobile top pad `pt-2` → `pt-8` so the title sits further below recently viewed.
+- Dropped the `{n} объекта/ов` subtitle (noise). Date range line stays when search dates are set.
+
+### Stage 201.23 — post-login feel-fast
+
+- Login already returns `user` + Set-Cookie. Success path no longer awaits `GET /me` / `refreshUserFromServer` before navigate (destination still hydrates via `/me`).
+- `finishAuthNavigation`: `dispatchOptimisticNavPending` + `router.replace` — **no** `router.refresh()` on the auth page (that was the idle-button gap). Spinner stays until unmount.
+- Same pattern: email form, modal `handleLogin`, phone OTP, Telegram, complete-legal, link-conflict merge.
+- Tests: `__tests__/auth-redirect-booking-draft.test.js`.
 
 ### Stage 201.22 — catalog Back restore retry
 

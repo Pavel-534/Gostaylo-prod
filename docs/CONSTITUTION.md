@@ -284,6 +284,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Design tokens** | `lib/theme/tokens.ts` / `tokens.cjs` → Tailwind / `globals.css` |
 | **Mobile keyboard / overlays** | `hooks/use-visual-viewport-frame.js` (`buildVisualViewportPinStyle`) → `components/ui/dialog.jsx` (`mobileAnchor`) + `components/ui/sheet.jsx` (`side="bottom"`). Pin to **visualViewport** `top+height`, never `bottomInset` alone. Form sheets: `mobileAnchor="bottom"`. |
 | **List scroll restore (Back)** | `lib/navigation/route-scroll-memory.js` + root `RouteScrollMemoryHost`. Allowlist: `routeScrollKeyFromLocation` / `isScrollMemoryRouteKey`. Persist: `persistLiveRouteScroll` (Link click capture **or** before `router.push`). Back: `useSoftBack` → `markPendingRouteScrollRestore`. Не плодить page-local `useRouteScrollMemory`. |
+| **Post-auth redirect** | `lib/auth/auth-redirect.js` (`finishAuthNavigation`: `airento:nav-pending` + `replace`; apply login payload, do not block on `/me` or `router.refresh()` on the auth page). |
 | **Бренд / site name** | `lib/site-url.js` → `getSiteDisplayName()` |
 | **Resend transport guard** | `lib/email/resend-transport-guard.js` |
 | **Критичная телеметрия** | `lib/critical-telemetry.js` |

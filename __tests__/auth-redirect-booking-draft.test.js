@@ -36,6 +36,37 @@ describe('auth-redirect dual channel', () => {
   })
 })
 
+describe('finishAuthNavigation feels-fast (201.23)', () => {
+  it('signals optimistic pending and replace, without refresh', async () => {
+    const fs = require('node:fs')
+    const path = require('node:path')
+    const src = fs.readFileSync(path.join(__dirname, '../lib/auth/auth-redirect.js'), 'utf8')
+    assert.match(src, /dispatchOptimisticNavPending/)
+    assert.match(src, /router\.replace\(/)
+    assert.doesNotMatch(src, /router\.refresh\(/)
+    assert.doesNotMatch(src, /router\.push\(/)
+  })
+
+  it('email login applies POST /login user and keeps busy until unmount', () => {
+    const fs = require('node:fs')
+    const path = require('node:path')
+    const src = fs.readFileSync(path.join(__dirname, '../components/auth/AuthEmailLoginForm.jsx'), 'utf8')
+    assert.match(src, /updateUser\(result\.user\)/)
+    assert.match(src, /keepBusy/)
+    assert.doesNotMatch(src, /getCurrentUser/)
+    assert.doesNotMatch(src, /refreshUserFromServer/)
+  })
+
+  it('modal login uses login payload, not blocking GET /me', () => {
+    const fs = require('node:fs')
+    const path = require('node:path')
+    const src = fs.readFileSync(path.join(__dirname, '../contexts/auth/auth-actions.js'), 'utf8')
+    assert.match(src, /normalizeAuthUser\(result\.user\)/)
+    assert.match(src, /finishAuthNavigation/)
+    assert.doesNotMatch(src, /getCurrentUser/)
+  })
+})
+
 describe('booking-modal-draft dates', () => {
   it('builds payload with dates and restores when URL missing', async () => {
     const {

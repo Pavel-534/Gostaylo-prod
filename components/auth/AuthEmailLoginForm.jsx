@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { signIn } from '@/lib/auth'
-import { getCurrentUser } from '@/lib/auth'
 import { finishAuthNavigation } from '@/lib/auth/auth-redirect'
 import { useAuth } from '@/contexts/auth-context'
 import { safeInternalPath } from '@/lib/security/safe-internal-path'
@@ -18,7 +17,7 @@ import { safeInternalPath } from '@/lib/security/safe-internal-path'
 export function AuthEmailLoginForm() {
   const router = useRouter()
   const { language } = useI18n()
-  const { refreshUserFromServer } = useAuth()
+  const { updateUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -30,6 +29,7 @@ export function AuthEmailLoginForm() {
       e.preventDefault()
       setBusy(true)
       setError('')
+      let keepBusy = false
       try {
         const savedRedirect = sessionStorage.getItem('gostaylo_redirect_after_login')
         const customRedirect = savedRedirect?.startsWith('/') ? safeInternalPath(savedRedirect, '/') : null
@@ -37,32 +37,28 @@ export function AuthEmailLoginForm() {
 
         if (result.requiresVerification) {
           router.push(`/auth/verify-email?email=${encodeURIComponent(result.email || email)}`)
+          keepBusy = true
           return
         }
         if (!result.success) {
           setError(getAuthErrorMessage(result.error_code, language))
           return
         }
-
-        const verified = await getCurrentUser()
-        if (!verified) {
+        if (!result.user) {
           setError(getAuthErrorMessage('AUTH_INTERNAL', language))
           return
         }
-        await refreshUserFromServer()
-        try {
-          localStorage.setItem('gostaylo_user', JSON.stringify(verified))
-        } catch {
-          /* ignore */
-        }
-        finishAuthNavigation(router, result.redirectTo || '/profile/')
+
+        updateUser(result.user)
+        finishAuthNavigation(router, result.redirectTo || '/')
+        keepBusy = true
       } catch {
         setError(getAuthErrorMessage('AUTH_INTERNAL', language))
       } finally {
-        setBusy(false)
+        if (!keepBusy) setBusy(false)
       }
     },
-    [email, password, language, router, refreshUserFromServer],
+    [email, password, language, router, updateUser],
   )
 
   return (

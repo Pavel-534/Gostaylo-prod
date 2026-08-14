@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.24 | 2026-08-14 | Home: more space above Top listings; drop count subtitle | Done |
+| 201.23 | 2026-08-14 | Post-login: apply `result.user`, keep spinner, `replace` + nav-pending (no `/me` + `refresh` dead gap) | Done |
 | 201.22 | 2026-08-14 | Catalog Back restore: retry live key + pending in sessionStorage | Done |
 | 201.21 | 2026-08-14 | Catalog scroll SSOT: live `?query` key + persist on PDP `router.push` | Done |
 | 201.20 | 2026-08-14 | Scroll memory anchor align (fix “чуть ниже” after image layout) | Done |

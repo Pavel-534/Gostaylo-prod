@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/auth-context'
 export function AuthPhoneFlow({ requireLegalConsent = false, legalConsent = true, onLegalRequired }) {
   const router = useRouter()
   const { language } = useI18n()
-  const { refreshUserFromServer } = useAuth()
+  const { updateUser } = useAuth()
   const [phone, setPhone] = useState('')
   const [challengeId, setChallengeId] = useState('')
   const [otp, setOtp] = useState('')
@@ -61,6 +61,7 @@ export function AuthPhoneFlow({ requireLegalConsent = false, legalConsent = true
     if (otp.length !== 6) return
     setBusy(true)
     setError('')
+    let keepBusy = false
     try {
       const res = await fetch('/api/v2/auth/phone/verify', {
         method: 'POST',
@@ -77,21 +78,15 @@ export function AuthPhoneFlow({ requireLegalConsent = false, legalConsent = true
         setError(getAuthErrorMessage(json.error_code, language))
         return
       }
-      await refreshUserFromServer()
-      if (json.user) {
-        try {
-          localStorage.setItem('gostaylo_user', JSON.stringify(json.user))
-        } catch {
-          /* ignore */
-        }
-      }
+      if (json.user) updateUser(json.user)
       finishAuthNavigation(router)
+      keepBusy = true
     } catch {
       setError(getAuthErrorMessage('AUTH_INTERNAL', language))
     } finally {
-      setBusy(false)
+      if (!keepBusy) setBusy(false)
     }
-  }, [otp, challengeId, requireLegalConsent, legalConsent, language, refreshUserFromServer, router])
+  }, [otp, challengeId, requireLegalConsent, legalConsent, language, updateUser, router])
 
   if (step === 'otp') {
     return (

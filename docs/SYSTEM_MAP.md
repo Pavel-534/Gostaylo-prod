@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.80 | **Last Updated**: 2026-08-14 | **201.22** list scroll restore SSOT; **201.19** silent FCM ack; **201.11** nightly E2E keep-list.  
+> **Version**: 13.2.81 | **Last Updated**: 2026-08-14 | **201.23** post-login feel-fast; **201.22** list scroll restore SSOT; **201.19** silent FCM ack.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -171,7 +171,7 @@
 
 | Path |
 |------|
-| `POST /api/v2/auth/login` · logout / me |
+| `POST /api/v2/auth/login` · logout / me — client applies `result.user` immediately; `finishAuthNavigation` (pending + replace). Destination still hydrates via `GET /me` |
 | `POST /api/v2/partner/concierge-welcome/ack` — ADR-210 clear welcome-pending flag |
 | `POST /api/v2/auth/phone/send` · `verify` |
 | `POST /api/v2/auth/telegram` |

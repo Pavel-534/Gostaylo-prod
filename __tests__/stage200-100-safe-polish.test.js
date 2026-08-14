@@ -53,9 +53,10 @@ describe('Stage 200.100 — safe polish', () => {
     assert.match(pricing, /partnerEdit_cancellationPolicy/)
   })
 
-  it('home top listings uses listing plural helper', () => {
-    assert.match(read('components/home/TopListingsGrid.jsx'), /pluralizeListings/)
-    assert.doesNotMatch(read('components/home/TopListingsGrid.jsx'), /объектов'/)
+  it('home top listings has no count subtitle under the title', () => {
+    const src = read('components/home/TopListingsGrid.jsx')
+    assert.doesNotMatch(src, /pluralizeListings/)
+    assert.match(src, /pt-8 pb-8/)
   })
 
   it('trust compact is at least text-xs', () => {

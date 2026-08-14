@@ -13,6 +13,7 @@ import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
+import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -43,7 +44,7 @@ function resolvePostLegalPath(searchParams) {
 export default function CompleteLegalPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { loading, user, updateUser, refreshUserFromServer } = useAuth()
+  const { loading, user, updateUser } = useAuth()
   const { language } = useI18n()
   const [checked, setChecked] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -66,6 +67,7 @@ export default function CompleteLegalPage() {
       return
     }
     setBusy(true)
+    let keepBusy = false
     try {
       const res = await fetch('/api/v2/auth/accept-legal/', {
         method: 'POST',
@@ -94,7 +96,6 @@ export default function CompleteLegalPage() {
           legal_terms_accepted_at: acceptedAt,
         })
       }
-      await refreshUserFromServer()
       const nextPath = resolvePostLegalPath(searchParams)
       try {
         localStorage.removeItem(OAUTH_RETURN_TO_LS)
@@ -106,14 +107,15 @@ export default function CompleteLegalPage() {
       } catch {
         /* ignore */
       }
-      router.push(nextPath)
-      router.refresh()
+      dispatchOptimisticNavPending(nextPath)
+      router.replace(nextPath)
+      keepBusy = true
     } catch {
       setLocalError(getAuthErrorMessage('AUTH_INTERNAL', language))
     } finally {
-      setBusy(false)
+      if (!keepBusy) setBusy(false)
     }
-  }, [checked, language, refreshUserFromServer, router, searchParams, updateUser, user])
+  }, [checked, language, router, searchParams, updateUser, user])
 
   if (loading) {
     return <main className='min-h-screen bg-slate-50' />

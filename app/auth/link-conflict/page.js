@@ -110,6 +110,7 @@ function LinkConflictInner() {
     if (otp.length !== 6) return
     setBusy(true)
     setError('')
+    let keepBusy = false
     try {
       const res = await fetch('/api/v2/auth/link-conflict/resolve', {
         method: 'POST',
@@ -127,10 +128,11 @@ function LinkConflictInner() {
         return
       }
       finishAuthNavigation(router, '/profile')
+      keepBusy = true
     } catch {
       setError(getAuthErrorMessage('AUTH_INTERNAL', language))
     } finally {
-      setBusy(false)
+      if (!keepBusy) setBusy(false)
     }
   }, [token, challengeId, otp, language, router])
 

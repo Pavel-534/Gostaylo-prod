@@ -20,7 +20,7 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
   const router = useRouter()
   const { language } = useI18n()
   const { isRussia } = useGeo()
-  const { refreshUserFromServer } = useAuth()
+  const { updateUser } = useAuth()
   const botUsername = getTelegramBotUsername()
   const visible = isAuthProviderVisible('telegram', { isRussia })
 
@@ -45,20 +45,13 @@ export function TelegramLoginButton({ requireLegalConsent = false, legalConsent 
           toast.error(getAuthErrorMessage(json.error_code, language))
           return
         }
-        await refreshUserFromServer()
-        if (json.user) {
-          try {
-            localStorage.setItem('gostaylo_user', JSON.stringify(json.user))
-          } catch {
-            /* ignore */
-          }
-        }
+        if (json.user) updateUser(json.user)
         finishAuthNavigation(router)
       } catch {
         toast.error(getAuthErrorMessage('AUTH_INTERNAL', language))
       }
     },
-    [requireLegalConsent, legalConsent, onLegalRequired, language, refreshUserFromServer, router],
+    [requireLegalConsent, legalConsent, onLegalRequired, language, updateUser, router],
   )
 
   useEffect(() => {

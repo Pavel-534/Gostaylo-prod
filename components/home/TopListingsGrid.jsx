@@ -22,7 +22,6 @@ import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-hr
 import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
-import { pluralizeListings } from '@/lib/i18n/pluralize'
 
 export function TopListingsGrid({
   language,
@@ -59,21 +58,18 @@ export function TopListingsGrid({
     checkOutTime,
   }
   return (
-    <section id="listings-section" className="bg-white pt-2 pb-8 sm:py-12 lg:py-16">
+    <section id="listings-section" className="bg-white pt-8 pb-8 sm:py-12 lg:py-16">
       <div className="container mx-auto px-6">
         <div className="mb-3 flex items-center justify-between sm:mb-8">
           <div>
-            <h2 className="mb-0.5 text-[26px] font-semibold leading-8 tracking-[-0.01em] text-slate-900 sm:mb-1 sm:text-[32px] sm:leading-10">
+            <h2 className="text-[26px] font-semibold leading-8 tracking-[-0.01em] text-slate-900 sm:text-[32px] sm:leading-10">
               {sectionTitle}
             </h2>
-            <p className="text-sm text-slate-600 sm:text-base">
-              {listings.length} {pluralizeListings(listings.length, language)}
-              {dateRange.from && dateRange.to && (
-                <span className="text-brand ml-2">
-                  • {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
-                </span>
-              )}
-            </p>
+            {dateRange.from && dateRange.to ? (
+              <p className="mt-1 text-sm text-brand sm:text-base">
+                {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
+              </p>
+            ) : null}
           </div>
           {listingsLoading && <Loader2 className="h-5 w-5 animate-spin text-brand shrink-0" aria-hidden />}
         </div>

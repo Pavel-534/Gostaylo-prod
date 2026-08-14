@@ -4,7 +4,8 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy'
-import { signIn, signUp, getCurrentUser } from '@/lib/auth'
+import { signIn, signUp } from '@/lib/auth'
+import { finishAuthNavigation } from '@/lib/auth/auth-redirect'
 import { getOAuthBrowserSupabase, getOAuthRedirectOrigin } from '@/lib/supabase/oauth-browser-client'
 import { safeInternalPath } from '@/lib/security/safe-internal-path'
 import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
@@ -126,6 +127,7 @@ export function useAuthActions(params) {
       e.preventDefault()
       setSubmitting(true)
       setError('')
+      let keepBusy = false
 
       try {
         const savedRedirect = sessionStorage.getItem('gostaylo_redirect_after_login')
@@ -143,17 +145,13 @@ export function useAuthActions(params) {
         if (result.requiresVerification) {
           setVerificationEmail(result.email || email)
           setAuthMode('verification_pending')
-          setSubmitting(false)
           return
         }
         if (!result.success) {
           setError(getAuthErrorMessage(result.error_code, language))
-          setSubmitting(false)
           return
         }
-
-        const verified = await getCurrentUser()
-        if (!verified) {
+        if (!result.user) {
           localStorage.removeItem('gostaylo_user')
           setUser(null)
           setError(
@@ -161,16 +159,14 @@ export function useAuthActions(params) {
               ? 'Сессия не сохранилась. Проверьте cookies для сайта и попробуйте снова.'
               : 'Session was not saved. Check site cookies and try again.',
           )
-          setSubmitting(false)
           return
         }
 
-        const normalizedLogin = normalizeAuthUser(verified)
+        const normalizedLogin = normalizeAuthUser(result.user)
         setUser(normalizedLogin)
         localStorage.setItem('gostaylo_user', JSON.stringify(normalizedLogin))
         closeLoginModal('success')
 
-        if (savedRedirect) sessionStorage.removeItem('gostaylo_redirect_after_login')
         window.dispatchEvent(new CustomEvent('auth-change', { detail: normalizedLogin }))
 
         if (String(normalizedLogin?.role || '').toUpperCase() === 'PARTNER') {
@@ -178,16 +174,18 @@ export function useAuthActions(params) {
         }
 
         if (savedRedirect) {
-          router.push(safeInternalPath(savedRedirect, '/'))
+          finishAuthNavigation(router, savedRedirect)
+          keepBusy = true
         } else if (stayOnCurrentPage) {
           router.refresh()
-        } else if (result.redirectTo) {
-          router.push(safeInternalPath(result.redirectTo, '/'))
+        } else {
+          finishAuthNavigation(router, result.redirectTo || '/')
+          keepBusy = true
         }
       } catch {
         setError(getAuthErrorMessage('AUTH_INTERNAL', language))
       } finally {
-        setSubmitting(false)
+        if (!keepBusy) setSubmitting(false)
       }
     },
     [
