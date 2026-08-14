@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.29 | 2026-08-14 | About story: founder voice (Phuket/Russia travel pain → build for ourselves) | Done |
 | 201.28 | 2026-08-14 | Partner-terms intro: payment partner holds funds (align with offer) | Done |
 | 201.27 | 2026-08-14 | TrustBar: hide listings under 10 and rating without reviews; no 1200/4.9 vanity | Done |
 | 201.26 | 2026-08-14 | Marketing copy ≤ offer: payment partner holds funds; no 24/7 / Phuket pitch; verified partner badge | Done |

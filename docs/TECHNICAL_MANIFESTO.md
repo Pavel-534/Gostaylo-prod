@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.133 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.28** partner-terms intro ≤ offer.
+> **Version**: 13.2.134 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.29** About founder story.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.29 — About founder story
+
+- `/about` «Наша история»: four honest founder paragraphs (Phuket + Russia travel pain → owners who want fair guests → small team building `{brand}` for ourselves → stay-first TH+RU). Brand via `getSiteDisplayName()`.
 
 ### Stage 201.28 — partner-terms intro ≤ offer
 
