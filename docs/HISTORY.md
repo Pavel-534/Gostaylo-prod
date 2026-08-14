@@ -6,6 +6,10 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.28 | 2026-08-14 | Partner-terms intro: payment partner holds funds (align with offer) | Done |
+| 201.27 | 2026-08-14 | TrustBar: hide listings under 10 and rating without reviews; no 1200/4.9 vanity | Done |
+| 201.26 | 2026-08-14 | Marketing copy ≤ offer: payment partner holds funds; no 24/7 / Phuket pitch; verified partner badge | Done |
+| 201.25 | 2026-08-14 | Marketing About/Help/Terms: drop Phuket eyebrow; sans + brand Button chrome | Done |
 | 201.24 | 2026-08-14 | Home: more space above Top listings; drop count subtitle | Done |
 | 201.23 | 2026-08-14 | Post-login: apply `result.user`, keep spinner, `replace` + nav-pending (no `/me` + `refresh` dead gap) | Done |
 | 201.22 | 2026-08-14 | Catalog Back restore: retry live key + pending in sessionStorage | Done |

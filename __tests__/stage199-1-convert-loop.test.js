@@ -36,7 +36,7 @@ describe('PDP booking trust i18n', () => {
     for (const lang of ['ru', 'en']) {
       const slice = listingsPublicUi[lang]
       assert.ok(slice.listingBookingTrust_escrow.includes('{brand}'))
-      assert.match(slice.listingBookingTrust_escrow, /Escrow/i)
+      assert.doesNotMatch(slice.listingBookingTrust_escrow, /Escrow/i)
       assert.ok(String(slice.listingBookingTrust_cancel).length > 8)
       assert.ok(slice.listingBookingTrust_chat.includes('{provider}'))
       const ph = getGuestBookingLabelPlaceholders({

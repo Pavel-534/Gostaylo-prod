@@ -1,43 +1,17 @@
 ﻿'use client'
 
 /**
- * TrustBar — узкая полоса «social proof» под Hero-секцией.
+ * TrustBar — узкая полоса «social proof» под HowItWorks.
  * SSOT: статистика из /api/v2/public/stats (кэш 2ч), переводы через getUIText.
- * Пока данные грузятся — показываются skeleton placeholders (3 серые плашки).
+ * Stage 201.27 — honest tiles only; listings count is global (worldwide label only).
+ * Пока данные грузятся — skeleton placeholders (3 серые плашки).
  */
 
 import { Home, Star, ShieldCheck } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { useEffect, useRef, useState } from 'react'
 import { fetchPublicStats } from '@/lib/api/catalog-public-client'
-
-/** Resolve human-readable location name via geo_locations (Stage 200.37). */
-function useLocationDisplayName(locationContext, language) {
-  const [name, setName] = useState(null)
-  useEffect(() => {
-    if (!locationContext || locationContext === 'all') {
-      setName(null)
-      return undefined
-    }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(
-          `/api/v2/geo/resolve-where?q=${encodeURIComponent(locationContext)}&lang=${encodeURIComponent(language || 'ru')}`,
-          { cache: 'no-store' },
-        )
-        const json = await res.json().catch(() => ({}))
-        if (!cancelled) setName(json?.data?.label || null)
-      } catch {
-        if (!cancelled) setName(null)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [locationContext, language])
-  return name
-}
+import { resolveTrustBarMetrics } from '@/lib/home/trust-bar-items'
 
 // ---------- Animated counter ----------
 function AnimatedCounter({ target, duration = 1400, suffix = '', decimals = 0 }) {
@@ -105,10 +79,8 @@ function TrustBarSkeleton() {
 /**
  * @param {object} p
  * @param {string} [p.language='ru']
- * @param {string} [p.locationContext='all'] — динамический контекст: 'all' | country code | region code | city slug.
- *   Влияет на label "objects in {…}". Если не передано / 'all' — показываем «по всему миру».
  */
-export function TrustBar({ language = 'ru', locationContext = 'all' }) {
+export function TrustBar({ language = 'ru' }) {
   const [visible, setVisible] = useState(false)
   const [stats, setStats] = useState(null)
   const [loadingStats, setLoadingStats] = useState(true)
@@ -125,7 +97,6 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
   }, [])
 
   // Fallback: after stats loaded, flip visible to true within 1.5s if observer didn't fire.
-  // Защищает от случаев когда observer не срабатывает (viewport уже revealed, zoom, и т.п.)
   useEffect(() => {
     if (loadingStats) return
     if (visible) return
@@ -133,42 +104,39 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
     return () => clearTimeout(t)
   }, [loadingStats, visible])
 
-  // Fetch live stats from public API
   useEffect(() => {
     let cancelled = false
     fetchPublicStats()
       .then(({ ok, data }) => {
         if (!cancelled && ok) setStats(data)
       })
-      .catch(() => { /* use fallback */ })
+      .catch(() => { /* leave stats null — no vanity fallback */ })
       .finally(() => { if (!cancelled) setLoadingStats(false) })
     return () => { cancelled = true }
   }, [])
 
-  // Dynamic listings label: «1200+ объектов в {place}» или «… по всему миру»
-  const placeName = useLocationDisplayName(locationContext, language)
-
   if (loadingStats) return <TrustBarSkeleton />
 
-  const listingsLabel = placeName
-    ? `${getUIText('trustListingsIn', language)} ${placeName}`
-    : getUIText('trustListingsWorldwide', language)
-
+  const metrics = resolveTrustBarMetrics(stats)
   const ITEMS = [
-    {
-      icon: Home,
-      value: stats?.listingsCount && stats.listingsCount > 0 ? stats.listingsCount : 1200,
-      suffix: '+',
-      decimals: 0,
-      label: listingsLabel,
-    },
-    {
-      icon: Star,
-      value: stats?.avgRating && stats.avgRating > 0 ? stats.avgRating : 4.9,
-      suffix: '★',
-      decimals: 1,
-      label: getUIText('trustRatingLabel', language),
-    },
+    metrics.listingsCount != null
+      ? {
+          icon: Home,
+          value: metrics.listingsCount,
+          suffix: '+',
+          decimals: 0,
+          label: getUIText('trustListingsWorldwide', language),
+        }
+      : null,
+    metrics.avgRating != null
+      ? {
+          icon: Star,
+          value: metrics.avgRating,
+          suffix: '★',
+          decimals: 1,
+          label: getUIText('trustRatingLabel', language),
+        }
+      : null,
     {
       icon: ShieldCheck,
       value: 100,
@@ -177,7 +145,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
       label: getUIText('trustSecurityLabel', language),
       sublabel: getUIText('trustEscrowLabel', language),
     },
-  ]
+  ].filter(Boolean)
 
   return (
     <div
@@ -202,7 +170,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                 <div className="text-center sm:text-left">
                   <div className="flex items-baseline gap-0.5">
                     <span className="text-2xl font-black leading-none tracking-tight text-brand-hover sm:text-3xl">
-                      {visible ? (
+                      {visible && item.value != null ? (
                         <AnimatedCounter
                           target={item.value}
                           duration={item.decimals > 0 ? 900 : 1400}
@@ -210,7 +178,6 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                           decimals={item.decimals}
                         />
                       ) : (
-                        // Pre-visible placeholder: keeps height + showcases skeleton bar (no jumpy layout on mobile)
                         <span
                           className="inline-block h-6 w-16 animate-pulse rounded bg-brand/15 align-middle sm:h-7 sm:w-20"
                           aria-hidden
@@ -233,4 +200,3 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
     </div>
   )
 }
-

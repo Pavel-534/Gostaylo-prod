@@ -156,7 +156,7 @@ export function ProfileInfo({
               <span className="min-w-0">Станьте партнёром {getSiteDisplayName()}</span>
             </CardTitle>
             <CardDescription>
-              Сдавайте свою недвижимость и получайте доход. Присоединяйтесь к нашей сети владельцев на Пхукете.
+              Публикуйте объявления и получайте доход. Сейчас основной фокус — Таиланд и Россия.
             </CardDescription>
           </CardHeader>
           <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
@@ -166,8 +166,8 @@ export function ProfileInfo({
                 <div className="text-[10px] text-slate-500 min-[375px]:text-xs">Комиссия первый месяц</div>
               </div>
               <div className="min-w-0">
-                <div className="text-xl font-bold text-brand min-[375px]:text-2xl">24/7</div>
-                <div className="text-[10px] text-slate-500 min-[375px]:text-xs">Поддержка</div>
+                <div className="text-xl font-bold text-brand min-[375px]:text-2xl">SLA</div>
+                <div className="text-[10px] text-slate-500 min-[375px]:text-xs">Поддержка в рабочие часы</div>
               </div>
               <div className="min-w-0">
                 <div className="truncate text-xl font-bold text-brand min-[375px]:text-2xl">{payoutSymbol}</div>

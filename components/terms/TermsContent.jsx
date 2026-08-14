@@ -12,6 +12,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { ScrollText, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const STR = {
   ru: {
@@ -188,23 +189,20 @@ export default function TermsContent() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand/10 via-white to-amber-50/40 border-b border-slate-100">
+      <section className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-brand/10 via-white to-white">
         <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-14 sm:pb-16 max-w-4xl">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
             <ScrollText className="h-3 w-3" />
             {s.eyebrow} · {getSiteDisplayName()}
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900 leading-[1.05] mb-5">
+          <h1 className="mb-5 text-4xl font-semibold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
             {s.h1}
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">{s.sub}</p>
           <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">{s.effectiveFrom}</p>
-          <Link
-            href="/legal/public-offer/"
-            className="mt-6 inline-flex items-center justify-center rounded-2xl border border-brand/25 bg-white px-6 py-3 text-sm font-semibold text-brand-hover shadow-sm transition-colors hover:border-brand/40 hover:bg-brand/10"
-          >
-            {s.fullOfferCta}
-          </Link>
+          <Button asChild variant="outline" className="mt-6 px-6 text-sm font-semibold">
+            <Link href="/legal/public-offer/">{s.fullOfferCta}</Link>
+          </Button>
         </div>
       </section>
 
@@ -218,12 +216,12 @@ export default function TermsContent() {
               className="grid grid-cols-1 sm:grid-cols-[80px_1fr] gap-3 sm:gap-8"
             >
               <div>
-                <span className="font-serif text-3xl sm:text-4xl font-semibold text-brand/80 tracking-tight">
+                <span className="text-3xl font-semibold tracking-tight text-brand/80 sm:text-4xl">
                   {sec.n}
                 </span>
               </div>
               <div>
-                <h2 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 mb-3">
+                <h2 className="mb-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
                   {sec.title}
                 </h2>
                 <div className="space-y-3 text-slate-600 leading-relaxed text-base sm:text-[17px]">
@@ -241,29 +239,20 @@ export default function TermsContent() {
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)]">
             <Mail className="h-5 w-5" />
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
+          <h2 className="mb-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             {s.contactH2}
           </h2>
           <p className="text-slate-600 mb-7 max-w-xl mx-auto">{s.contactSub}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/legal/public-offer/"
-              className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
-            >
-              {s.fullOfferCta}
-            </Link>
-            <Link
-              href="/help/"
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
-            >
-              {s.helpLink}
-            </Link>
-            <a
-              href={`mailto:${supportEmail}`}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
-            >
-              {supportEmail}
-            </a>
+            <Button asChild variant="brand" size="lg" className="px-7 text-sm font-semibold">
+              <Link href="/legal/public-offer/">{s.fullOfferCta}</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="px-7 text-sm font-semibold">
+              <Link href="/help/">{s.helpLink}</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="px-7 text-sm font-semibold">
+              <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
+            </Button>
           </div>
         </div>
       </section>

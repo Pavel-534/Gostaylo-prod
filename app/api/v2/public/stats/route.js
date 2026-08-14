@@ -2,7 +2,7 @@
  * GET /api/v2/public/stats
  *
  * Публичный (без авторизации) лёгкий эндпоинт для TrustBar.
- * Возвращает: кол-во активных объявлений + средний рейтинг.
+ * Возвращает: кол-во активных объявлений + средний рейтинг (`avgRating` может быть `null`).
  *
  * ISR-кэш: 2 часа (revalidate: 7200) — данные практически не меняются в реальном времени.
  * SSOT: единственный источник публичной статистики платформы для фронтенда.
@@ -71,7 +71,7 @@ export async function GET() {
       success: true,
       data: {
         listingsCount: listingsCount ?? 0,
-        avgRating: avgRating ?? 4.9,          // fallback to 4.9 if no reviews yet
+        avgRating, // null until there is at least one review — no vanity 4.9
         totalReviews,
         updatedAt: new Date().toISOString(),
       },

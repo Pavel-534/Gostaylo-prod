@@ -1,10 +1,11 @@
 import { Suspense } from 'react'
 import { ReferralCalculatorClient } from '@/components/about/ReferralCalculatorClient'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Калькулятор амбассадора | Airento',
+  title: `Калькулятор амбассадора | ${getSiteDisplayName()}`,
   description:
     'Оцените доход L1, L2 и cashback друга с одной завершённой поездки по актуальным настройкам Ambassador Program.',
 }

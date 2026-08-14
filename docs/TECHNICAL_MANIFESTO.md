@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.129 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.24** home Top listings spacing.
+> **Version**: 13.2.133 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.28** partner-terms intro ≤ offer.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,28 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.28 — partner-terms intro ≤ offer
+
+- `/legal/partner-terms` intro no longer says the platform «принимает предоплату». Aligned with offer: funds via payment partner; partner share after check-in confirmed.
+
+### Stage 201.27 — honest TrustBar
+
+- Drop vanity **1200+** / **4.9★**. Show listings count only when `listingsCount >= 10`; hide rating tile when `avgRating` is null/0. API `GET /api/v2/public/stats` returns `avgRating: null` (no 4.9 fallback).
+- Count is global — label always worldwide (`trustListingsWorldwide`), never «in {city}».
+- Tests: `__tests__/stage201-27-trust-bar-honest.test.js`.
+
+### Stage 201.26 — marketing copy ≤ public offer
+
+- Guest copy mirrors the offer: funds are held by the **payment partner**, not a platform escrow account. Status id `PAID_ESCROW` unchanged. Canon legal URLs stay `/terms/`, `/legal/public-offer/`, `/legal/privacy/`, `/legal/refund/` (no `/legal/terms`).
+- About: owners **and representatives**; stay-first TH+RU without housing-only; Phuket only in founding story. Help/checkout/home: no 24/7 SLA; refunds follow listing + offer. KYC chip: «Подтверждённый партнёр». Footer/help: `LegalPublisherNote` (ИНН/ОГРНИП).
+- Tests: `__tests__/stage201-26-marketing-copy-offer.test.js`.
+
+### Stage 201.25 — marketing chrome (no city hardcode)
+
+- About pill was `{brand} · Phuket · Global` (hardcoded city). Now `{brand} · Super App` (i18n).
+- About / Help / Terms: drop `font-serif` + amber/teal resort gradient; CTAs via `<Button variant="brand">`. Legal `/legal/*` already used `LegalDocShell` (sans + brand-surface).
+- Tests: `__tests__/stage201-25-marketing-chrome.test.js`.
 
 ### Stage 201.24 — home Top listings breathing room
 

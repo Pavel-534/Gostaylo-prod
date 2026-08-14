@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Публичная справка: защита средств (эскроу) — мультиязычно через getUIText.
+ * Публичная справка: защита платежа (платёжный партнёр) — мультиязычно через getUIText.
  * Stage 201.12 — back via MarketingAppShell soft-back (fallback /help); no page-local back link.
  */
 
@@ -21,11 +21,11 @@ export default function EscrowProtectionHelpPage() {
       <div
         className={cn(
           MOBILE_FLAT_CARD_CLASS,
-          'max-sm:py-2 sm:border-sky-100 sm:bg-sky-50/60 sm:p-6',
+          'max-sm:py-2 sm:border-brand/20 sm:bg-brand/5 sm:p-6',
         )}
       >
         <div className="flex items-start gap-3">
-          <Shield className="mt-0.5 h-8 w-8 shrink-0 text-sky-700" aria-hidden />
+          <Shield className="mt-0.5 h-8 w-8 shrink-0 text-brand" aria-hidden />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold leading-snug text-slate-900 sm:text-2xl break-words text-balance">
               {t('escrowProtection_title')}
@@ -35,19 +35,19 @@ export default function EscrowProtectionHelpPage() {
             </p>
             <ul className="mt-5 space-y-3 text-sm leading-relaxed text-slate-800 sm:text-base">
               <li className="flex gap-2 break-words">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-600" aria-hidden />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
                 <span>{t('escrowProtection_bullet1')}</span>
               </li>
               <li className="flex gap-2 break-words">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-600" aria-hidden />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
                 <span>{t('escrowProtection_bullet2')}</span>
               </li>
               <li className="flex gap-2 break-words">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-600" aria-hidden />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
                 <span>{t('escrowProtection_bullet3')}</span>
               </li>
             </ul>
-            <p className="mt-6 text-sm leading-relaxed text-slate-600 sm:text-base break-words border-t border-sky-200/80 pt-4">
+            <p className="mt-6 text-sm leading-relaxed text-slate-600 sm:text-base break-words border-t border-brand/20 pt-4">
               {t('escrowProtection_footer')}
             </p>
           </div>

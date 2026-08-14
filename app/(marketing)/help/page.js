@@ -2,12 +2,14 @@ import Link from 'next/link'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { Shield, MessageCircle, CreditCard, MapPin, BadgeCheck, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { LegalPublisherNote } from '@/components/legal/LegalPublisherNote'
 
 export const metadata = {
   title: `Центр помощи | ${getSiteDisplayName()}`,
-  description: 'FAQ, инструкции для гостей и партнёров, escrow-защита и контакты поддержки.',
+  description: 'FAQ, безопасная оплата, отмена бронирования и контакты поддержки.',
 }
 
 const SECTIONS = [
@@ -15,34 +17,34 @@ const SECTIONS = [
     icon: BadgeCheck,
     title: 'Для гостей',
     items: [
-      { q: 'Как забронировать объект?', a: 'Выберите даты и локацию → откройте карточку → нажмите «Забронировать». Средства удерживаются на escrow до заселения.' },
-      { q: 'Когда списываются деньги?', a: 'Оплата резервируется сразу, но перечисляется хозяину только после успешного заселения.' },
-      { q: 'Могу ли я отменить бронь?', a: 'Да. Условия отмены указаны в карточке объекта — обычно бесплатно за 7 дней до заезда.' },
+      { q: 'Как забронировать объект?', a: 'Выберите даты и локацию → откройте карточку → нажмите «Забронировать». Оплата проходит через платёжного партнёра; партнёру доля уходит после подтверждения заселения.' },
+      { q: 'Когда списываются деньги?', a: 'Оплата резервируется сразу. Партнёру средства перечисляются только после подтверждения заселения — по правилам оферты и карточки.' },
+      { q: 'Могу ли я отменить бронь?', a: 'Да. Условия отмены и возврата зависят от правил конкретного объекта, указанных в его карточке (согласно политике возвратов).' },
     ],
   },
   {
     icon: Shield,
-    title: 'Escrow-защита',
+    title: 'Как устроена безопасная оплата',
     items: [
-      { q: 'Что такое escrow?', a: 'Это безопасный счёт: ваши средства хранятся у нас и переводятся хозяину только после подтверждения заселения.' },
-      { q: 'Что если объект не соответствует?', a: 'Сообщите нам в течение 24 часов — запустим расследование и вернём деньги при подтверждённых нарушениях.' },
+      { q: 'Кто удерживает деньги?', a: 'Средства удерживаются платёжным партнёром. Платформа не является банком и не принимает оплату «на свой эскроу-счёт».' },
+      { q: 'Что если объект не соответствует?', a: 'Напишите в поддержку как можно скорее. Если партнёр не оказал услугу — возврат по политике возвратов и оферте; в спорных случаях нужна проверка переписки и фактов.' },
     ],
-    cta: { href: '/help/escrow-protection', label: 'Подробнее об escrow →' },
+    cta: { href: '/help/escrow-protection', label: 'Подробнее о защите платежа →' },
   },
   {
     icon: CreditCard,
     title: 'Оплата',
     items: [
-      { q: 'Какие валюты поддерживаются?', a: 'THB, USD, EUR, RUB, CNY — курс автоматически пересчитывается в момент оплаты.' },
-      { q: 'Есть ли комиссия?', a: 'Сервисный сбор платформы включён в итоговую цену. Скрытых комиссий нет.' },
+      { q: 'Какие валюты поддерживаются?', a: 'THB, USD, EUR, RUB, CNY — курс фиксируется в момент оплаты по данным платёжного контура.' },
+      { q: 'Есть ли комиссия?', a: 'Сервисный сбор платформы включён в итоговую цену и показывается до оплаты.' },
     ],
   },
   {
     icon: MapPin,
     title: 'Для партнёров',
     items: [
-      { q: 'Как разместить объект?', a: 'Перейдите в раздел «Стать партнёром» → заполните анкету → модерация обычно занимает 24 часа.' },
-      { q: 'Сколько стоит?', a: 'Размещение бесплатно. Мы берём только сервисный сбор с подтверждённых бронирований.' },
+      { q: 'Как разместить объект?', a: 'Перейдите в раздел «Стать партнёром» → заполните анкету → модерация обычно занимает до одного рабочего дня.' },
+      { q: 'Сколько стоит?', a: 'Размещение бесплатно. Мы берём сервисный сбор только с подтверждённых бронирований — он виден до оплаты.' },
     ],
     cta: { href: '/partner', label: 'Стать партнёром →' },
   },
@@ -54,18 +56,17 @@ export default function HelpPage() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero — top inset already from MainContent app-shell-main (fixed header) */}
-      <section id="top" className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-amber-50/40 border-b border-slate-100">
+      <section id="top" className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-brand/10 via-white to-white">
         <div className="container mx-auto max-w-4xl px-4 pt-6 pb-8 sm:pt-8 sm:pb-10">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
             <MessageCircle className="h-3 w-3" />
-            Help Center
+            {getSiteDisplayName()}
           </p>
-          <h1 className="mb-3 font-serif text-3xl font-semibold leading-[1.1] tracking-tight text-slate-900 sm:mb-4 sm:text-4xl lg:text-5xl">
+          <h1 className="mb-3 text-3xl font-semibold leading-[1.1] tracking-tight text-slate-900 sm:mb-4 sm:text-4xl lg:text-5xl">
             Центр помощи {getSiteDisplayName()}
           </h1>
           <p className="max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            FAQ ниже или письмо на поддержку — обычно отвечаем в течение нескольких часов
-            (на этапе обкатки без обещания круглосуточного call-center).
+            FAQ ниже или письмо на поддержку — отвечаем в рабочие часы, обычно в течение нескольких часов.
           </p>
         </div>
       </section>
@@ -78,7 +79,7 @@ export default function HelpPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-muted text-brand">
                 <Icon className="h-5 w-5" />
               </div>
-              <h2 className="font-serif text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
                 {title}
               </h2>
             </div>
@@ -120,53 +121,50 @@ export default function HelpPage() {
       {/* Terms anchor */}
       <section id="terms" className="border-y border-slate-100 bg-slate-50">
         <div className="container mx-auto max-w-3xl px-4 py-10 sm:py-12">
-          <h2 className="mb-3 font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <h2 className="mb-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             Условия использования
           </h2>
           <p className="mb-5 leading-relaxed text-slate-600">
-            Используя {getSiteDisplayName()}, вы соглашаетесь с нашими условиями сервиса и политикой
-            конфиденциальности. Полная версия документа доступна по запросу в поддержку.
+            Используя {getSiteDisplayName()}, вы соглашаетесь с офертой и политикой конфиденциальности.
+            Юридически обязательный текст — публичная оферта.
           </p>
           <ul className="mb-5 list-disc space-y-2 pl-5 text-sm text-slate-600">
-            <li>Мы являемся технологической платформой — посредником между гостями и владельцами.</li>
-            <li>Все платежи защищены escrow и возвращаются при подтверждённых нарушениях.</li>
-            <li>Персональные данные обрабатываются в соответствии с GDPR и PDPA Таиланда.</li>
-            <li>Запрещено размещать объекты, нарушающие законодательство Королевства Таиланд.</li>
+            <li>Мы являемся технологической платформой — посредником между гостями и партнёрами.</li>
+            <li>Оплата идёт через платёжного партнёра; партнёру доля уходит после подтверждения заселения.</li>
+            <li>Отмена и возврат — по правилам карточки объекта и политике возвратов.</li>
+            <li>Запрещено размещать объекты, нарушающие законодательство страны их размещения.</li>
           </ul>
-          <Link
-            href="/help#contact"
-            className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
-          >
-            Запросить полную версию →
-          </Link>
+          <p className="mb-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            <Link href="/legal/public-offer/" className="font-semibold text-brand hover:underline">
+              Публичная оферта →
+            </Link>
+            <Link href="/legal/refund/" className="font-semibold text-brand hover:underline">
+              Политика возвратов →
+            </Link>
+          </p>
         </div>
       </section>
 
       {/* Contact */}
       <section id="contact" className="container mx-auto max-w-3xl px-4 py-10 text-center sm:py-14">
-        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-brand text-white shadow-brand-icon">
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-brand-icon">
           <Mail className="h-5 w-5" />
         </div>
-        <h2 className="mb-2 font-serif text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="mb-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           Связаться с нами
         </h2>
         <p className="mx-auto mb-6 max-w-xl text-slate-600">
-          Не нашли ответ? Напишите на почту — живые люди из команды, обычно в течение нескольких часов.
+          Не нашли ответ? Напишите на почту — живые люди из команды, в рабочие часы обычно в течение нескольких часов.
         </p>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
-          <a
-            href={`mailto:${supportEmail}`}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-brand px-7 py-3.5 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
-          >
-            {supportEmail}
-          </a>
-          <Link
-            href="/listings"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
-          >
-            Вернуться к поиску
-          </Link>
+          <Button asChild variant="brand" size="lg" className="px-7 text-sm font-semibold">
+            <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="px-7 text-sm font-semibold">
+            <Link href="/listings">Вернуться к поиску</Link>
+          </Button>
         </div>
+        <LegalPublisherNote className="mx-auto mt-8 max-w-xl" />
       </section>
     </main>
   )
