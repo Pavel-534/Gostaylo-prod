@@ -6,7 +6,12 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
-| 201.15 | 2026-08-14 | Marketing footer hard-nav + Suspense ScrollProgress + chunk Retry reload | Done |
+| 201.20 | 2026-08-14 | Scroll memory anchor align (fix “чуть ниже” after image layout) | Done |
+| 201.19 | 2026-08-14 | Kill Chromium/Yandex “site updated in background” toast on silent FCM | Done |
+| 201.18 | 2026-08-14 | Root RouteScrollMemoryHost — scroll restore on soft-back/pop (home+catalog) | Done |
+| 201.17 | 2026-08-14 | Scroll memory: save before Next zeroes Y; retry restore for home/catalog | Done |
+| 201.16 | 2026-08-14 | Home soft-back scroll memory (catalog SSOT on `/`) | Done |
+| 201.15 | 2026-08-14 | Marketing i18n + Suspense ScrollProgress + chunk Retry (soft Link footer) | Done |
 | 201.14 | 2026-08-14 | Soft-back hard-exit cleanup + marketing top-pad (About/Terms/Legal) | Done |
 | 201.13 | 2026-08-14 | Soft-back SSOT P1: profile nested + partner More via AppHeader | Done |
 | 201.12 | 2026-08-14 | Soft-back SSOT P0: MarketingAppShell → AppHeader leading chevron (iOS) | Done |

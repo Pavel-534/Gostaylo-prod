@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.126 | **Last Updated**: 2026-08-13 | **Tip of tree:** Stage **203**; **201.11** nightly E2E keep-list.
+> **Version**: 13.2.127 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.19** silent FCM ack (no Chromium default toast).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,12 +27,44 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
-### Stage 201.15 — marketing footer nav resilience
+### Stage 201.20 — scroll memory anchor align
 
-- Home footer → marketing/legal: hard `<a href>` (full document nav) to avoid soft-nav chunk failures across `(storefront)` → `(marketing)` on PWA/Samsung.
+- Root cause of “back lands a bit lower”: raw `scrollY` restore, then images/rails above expand and shift content down under the viewport.
+- Save clicked `a[href]` + `getBoundingClientRect().top`; restore re-aligns that node (retries ~2.8s). Plain Y kept as fallback.
+- Tests: `__tests__/stage201-20-scroll-anchor.test.js`.
+
+### Stage 201.19 — silent FCM ack (no Chromium default toast)
+
+- Chromium/Yandex show «Этот сайт был обновлён в фоновом режиме» if a push handler returns without `showNotification`.
+- `BADGE_UPDATE` and Premium Quiet now `acknowledgePushWithoutUserBanner` (silent tagged notify → immediate `close`).
+- Quiet suppress only when a same-origin tab is **focused + visible** (unfocused tab gets a real NEW_MESSAGE banner).
+- Tests: `__tests__/stage201-19-silent-push-ack.test.js`.
+
+### Stage 201.18 — root RouteScrollMemoryHost
+
+- Scroll memory host in `RootClientProviders` (survives storefront↔marketing layout switch).
+- Restore only on history pop / soft-back (`markPendingRouteScrollRestore` in `useSoftBack`).
+- Page-local `useRouteScrollMemory` removed from home + catalog (avoid forward-nav false restores).
+- Tests: `__tests__/stage201-18-route-scroll-host.test.js`.
+
+### Stage 201.17 — scroll memory persist / restore race
+
+- Root cause: Next soft-nav resets `scrollY` to 0 before leaving page unmount → memory saved `0`.
+- Fix: track `lastYRef` on scroll; capture-phase `<a>` click persist; `saveRouteScroll` ignores clobbering `0` over a real Y; restore peeks + retries until layout tall enough (~1.8s).
+- Applies to home + catalog (same hook). Tests: `__tests__/stage201-17-scroll-memory-persist.test.js`.
+
+### Stage 201.16 — home soft-back scroll memory
+
+- `homeScrollKey()` + `useRouteScrollMemory` on `PlatformHomeContent` (same SSOT as catalog `/listings`).
+- Soft back from PDP / marketing / catalog restores prior window scroll once content is ready.
+- Tests: `__tests__/stage201-16-home-scroll-memory.test.js`, extended `route-scroll-memory.test.js`.
+
+### Stage 201.15 — marketing nav resilience
+
 - `(marketing)` i18n: register storefront-common + errors; `I18nSliceBootstrap preset="marketing"`; local `error.js`.
 - `AppHeader`: `Suspense` around `ScrollProgressBar` (`useSearchParams`).
 - `AppErrorBoundaryView`: Retry on ChunkLoad/Failed-to-fetch → `location.reload()`.
+- Footer stays soft `Link` (hard `<a>` caused 2–3s blank home on Back — full reload).
 - Tests: `__tests__/stage201-15-marketing-footer-nav.test.js`.
 
 ### Stage 201.14 — soft-back hard-exit cleanup + marketing pad
@@ -1321,7 +1353,7 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 - **Stage 116.3 (admin owner ops):** **`GET /api/v2/admin/stats`** → **`ownerOps`** (pending moderation, active violators ≥ **`strikeThreshold`**, leaks/week). **`GET /api/admin/moderation`** — query-фильтры + **`lib/admin/moderation-queue.js`**. UI: **`/admin`** (карточки P0), **`/admin/moderation`** (фильтры, координаты, approve→ACTIVE), **`/admin/security`** (последние нарушения, ban). (**`general.chatSafety.estimatedBookingValueThb`** или ENV **`CONTACT_LEAK_ESTIMATED_BOOKING_THB`**) × комиссия; конвертация **USD/RUB** — **`getDisplayRateMap({ applyRetailMarkup: false })`** + **`convertAmountThbToCurrency`** (**`exchange_rates`**). **`general.chatSafety`**: **`autoShadowbanEnabled`**, **`strikeThreshold`** — при включённом авто-shadowban и страйках ≥ порога сообщения с триггером получают **`metadata.hidden_from_recipient`** и скрываются у получателя (**`GET /api/v2/chat/messages`**, Realtime **`use-chat-thread-messages`**). Настройки: **`/admin/settings`** + **`lib/chat-safety-settings.js`**.
 - **Системные сообщения:** тип **`system`** — по умолчанию только **ADMIN/MODERATOR**; у партнёра — узкий whitelist **`metadata.system_key`** (`passport_request`, `booking_confirmed`, `booking_declined`) при участии в диалоге. Renter/USER не могут эмулировать «Систему» или чужую роль через API.
 - **Транзакционные события (бронь, счёт, статусы):** серверные вставки в **`messages`** из **`lib/services/booking.service.js`**, **`lib/booking-status-chat-sync.js`**, **`app/api/v2/chat/support/join/route.js`** и т.д. — обходят HTTP-роут там, где нужна атомарность с бизнес-операцией; клиентский путь остаётся единым для пользовательского текста/медиа/счетов из кабинета.
-- **Уведомления после сообщения:** **`PushService.sendToUser`** (FCM) для контрагента в диалоге; в **`app/api/v2/chat/messages/route.js`** отправка вынесена в фон через `dispatchBackgroundTask` + `waitUntil` (`@vercel/functions`), чтобы serverless не обрывал push после HTTP-ответа. Для deep-link в payload передаётся **`conversationId`** + **`/messages/{id}`**. **Premium Quiet Policy (v3):** **`public/sw.js`** (импортирует **`push-visibility-policy.js`** + push-модуль **`firebase-messaging-sw.js`**) — для **`NEW_MESSAGE`** не вызывается **`showNotification`**, если есть **любая** вкладка **того же origin**, что и SW, с **`visibilityState === 'visible'`** (в т.ч. PWA: свернуто → обычно **`hidden`** → баннер не подавляется). **`postMessage`** в этот момент тоже не шлётся — доставка в UI через **Realtime**; foreground по-прежнему может получить **`onMessage`** (Firebase) для in-app.
+- **Уведомления после сообщения:** **`PushService.sendToUser`** (FCM) для контрагента в диалоге; в **`app/api/v2/chat/messages/route.js`** отправка вынесена в фон через `dispatchBackgroundTask` + `waitUntil` (`@vercel/functions`), чтобы serverless не обрывал push после HTTP-ответа. Для deep-link в payload передаётся **`conversationId`** + **`/messages/{id}`**. **Premium Quiet Policy (v3 / 201.19):** **`public/sw.js`** (импортирует **`push-visibility-policy.js`** + **`firebase-messaging-sw.js`**) — для **`NEW_MESSAGE`** не показываем OS-баннер, если есть вкладка **того же origin** с **`visibilityState === 'visible'`** и **`focused`**. Тихие выходы (**`BADGE_UPDATE`**, quiet) вызывают **`acknowledgePushWithoutUserBanner`** (silent `showNotification` + сразу `close`) — иначе Chromium/Yandex подставляют «сайт обновлён в фоне». **`postMessage`** при quiet не шлётся — UI через **Realtime**.
 - **Web Push pipeline (FCM):** клиентский bootstrap **`components/push-client-init.jsx`** регистрирует **`/sw.js`** (SSOT **`registerAppServiceWorker`**), получает FCM token (Firebase Web SDK) и отправляет в **`POST /api/v2/push`** (`action=register`) только для пользователя из cookie-сессии. Сервер хранит токены в **`user_push_tokens`** (multi-device, one row per token). Service Worker маршрутизирует data-payload в открытые вкладки (`postMessage`), когда баннер **не** подавлен Premium Quiet, и открывает нужный URL по `notificationclick`. **`PushService.sendPush`** (не silent): в теле FCM есть **`notification` + `webpush.notification` + `data`**, **`android.priority: high`**, **`android.ttl: 2419200s`**, APNS **`apns-push-type: alert`**, **`sound: default`**. Диагностика в Vercel: логи **`[FCM Debug]`**; полный JSON исходящего сообщения — env **`FCM_VERBOSE_LOG=1`**. Если в логах **`FIREBASE_PRIVATE_KEY is missing`** — на Vercel не задан сервисный ключ (раньше давало `Cannot read properties of undefined (reading 'replace')`). Строка **`FIREBASE_PRIVATE_KEY`** перед подписью нормализуется в **`push.service.js`** (`normalizeFirebasePrivateKey`: снятие BOM/кавычек, `\\n` → перевод строки); при **`Invalid character`** проверьте, что в PEM нет лишних символов вне base64-блока.
 - **Token sync hardening:** в **`push-client-init.jsx`** token-sync выполняется только после **`navigator.serviceWorker.ready`** (лог браузера: **`[Push Debug] Service Worker READY. Starting token sync…`**). Если токен из Firebase отличается от `localStorage`, регистрация идёт с **`update: true`**; при ошибке `POST /api/v2/push` есть повторная попытка через **5 секунд**.
 - **Push traceability (Vercel):** добавлены стабильные сервисные маркеры **`[PUSH_FLOW]`** (queue/start/result/no-token/exception) и **`[PUSH_SENT] To: {userId}, Status: {FCM_Response}, Token_Snippet: {first_10_chars}`**. По этим строкам видно, дошёл ли запрос до FCM или остановился раньше.
@@ -1330,7 +1362,7 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 
 ### Delayed Mobile Push Strategy (Smart Delivery) + Premium Quiet Policy (v3)
 
-- **Цель:** не дублировать назойливый пуш, если пользователь уже в веб-чате; дать короткую паузу на сервере — если сообщение уже прочитано, FCM **не** вызывать; на клиенте не показывать OS-баннер, пока вкладка сайта **видима** (см. **`push-visibility-policy.js`**).
+- **Цель:** не дублировать назойливый пуш, если пользователь уже смотрит на вкладку сайта (**focused + visible**); если сообщение уже прочитано — FCM **не** вызывать. Тихий push без баннера обязан `acknowledgePushWithoutUserBanner`, иначе Chromium показывает «сайт обновлён в фоне» (Stage **201.19**).
 - **`user_push_tokens.last_seen_at`:** обновляется при **`register`** и лёгком **`ping`** (интервал на клиенте ~30 с). В **`device_info`** для браузера задаётся **`surface: 'web'`** (см. **`push-client-init.jsx`**). Хелперы **`isWebSurface` / `isWebActiveRecently`** в **`push.service.js`** зарезервированы под метрики и будущие ветки; **мгновенной** отправки `NEW_MESSAGE` по «hot» больше нет.
 - **Правило для `NEW_MESSAGE` с `messageId` в payload (сервер):** для всех токенов (кроме **`FCM_INSTANT_PUSH_DEBUG=1`**) отправка идёт **только** через отложенный канал: **`PREMIUM_CHAT_PUSH_DELAY_MS` ≈ 40 с** (окно 30–45 с), **`mergeOrInsertDelayedChatBatch`** / **`scheduleSimpleDelayedPush`**. Перед FCM вызывается **`shouldStillSendNewMessagePush`** (**`messages.is_read`** для актуального `messageId` в пачке). Если **`is_read: true`** (или строка не найдена) — пуш **не** шлётся.
 - **Надёжность на serverless:** фоновая задержка обёрнута в **`waitUntil`** из **`@vercel/functions`** (если доступно); локально/`next start` тот же **`setTimeout`** выполняется в процессе Node.

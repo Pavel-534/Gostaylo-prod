@@ -7,6 +7,7 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { markPendingRouteScrollRestore } from '@/lib/navigation/route-scroll-memory'
 
 /**
  * @param {string} [fallbackHref='/']
@@ -17,6 +18,7 @@ export function useSoftBack(fallbackHref = '/') {
 
   return useCallback(() => {
     dispatchOptimisticNavPending(fallback)
+    markPendingRouteScrollRestore()
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back()
       return

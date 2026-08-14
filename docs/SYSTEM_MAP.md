@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.79 | **Last Updated**: 2026-08-13 | **201.11** nightly E2E keep-list; **201.09** test ledger self-clean.  
+> **Version**: 13.2.80 | **Last Updated**: 2026-08-14 | **201.19** silent FCM ack; **201.11** nightly E2E keep-list.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -20,7 +20,7 @@
 | Concierge ops | treasury / payouts UI + runbooks | Ops |
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
-| PWA / push | SW + FCM; **M1.1** `PushClientInit` on storefront+partner (+ chat); Soft CTA settings; `unregister` on logout; install UX **200.81** | Clients |
+| PWA / push | SW + FCM; **201.19** silent push ack (no Chromium “updated in background”); **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81** | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
 

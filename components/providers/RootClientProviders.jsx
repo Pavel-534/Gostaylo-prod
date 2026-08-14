@@ -11,6 +11,7 @@ import { CurrencyProvider } from '@/contexts/currency-context'
 import { GeoProvider } from '@/contexts/geo-context'
 import { GlobalStyles } from '@/components/providers/GlobalStyles'
 import { AppQueryProvider } from '@/components/providers/app-query-provider'
+import { RouteScrollMemoryHost } from '@/components/navigation/RouteScrollMemoryHost'
 
 const AuthProviderLazy = dynamic(
   () => import('@/contexts/auth-context').then((mod) => ({ default: mod.AuthProvider })),
@@ -39,6 +40,7 @@ export function RootClientProviders({ children, initialIsRussia }) {
                 not rely on that shell or `No QueryClient set` crashes /partner.
               */}
               <AppQueryProvider>
+                <RouteScrollMemoryHost />
                 {children}
                 <DeferredRootChrome />
               </AppQueryProvider>

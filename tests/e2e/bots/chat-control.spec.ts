@@ -171,7 +171,7 @@ test.describe('@chat-control-bot', () => {
     }
   })
 
-  test('Premium Quiet SW: suppress NEW_MESSAGE при любой видимой вкладке того же origin', async ({
+  test('Premium Quiet SW: suppress NEW_MESSAGE only when same-origin tab is focused+visible', async ({
     browser,
     baseURL,
   }) => {
@@ -187,7 +187,7 @@ test.describe('@chat-control-bot', () => {
 
       const visibleSuppressed = await page.evaluate(
         ({ pageOrigin }) => {
-          const windows = [{ url: window.location.href, visibilityState: 'visible' }]
+          const windows = [{ url: window.location.href, visibilityState: 'visible', focused: true }]
           return Boolean(
             window.GostayloPushPolicy?.shouldSuppressSystemNotificationForNewMessage?.(windows, pageOrigin),
           )
@@ -196,9 +196,20 @@ test.describe('@chat-control-bot', () => {
       )
       expect(visibleSuppressed).toBeTruthy()
 
+      const unfocusedNotSuppressed = await page.evaluate(
+        ({ pageOrigin }) => {
+          const windows = [{ url: window.location.href, visibilityState: 'visible', focused: false }]
+          return Boolean(
+            window.GostayloPushPolicy?.shouldSuppressSystemNotificationForNewMessage?.(windows, pageOrigin),
+          )
+        },
+        { pageOrigin: origin },
+      )
+      expect(unfocusedNotSuppressed).toBeFalsy()
+
       const hiddenNotSuppressed = await page.evaluate(
         ({ pageOrigin }) => {
-          const windows = [{ url: window.location.href, visibilityState: 'hidden' }]
+          const windows = [{ url: window.location.href, visibilityState: 'hidden', focused: true }]
           return Boolean(
             window.GostayloPushPolicy?.shouldSuppressSystemNotificationForNewMessage?.(windows, pageOrigin),
           )

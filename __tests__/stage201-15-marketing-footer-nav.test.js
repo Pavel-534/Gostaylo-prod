@@ -1,5 +1,5 @@
 /**
- * Stage 201.15 — marketing footer hard-nav + Suspense / chunk recovery.
+ * Stage 201.15 — marketing i18n + Suspense / chunk recovery (footer stays soft Link).
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/stage201-15-marketing-footer-nav.test.js
  */
 
@@ -14,17 +14,14 @@ function read(rel) {
   return fs.readFileSync(path.join(root, rel), 'utf8')
 }
 
-describe('Stage 201.15 — marketing footer nav resilience', () => {
-  it('home footer uses hard <a> for marketing/legal (not Next Link)', () => {
+describe('Stage 201.15 — marketing nav resilience', () => {
+  it('home footer keeps soft Next Link for marketing/legal (no hard <a> document reload)', () => {
     const src = read('components/PlatformHomeContent.jsx')
-    assert.match(src, /href="\/about\/"/)
-    assert.match(src, /href="\/legal\/public-offer\/"/)
-    assert.match(src, /href="\/terms\/"/)
-    assert.match(src, /href="\/help\/"/)
-    assert.doesNotMatch(
-      src,
-      /<Link href="\/about"|<Link href="\/legal\/public-offer|<Link href="\/terms\/"/,
-    )
+    assert.match(src, /<Link href="\/about\/"/)
+    assert.match(src, /<Link href="\/legal\/public-offer\/"/)
+    assert.match(src, /<Link href="\/terms\/"/)
+    assert.match(src, /<Link href="\/help\/"/)
+    assert.doesNotMatch(src, /Stage 201\.15 — hard <a>/)
   })
 
   it('marketing layout registers i18n + MarketingAppShell boots marketing preset', () => {

@@ -10,10 +10,12 @@
     }
   }
 
+  var PUSH_ACK_TAG = 'airento-push-ack'
+
   /**
-   * Premium Quiet Policy (v3): любая вкладка того же origin, что и SW, в состоянии `visible`
-   * — не показываем системный баннер для NEW_MESSAGE (Realtime + in-app).
-   * PWA / вкладка свернута: обычно `visibilityState !== 'visible'` → пуш не подавляется.
+   * Premium Quiet Policy (v3): focused + visible tab of the same origin
+   * — skip OS banner for NEW_MESSAGE (Realtime + in-app).
+   * Unfocused / background / PWA hidden → do not suppress (Chromium needs a notification).
    */
   function shouldSuppressSystemNotificationForNewMessage(windows, swOrigin) {
     if (!Array.isArray(windows) || windows.length === 0) return false
@@ -24,9 +26,43 @@
         : ''
     if (!origin) return false
     return windows.some(function (w) {
-      if (!w || w.visibilityState !== 'visible') return false
+      if (!w || w.visibilityState !== 'visible' || !w.focused) return false
       return sameOrigin(String(w.url || ''), origin)
     })
+  }
+
+  /**
+   * Chromium/Yandex inject "This site has been updated in the background" if a
+   * push handler returns without showNotification. Show a silent tagged banner
+   * and close it so the user never sees product-less noise.
+   */
+  function acknowledgePushWithoutUserBanner(registration) {
+    if (!registration || typeof registration.showNotification !== 'function') {
+      return Promise.resolve()
+    }
+    return Promise.resolve(
+      registration.showNotification('\u200b', {
+        tag: PUSH_ACK_TAG,
+        silent: true,
+        renotify: false,
+        requireInteraction: false,
+      }),
+    )
+      .then(function () {
+        if (typeof registration.getNotifications !== 'function') return
+        return registration.getNotifications({ tag: PUSH_ACK_TAG }).then(function (notes) {
+          ;(notes || []).forEach(function (n) {
+            try {
+              n.close()
+            } catch (_) {
+              /* ignore */
+            }
+          })
+        })
+      })
+      .catch(function () {
+        /* still better than Chromium's default toast */
+      })
   }
 
   /** Legacy: подавление только при открытом URL того же треда (до v3). */
@@ -45,5 +81,7 @@
   self.GostayloPushPolicy = {
     shouldSuppressSystemNotificationForNewMessage: shouldSuppressSystemNotificationForNewMessage,
     shouldSuppressPushForConversation: shouldSuppressPushForConversation,
+    acknowledgePushWithoutUserBanner: acknowledgePushWithoutUserBanner,
+    PUSH_ACK_TAG: PUSH_ACK_TAG,
   }
 })()

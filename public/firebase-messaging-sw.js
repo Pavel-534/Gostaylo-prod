@@ -62,8 +62,14 @@ self.addEventListener('push', (event) => {
       const cid = parseConversationId(link, data)
       const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
 
+      async function ackSilentPush() {
+        const ack = self.GostayloPushPolicy && self.GostayloPushPolicy.acknowledgePushWithoutUserBanner
+        if (typeof ack === 'function') await ack(registration)
+      }
+
       if (type === 'BADGE_UPDATE') {
         await postToClients(data)
+        await ackSilentPush()
         return
       }
 
@@ -74,7 +80,10 @@ self.addEventListener('push', (event) => {
         typeof self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage === 'function' &&
         self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage(windows, self.location.origin)
 
-      if (suppressPremiumQuiet) return
+      if (suppressPremiumQuiet) {
+        await ackSilentPush()
+        return
+      }
 
       for (const c of windows) c.postMessage({ type: 'gostaylo_push', payload: data })
 

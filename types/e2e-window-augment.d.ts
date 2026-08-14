@@ -5,9 +5,10 @@ declare global {
     __chatControlAudioPatched?: boolean;
     GostayloPushPolicy?: {
       shouldSuppressSystemNotificationForNewMessage?: (
-        windows: Array<{ url: string; visibilityState: string }>,
+        windows: Array<{ url: string; visibilityState: string; focused?: boolean }>,
         pageOrigin: string,
       ) => boolean;
+      acknowledgePushWithoutUserBanner?: (registration: unknown) => Promise<void>;
     };
   }
 }

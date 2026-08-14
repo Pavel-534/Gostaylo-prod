@@ -3,6 +3,7 @@
 /**
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
  * Stage 171.27 — TanStack hydrate from RSC bootstrap (`HomeHydrationBoundary`).
+ * Stage 201.18 — scroll memory via root RouteScrollMemoryHost (not page-local).
  */
 
 import { useMemo, useEffect } from 'react'
@@ -394,15 +395,14 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerCompany', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  {/* Stage 201.15 — hard <a> into (marketing) avoids soft-nav chunk failures on PWA/Samsung */}
-                  <a href="/about/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/about/" className="hover:text-brand/80 transition-colors">
                     {getUIText('aboutUs', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/help/#contact" className="hover:text-brand/80 transition-colors">
+                  <Link href="/help/#contact" className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -410,17 +410,17 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <a href="/help/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/help/" className="hover:text-brand/80 transition-colors">
                     {getUIText('helpCenter', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
+                  <Link
                     href="/help/escrow-protection/"
                     className="hover:text-brand/80 transition-colors"
                   >
                     {getUIText('footerEscrowPaymentLink', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a href={`mailto:${supportEmail}`} className="hover:text-brand/80 transition-colors">
@@ -428,29 +428,29 @@ export function PlatformHomeContent() {
                   </a>
                 </li>
                 <li>
-                  <a href="/terms/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('terms', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/legal/public-offer/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/legal/public-offer/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPublicOffer', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/legal/partner-terms/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/legal/partner-terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPartnerTerms', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/legal/privacy/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/legal/privacy/" className="hover:text-brand/80 transition-colors">
                     {getUIText('privacyPolicy', language)}
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/legal/refund/" className="hover:text-brand/80 transition-colors">
+                  <Link href="/legal/refund/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerRefundPolicy', language)}
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
