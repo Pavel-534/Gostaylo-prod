@@ -19,7 +19,7 @@ import { queryKeys } from '@/lib/query-keys'
 import { HOME_FEATURED_STALE_MS } from '@/lib/query-prefetch/home-query-constants'
 import { getUIText } from '@/lib/translations'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
-import { selectHeroCategoryTabs } from '@/lib/home/hero-category-tabs'
+import { nextHeroCategorySelection, selectHeroCategoryTabs } from '@/lib/home/hero-category-tabs'
 import { usePublicSearchFilters } from '@/lib/hooks/use-public-search-filters'
 import {
   AUTO_HERO_TITLE_FALLBACK,
@@ -238,9 +238,9 @@ export function usePlatformHomePage() {
         setComingSoonCategory(tab)
         return
       }
-      setSelectedCategory(tab.slug)
+      setSelectedCategory(nextHeroCategorySelection(selectedCategory, tab.slug))
     },
-    [setSelectedCategory],
+    [selectedCategory, setSelectedCategory],
   )
 
   const submitComingSoonLead = useCallback(async () => {

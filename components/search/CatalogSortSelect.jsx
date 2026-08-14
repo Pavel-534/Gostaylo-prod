@@ -28,7 +28,7 @@ export function CatalogSortSelect({
     <div className={className}>
       <label className="sr-only">{getUIText('catalogSortLabel', language)}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-9 w-full min-w-[180px] border-slate-200 bg-white text-sm">
+        <SelectTrigger className="h-auto min-h-[44px] w-auto min-w-[10.5rem] max-w-full rounded-2xl border-slate-200 bg-white text-sm">
           <SelectValue placeholder={getUIText('catalogSortLabel', language)} />
         </SelectTrigger>
         <SelectContent>

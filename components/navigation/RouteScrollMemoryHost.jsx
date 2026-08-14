@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * Stage 201.18 / 201.20 — app-wide scroll memory (root host).
- * Anchor-based restore so image/layout growth does not land “a bit lower”.
+ * Stage 201.18 / 201.22 — app-wide scroll memory (root host).
+ * Restore uses live window.location only (not stale React search from PDP).
+ * While pending, retry until the live key has an entry (catalog query race).
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -12,8 +13,11 @@ import {
   consumePendingRouteScrollRestore,
   consumeRouteScrollEntry,
   findScrollAnchorElement,
+  liveRouteScrollKey,
+  markPendingRouteScrollRestore,
+  peekPendingRouteScrollRestore,
   peekRouteScrollEntry,
-  routeScrollKeyFromLocation,
+  persistLiveRouteScroll,
   saveRouteScroll,
 } from '@/lib/navigation/route-scroll-memory'
 
@@ -29,9 +33,9 @@ function readSearchKey() {
 export function RouteScrollMemoryHost() {
   const pathname = usePathname()
   const [searchKey, setSearchKey] = useState('')
-  const routeKey = routeScrollKeyFromLocation(pathname, searchKey)
+  const [restoreGen, setRestoreGen] = useState(0)
 
-  const routeKeyRef = useRef(routeKey)
+  const routeKeyRef = useRef(null)
   const lastYRef = useRef(0)
   const pendingPopRestoreRef = useRef(false)
   const restoreTimerRef = useRef(null)
@@ -52,14 +56,7 @@ export function RouteScrollMemoryHost() {
     setSearchKey(readSearchKey())
 
     const persistCurrent = (extra = null) => {
-      const key = routeKeyRef.current
-      if (!key) return
-      const y = Math.max(0, Math.round(lastYRef.current || window.scrollY || 0))
-      if (extra && extra.anchorHref) {
-        saveRouteScroll(key, { y, ...extra })
-        return
-      }
-      if (y > 0) saveRouteScroll(key, y)
+      persistLiveRouteScroll(extra)
     }
 
     const onScroll = () => {
@@ -68,7 +65,9 @@ export function RouteScrollMemoryHost() {
 
     const onPopState = () => {
       pendingPopRestoreRef.current = true
+      markPendingRouteScrollRestore()
       setSearchKey(readSearchKey())
+      setRestoreGen((n) => n + 1)
     }
 
     const onClickCapture = (event) => {
@@ -108,64 +107,80 @@ export function RouteScrollMemoryHost() {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
+    const liveKey = liveRouteScrollKey()
     const prevKey = routeKeyRef.current
-    const nextKey = routeScrollKeyFromLocation(pathname, searchKey)
-
-    if (prevKey && prevKey !== nextKey) {
+    if (prevKey && liveKey && prevKey !== liveKey) {
       const y = Math.max(0, Math.round(lastYRef.current || 0))
       if (y > 0) saveRouteScroll(prevKey, y)
     }
-    routeKeyRef.current = nextKey
+    if (liveKey) routeKeyRef.current = liveKey
 
     if (restoreTimerRef.current) {
       window.clearInterval(restoreTimerRef.current)
       restoreTimerRef.current = null
     }
 
-    const shouldRestore =
-      (pendingPopRestoreRef.current || consumePendingRouteScrollRestore()) && Boolean(nextKey)
-    pendingPopRestoreRef.current = false
+    const wantsRestore = pendingPopRestoreRef.current || peekPendingRouteScrollRestore()
 
-    if (!shouldRestore || !nextKey) {
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
-      return undefined
-    }
-
-    const entry = peekRouteScrollEntry(nextKey)
-    if (!entry || (entry.y <= 0 && !entry.anchorHref)) {
+    if (!wantsRestore) {
       lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
       return undefined
     }
 
     let cancelled = false
     const startedAt = Date.now()
+    let activeKey = null
+    let activeEntry = null
 
-    const isAnchorStable = () => {
-      if (!entry.anchorHref || !Number.isFinite(Number(entry.anchorTop))) return false
+    const isAnchorStable = (entry) => {
+      if (!entry?.anchorHref || !Number.isFinite(Number(entry.anchorTop))) return false
       const el = findScrollAnchorElement(entry.anchorHref)
       if (!el) return false
       return Math.abs(el.getBoundingClientRect().top - Number(entry.anchorTop)) <= ANCHOR_TOLERANCE_PX
     }
 
+    const finishMiss = () => {
+      pendingPopRestoreRef.current = false
+      consumePendingRouteScrollRestore()
+      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+    }
+
     const tryRestore = () => {
       if (cancelled) return true
-      applyRouteScrollEntry(entry)
+
+      if (!activeEntry) {
+        const key = liveRouteScrollKey()
+        const entry = key ? peekRouteScrollEntry(key) : null
+        if (!entry || (entry.y <= 0 && !entry.anchorHref)) {
+          if (Date.now() - startedAt >= RESTORE_BUDGET_MS) {
+            finishMiss()
+            return true
+          }
+          return false
+        }
+        activeKey = key
+        activeEntry = entry
+        pendingPopRestoreRef.current = false
+        consumePendingRouteScrollRestore()
+      }
+
+      applyRouteScrollEntry(activeEntry)
 
       const maxScroll = Math.max(
         0,
         (document.documentElement?.scrollHeight || 0) - window.innerHeight,
       )
-      const layoutReady = !entry.anchorHref
-        ? maxScroll >= entry.y - 24
-        : Boolean(findScrollAnchorElement(entry.anchorHref))
-      const stable = entry.anchorHref ? isAnchorStable() : layoutReady
+      const layoutReady = !activeEntry.anchorHref
+        ? maxScroll >= activeEntry.y - 24
+        : Boolean(findScrollAnchorElement(activeEntry.anchorHref))
+      const stable = activeEntry.anchorHref ? isAnchorStable(activeEntry) : layoutReady
       const budgetExceeded = Date.now() - startedAt >= RESTORE_BUDGET_MS
 
       if (!stable && !budgetExceeded) return false
 
-      consumeRouteScrollEntry(nextKey)
+      if (activeKey) consumeRouteScrollEntry(activeKey)
       lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
-      applyRouteScrollEntry(entry)
+      applyRouteScrollEntry(activeEntry)
       return true
     }
 
@@ -185,7 +200,7 @@ export function RouteScrollMemoryHost() {
         restoreTimerRef.current = null
       }
     }
-  }, [pathname, searchKey])
+  }, [pathname, searchKey, restoreGen])
 
   return <span data-testid="route-scroll-memory-host" hidden aria-hidden />
 }

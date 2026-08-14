@@ -238,7 +238,11 @@ function ListingsContent() {
     (id) => {
       const listingId = String(id || '').trim()
       if (!listingId) return
-      navigateWithListingHeroTransition(() => router.push(`/listings/${listingId}`), listingId)
+      navigateWithListingHeroTransition(
+        () => router.push(`/listings/${listingId}`),
+        listingId,
+        `/listings/${listingId}`,
+      )
     },
     [router],
   )

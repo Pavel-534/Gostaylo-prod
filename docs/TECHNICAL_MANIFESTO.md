@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.127 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.19** silent FCM ack (no Chromium default toast).
+> **Version**: 13.2.127 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.22** catalog Back restore retry.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,20 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.22 — catalog Back restore retry
+
+- Probe: persist wrote `listings:semantic=1` (y + anchor), but Back left `y≈0` and a stale PDP query key (`listings:checkInTime=…`). Host used React `searchKey` from the listing page and bailed before `window.location` became `/listings?semantic=1`.
+- Restore polls `liveRouteScrollKey()` while pending; pending flag also in `sessionStorage` (survives chunk copies). `popstate` bumps a restore generation.
+- Reuse on other list pages: Constitution §5 «List scroll restore», manifesto **§5.1b**.
+- Tests: `__tests__/stage201-22-catalog-scroll-restore-retry.test.js`.
+
+### Stage 201.21 — catalog scroll SSOT
+
+- Search `/listings?semantic=1` restore used a stale empty query key (`listings:` vs `listings:semantic=1`) and consumed the pending flag — Back jumped to top.
+- SSOT persist: `persistLiveRouteScroll` from `navigateWithListingHeroTransition` (catalog cards `router.push`, not only `<a>`).
+- Restore reads `liveRouteScrollKey()` from `window.location`; pending flag is not consumed until an entry exists.
+- Tests: `__tests__/stage201-21-catalog-scroll-ssot.test.js`.
 
 ### Stage 201.20 — scroll memory anchor align
 
@@ -1124,6 +1138,7 @@
 | Push / FCM | `lib/services/push.service.js`, `POST /api/v2/push` |
 | Resend mock | `lib/email/resend-transport-guard.js` |
 | Categories | `categories.slug` + `wizard_profile` |
+| List scroll restore (Back) | `lib/navigation/route-scroll-memory.js` · Constitution §5 · manifesto §5.1b |
 
 ---
 
@@ -1410,6 +1425,19 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 - **Горизонтальные отступы:** минимум **`px-4`** (16px) у оболочек чата, поиска, списка диалогов; лента — **`px-4` / `sm:px-5`**; нижний safe-area — **`CHAT_COMPOSER_SHELL_CLASS`**.
 - **Ширина мобильных CTA:** **`w-full`** на мобиле, **`sm:w-auto`** на больших экранах.
 
+### 5.1b List scroll restore (soft-back) — reuse
+
+Канон: **`lib/navigation/route-scroll-memory.js`**. Хост уже в корне: **`RouteScrollMemoryHost`** (`RootClientProviders`). Не вешать page-local **`useRouteScrollMemory`**.
+
+Сейчас в allowlist: **`/`** (`home`), **`/listings`** (ключ с live `?query`), **`/my-bookings`** / **`/renter/bookings`**.
+
+Чтобы тот же сценарий (список → деталь → Back на ту же карточку) заработал на **новой** странице:
+
+1. Добавить pathname → ключ в **`routeScrollKeyFromLocation`** и префикс в **`isScrollMemoryRouteKey`**. Если фильтры в query — ключ строить из **`window.location.search`**, не из React `searchParams` (иначе Back попадёт в чужой ключ, как каталог `semantic=1` vs PDP `checkInTime`).
+2. Уход со списка: обычный **`<Link>` / `<a>`** (host сам persist на click) **или** перед **`router.push`** вызвать **`persistLiveRouteScroll({ anchorHref })`**.
+3. На детали Back только через **`useSoftBack`** / `AppHeader showSoftBack` (`markPendingRouteScrollRestore`). Restore идёт только на pop/soft-back, не на forward.
+4. Persist в момент клика (Next часто обнуляет `scrollY` до unmount). Restore выравнивает **якорь** (`anchorHref` + `anchorTop`), raw Y — запасной путь.
+
 ### 5.2 Telegram: продуктовые события и личка админа
 
 - **`NotificationService.dispatch`** — брони, оплаты, письма партнёрам/гостям, топики форума (**`sendToAdminTopic`**).
@@ -1527,6 +1555,7 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 | Accountant Bot (Deep Financial Math) + TG `recordCriticalSignal` | `tests/e2e/bots/accountant-math.spec.ts`, `app/api/v2/internal/e2e/financial-error-alert/route.js`, `lib/currency.js` (`priceRawForTest`) |
 | Polyglot UX Bot (TH/ZH) | `tests/e2e/bots/polyglot-ux.spec.ts`, проект **`polyglot-bot`**, `data-testid` языка и CTA |
 | Серверная броня цены | `lib/booking-price-integrity.js`, `lib/services/booking.service.js`, `POST /api/v2/bookings` |
+| List scroll restore (Back) | `lib/navigation/route-scroll-memory.js`, `components/navigation/RouteScrollMemoryHost.jsx`, `hooks/use-soft-back.js`; allowlist `routeScrollKeyFromLocation` |
 | i18n UI | `lib/translations/index.js`, `getUIText`, `app/listings/[id]/layout.js` (metadata + цена) |
 | Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 

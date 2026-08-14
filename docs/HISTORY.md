@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.22 | 2026-08-14 | Catalog Back restore: retry live key + pending in sessionStorage | Done |
+| 201.21 | 2026-08-14 | Catalog scroll SSOT: live `?query` key + persist on PDP `router.push` | Done |
 | 201.20 | 2026-08-14 | Scroll memory anchor align (fix “чуть ниже” after image layout) | Done |
 | 201.19 | 2026-08-14 | Kill Chromium/Yandex “site updated in background” toast on silent FCM | Done |
 | 201.18 | 2026-08-14 | Root RouteScrollMemoryHost — scroll restore on soft-back/pop (home+catalog) | Done |

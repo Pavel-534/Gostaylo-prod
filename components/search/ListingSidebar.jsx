@@ -172,27 +172,39 @@ function ListingSidebarComponent({
   
   return (
     <>
-      {/* Mobile Map Toggle — hidden while full-screen sheet is open */}
-      {!mobileMapSheet || !showMap ? (
-        <div className="mb-2.5 flex justify-end lg:hidden md:mb-4">
-          <Button
-            onClick={onToggleMap}
-            variant="outline"
-            className="min-h-[44px] gap-2 rounded-2xl"
-            data-testid="catalog-mobile-map-toggle"
-          >
-            {showMap && !mobileMapSheet ? (
-              <>
-                <ListIcon className="h-4 w-4" />
-                {getUIText('showList', language)}
-              </>
-            ) : (
-              <>
-                <MapIcon className="h-4 w-4" />
-                {getUIText('showMap', language)}
-              </>
-            )}
-          </Button>
+      {(onCatalogSortChange || !mobileMapSheet || !showMap) ? (
+        <div className="mb-2.5 flex items-center justify-between gap-3 md:mb-4">
+          {onCatalogSortChange ? (
+            <CatalogSortSelect
+              className="min-w-0"
+              value={catalogSort}
+              onChange={onCatalogSortChange}
+              language={language}
+              distanceDisabled={!catalogSortDistanceAvailable}
+            />
+          ) : (
+            <span aria-hidden className="min-w-0 flex-1" />
+          )}
+          {!mobileMapSheet || !showMap ? (
+            <Button
+              onClick={onToggleMap}
+              variant="outline"
+              className="min-h-[44px] shrink-0 gap-2 rounded-2xl lg:hidden"
+              data-testid="catalog-mobile-map-toggle"
+            >
+              {showMap && !mobileMapSheet ? (
+                <>
+                  <ListIcon className="h-4 w-4" />
+                  {getUIText('showList', language)}
+                </>
+              ) : (
+                <>
+                  <MapIcon className="h-4 w-4" />
+                  {getUIText('showMap', language)}
+                </>
+              )}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -223,17 +235,6 @@ function ListingSidebarComponent({
           showMap && !mobileMapSheet && 'hidden lg:block',
         )}
       >
-        {onCatalogSortChange ? (
-          <div className="mb-3 flex items-center justify-end gap-2 md:mb-4">
-            <span className="text-sm text-slate-600">{getUIText('catalogSortLabel', language)}</span>
-            <CatalogSortSelect
-              value={catalogSort}
-              onChange={onCatalogSortChange}
-              language={language}
-              distanceDisabled={!catalogSortDistanceAvailable}
-            />
-          </div>
-        ) : null}
         <div 
           className={cn(
             LISTING_CATALOG_GRID_CLASSES,
