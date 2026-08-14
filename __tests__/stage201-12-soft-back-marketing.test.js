@@ -36,9 +36,10 @@ describe('Stage 201.12 — soft-back SSOT P0 marketing', () => {
     const src = read('components/layout/MarketingAppShell.jsx')
     assert.match(src, /showSoftBack\s*=\s*true/)
     assert.match(src, /resolveMarketingSoftBackFallback/)
-    assert.match(src, /\/help\/escrow-protection/)
-    assert.match(src, /return '\/help'/)
     assert.match(src, /<AppHeader showSoftBack=\{showSoftBack\} softBackFallback=\{fallback\} \/>/)
+    const routes = read('lib/navigation/soft-back-routes.js')
+    assert.match(routes, /\/help\/escrow-protection/)
+    assert.match(routes, /return '\/help'/)
   })
 
   it('escrow-protection page has no local ArrowLeft /messages back', () => {

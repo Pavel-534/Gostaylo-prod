@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Home } from 'lucide-react'
+import { Home } from 'lucide-react'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { EmptyState } from '@/components/empty-state'
@@ -331,10 +331,6 @@ function MyBookingsContent() {
     return (
       <div className="min-h-screen bg-slate-50">
         <div className="container mx-auto px-4 py-8 max-w-lg">
-          <Link href="/" className="inline-flex items-center text-brand hover:text-brand/90 mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {getUIText('myBookings_backHome', language)}
-          </Link>
           <Card className={MOBILE_FLAT_CARD_CLASS}>
             <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
               <CardTitle>{getUIText('myBookings_loginTitle', language)}</CardTitle>
@@ -366,10 +362,6 @@ function MyBookingsContent() {
       {pullIndicator}
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-brand hover:text-brand/90 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {getUIText('myBookings_backHome', language)}
-          </Link>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-3xl font-bold text-slate-900 mb-2">

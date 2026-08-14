@@ -9,20 +9,9 @@ import { usePathname } from 'next/navigation'
 import { AppHeader } from '@/components/app-header/AppHeader'
 import { MainContent } from '@/components/main-content'
 import { ChatUnreadBadgeProvider } from '@/lib/context/ChatUnreadBadgeContext'
+import { resolveMarketingSoftBackFallback } from '@/lib/navigation/soft-back-routes'
 
-/**
- * Default fallback for marketing secondary pages when history is empty.
- * Nested help (escrow) prefers parent /help.
- * @param {string | null | undefined} pathname
- * @returns {string}
- */
-export function resolveMarketingSoftBackFallback(pathname) {
-  const path = String(pathname || '').replace(/\/+$/, '') || '/'
-  if (path === '/help/escrow-protection' || path.startsWith('/help/escrow-protection/')) {
-    return '/help'
-  }
-  return '/'
-}
+export { resolveMarketingSoftBackFallback }
 
 /**
  * @param {{

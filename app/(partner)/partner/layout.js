@@ -76,6 +76,7 @@ import {
   LISTING_WIZARD_SCROLL_ATTR,
   WIZARD_WORKSPACE_SCROLL_PAD_CLASS,
 } from './listings/new/components/chrome/listing-wizard-layout'
+import { resolvePartnerSoftBack } from '@/lib/navigation/soft-back-routes'
 
 const PartnerForegroundNotifications = dynamic(
   () =>
@@ -114,6 +115,8 @@ export default function PartnerLayout({ children }) {
   const accessDenied = !authLoading && (!isAuthenticated || !allowedRoles.includes(String(user?.role || '').toUpperCase()))
   const isNotLoggedIn = !authLoading && !isAuthenticated
   const isListingWizardRoute = /^\/partner\/listings\/(new|[^/]+)$/.test(pathname || '')
+  const { showSoftBack: partnerShowSoftBack, softBackFallback: partnerSoftBackFallback } =
+    resolvePartnerSoftBack(pathname)
 
   useEffect(() => {
     const initial = detectLanguage()
@@ -270,6 +273,8 @@ export default function PartnerLayout({ children }) {
       <AppHeader
         variant="workspace"
         onMenuClick={() => setSidebarOpen((v) => !v)}
+        showSoftBack={partnerShowSoftBack}
+        softBackFallback={partnerSoftBackFallback}
       />
 
       {/* Workspace — fixed below AppHeader (SSOT: workspace-shell.js) */}

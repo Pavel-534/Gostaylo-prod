@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tag, Loader2, ArrowLeft } from 'lucide-react'
+import { Tag, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
@@ -271,14 +271,7 @@ export default function PartnerPromoPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-0">
       <div className="mb-4">
-        <Button variant="ghost" size="sm" asChild className="-ml-2 min-h-[44px] text-slate-600">
-          <Link href="/partner/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('partnerPromo_backDashboard')}
-          </Link>
-        </Button>
-
-        <h1 className="mt-2 flex items-center gap-2 text-2xl font-bold text-slate-900">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
           <Tag className="h-7 w-7 text-brand" />
           {t('partnerPromo_pageTitle')}
         </h1>

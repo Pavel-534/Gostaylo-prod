@@ -27,6 +27,14 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.13 — soft-back SSOT P1 (guest nested + partner More)
+
+- Resolvers: `lib/navigation/soft-back-routes.js` (`resolveStorefrontSoftBack`, `resolvePartnerSoftBack`; marketing fallback moved here from P0).
+- Wired: `StorefrontAppShell` + `partner/layout` → `AppHeader` `showSoftBack` / `softBackFallback`. Guest: wallet/referral/status/settings → `/profile`; my-bookings → `/`. Partner More: finances/settings/payouts/reviews/promo → `/partner/dashboard`.
+- Removed page-local hard ArrowLeft on `/my-bookings` and `/partner/promo` (header owns back).
+- P0 marketing unchanged. Leave alone: tab roots, PDP/favorites/ChatTopBar, wizard, checkout/auth, guest-review.
+- Tests: `__tests__/stage201-13-soft-back-p1.test.js`.
+
 ### Stage 201.12 — soft-back SSOT P0 (marketing / iOS)
 
 - Behavior SSOT: **`useSoftBack(fallbackHref)`** only (`hooks/use-soft-back.js`).
@@ -979,7 +987,7 @@
 ### Wave J / optimistic chrome (200.13–200.19)
 
 - Pending dock/header paint: `hooks/use-optimistic-nav-href.js`, `airento:nav-pending`, docks `MobileBottomNav` / `PartnerMobileBottomNav`
-- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`; **201.12** marketing chrome leading via `AppHeader` / `MarketingAppShell`
+- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`, `lib/navigation/soft-back-routes.js`; **201.12** marketing + **201.13** storefront nested / partner More via `AppHeader`
 - Catalog → PDP prefetch + hero transition pending; exclusive Search-tab pending on Home→catalog
 - PDP map: cooperative overlay clipped so it cannot cover `MobileBookingBar`
 
