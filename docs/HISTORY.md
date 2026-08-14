@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.14 | 2026-08-14 | Soft-back hard-exit cleanup + marketing top-pad (About/Terms/Legal) | Done |
 | 201.13 | 2026-08-14 | Soft-back SSOT P1: profile nested + partner More via AppHeader | Done |
 | 201.12 | 2026-08-14 | Soft-back SSOT P0: MarketingAppShell → AppHeader leading chevron (iOS) | Done |
 | 201.11 | 2026-08-13 | Nightly Playwright keep-list (drop DB-spam fixtures from CI) | Done |

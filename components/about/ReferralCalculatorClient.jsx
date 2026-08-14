@@ -154,7 +154,7 @@ export function ReferralCalculatorClient() {
   const exampleFriend = formatThbAsDisplay(559)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
       <div className="space-y-3 text-center">
         <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-sm text-brand font-medium">
           <Calculator className="h-4 w-4" />

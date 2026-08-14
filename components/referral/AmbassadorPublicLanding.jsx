@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import {
-  ArrowLeft,
   Copy,
   Gift,
   Share2,
@@ -119,11 +118,6 @@ export function AmbassadorPublicLanding({
     <div className={cn('min-h-screen bg-brand-surface text-slate-900 sm:pb-16', !isSelf && 'app-shell-secondary-chrome-pad')}>
       <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky app-sticky-below-header z-10">
         <div className="mx-auto max-w-4xl px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/listings" aria-label={t('publicProfileBack')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-500 uppercase tracking-wide">{landing?.siteDisplayName}</p>
             <h1 className="text-lg font-bold truncate">{displayName}</h1>

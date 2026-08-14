@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN } from 'date-fns/locale'
 import { th as thLocale } from 'date-fns/locale/th'
-import { ArrowLeft, CheckCircle2, Loader2, MessageSquare, ShieldCheck, Star, User, Users } from 'lucide-react'
+import { CheckCircle2, Loader2, MessageSquare, ShieldCheck, Star, User, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -297,11 +297,6 @@ export default function PublicUserProfileClient({
     <div className="min-h-screen bg-background text-foreground pb-16">
       <div className="border-b border-border bg-card/40 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 max-w-3xl flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/listings" aria-label={getUIText('publicProfileBack', language)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
           <h1 className="text-lg font-semibold truncate">{displayNameHero}</h1>
         </div>
       </div>

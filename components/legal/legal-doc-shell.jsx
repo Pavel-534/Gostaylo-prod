@@ -24,7 +24,7 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, introBlock, publ
 
   return (
     <main className="min-h-screen bg-brand-surface font-sans antialiased text-slate-900">
-      <article className="mx-auto max-w-3xl px-6 py-16 sm:px-8 sm:py-24">
+      <article className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-12">
         <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
           {eyebrow}
           {' · '}

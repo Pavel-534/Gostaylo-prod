@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN, th } from 'date-fns/locale'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -207,13 +207,6 @@ function NewReviewContent() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <Button asChild variant="ghost" className="mb-4 -ml-2 min-h-11 text-slate-600">
-        <Link href="/my-bookings">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          {getUIText('renterReviewFlow_back', language)}
-        </Link>
-      </Button>
-
       <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'mb-4 sm:border-brand/20 sm:bg-brand/5')}>
         <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
           <CardTitle className="text-base">{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>

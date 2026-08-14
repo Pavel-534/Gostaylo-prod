@@ -27,6 +27,13 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.14 — soft-back hard-exit cleanup + marketing pad
+
+- Extended `soft-back-routes`: `/u/*`, `/go/*` → `/listings`; `/renter/reviews/*` → `/my-bookings`; partner guest-review → `/partner/bookings`. Removed page-local ArrowLeft on those screens.
+- Marketing double-pad: About/Terms hero `pt-24` → `pt-6/8` (MainContent already clears header); LegalDocShell / loyalty / referral calc / escrow-help top pad tightened.
+- Leave alone: PDP/favorites/ChatTopBar, checkout/auth/wizard, admin.
+- Tests: `__tests__/stage201-14-soft-back-pad-cleanup.test.js`.
+
 ### Stage 201.13 — soft-back SSOT P1 (guest nested + partner More)
 
 - Resolvers: `lib/navigation/soft-back-routes.js` (`resolveStorefrontSoftBack`, `resolvePartnerSoftBack`; marketing fallback moved here from P0).
@@ -39,7 +46,7 @@
 
 - Behavior SSOT: **`useSoftBack(fallbackHref)`** only (`hooks/use-soft-back.js`).
 - UI: `AppHeader` props `showSoftBack` / `softBackFallback`; **`MarketingAppShell`** defaults `showSoftBack=true` (fallback `/`; `/help/escrow-protection` → `/help`). Covers help/legal/terms/about children of `(marketing)`.
-- P1 backlog (not in this Stage): profile nested (`/profile/wallet|referral|status`, settings), partner «More» (finances/settings/payouts/referrals/reviews).
+- P1 backlog (not in this Stage): profile nested (`/profile/wallet|referral|status`, settings), partner «More» (finances/settings/payouts/referrals/reviews). → **Done in 201.13**; further hard-exit cleanup in **201.14**.
 - Leave alone: PDP/favorites/ChatTopBar, tab roots, checkout/auth/wizard, admin.
 - Tests: `__tests__/stage201-12-soft-back-marketing.test.js`.
 
@@ -987,7 +994,7 @@
 ### Wave J / optimistic chrome (200.13–200.19)
 
 - Pending dock/header paint: `hooks/use-optimistic-nav-href.js`, `airento:nav-pending`, docks `MobileBottomNav` / `PartnerMobileBottomNav`
-- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`, `lib/navigation/soft-back-routes.js`; **201.12** marketing + **201.13** storefront nested / partner More via `AppHeader`
+- Soft back + catalog scroll memory: `hooks/use-soft-back.js`, `lib/navigation/route-scroll-memory.js`, `lib/navigation/soft-back-routes.js`; **201.12–201.14** AppHeader leading (marketing, nested guest/partner, public profile/go, review flows) + marketing top-pad fix
 - Catalog → PDP prefetch + hero transition pending; exclusive Search-tab pending on Home→catalog
 - PDP map: cooperative overlay clipped so it cannot cover `MobileBookingBar`
 

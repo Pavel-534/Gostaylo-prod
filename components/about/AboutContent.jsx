@@ -124,7 +124,7 @@ export default function AboutContent() {
     <main className="min-h-screen bg-white">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-brand/10 via-white to-amber-50/40 border-b border-slate-100">
-        <div className="container mx-auto px-4 pt-24 sm:pt-28 pb-16 sm:pb-20 max-w-4xl">
+        <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-16 sm:pb-20 max-w-4xl">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
             <span className="h-1.5 w-1.5 rounded-full bg-brand" />
             {getSiteDisplayName()} · {s.eyebrow}

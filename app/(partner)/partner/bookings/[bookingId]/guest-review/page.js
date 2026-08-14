@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Loader2, ArrowLeft, Star, AlertCircle } from 'lucide-react'
+import { Loader2, Star, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
@@ -183,13 +183,6 @@ export default function PartnerGuestReviewPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-0 px-4 py-8">
-      <Button variant="ghost" className="-ml-2 mb-4 min-h-[44px]" asChild>
-        <Link href="/partner/bookings" className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          {t('partnerGuestReview_bookingsNav')}
-        </Link>
-      </Button>
-
       <section data-partner-section="guest-review-form" className="space-y-3">
         <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerGuestReview_rateTitle')}</h2>
         <p className="text-xs leading-relaxed text-slate-500">
