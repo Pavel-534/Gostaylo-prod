@@ -78,7 +78,11 @@ function StepPhotosInner() {
         <p className="text-xs leading-relaxed text-slate-500">{t('showcasePhotos')}</p>
       </div>
 
-      <section data-partner-section="photos-upload" className="space-y-3">
+      <section
+        data-partner-section="photos-upload"
+        data-listing-health-anchor="photos"
+        className="space-y-3"
+      >
         <h3 className={PARTNER_SECTION_TITLE_CLASS}>{t('wizardSection_photosUpload')}</h3>
         <input
           ref={fileInputRef}

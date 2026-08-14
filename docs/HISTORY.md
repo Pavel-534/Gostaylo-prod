@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.34 | 2026-08-14 | Listing health: rules weight 15%; incomplete parts jump to wizard step | Done |
+| 201.33 | 2026-08-14 | Renter favorites product chrome + soft-back SSOT; settings phone field | Done |
+| 201.32 | 2026-08-14 | Public offer §6 claims + §7 RF applicable law; terms version 2026-08-14-v1 | Done |
 | 201.31 | 2026-08-14 | Unified MarketingDocChrome; Help FAQ i18n; legal EN + disclaimer | Done |
 | 201.30 | 2026-08-14 | Hide publisher ИНН/ОГРНИП from home footer only; keep on Help contact | Done |
 | 201.29 | 2026-08-14 | About story: founder voice (Phuket/Russia travel pain → build for ourselves) | Done |

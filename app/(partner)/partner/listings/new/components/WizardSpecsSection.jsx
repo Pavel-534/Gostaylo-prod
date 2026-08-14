@@ -91,7 +91,7 @@ function WizardSpecsSectionInner() {
       {partnerAmenitySlugs.length > 0 && (
         <>
           <PartnerSectionDivider wrapClassName="py-2 sm:py-3" />
-          <div className="space-y-3">
+          <div className="space-y-3" data-listing-health-anchor="amenities">
             <UiLabel className={PARTNER_FIELD_LABEL_CLASS}>{t('amenities')}</UiLabel>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {partnerAmenitySlugs.map((slug) => {

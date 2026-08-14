@@ -47,7 +47,10 @@ describe('Stage 201.13 — soft-back SSOT P1', () => {
     })
     assert.equal(resolveStorefrontSoftBack('/profile').showSoftBack, false)
     assert.equal(resolveStorefrontSoftBack('/listings').showSoftBack, false)
-    assert.equal(resolveStorefrontSoftBack('/renter/favorites').showSoftBack, false)
+    assert.deepEqual(resolveStorefrontSoftBack('/renter/favorites'), {
+      showSoftBack: true,
+      softBackFallback: '/profile',
+    })
 
     assert.deepEqual(resolvePartnerSoftBack('/partner/finances'), {
       showSoftBack: true,

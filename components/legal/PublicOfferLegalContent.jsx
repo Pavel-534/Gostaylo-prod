@@ -21,7 +21,7 @@ export default function PublicOfferLegalContent() {
         lead={`Настоящий документ является официальным предложением (публичной офертой) ${brand} (далее — «Платформа», «Оператор») заключить договор на условиях ниже. Оплачивая бронирование или подтверждая действия в интерфейсе с отметкой о согласии, Пользователь принимает условия настоящей оферты.`}
         publisher={publisher}
       >
-        <RuBody brand={brand} />
+        <RuBody brand={brand} supportEmail={publisher.email} />
       </LegalDocShell>
     )
   }
@@ -34,12 +34,12 @@ export default function PublicOfferLegalContent() {
       publisher={publisher}
       disclaimer={<LegalTranslationDisclaimer onShowRussian={showRussian} />}
     >
-      <EnBody brand={brand} />
+      <EnBody brand={brand} supportEmail={publisher.email} />
     </LegalDocShell>
   )
 }
 
-function RuBody({ brand }) {
+function RuBody({ brand, supportEmail }) {
   return (
     <>
       <h2>1. Роли сторон</h2>
@@ -134,15 +134,43 @@ function RuBody({ brand }) {
         </li>
       </ol>
 
-      <h2>6. Ответственность и споры</h2>
+      <h2>6. Ответственность и претензии</h2>
       <p>
         Ограничения ответственности Оператора, порядок рассмотрения претензий между Гостем и Партнёром, а также случаи
         возврата средств определяются политикой возвратов, правилами бронирования и применимым законодательством.
         Технические сбои платёжных провайдеров могут влиять на сроки зачисления; Оператор содействует разрешению
         инцидента в разумный срок.
       </p>
+      <p>
+        При возникновении вопросов или разногласий, связанных с услугами Оператора по настоящей оферте, Гость вправе
+        направить претензию Оператору по адресу электронной почты{' '}
+        <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. Оператор рассматривает претензию в срок, установленный
+        законодательством Российской Федерации.
+      </p>
+      <p>
+        Оператор вправе запросить у Гостя дополнительные сведения, необходимые для рассмотрения претензии (скриншоты
+        переписки с Партнёром, фото объекта, данные бронирования).
+      </p>
+      <p>
+        В случае невозможности разрешения спора путём переговоров Гость — потребитель вправе обратиться в суд по своему
+        месту жительства или по месту нахождения Оператора в соответствии с законодательством Российской Федерации.
+      </p>
 
-      <h2>7. Персональные данные</h2>
+      <h2>7. Применимое право</h2>
+      <p>
+        На отношения между Гостем и Оператором, регулируемые настоящей офертой, распространяется действие
+        законодательства Российской Федерации: Гражданский кодекс РФ, Федеральный закон от 07.02.1992 № 2300-1 «О защите
+        прав потребителей» (далее — ЗоЗПП), Федеральный закон от 27.07.2006 № 152-ФЗ «О персональных данных» и иные
+        применимые нормативные акты — в части обязанностей Оператора как посредника (агента) и провайдера
+        информационно-технологических услуг. Договор о предоставлении услуги проживания (или иной услуги Партнёра)
+        заключается между Гостем и Партнёром и не подменяется настоящей офертой.
+      </p>
+      <p>
+        В части, не урегулированной настоящей офертой, стороны руководствуются положениями действующего законодательства
+        РФ.
+      </p>
+
+      <h2>8. Персональные данные</h2>
       <p>
         Обработка персональных данных регламентируется{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -151,7 +179,7 @@ function RuBody({ brand }) {
         .
       </p>
 
-      <h2>8. Изменение оферты</h2>
+      <h2>9. Изменение оферты</h2>
       <p>
         Оферта может обновляться; актуальная дата редакции указана в блоке «Оператор платформы». Существенные изменения
         доводятся до пользователей через аккаунт и/или e-mail. При следующей оплате бронирования Пользователь может
@@ -161,7 +189,7 @@ function RuBody({ brand }) {
   )
 }
 
-function EnBody({ brand }) {
+function EnBody({ brand, supportEmail }) {
   return (
     <>
       <h2>1. Roles of the parties</h2>
@@ -252,14 +280,40 @@ function EnBody({ brand }) {
         </li>
       </ol>
 
-      <h2>6. Liability and disputes</h2>
+      <h2>6. Liability and claims</h2>
       <p>
         Limits of Operator liability, Guest–Partner claims, and refund cases follow the refund policy, booking rules,
         and applicable law. Payment-provider outages may affect settlement timing; the Operator assists within a
         reasonable period.
       </p>
+      <p>
+        If questions or disagreements arise about the Operator’s services under this offer, the Guest may send a claim
+        to the Operator at{' '}
+        <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. The Operator reviews the claim within the time limits set
+        by the laws of the Russian Federation.
+      </p>
+      <p>
+        The Operator may request additional information needed to review the claim (screenshots of correspondence with
+        the Partner, photos of the object, booking details).
+      </p>
+      <p>
+        If the dispute cannot be resolved by negotiation, a Guest who is a consumer may bring a claim in court at their
+        place of residence or at the Operator’s location in accordance with the laws of the Russian Federation.
+      </p>
 
-      <h2>7. Personal data</h2>
+      <h2>7. Applicable law</h2>
+      <p>
+        Relations between the Guest and the Operator under this offer are governed by the laws of the Russian Federation:
+        the Civil Code of the RF, Federal Law No. 2300-1 of 07.02.1992 “On Protection of Consumer Rights” (ZoZPP),
+        Federal Law No. 152-FZ of 27.07.2006 “On Personal Data”, and other applicable acts — insofar as they concern the
+        Operator’s duties as intermediary (agent) and provider of information technology services. The contract for the
+        stay (or other Partner service) is between Guest and Partner and is not replaced by this offer.
+      </p>
+      <p>
+        Matters not covered by this offer are governed by the applicable laws of the Russian Federation.
+      </p>
+
+      <h2>8. Personal data</h2>
       <p>
         Personal data processing is governed by the{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -268,7 +322,7 @@ function EnBody({ brand }) {
         .
       </p>
 
-      <h2>8. Changes to the offer</h2>
+      <h2>9. Changes to the offer</h2>
       <p>
         The offer may be updated; the current revision date is in the “Platform operator” block. Material changes are
         communicated via account and/or email. On the next booking payment the User may be asked to re-confirm the new

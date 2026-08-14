@@ -1,10 +1,11 @@
 /**
- * Stage 199.2 / 200.28 — Listing Health Score widget (partner wizard).
+ * Stage 199.2 / 200.28 / 201.34 — Listing Health Score widget (partner wizard).
+ * Incomplete parts are tappable → jump to the wizard step that needs filling.
  */
 
 'use client'
 
-import { CheckCircle2, Circle, Sparkles } from 'lucide-react'
+import { CheckCircle2, Circle, ChevronRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   calculateListingHealthScore,
@@ -29,6 +30,7 @@ function formatTip(t, tip) {
  *   categorySlug?: string
  *   categoryName?: string
  *   className?: string
+ *   onGoToStep?: (step: number, partKey: string) => void
  * }} props
  */
 export function ListingHealthScoreWidget({
@@ -38,6 +40,7 @@ export function ListingHealthScoreWidget({
   categorySlug = '',
   categoryName = '',
   className,
+  onGoToStep,
 }) {
   const health = calculateListingHealthScore(
     listingHealthInputFromWizardForm(formData || {}, {
@@ -62,6 +65,12 @@ export function ListingHealthScoreWidget({
       : tone === 'amber'
         ? 'bg-amber-500'
         : 'bg-slate-400'
+
+  function go(partOrTip) {
+    const step = partOrTip?.wizardStep
+    if (!onGoToStep || step == null || partOrTip.ok) return
+    onGoToStep(step, partOrTip.key)
+  }
 
   return (
     <div
@@ -94,32 +103,89 @@ export function ListingHealthScoreWidget({
         />
       </div>
 
-      <ul className="space-y-1.5">
-        {health.parts.map((part) => (
-          <li key={part.key} className="flex items-start gap-2 text-xs text-slate-700">
-            {part.ok ? (
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-            ) : (
-              <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-            )}
-            <span className={part.ok ? 'text-slate-600' : 'font-medium text-slate-800'}>
+      <ul className="space-y-1">
+        {health.parts.map((part) => {
+          const canJump = Boolean(onGoToStep && !part.ok && part.wizardStep != null)
+          const label = (
+            <>
               {t(part.labelKey || `listingHealth_part_${part.key}`, part.key)}
               <span className="ml-1 tabular-nums text-slate-400">+{part.weight}%</span>
-            </span>
-          </li>
-        ))}
+            </>
+          )
+
+          return (
+            <li key={part.key}>
+              {canJump ? (
+                <button
+                  type="button"
+                  onClick={() => go(part)}
+                  data-testid={`listing-health-part-${part.key}`}
+                  className={cn(
+                    'flex w-full min-h-[44px] items-start gap-2 rounded-xl px-1.5 py-1.5 text-left text-xs',
+                    'font-medium text-brand-hover transition-colors',
+                    'hover:bg-brand/5 active:bg-brand/10 touch-manipulation',
+                  )}
+                >
+                  <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                  <span className="min-w-0 flex-1 leading-snug">{label}</span>
+                  <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                </button>
+              ) : (
+                <div
+                  className="flex items-start gap-2 px-1.5 py-1.5 text-xs text-slate-700"
+                  data-testid={`listing-health-part-${part.key}`}
+                >
+                  {part.ok ? (
+                    <CheckCircle2
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600"
+                      aria-hidden
+                    />
+                  ) : (
+                    <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                  )}
+                  <span className={cn('leading-snug', part.ok ? 'text-slate-600' : 'font-medium text-slate-800')}>
+                    {label}
+                  </span>
+                </div>
+              )}
+            </li>
+          )
+        })}
       </ul>
 
       {health.tips.length > 0 ? (
         <ul
-          className="mt-3 space-y-1.5 border-t border-slate-200/80 pt-3"
+          className="mt-3 space-y-1 border-t border-slate-200/80 pt-3"
           data-testid="listing-health-tips"
         >
-          {health.tips.map((tip) => (
-            <li key={tip.key} className="text-xs leading-snug text-slate-600">
-              {formatTip(t, tip)}
-            </li>
-          ))}
+          {health.tips.map((tip) => {
+            const canJump = Boolean(onGoToStep && tip.wizardStep != null)
+            const text = formatTip(t, tip)
+            if (canJump) {
+              return (
+                <li key={tip.key}>
+                  <button
+                    type="button"
+                    onClick={() => go(tip)}
+                    data-testid={`listing-health-tip-${tip.key}`}
+                    className={cn(
+                      'flex w-full min-h-[44px] items-start gap-1 rounded-xl px-1.5 py-1.5 text-left text-xs',
+                      'leading-snug text-brand-hover underline-offset-2 hover:underline',
+                      'hover:bg-brand/5 active:bg-brand/10 touch-manipulation',
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">{text}</span>
+                    <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  </button>
+                </li>
+              )
+            }
+            return (
+              <li key={tip.key} className="px-1.5 text-xs leading-snug text-slate-600">
+                {text}
+              </li>
+            )
+          })}
         </ul>
       ) : (
         <p className="mt-3 border-t border-emerald-200/80 pt-3 text-xs font-medium text-emerald-800">

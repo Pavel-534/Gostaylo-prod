@@ -17,6 +17,7 @@ import {
   WIZARD_MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from './wizard-step-layout'
 import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
+import { scrollToListingHealthAnchor } from '@/lib/partner/listing-health-score'
 import { cn } from '@/lib/utils'
 
 function StepPreviewInner() {
@@ -36,6 +37,7 @@ function StepPreviewInner() {
     canFullPublish,
     publishQualityChecklist,
     pricingPreview,
+    setCurrentStep,
   } = w
   const { currency, exchangeRates } = useStorefrontDisplayFx()
 
@@ -64,6 +66,10 @@ function StepPreviewInner() {
           categorySlug={listingCategorySlug}
           categoryName={formData.categoryName || ''}
           className="sm:hidden"
+          onGoToStep={(step, partKey) => {
+            setCurrentStep?.(step)
+            scrollToListingHealthAnchor(partKey)
+          }}
         />
 
         <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />

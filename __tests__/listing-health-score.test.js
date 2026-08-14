@@ -35,7 +35,7 @@ describe('calculateListingHealthScore', () => {
       wizardProfile: 'stay',
       images: ['1'],
     })
-    assert.equal(photosOnly.score, 30)
+    assert.equal(photosOnly.score, 40)
     assert.equal(photosOnly.tips.some((t) => t.key === 'photos'), false)
 
     const withDesc = calculateListingHealthScore({
@@ -43,7 +43,7 @@ describe('calculateListingHealthScore', () => {
       images: ['1'],
       description: 'y'.repeat(80),
     })
-    assert.equal(withDesc.score, 50)
+    assert.equal(withDesc.score, 65)
 
     const withAmenities = calculateListingHealthScore({
       wizardProfile: 'stay',
@@ -51,7 +51,7 @@ describe('calculateListingHealthScore', () => {
       description: 'y'.repeat(80),
       metadata: { amenities: ['a', 'b', 'c'] },
     })
-    assert.equal(withAmenities.score, 70)
+    assert.equal(withAmenities.score, 85)
 
     const tipPhotos = empty.tips.find((t) => t.key === 'photos')
     assert.equal(tipPhotos.tipParams.count, 1)
@@ -89,6 +89,36 @@ describe('calculateListingHealthScore', () => {
       },
     })
     assert.equal(r.score, 100)
+  })
+
+  it('maps incomplete stay parts to wizard steps; rules weight is 15', async () => {
+    const {
+      calculateListingHealthScore,
+      LISTING_HEALTH_WEIGHT_RULES,
+      listingHealthWizardStepForPart,
+      listingHealthAnchorForPart,
+    } = await import('../lib/partner/listing-health-score.js')
+    assert.equal(LISTING_HEALTH_WEIGHT_RULES, 15)
+    assert.equal(listingHealthWizardStepForPart('photos'), 3)
+    assert.equal(listingHealthWizardStepForPart('rules'), 1)
+    assert.equal(listingHealthAnchorForPart('photos'), 'photos')
+    assert.equal(listingHealthAnchorForPart('amenities'), 'amenities')
+    assert.equal(listingHealthAnchorForPart('features'), 'amenities')
+    assert.equal(listingHealthAnchorForPart('rules'), 'rules')
+    assert.equal(listingHealthAnchorForPart('pickup'), 'pickup')
+    assert.equal(listingHealthAnchorForPart('details'), 'pickup')
+
+    const partial = calculateListingHealthScore({
+      wizardProfile: 'stay',
+      images: ['1'],
+      description: 'y'.repeat(80),
+      metadata: { amenities: ['a', 'b', 'c'] },
+    })
+    const rules = partial.parts.find((p) => p.key === 'rules')
+    assert.equal(rules.ok, false)
+    assert.equal(rules.weight, 15)
+    assert.equal(rules.wizardStep, 1)
+    assert.equal(partial.tips.find((t) => t.key === 'rules')?.wizardStep, 1)
   })
 })
 

@@ -32,6 +32,7 @@ export default function RenterSettingsPage() {
   const [uploading, setUploading] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
   /** Raw URL stored in profiles.avatar (Supabase public URL or existing DB value) */
   const [avatarRaw, setAvatarRaw] = useState(null)
   const [marketing, setMarketing] = useState(false)
@@ -63,6 +64,7 @@ export default function RenterSettingsPage() {
         toast.error(getUIText('renterSettingsUnauthorized', language))
         setFirstName('')
         setLastName('')
+        setPhone('')
         setAvatarRaw(null)
         return
       }
@@ -70,6 +72,7 @@ export default function RenterSettingsPage() {
       setUserId(u.id || null)
       setFirstName(u.first_name || u.firstName || '')
       setLastName(u.last_name || u.lastName || '')
+      setPhone(u.phone || '')
       setAvatarRaw(u.avatar && String(u.avatar).trim() ? String(u.avatar).trim() : null)
       const prefs = u.notification_preferences || u.notificationPreferences || {}
       setMarketing(!!prefs.marketing)
@@ -146,6 +149,7 @@ export default function RenterSettingsPage() {
         body: JSON.stringify({
           first_name: firstName.trim(),
           last_name: lastName.trim(),
+          phone: phone.trim() || null,
           avatar: avatarRaw,
           notification_preferences: {
             marketing,
@@ -249,6 +253,22 @@ export default function RenterSettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="r-last">{getUIText('renterSettingsLastName', language)}</Label>
               <Input id="r-last" value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={100} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="r-phone">{getUIText('renterSettingsPhone', language)}</Label>
+              <Input
+                id="r-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                maxLength={50}
+                placeholder={getUIText('renterSettingsPhonePlaceholder', language)}
+              />
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {getUIText('renterSettingsPhoneHint', language)}
+              </p>
             </div>
           </div>
         </CardContent>

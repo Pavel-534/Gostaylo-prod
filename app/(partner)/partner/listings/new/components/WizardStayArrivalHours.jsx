@@ -80,6 +80,7 @@ export function WizardStayArrivalHours({
     <section
       className="space-y-4"
       data-partner-section="basics-arrival-hours"
+      data-listing-health-anchor="rules"
       data-testid="wizard-stay-arrival-hours"
     >
       <div className="flex items-start gap-3">

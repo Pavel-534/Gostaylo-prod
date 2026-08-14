@@ -28,6 +28,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext'
 import { AppHeader } from '@/components/app-header/AppHeader'
 import { useAuth } from '@/contexts/auth-context'
+import { resolveStorefrontSoftBack } from '@/lib/navigation/soft-back-routes'
 
 // Navigation items
 const NAV_ITEMS = [
@@ -71,6 +72,7 @@ const NAV_ITEMS = [
 
 export default function RenterLayout({ children }) {
   const pathname = usePathname()
+  const { showSoftBack, softBackFallback } = resolveStorefrontSoftBack(pathname)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [language, setLanguage] = useState('ru')
   const { totalUnread } = useChatUnreadBadge()
@@ -157,6 +159,8 @@ export default function RenterLayout({ children }) {
       <div className="min-h-screen bg-brand-surface flex flex-col">
         <AppHeader
           variant="workspace"
+          showSoftBack={showSoftBack}
+          softBackFallback={softBackFallback}
           onMenuClick={() => setSidebarOpen((v) => !v)}
           centerSlot={
             <nav className="hidden md:flex items-center gap-1">

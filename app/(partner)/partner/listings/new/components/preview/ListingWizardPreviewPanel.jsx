@@ -4,12 +4,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useListingWizard } from '../../context/ListingWizardContext'
 import { ListingWizardPreviewContent } from './ListingWizardPreviewContent'
 import { ListingHealthScoreWidget } from '@/components/partner/listing/ListingHealthScoreWidget'
+import { scrollToListingHealthAnchor } from '@/lib/partner/listing-health-score'
 
 /**
  * Desktop/tablet sticky preview column (hidden below sm).
  */
 export function ListingWizardPreviewPanel({ previewStickyTop }) {
-  const { t, formData, listingCategorySlug, listingCategoryWizardProfile } = useListingWizard()
+  const { t, formData, listingCategorySlug, listingCategoryWizardProfile, setCurrentStep } =
+    useListingWizard()
 
   return (
     <div className="hidden sm:block lg:col-span-1">
@@ -23,6 +25,10 @@ export function ListingWizardPreviewPanel({ previewStickyTop }) {
           wizardProfile={listingCategoryWizardProfile}
           categorySlug={listingCategorySlug}
           categoryName={formData.categoryName || ''}
+          onGoToStep={(step, partKey) => {
+            setCurrentStep?.(step)
+            scrollToListingHealthAnchor(partKey)
+          }}
         />
         <div>
           <h3 className="mb-3 text-sm font-semibold tracking-tight text-slate-800 sm:text-base">

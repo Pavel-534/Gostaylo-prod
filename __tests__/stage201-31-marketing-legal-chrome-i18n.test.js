@@ -63,4 +63,17 @@ describe('Stage 201.31 — marketing/legal chrome + i18n', () => {
     assert.doesNotMatch(about, /20\s*%/)
     assert.doesNotMatch(about, /twenty percent/i)
   })
+
+  it('public offer has claims path and RF applicable law (§6–§7)', () => {
+    const offer = read('components/legal/PublicOfferLegalContent.jsx')
+    assert.match(offer, /Ответственность и претензии/)
+    assert.match(offer, /Применимое право/)
+    assert.match(offer, /2300-1/)
+    assert.match(offer, /Liability and claims/)
+    assert.match(offer, /Applicable law/)
+    assert.match(offer, /supportEmail/)
+
+    const ver = read('lib/config/legal-terms-version.js')
+    assert.match(ver, /2026-08-14-v1/)
+  })
 })

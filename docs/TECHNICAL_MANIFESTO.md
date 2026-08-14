@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.136 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.31** marketing/legal chrome + i18n.
+> **Version**: 13.2.140 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.34** listing health UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,25 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.34 — listing health weight + jump-to-step
+
+- Stay soft score: photos **40** / description **25** / amenities **20** / house+check-in rules **15** (was 30/20/20/30).
+- Incomplete health rows + tips are tappable → wizard step (`listingHealthWizardStepForPart`: photos→3, rest→1 Basics).
+- Widget: `onGoToStep` from Step Preview + sticky preview panel.
+- After jump: `scrollToListingHealthAnchor` → `data-listing-health-anchor` (description / amenities / rules / pickup / photos); opens collapsed check-in `<details>` when needed.
+
+### Stage 201.33 — renter favorites chrome + settings phone
+
+- `/renter/favorites`: removed pink/red hero and page-owned back; `ProductPageShell` + `PageSectionHeader` + `WorkspaceEmptyState` (sans). Soft-back via renter `AppHeader` → `/profile`.
+- `/renter/settings` + favorites: `resolveStorefrontSoftBack` wired in `renter/layout.js` (was defined but unused).
+- Settings: contact `phone` field (PATCH `/api/v2/auth/me`); copy — not public; self + support/admins. Public profile API still omits phone.
+- Tests: `__tests__/stage201-33-renter-favorites-settings.test.js`.
+
+### Stage 201.32 — public offer claims + applicable law
+
+- `/legal/public-offer/`: §6 liability/claims (email via publisher support, RF review terms, court venue); new §7 RF applicable law (GK, ZoZPP, 152-FZ) scoped to Operator-as-agent IT services; PDN → §8, changes → §9. EN mirror + disclaimer unchanged.
+- Fallback version bump: `CURRENT_LEGAL_TERMS_VERSION` → `2026-08-14-v1`; `LEGAL_PUBLISHER_STATIC.lastUpdated` → 14 августа 2026. If prod uses admin `legal_versions`, publish matching version there.
 
 ### Stage 201.31 — marketing/legal chrome + Help/legal i18n
 

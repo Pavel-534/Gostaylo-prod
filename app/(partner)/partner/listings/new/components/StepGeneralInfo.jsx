@@ -221,6 +221,7 @@ function StepGeneralInfoInner() {
         </div>
         <div
           data-wizard-field="description"
+          data-listing-health-anchor="description"
           data-wizard-field-error={errDesc ? 'true' : undefined}
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -339,6 +340,7 @@ function StepGeneralInfoInner() {
           <PartnerSectionDivider />
         <details
           className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'open:max-sm:pb-0 open:sm:pb-5')}
+          data-listing-health-anchor="pickup"
           defaultOpen={
             String(formData.metadata?.check_in_instructions ?? '').trim().length > 0 ||
             (Array.isArray(formData.metadata?.check_in_photos) &&
