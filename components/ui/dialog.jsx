@@ -11,6 +11,7 @@ import {
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
 import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
+import { useKeepFocusedFieldVisible } from "@/hooks/use-keep-focused-field-visible"
 import {
   OverlayOpenProvider,
   useMirroredOpenState,
@@ -99,30 +100,7 @@ const DialogContent = React.forwardRef(({
   }, [])
   useMobileDockLock(dialogOpen && isPhone)
   const viewportStyle = buildVisualViewportPinStyle(frame, { recipe })
-
-  // Keep focused inputs visible inside the sheet scrollport (iOS mid-form / number pad).
-  React.useEffect(() => {
-    const root = contentRef.current
-    if (!root) return undefined
-    const onFocusIn = (event) => {
-      const target = event.target
-      if (!(target instanceof HTMLElement)) return
-      if (!root.contains(target)) return
-      const tag = target.tagName
-      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT' && !target.isContentEditable) {
-        return
-      }
-      window.requestAnimationFrame(() => {
-        try {
-          target.scrollIntoView({ block: 'center', inline: 'nearest' })
-        } catch {
-          /* ignore */
-        }
-      })
-    }
-    root.addEventListener('focusin', onFocusIn)
-    return () => root.removeEventListener('focusin', onFocusIn)
-  }, [])
+  useKeepFocusedFieldVisible(contentRef, dialogOpen && isPhone)
 
   return (
     <DialogPortal>

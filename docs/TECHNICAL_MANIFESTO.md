@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.156 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.50** iOS vv keyboard pin.
+> **Version**: 13.2.157 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.51** keep field above keyboard.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.51 — focused field above soft keyboard
+
+- Bug: keyboard covered active inputs in calendar/seasonal/booking sheets; white gap under CTAs with `justify-end`.
+- Fix: `lib/layout/keep-focused-field-visible.js` + `useKeepFocusedFieldVisible` on Sheet/Dialog — scroll nearest scrollport so field sits ~38% down visualViewport. Calendar/booking → `fit="form"` with flex-1 scroll body; drop keyboard `justify-end`.
 
 ### Stage 201.50 — iOS keyboard float (industrial vv box)
 

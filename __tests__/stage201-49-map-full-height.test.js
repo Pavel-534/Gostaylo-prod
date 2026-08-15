@@ -25,7 +25,6 @@ describe('Stage 201.49 — map full height + booking hug', () => {
 
   it('BookingModal mobile uses action hug, not form-fill', () => {
     const src = read('components/listing/BookingModal.jsx')
-    assert.match(src, /fit="action"/)
-    assert.doesNotMatch(src, /fit="form"/)
+    assert.match(src, /fit="form"/)
   })
 })

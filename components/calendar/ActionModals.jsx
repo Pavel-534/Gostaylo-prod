@@ -665,8 +665,8 @@ export function ActionModals({
         open={actionModal.open}
         onOpenChange={actionOpenChange}
         isMobile={isMobile}
-        // Stage 201.48 — hug (action): form-fill left a dead floor under short CTAs.
-        fit="action"
+        // Stage 201.51 — form fill + scroll body so focused fields stay above keyboard.
+        fit="form"
         title={actionTitle()}
         description={actionDescription()}
         footer={actionFooter()}
@@ -678,7 +678,7 @@ export function ActionModals({
         open={priceModal.open}
         onOpenChange={(open) => setPriceModal({ open })}
         isMobile={isMobile}
-        fit="action"
+        fit="form"
         wide
         title={
           <span className="flex items-center gap-2">

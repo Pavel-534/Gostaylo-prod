@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils"
 import { sheetFitToRecipe } from "@/lib/layout/mobile-chrome-contract"
 import {
   buildVisualViewportPinStyle,
+  KEYBOARD_VIEWPORT_SHRINK_PX,
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
 import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
+import { useKeepFocusedFieldVisible } from "@/hooks/use-keep-focused-field-visible"
 import {
   OverlayOpenProvider,
   useMirroredOpenState,
@@ -88,28 +90,43 @@ const SheetContent = React.forwardRef(
   ({ side = "right", fit = "action", className, overlayClassName, children, style, ...props }, ref) => {
     const frame = useVisualViewportFrame()
     const sheetOpen = useOverlayOpen()
+    const contentRef = React.useRef(null)
+    const setRefs = React.useCallback(
+      (node) => {
+        contentRef.current = node
+        if (typeof ref === 'function') ref(node)
+        else if (ref) ref.current = node
+      },
+      [ref],
+    )
     const recipe = side === 'bottom' ? sheetFitToRecipe(fit) : null
+    const keyboardOpen = (frame?.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
     // Lock only while Root is open — Content React tree stays mounted when closed.
     useMobileDockLock(side === 'bottom' && sheetOpen)
+    useKeepFocusedFieldVisible(contentRef, side === 'bottom' && sheetOpen)
 
     const pinStyle =
       recipe != null
         ? buildVisualViewportPinStyle(frame, { recipe })
         : undefined
 
+    // Keyboard / form: scroll lives in an inner body, not on the sheet shell.
+    const shellScrollLocked =
+      side === 'bottom' && (recipe === 'form' || keyboardOpen)
+
     return (
       <SheetPortal>
         <SheetOverlay className={overlayClassName} />
         <SheetPrimitive.Content
-          ref={ref}
+          ref={setRefs}
           data-sheet-fit={side === 'bottom' ? fit : undefined}
           data-mobile-chrome={recipe || undefined}
           style={pinStyle ? { ...pinStyle, ...style } : style}
           className={cn(
             sheetVariants({ side }),
-            side === 'bottom' && 'flex flex-col',
-            side === 'bottom' && recipe === 'action' && 'overflow-y-auto',
-            side === 'bottom' && recipe === 'form' && 'overflow-hidden',
+            side === 'bottom' && 'flex flex-col min-h-0',
+            side === 'bottom' && !shellScrollLocked && 'overflow-y-auto',
+            shellScrollLocked && 'overflow-hidden',
             className,
           )}
           {...props}

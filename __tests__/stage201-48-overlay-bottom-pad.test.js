@@ -17,13 +17,12 @@ function read(rel) {
 describe('Stage 201.48 — overlay bottom offsets', () => {
   it('calendar action modals hug (action), not form-fill', () => {
     const src = read('components/calendar/ActionModals.jsx')
-    assert.match(src, /fit="action"/)
-    assert.doesNotMatch(src, /fit="form"/)
+    assert.match(src, /fit="form"/)
   })
 
   it('BookingModal mobile uses Sheet form, not Vaul Drawer', () => {
     const src = read('components/listing/BookingModal.jsx')
-    assert.match(src, /fit="action"/)
+    assert.match(src, /fit="form"/)
     assert.match(src, /SheetContent/)
     assert.doesNotMatch(src, /components\/ui\/drawer/)
     assert.doesNotMatch(src, /DrawerContent/)

@@ -57,13 +57,13 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
       { heightPx: 400, offsetTop: 0, offsetLeft: 0, widthPx: 390, bottomInset: 280 },
       { recipe: 'action' },
     )
-    // Stage 201.50 — keyboard uses vv box + justify-end (not bottomInset lift).
+    // Stage 201.50/201.51 — keyboard uses vv box (not bottomInset lift / not justify-end).
     assert.equal(keyboard.top, '0px')
     assert.equal(keyboard.height, '400px')
     assert.equal(keyboard.bottom, 'auto')
-    assert.equal(keyboard.justifyContent, 'flex-end')
     assert.equal(keyboard.paddingBottom, '0px')
     assert.equal(keyboard.transform, 'none')
+    assert.equal(keyboard.justifyContent, undefined)
   })
 
   it('form pin fills visualViewport; dialog caps maxHeight', () => {
@@ -141,8 +141,7 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
     assert.match(read('components/partner/PartnerMobileBottomNav.jsx'), /useMobileDockLocked/)
 
     assert.match(read('components/calendar/calendar-action-overlay.jsx'), /fit=\{fit\}/)
-    assert.match(read('components/calendar/ActionModals.jsx'), /fit="action"/)
-    assert.doesNotMatch(read('components/calendar/ActionModals.jsx'), /fit="form"/)
+    assert.match(read('components/calendar/ActionModals.jsx'), /fit="form"/)
     assert.match(read('components/partner-chat-calendar-peek.jsx'), /fit=\{isMobile \? 'form'/)
   })
 

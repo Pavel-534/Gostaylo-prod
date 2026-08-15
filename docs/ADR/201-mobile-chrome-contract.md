@@ -45,6 +45,7 @@ Bottom sheets and dialogs were patched across Stages 201.38–201.43 (`hug` / `f
 | Dialog API | `components/ui/dialog.jsx` — `mobileAnchor="bottom"` → `form`; default → `dialog` |
 | Guest / partner docks | `MobileBottomNav`, `PartnerMobileBottomNav` — hide when dock locked or keyboard |
 | Overlay open → dock lock | `lib/layout/overlay-open-context.jsx` — Sheet/Dialog Root mirrors `open`; Content must **not** lock on mount alone (Stage 201.46) |
+| Focused field above keyboard | `lib/layout/keep-focused-field-visible.js` + `hooks/use-keep-focused-field-visible.js` (Stage 201.51) |
 
 ### 2.3 Product rule
 

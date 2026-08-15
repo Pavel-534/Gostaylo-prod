@@ -162,18 +162,11 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
     }
   }
 
-  // Stage 201.50 — one geometry for soft keyboard: exact visualViewport box.
+  // Stage 201.50/201.51 — keyboard: exact visualViewport box (scroll body owns fields).
+  // Do not use justify-end: it parks CTAs on the keyboard and leaves fields covered.
   if (keyboardOpen && recipe !== MOBILE_CHROME_RECIPES.DIALOG) {
-    const box = buildVisualViewportBoxStyle(frame)
-    if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
-      return {
-        ...box,
-        justifyContent: 'flex-end',
-        overflow: 'hidden',
-      }
-    }
     return {
-      ...box,
+      ...buildVisualViewportBoxStyle(frame),
       overflow: 'hidden',
     }
   }

@@ -61,6 +61,6 @@ describe('Stage 201.45 — soft keyboard + dock visibility', () => {
 
   it('calendar form sheet body flex-1 so footer sits on bottom', () => {
     const src = read('components/calendar/calendar-action-overlay.jsx')
-    assert.match(src, /fit === 'form' && 'min-h-0 flex-1'/)
+    assert.match(src, /flex-1 overflow-x-hidden overflow-y-auto/)
   })
 })
