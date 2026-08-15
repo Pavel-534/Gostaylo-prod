@@ -25,8 +25,7 @@ export function ListingWizardPreviewSheet({ open, onOpenChange }) {
         overlayClassName="z-[340]"
         className={cn(
           'z-[350] flex flex-col gap-0 overflow-hidden bg-background sm:hidden',
-          'w-full rounded-t-2xl border-t border-slate-200 p-0',
-          'pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl',
+          'w-full rounded-t-2xl border-t border-slate-200 p-0 pt-3 shadow-2xl',
         )}
       >
         <SheetHeader className="shrink-0 space-y-1 px-4 pr-12 text-left">

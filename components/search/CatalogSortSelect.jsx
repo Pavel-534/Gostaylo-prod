@@ -66,7 +66,7 @@ export function CatalogSortSelect({
             <RadioGroup
               value={value}
               onValueChange={handlePick}
-              className="gap-0 overflow-y-auto px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              className="gap-0 overflow-y-auto px-2 pb-2"
             >
               {options.map((sortKey) => {
                 const selected = value === sortKey

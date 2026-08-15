@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.144 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.38** sheet hug.
+> **Version**: 13.2.146 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.40** PDP soft-back.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,19 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.40 — PDP soft-back SSOT + favorite FAB
+
+- Listing detail back was a page-local `ListingPageNav` (duplicate of AppHeader soft-back used on marketing/legal).
+- Soft-back on `/listings/:id` via `resolveStorefrontSoftBack` → AppHeader (fallback `/listings`).
+- Heart becomes a fixed FAB under the header (`listing-pdp-favorite-fab`) so favorites stay reachable while scrolling; full-width sticky bar removed.
+
+### Stage 201.39 — iOS hug: no Safari chrome double-lift
+
+- Bug: `hug` used `bottom = visualViewport.bottomInset + nav` even when inset was browser chrome (~40–90px), not keyboard → sheets floated mid-screen on iPhone.
+- Fix: only add `bottomInset` when `> KEYBOARD_VIEWPORT_SHRINK_PX`; otherwise `bottom = navReserve` only.
+- `CatalogMobileSearchSheet` → same hug pin + drop `flex-1` / `92dvh` empty grow; CTA sits above bottom nav.
+- Sheet bottom: drop default `env(safe-area-inset-bottom)` pad (nav height already includes it).
 
 ### Stage 201.38 — bottom Sheet thumb-zone hug (SSOT)
 

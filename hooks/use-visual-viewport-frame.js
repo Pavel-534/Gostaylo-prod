@@ -109,11 +109,16 @@ export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBo
       : { top: '0.5rem', bottom: 'auto', maxHeight: 'calc(100dvh - 1rem)' }
   }
 
+  /**
+   * Stage 201.39 — iOS Safari often reports bottomInset > 0 for browser chrome (not keyboard).
+   * `position:fixed; bottom` is layout-viewport relative: adding that inset + nav lifts the sheet
+   * into empty thumb-dead space. Only treat large inset as keyboard.
+   */
   const keyboardOpen = (frame.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
   const navReserve = respectAppBottomNav && !keyboardOpen ? readAppBottomNavPx() : 0
 
   if (mode === 'hug') {
-    const bottom = (frame.bottomInset || 0) + navReserve
+    const bottom = keyboardOpen ? frame.bottomInset || 0 : navReserve
     return {
       top: 'auto',
       bottom: `${bottom}px`,

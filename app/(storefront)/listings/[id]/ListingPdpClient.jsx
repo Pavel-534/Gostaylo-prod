@@ -36,7 +36,6 @@ import {
 import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
-import { useSoftBack } from '@/hooks/use-soft-back'
 import {
   ListingPdpDetailsColumn,
   useListingPdpGalleryClickHandler,
@@ -166,7 +165,6 @@ function ListingPdpBookingGrid({ reviews, amenities, userId }) {
  * @param {string} [props.lang] — SSR locale from `getLangFromRequest`
  */
 function ListingPdpContent({ listingId, lang }) {
-  const softBack = useSoftBack('/listings')
   const { user, openLoginModal } = useAuth()
   const { addToRecent } = useRecentlyViewed({ userId: user?.id })
 
@@ -213,7 +211,6 @@ function ListingPdpContent({ listingId, lang }) {
       <div className="min-h-screen bg-white text-slate-900">
         <ListingPageNav
           language={language}
-          onBack={softBack}
           isFavorite={isFavorite}
           favoriteLoading={favoriteLoading}
           onFavorite={handleFavoriteClick}

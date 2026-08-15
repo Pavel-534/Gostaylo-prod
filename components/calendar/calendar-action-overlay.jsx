@@ -41,8 +41,7 @@ export function CalendarActionOverlay({
           data-testid="partner-cal-action-overlay"
           className={cn(
             'z-[350] flex w-full max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden',
-            'rounded-t-2xl border-t border-border p-0 shadow-2xl',
-            'pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-4',
+            'rounded-t-2xl border-t border-border p-0 shadow-2xl pt-4',
           )}
         >
           {title || description ? (

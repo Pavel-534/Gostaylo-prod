@@ -130,7 +130,6 @@ export function CalendarMarketingPromoHint({
           overlayClassName="z-[340]"
           className={cn(
             'z-[350] rounded-t-2xl border-t border-slate-200 px-4 pt-3',
-            'pb-[max(1rem,env(safe-area-inset-bottom))]',
           )}
         >
           <SheetHeader className="mb-3 pr-16 text-left">

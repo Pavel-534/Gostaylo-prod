@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.40 | 2026-08-15 | PDP: AppHeader soft-back SSOT; remove nav bar; sticky favorite FAB | Done |
+| 201.39 | 2026-08-15 | iOS sheet hug: ignore Safari chrome bottomInset; search sheet on SSOT pin | Done |
 | 201.38 | 2026-08-15 | Bottom Sheet fit=content hug (thumb zone); viewport only for tall peeks | Done |
 | 201.37 | 2026-08-15 | AppHeader: hide dead burger on guest /profile (menu only with onMenuClick) | Done |
 | 201.36 | 2026-08-15 | Brand mark: promote airento-mark1 (tighter crop) as SSOT + regen PWA icons | Done |

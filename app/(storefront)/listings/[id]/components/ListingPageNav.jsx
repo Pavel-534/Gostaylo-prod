@@ -1,40 +1,41 @@
 'use client'
 
+/**
+ * Stage 201.40 — PDP favorite control only (back → AppHeader soft-back SSOT).
+ * Fixed under the header so it stays in thumb/eye reach while scrolling.
+ */
+
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Heart } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
-export function ListingPageNav({ language, onBack, isFavorite, favoriteLoading, onFavorite }) {
+export function ListingPageNav({ language, isFavorite, favoriteLoading, onFavorite }) {
   return (
-    <header className="sticky app-sticky-below-header z-20 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 lg:px-8">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="h-11 min-h-11 min-w-11 shrink-0 gap-2 px-2 sm:min-w-0 sm:px-3 touch-manipulation active:scale-[0.99]"
-          type="button"
-          aria-label={getUIText('listingDetail_back', language)}
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span className="hidden sm:inline">{getUIText('listingDetail_back', language)}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onFavorite}
-          disabled={favoriteLoading}
-          type="button"
-          className="h-11 w-11 min-h-11 min-w-11 shrink-0"
-          aria-label={
-            isFavorite
-              ? getUIText('listingDetail_favoriteRemove', language)
-              : getUIText('listingDetail_favoriteAdd', language)
-          }
-        >
-          <Heart className={cn('h-5 w-5', isFavorite && 'fill-red-500 text-red-500')} />
-        </Button>
-      </div>
-    </header>
+    <div
+      className="pointer-events-none fixed right-3 z-30 sm:right-6"
+      style={{ top: 'calc(var(--app-header-height, 64px) + 0.5rem)' }}
+      data-testid="listing-pdp-favorite-fab"
+    >
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={onFavorite}
+        disabled={favoriteLoading}
+        type="button"
+        className={cn(
+          'pointer-events-auto h-11 w-11 min-h-[44px] min-w-[44px] rounded-full',
+          'border-slate-200 bg-white/95 shadow-md backdrop-blur-md',
+          'touch-manipulation active:scale-[0.98]',
+        )}
+        aria-label={
+          isFavorite
+            ? getUIText('listingDetail_favoriteRemove', language)
+            : getUIText('listingDetail_favoriteAdd', language)
+        }
+      >
+        <Heart className={cn('h-5 w-5', isFavorite && 'fill-red-500 text-red-500')} aria-hidden />
+      </Button>
+    </div>
   )
 }
