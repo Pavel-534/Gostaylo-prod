@@ -3,6 +3,7 @@ import { RootClientProviders } from '@/components/providers/RootClientProviders'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getPublicBrandDisplayName } from '@/lib/site-url'
 import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
+import { IosSplashLinks } from '@/components/brand/ios-splash-links'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { cookies, headers } from 'next/headers'
 import { getLangFromRequest } from '@/lib/translations'
@@ -98,6 +99,7 @@ button{font:inherit}
         <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
+        <IosSplashLinks />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

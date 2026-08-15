@@ -27,8 +27,11 @@ MARK_SVG = os.path.join(PUB, "brand", "airento-mark.svg")
 ICONS = os.path.join(PUB, "icons")
 os.makedirs(ICONS, exist_ok=True)
 
-# mark aspect ratio (w:h) from viewBox
-MARK_AR = 1432 / 1107  # ~1.2936 (wider than tall)
+# mark aspect ratio (w:h) parsed from the master SVG viewBox (SSOT)
+import re as _re
+_vb = _re.search(r'viewBox="([\d.\- ]+)"', open(MARK_SVG).read()).group(1).split()
+_VBX, _VBY, _VBW, _VBH = (float(v) for v in _vb)
+MARK_AR = _VBW / _VBH
 
 BG_TOP = (255, 255, 255)
 BG_BOTTOM = (234, 252, 250)  # #eafcfa – barely-teal
@@ -115,6 +118,10 @@ badge_canvas.alpha_composite(solid, ((72 - solid.width) // 2, (72 - solid.height
 save(badge_canvas, os.path.join(ICONS, "badge-72x72.png"))
 
 # ---- Full-bleed vector app icon (replaces old placeholder) ----
+_iw = round(512 * 0.70)
+_ih = round(_iw / MARK_AR)
+_ix = (512 - _iw) // 2
+_iy = (512 - _ih) // 2
 icon_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Airento">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -123,7 +130,7 @@ icon_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" rol
     </linearGradient>
   </defs>
   <rect width="512" height="512" fill="url(#bg)"/>
-  <image href="/brand/airento-mark.svg" x="77" y="118" width="358" height="277"/>
+  <image href="/brand/airento-mark.svg" x="{_ix}" y="{_iy}" width="{_iw}" height="{_ih}"/>
 </svg>
 '''
 with open(os.path.join(ICONS, "icon-512x512.svg"), "w") as f:
