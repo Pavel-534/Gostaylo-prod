@@ -2,13 +2,11 @@ import { ImageResponse } from 'next/og'
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url'
 import { getUIText } from '@/lib/translations'
 import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
+import { publicFileDataUri, ogFonts, OG_BG } from '@/lib/seo/og-brand-card'
 
 export const runtime = 'nodejs'
-
-export const alt = 'Ambassador invite'
-
+export const alt = 'Airento — invite'
 export const size = { width: 1200, height: 630 }
-
 export const contentType = 'image/png'
 
 export default async function Image({ params }) {
@@ -36,6 +34,7 @@ export default async function Image({ params }) {
   }
 
   const inviteResolved = getUIText('stage1322_ogInviteLine', lang).replace(/\{name\}/g, displayName)
+  const lockup = publicFileDataUri('brand/airento-lockup-onbg.png')
 
   return new ImageResponse(
     (
@@ -47,44 +46,69 @@ export default async function Image({ params }) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0f766e 0%, #0369a1 55%, #f59e0b 100%)',
-          color: 'white',
-          fontFamily: 'system-ui, Segoe UI, sans-serif',
+          background: OG_BG,
+          fontFamily: 'Noto, system-ui, sans-serif',
+          padding: '64px',
         }}
       >
+        {/* soft brand glow */}
         <div
           style={{
-            fontSize: 22,
-            fontWeight: 600,
-            opacity: 0.88,
-            marginBottom: 16,
-            letterSpacing: 1,
+            position: 'absolute',
+            top: 40,
+            width: 640,
+            height: 340,
+            background: 'radial-gradient(closest-side, rgba(13,148,136,0.42), rgba(13,148,136,0))',
+            display: 'flex',
           }}
-        >
-          {brand}
-        </div>
+        />
+        {lockup ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={lockup} alt="" height={92} style={{ marginBottom: 40 }} />
+        ) : (
+          <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, color: '#fff', marginBottom: 40 }}>
+            {brand}
+          </div>
+        )}
         <div
           style={{
-            fontSize: 52,
-            fontWeight: 800,
-            padding: '0 56px',
+            display: 'flex',
+            fontSize: 66,
+            fontWeight: 700,
+            color: '#ffffff',
             textAlign: 'center',
-            lineHeight: 1.15,
-            textShadow: '0 2px 24px rgba(0,0,0,0.25)',
+            lineHeight: 1.1,
+            padding: '0 40px',
           }}
         >
           {displayName}
         </div>
-        <div style={{ fontSize: 24, marginTop: 20, opacity: 0.92, fontWeight: 600, padding: '0 48px', textAlign: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            fontSize: 30,
+            color: '#5eead4',
+            marginTop: 22,
+            fontWeight: 400,
+            textAlign: 'center',
+            padding: '0 48px',
+          }}
+        >
           {inviteResolved}
         </div>
-        <div style={{ fontSize: 26, marginTop: 28, opacity: 0.92, fontWeight: 600 }}>
+        <div
+          style={{
+            display: 'flex',
+            fontSize: 22,
+            color: '#94a3b8',
+            marginTop: 'auto',
+            fontWeight: 400,
+          }}
+        >
           {subtitle}
         </div>
       </div>
     ),
-    {
-      ...size,
-    },
+    { ...size, fonts: ogFonts() },
   )
 }

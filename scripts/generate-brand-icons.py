@@ -86,26 +86,44 @@ save(app_icon(1024, 0.70), os.path.join(ICONS, "icon-1024x1024.png"))  # stores
 save(app_icon(512, 0.56), os.path.join(ICONS, "icon-maskable-512x512.png"))
 
 # ---- Small icons / favicons ----
-save(app_icon(32, 0.92, transparent=True), os.path.join(ICONS, "icon-32x32.png"))
-save(app_icon(32, 0.92, transparent=True), os.path.join(PUB, "favicon.png"))
+# ---- Simplified favicon glyph (legible at 16px) — bold "A" + infinity gesture ----
+def _inf(cx, cy, a, b):
+    return (f"M{cx},{cy} C{cx-a*0.55},{cy-b} {cx-a},{cy-b} {cx-a},{cy} "
+            f"C{cx-a},{cy+b} {cx-a*0.55},{cy+b} {cx},{cy} "
+            f"C{cx+a*0.55},{cy-b} {cx+a},{cy-b} {cx+a},{cy} "
+            f"C{cx+a},{cy+b} {cx+a*0.55},{cy+b} {cx},{cy} Z")
 
-# favicon.svg — transparent mark (crisp vector in modern browsers)
-with open(MARK_SVG, "rb") as f:
-    svg_bytes = f.read()
-with open(os.path.join(PUB, "favicon.svg"), "wb") as f:
-    f.write(svg_bytes)
-print("wrote favicon.svg")
+FAVICON_GLYPH = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Airento">
+  <g fill="none" stroke="#0d9488" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20,84 L45,24 Q50,14 55,24 L80,84" stroke-width="18"/>
+    <path d="{_inf(50,58,21,10)}" stroke-width="11"/>
+    <path d="M55,24 L68,52" stroke-width="18"/>
+  </g>
+</svg>'''
 
-# favicon.ico — multi-resolution 16/32/48 (transparent mark)
+def render_glyph(size):
+    png = cairosvg.svg2png(bytestring=FAVICON_GLYPH.encode(), output_width=size, output_height=size)
+    return Image.open(io.BytesIO(png)).convert("RGBA")
+
+# small icon + legacy favicon.png use the simplified glyph (crisp in tabs)
+save(render_glyph(32), os.path.join(ICONS, "icon-32x32.png"))
+save(render_glyph(32), os.path.join(PUB, "favicon.png"))
+
+# favicon.svg — simplified glyph (crisp vector at tab sizes)
+with open(os.path.join(PUB, "favicon.svg"), "w") as f:
+    f.write(FAVICON_GLYPH)
+print("wrote favicon.svg (simplified glyph)")
+
+# favicon.ico — multi-resolution 16/32/48 from the simplified glyph
 ico_sizes = [16, 32, 48]
-ico_imgs = [app_icon(s, 0.94, transparent=True) for s in ico_sizes]
+ico_imgs = [render_glyph(s) for s in ico_sizes]
 ico_imgs[0].save(
     os.path.join(PUB, "favicon.ico"),
     format="ICO",
     sizes=[(s, s) for s in ico_sizes],
     append_images=ico_imgs[1:],
 )
-print("wrote favicon.ico", ico_sizes)
+print("wrote favicon.ico", ico_sizes, "(simplified glyph)")
 
 # ---- Notification badge (72x72, monochrome via alpha; Android tints it) ----
 badge = render_mark(72)
