@@ -9,7 +9,8 @@
  *   'onDark'           — bright light variant (airento-mark-light.svg), for dark backgrounds
  *   'auto'             — renders both; CSS swaps to the light variant under
  *                        `@media (prefers-color-scheme: dark)` or a `.dark` ancestor
- *                        (see .al-mark-* rules in globals.css)
+ *                        (see .al-mark-* rules in globals.css). Prefer plate+brand
+ *                        in AppHeader (AirentoLogo) — auto alone fails under forced dark.
  */
 
 import { cn } from '@/lib/utils'

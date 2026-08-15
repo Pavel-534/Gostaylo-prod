@@ -527,16 +527,40 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   scroll-padding-bottom: calc(5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
 }
 /**
- * Adaptive brand logo (AirentoLogo/AirentoMark tone="auto").
- * Keeps the header logo high-contrast as a "home" button on dark chrome,
- * incl. system dark theme and mobile forced-dark (Samsung) that report
- * prefers-color-scheme: dark. Also honours the `.dark` class strategy.
+ * Header logo plate (Stage 201.41) — forced-dark proof "home" chip.
+ * Brand mark always sits on white; do not rely on prefers-color-scheme alone
+ * (Samsung/Chrome algorithmic dark darkens CSS but often leaves dark SVG).
+ */
+.al-logo-plate {
+  color-scheme: light only;
+  forced-color-adjust: none;
+  -webkit-forced-color-adjust: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  border-radius: 1rem; /* rounded-2xl */
+  background-color: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+}
+.al-logo-plate img {
+  forced-color-adjust: none;
+  -webkit-forced-color-adjust: none;
+}
+
+/**
+ * AirentoMark tone="auto" (no plate) — swap under true dark signals.
+ * Header chrome uses plate + brand instead (see AirentoLogo).
+ * Wordmark next to the plate stays brand teal (heroes use tone="dark" → text-white).
  */
 .al-mark-light {
   display: none;
 }
 .al-word {
-  color: #0d9488; /* brand teal — light backgrounds */
+  color: #0d9488;
 }
 .al-sub {
   color: rgba(100, 116, 139, 0.9);
@@ -548,22 +572,10 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   .al-mark-auto .al-mark-light {
     display: inline-block;
   }
-  .al-word {
-    color: #ffffff;
-  }
-  .al-sub {
-    color: rgba(226, 232, 240, 0.85);
-  }
 }
 .dark .al-mark-auto .al-mark-brand {
   display: none;
 }
 .dark .al-mark-auto .al-mark-light {
   display: inline-block;
-}
-.dark .al-word {
-  color: #ffffff;
-}
-.dark .al-sub {
-  color: rgba(226, 232, 240, 0.85);
 }

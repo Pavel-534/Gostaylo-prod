@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.146 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.40** PDP soft-back.
+> **Version**: 13.2.147 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.41** logo plate.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.41 — header logo plate (forced-dark proof)
+
+- Problem: algorithmic dark (Samsung/Chrome) darkens header CSS but leaves dark teal SVG → invisible mark; `prefers-color-scheme` swap alone does not fix it.
+- Fix: `AirentoLogo` wraps brand mark in `.al-logo-plate` (`color-scheme: light only`, white chip). Familiar brand SVG on light **and** phone “dark sites”.
+- `airento-mark-light.svg` / `tone="dark"` — intentional dark heroes only (no plate). `:root { color-scheme: light only }`. Brand book dark sample uses light SVG.
 
 ### Stage 201.40 — PDP soft-back SSOT + favorite FAB
 

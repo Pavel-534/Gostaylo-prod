@@ -57,7 +57,7 @@ export default function BrandPage() {
           </div>
           <div className="flex h-64 items-center justify-center rounded-2xl bg-[#0f172a]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/airento-mark.svg" alt="Airento mark on dark" className="h-32 w-auto" />
+            <img src="/brand/airento-mark-light.svg" alt="Airento mark on dark" className="h-32 w-auto" />
           </div>
         </div>
       </Section>

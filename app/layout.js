@@ -83,7 +83,7 @@ export default async function RootLayout({ children }) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-:root{color-scheme:light}
+:root{color-scheme:light only}
 html{line-height:1.5;-webkit-text-size-adjust:100%}
 body{margin:0;background:#f8fafc;color:#0f172a}
 body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}

@@ -1,15 +1,19 @@
 ﻿'use client'
 
 /**
- * Header / chrome wordmark — clean transparent AirentoMark (SVG) + optional text label.
- * No plate/ring/shadow: the vector mark sits directly on the header (light & dark safe).
+ * Header / chrome wordmark — AirentoMark on a light plate (forced-dark proof) + optional label.
+ *
+ * Why a plate (not CSS swap alone): Samsung/Chrome algorithmic dark darkens the header
+ * background but often leaves the brand SVG as dark teal — invisible. A white chip with
+ * `color-scheme: light only` + `forced-color-adjust: none` keeps the familiar brand mark
+ * readable. Light SVG (`tone="dark"` / onDark) is for intentional dark surfaces without a plate.
  *
  * `tone`:
- *   'auto'  (default) — teal wordmark + two-tone mark on light; auto-switches to the
- *                       white wordmark + light mark under `@media (prefers-color-scheme: dark)`
- *                       or a `.dark` ancestor (see .al-* rules in globals.css)
- *   'dark'            — force light/white logo (use on dark backgrounds/heroes/footers)
- *   'light'           — force teal/two-tone logo (brand)
+ *   'auto'  (default) — brand mark on plate; teal wordmark (see .al-* in globals.css)
+ *   'dark'            — light mark + white wordmark, no plate (heroes / dark chrome)
+ *   'light'           — brand mark on plate; teal wordmark
+ *
+ * `plate`: override; default true except when tone === 'dark'.
  */
 
 import { AirentoMark } from '@/components/brand/airento-mark'
@@ -25,11 +29,6 @@ const SUB_TONE = {
   dark: 'text-slate-200/85',
   light: 'text-slate-500/90',
 }
-const MARK_TONE = {
-  auto: 'auto',
-  dark: 'onDark',
-  light: 'brand',
-}
 
 export function AirentoLogo({
   compact = false,
@@ -38,24 +37,37 @@ export function AirentoLogo({
   scrolled = false,
   hideLabelOnMobile = false,
   tone = 'auto',
+  plate,
 }) {
   const showLabel = Boolean(String(label || '').trim())
-  /** Clean transparent mark — no plate/ring/shadow (mark is wider than tall ~1.29:1). */
+  /** Mark is wider than tall ~1.29:1; plate adds a few px of pad. */
   const markSize = compact ? 38 : 46
+  const usePlate = plate ?? tone !== 'dark'
   const wordTone = WORD_TONE[tone] || WORD_TONE.auto
   const subTone = SUB_TONE[tone] || SUB_TONE.auto
-  const markTone = MARK_TONE[tone] || MARK_TONE.auto
+  /** On plate always brand; off plate follow tone (dark → onDark). */
+  const markTone = usePlate ? 'brand' : tone === 'dark' ? 'onDark' : 'brand'
+
+  const mark = (
+    <AirentoMark
+      size={markSize}
+      tone={markTone}
+      className={cn(
+        'transition-opacity duration-300',
+        scrolled ? 'opacity-95' : 'opacity-100',
+      )}
+    />
+  )
 
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <AirentoMark
-        size={markSize}
-        tone={markTone}
-        className={cn(
-          'transition-opacity duration-300',
-          scrolled ? 'opacity-95' : 'opacity-100',
-        )}
-      />
+      {usePlate ? (
+        <span className="al-logo-plate" data-testid="airento-logo-plate">
+          {mark}
+        </span>
+      ) : (
+        mark
+      )}
       {showLabel ? (
         <div className={cn('flex flex-col', hideLabelOnMobile ? 'hidden sm:flex' : '')}>
           <span
