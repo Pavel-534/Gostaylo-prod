@@ -379,7 +379,10 @@ export default function SeasonalPriceManager({
             </DialogHeader>
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+          <div
+            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 sm:px-6"
+            data-mobile-overlay-scrollport=""
+          >
           <div className="min-w-0 space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">

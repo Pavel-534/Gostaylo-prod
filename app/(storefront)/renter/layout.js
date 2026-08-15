@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
-import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatUnreadBadge } from '@/lib/context/ChatUnreadBadgeContext'
 import { AppHeader } from '@/components/app-header/AppHeader'
 import { useAuth } from '@/contexts/auth-context'
@@ -268,13 +267,6 @@ export default function RenterLayout({ children }) {
         <main className="container mx-auto flex-1 min-h-0 px-4 pt-[calc(var(--app-header-height,64px)+1.5rem)] md:pt-[var(--app-header-height,64px)] pb-bottom-nav md:pb-6">
           {children}
         </main>
-
-        {/* Footer */}
-        <footer className="bg-white border-t mt-12">
-          <div className="container mx-auto px-4 py-6 text-center text-sm text-slate-600">
-            <p>© 2026 {getSiteDisplayName()}. Rentals worldwide.</p>
-          </div>
-        </footer>
       </div>
   )
 }

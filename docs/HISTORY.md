@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.53 | 2026-08-16 | Drop legacy renter «Rentals worldwide» footer; keep pb-bottom-nav on main | Done |
+| 201.52 | 2026-08-16 | Focused field: document focusin + scrollport marker + vv settle retries | Done |
 | 201.51 | 2026-08-16 | Keep focused field above keyboard (vv scroll SSOT); calendar/booking form sheets | Done |
 | 201.50 | 2026-08-16 | iOS keyboard: pin overlays to visualViewport box (no bottomInset float); dialog full-bleed | Done |
 | 201.49 | 2026-08-16 | Catalog map: full height under header (dock lock); booking confirm Sheet hug | Done |

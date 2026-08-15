@@ -42,7 +42,8 @@ export function CalendarActionOverlay({
           overlayClassName="z-[340]"
           data-testid="partner-cal-action-overlay"
           className={cn(
-            'z-[350] flex w-full max-w-[100vw] min-h-0 min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden',
+            'z-[350] flex w-full max-w-[100vw] min-h-0 min-w-0 flex-col gap-0 overflow-x-hidden',
+            fit === 'form' ? 'overflow-y-hidden' : 'overflow-y-auto',
             'rounded-t-2xl border-t border-border p-0 shadow-2xl pt-4',
           )}
         >
@@ -60,7 +61,14 @@ export function CalendarActionOverlay({
               ) : null}
             </SheetHeader>
           ) : null}
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <div
+            className={cn(
+              'min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5',
+              // flex-1 only for form fill — action menus must hug (no empty floor).
+              fit === 'form' && 'min-h-0 flex-1',
+            )}
+            data-mobile-overlay-scrollport=""
+          >
             {children}
           </div>
           {footer ? (

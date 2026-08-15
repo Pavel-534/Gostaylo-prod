@@ -665,8 +665,12 @@ export function ActionModals({
         open={actionModal.open}
         onOpenChange={actionOpenChange}
         isMobile={isMobile}
-        // Stage 201.51 — form fill + scroll body so focused fields stay above keyboard.
-        fit="form"
+        // select / info → action (hug). block / booking editors → form (scroll + keyboard).
+        fit={
+          actionModal.type === 'block' || actionModal.type === 'booking'
+            ? 'form'
+            : 'action'
+        }
         title={actionTitle()}
         description={actionDescription()}
         footer={actionFooter()}

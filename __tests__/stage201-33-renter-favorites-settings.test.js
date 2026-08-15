@@ -28,6 +28,10 @@ describe('Stage 201.33 — renter favorites / settings', () => {
     const layout = read('app/(storefront)/renter/layout.js')
     assert.match(layout, /resolveStorefrontSoftBack/)
     assert.match(layout, /showSoftBack=\{showSoftBack\}/)
+    // Stage 201.53 — drop legacy renter copyright footer; dock pad stays on main
+    assert.doesNotMatch(layout, /Rentals worldwide/)
+    assert.doesNotMatch(layout, /<footer/)
+    assert.match(layout, /pb-bottom-nav/)
 
     const routes = read('lib/navigation/soft-back-routes.js')
     assert.match(routes, /\/renter\/favorites/)

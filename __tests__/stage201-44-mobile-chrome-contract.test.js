@@ -141,7 +141,7 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
     assert.match(read('components/partner/PartnerMobileBottomNav.jsx'), /useMobileDockLocked/)
 
     assert.match(read('components/calendar/calendar-action-overlay.jsx'), /fit=\{fit\}/)
-    assert.match(read('components/calendar/ActionModals.jsx'), /fit="form"/)
+    assert.match(read('components/calendar/ActionModals.jsx'), /type === 'block' \|\| actionModal\.type === 'booking'/)
     assert.match(read('components/partner-chat-calendar-peek.jsx'), /fit=\{isMobile \? 'form'/)
   })
 

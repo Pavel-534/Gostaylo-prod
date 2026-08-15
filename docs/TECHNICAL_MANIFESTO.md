@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.157 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.51** keep field above keyboard.
+> **Version**: 13.2.159 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.53** renter footer pad.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,10 +27,20 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.53 — drop legacy renter copyright footer
+
+- Removed hard-coded `© … Rentals worldwide.` from `app/(storefront)/renter/layout.js` (not on partner/other shells; marketing footer stays on home via `PlatformHomeContent` + `allRightsReserved`).
+- Restored `pb-bottom-nav` on `<main>` so content clears `MobileBottomNav`.
+
+### Stage 201.52 — field still covered by iOS keyboard
+
+- Bug: `focusin` on Sheet root missed portal timing; scroll parent required overflow already; early-return skipped scroll before vv settled.
+- Fix: document-level `focusin`/`focusout`; `[data-mobile-overlay-scrollport]` on calendar/booking/seasonal bodies; force scroll on vv resize with retries up to 700ms; target ~32% from vv top.
+
 ### Stage 201.51 — focused field above soft keyboard
 
 - Bug: keyboard covered active inputs in calendar/seasonal/booking sheets; white gap under CTAs with `justify-end`.
-- Fix: `lib/layout/keep-focused-field-visible.js` + `useKeepFocusedFieldVisible` on Sheet/Dialog — scroll nearest scrollport so field sits ~38% down visualViewport. Calendar/booking → `fit="form"` with flex-1 scroll body; drop keyboard `justify-end`.
+- Fix: `lib/layout/keep-focused-field-visible.js` + `useKeepFocusedFieldVisible` on Sheet/Dialog — scroll nearest scrollport so field sits ~38% down visualViewport. Editors (`block`/`booking`/price) → `fit="form"`; menus (`select`/info) → `fit="action"` hug. Drop keyboard `justify-end`.
 
 ### Stage 201.50 — iOS keyboard float (industrial vv box)
 

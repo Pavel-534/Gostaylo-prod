@@ -25,17 +25,22 @@ describe('Stage 201.51 — keep focused field visible', () => {
   it('Sheet and Dialog wire useKeepFocusedFieldVisible', () => {
     assert.match(read('components/ui/sheet.jsx'), /useKeepFocusedFieldVisible/)
     assert.match(read('components/ui/dialog.jsx'), /useKeepFocusedFieldVisible/)
-    assert.doesNotMatch(
-      read('components/ui/dialog.jsx'),
-      /scrollIntoView\(\{ block: 'center'/,
-    )
+    assert.match(read('hooks/use-keep-focused-field-visible.js'), /document\.addEventListener\('focusin'/)
+    assert.match(read('lib/layout/keep-focused-field-visible.js'), /data-mobile-overlay-scrollport/)
   })
 
   it('calendar editors use form + scrollable flex body', () => {
-    assert.match(read('components/calendar/ActionModals.jsx'), /fit="form"/)
+    const src = read('components/calendar/ActionModals.jsx')
+    assert.match(src, /type === 'block' \|\| actionModal\.type === 'booking'/)
+    assert.match(src, /\? 'form'/)
+    assert.match(src, /: 'action'/)
     assert.match(
       read('components/calendar/calendar-action-overlay.jsx'),
-      /flex-1 overflow-x-hidden overflow-y-auto/,
+      /fit === 'form' && 'min-h-0 flex-1'/,
+    )
+    assert.match(
+      read('components/calendar/calendar-action-overlay.jsx'),
+      /data-mobile-overlay-scrollport/,
     )
   })
 })

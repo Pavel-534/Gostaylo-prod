@@ -191,7 +191,7 @@ export function BookingModal({
 
   const bookingForm = (
     <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-3 sm:px-6 sm:py-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-3 sm:px-6 sm:py-4" data-mobile-overlay-scrollport="">
         {formFields}
       </div>
 

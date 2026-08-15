@@ -17,7 +17,8 @@ function read(rel) {
 describe('Stage 201.48 — overlay bottom offsets', () => {
   it('calendar action modals hug (action), not form-fill', () => {
     const src = read('components/calendar/ActionModals.jsx')
-    assert.match(src, /fit="form"/)
+    assert.match(src, /type === 'block' \|\| actionModal\.type === 'booking'/)
+    assert.match(src, /: 'action'/)
   })
 
   it('BookingModal mobile uses Sheet form, not Vaul Drawer', () => {
