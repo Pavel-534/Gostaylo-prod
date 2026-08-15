@@ -55,7 +55,7 @@ describe('Stage 201.45 — soft keyboard + dock visibility', () => {
   it('Dialog locks dock only on mobile matchMedia', () => {
     const src = read('components/ui/dialog.jsx')
     assert.match(src, /max-width: 767px/)
-    assert.match(src, /useMobileDockLock\(lockDock\)/)
+    assert.match(src, /useMobileDockLock\(dialogOpen && isPhone\)/)
     assert.doesNotMatch(src, /useMobileDockLock\(true\)/)
   })
 

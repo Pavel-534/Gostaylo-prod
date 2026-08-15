@@ -28,6 +28,7 @@ import { NotificationEvents, NotificationService } from '@/lib/services/notifica
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 import { expireInvoiceHoldBlocks } from '@/lib/services/invoice-extension.service';
+import { purgeExpiredCalendarHoldBlocks } from '@/lib/calendar/purge-expired-hold-blocks.js';
 import { processExpiredAwaitingPaymentCheckouts, processStaleUnpaidPastCheckout } from '@/lib/booking/checkout-hold-expiry.js';
 import { processUnpaidCheckoutNudges } from '@/lib/booking/unpaid-checkout-retention.js';
 import {
@@ -531,6 +532,7 @@ export async function POST(request) {
       limit: 80,
     });
     const invoiceExpiry = await processExpiredPendingInvoices();
+    const expiredHoldPurge = await purgeExpiredCalendarHoldBlocks(supabaseAdmin);
     const disputeEvidenceRetention = await processDisputeEvidenceRetention();
     const disputeSla72h = await DisputeService.processSlaBreaches({ limit: 300 });
 
@@ -556,6 +558,7 @@ export async function POST(request) {
         staleUnpaidPastCheckout,
         unpaidCheckoutNudge,
         invoiceExpiry,
+        expiredHoldPurge,
         disputeEvidenceRetention,
         disputeSla72h,
       },

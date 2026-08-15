@@ -107,6 +107,8 @@ function resolveRecipe(opts = {}) {
 export function buildVisualViewportPinStyle(frame, opts = {}) {
   const recipe = resolveRecipe(opts)
   const keyboardOpen = (frame?.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
+  // Stage 201.48 — vv already ends above the keyboard; safe-area pad here becomes a dead floor.
+  const padBottom = keyboardOpen ? '0px' : MOBILE_CHROME_SAFE_PAD_BOTTOM
 
   if (frame?.heightPx == null) {
     if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
@@ -115,7 +117,7 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
         bottom: '0px',
         height: 'auto',
         maxHeight: 'min(90dvh, 40rem)',
-        paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+        paddingBottom: padBottom,
       }
     }
     if (recipe === MOBILE_CHROME_RECIPES.FORM) {
@@ -124,7 +126,7 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
         bottom: 'auto',
         height: '100dvh',
         maxHeight: '100dvh',
-        paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+        paddingBottom: padBottom,
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
@@ -146,19 +148,32 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
       bottom: `${bottom}px`,
       height: 'auto',
       maxHeight: `${Math.max(160, frame.heightPx)}px`,
-      paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+      paddingBottom: padBottom,
     }
   }
 
   if (recipe === MOBILE_CHROME_RECIPES.FORM) {
+    // Keyboard: pin top+bottom to visualViewport (iOS accessory-bar safe). Idle: fill by height.
+    if (keyboardOpen) {
+      return {
+        top: `${frame.offsetTop}px`,
+        bottom: `${frame.bottomInset || 0}px`,
+        height: 'auto',
+        maxHeight: 'none',
+        paddingBottom: padBottom,
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }
+    }
     const h = Math.max(160, frame.heightPx)
     return {
       top: `${frame.offsetTop}px`,
       bottom: 'auto',
-      // border-box: height includes padding — footer sits on the visual bottom with only safe-area pad
       height: `${h}px`,
       maxHeight: `${h}px`,
-      paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+      paddingBottom: padBottom,
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.151 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.45** dock keyboard gate.
+> **Version**: 13.2.154 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.48** overlay bottom pads.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,24 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.48 — overlay empty floors / keyboard gap
+
+- Screens: calendar block/booking, seasonal price, booking confirm — dead white under CTAs; sheet floated above iOS keyboard accessory.
+- Fix: `buildVisualViewportPinStyle` — no safe-area pad while keyboard open; **form** pins `top`+`bottom` to visualViewport. Calendar overlays → recipe **action** (hug). Seasonal footer drops duplicate safe pad. `BookingModal` mobile → Sheet `fit="form"` (Vaul did not pin to vv).
+
+### Stage 201.47 — expired inquiry/invoice calendar holds
+
+- Leftover June 2026 E2E/smoke `inquiry_hold` / `invoice_hold` on live villa + PCX showed in wizard as «iCal» (`source !== 'manual'`).
+- Inquiry holds are **deprecated** (Stage 175.3 no-op); invoice holds still created for real chat invoices, then `expires_at` — cron now **deletes** expired rows.
+- Wizard uses `partitionPartnerListingBlocks`; CalendarSyncManager «from import» uses `blocksForPartnerIcalImportSummary` (upcoming iCal only — not holds / past nights).
+- `cleanup-drafts` + `cleanup-test-data` call `purgeExpiredCalendarHoldBlocks`.
+- Tests: `__tests__/stage201-46-expired-calendar-holds.test.js`.
+
+### Stage 201.46 — dock permanently hidden (Sheet/Dialog Content mount)
+
+- Bug: `useMobileDockLock(true)` on `SheetContent` / `DialogContent` ran whenever Content was in the React tree. Radix keeps Content mounted while `open={false}` → every closed sort sheet / calendar overlay / login dialog kept the tab bar locked.
+- Fix: `OverlayOpenProvider` on Sheet/Dialog Root; lock only when `open && (bottom sheet | phone dialog)`. `isMobileDockLocked()` trusts refcount only (ignore stale dataset).
 
 ### Stage 201.45 — dock false-hide on Samsung / Android chrome
 

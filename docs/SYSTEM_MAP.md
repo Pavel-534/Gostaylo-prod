@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.81 | **Last Updated**: 2026-08-14 | **201.23** post-login feel-fast; **201.22** list scroll restore SSOT; **201.19** silent FCM ack.  
+> **Version**: 13.2.82 | **Last Updated**: 2026-08-16 | **201.47** expired calendar-hold purge; **201.23** post-login.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -55,7 +55,7 @@
 | `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки |
 | `conversations` | Чаты; deal SSOT через `booking_id` |
 | `messages` | Сообщения треда |
-| `calendar_blocks` | Блокировки календаря (manual / iCal / holds) |
+| `calendar_blocks` | Блокировки: manual / iCal URL / invoice_hold; **201.47** expired holds purged |
 | `seasonal_prices` | Сезонные цены (приоритет над metadata) |
 | `promo_codes` | Промо PLATFORM/PARTNER, flash sale, allowlist |
 | `reviews` / `guest_reviews` | Отзывы гостя о листинге / партнёра о клиенте (+ moderation) |

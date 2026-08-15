@@ -11,7 +11,11 @@ import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { CalendarService } from '@/lib/services/calendar.service';
-import { MANUAL_BLOCK_SOURCE } from '@/lib/calendar/block-source-display.js';
+import {
+  MANUAL_BLOCK_SOURCE,
+  countsTowardCalendarAvailability,
+  isCalendarBlockExpired,
+} from '@/lib/calendar/block-source-display.js';
 import { toListingDate, addListingDays } from '@/lib/listing-date';
 
 export const dynamic = 'force-dynamic';
@@ -61,8 +65,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
   }
   
-  // Get all blocks (manual + ical)
-  const { data: blocks, error } = await supabase
+  const { data: rawBlocks, error } = await supabase
     .from('calendar_blocks')
     .select('*')
     .eq('listing_id', listingId)
@@ -72,10 +75,13 @@ export async function GET(request, { params }) {
     console.error('[CALENDAR] Error fetching blocks:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+
+  const nowMs = Date.now();
+  const blocks = (rawBlocks || []).filter((block) => !isCalendarBlockExpired(block, nowMs));
   
-  // Transform dates to array format for calendar component
   const blockedDates = [];
-  (blocks || []).forEach((block) => {
+  blocks.forEach((block) => {
+    if (!countsTowardCalendarAvailability(block.source)) return;
     const startStr = toListingDate(block.start_date);
     const endStr = toListingDate(block.end_date);
     if (!startStr || !endStr) return;
@@ -88,9 +94,9 @@ export async function GET(request, { params }) {
   
   return NextResponse.json({
     success: true,
-    blocks: blocks || [],
-    blockedDates: [...new Set(blockedDates)], // Remove duplicates
-    count: blocks?.length || 0
+    blocks,
+    blockedDates: [...new Set(blockedDates)],
+    count: blocks.length
   });
 }
 

@@ -36,6 +36,8 @@ import {
   WIZARD_MOBILE_FLAT_EMPTY_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 import { fetchListingCalendarBlocks } from '@/lib/api/partner-calendar-client'
+import { blocksForPartnerIcalImportSummary } from '@/lib/calendar/block-source-display.js'
+import { listingDateToday } from '@/lib/listing-date'
 import {
   fetchIcalExportLink,
   fetchPartnerListing,
@@ -165,7 +167,9 @@ export default function CalendarSyncManager({ listingId, onSync, embedInPartnerS
         setBlockedDates([])
         return
       }
-      const icalBlocks = blocks.filter(b => b.source && b.source !== 'manual')
+      const icalBlocks = blocksForPartnerIcalImportSummary(blocks, {
+        todayYmd: listingDateToday(),
+      })
       setBlockedDates(
         icalBlocks.map(b => ({
           id: b.id,

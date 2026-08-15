@@ -29,7 +29,9 @@ Bottom sheets and dialogs were patched across Stages 201.38–201.43 (`hug` / `f
 - `bottom: var(--app-bottom-nav-height)` or padding equal to full dock height to “sit above” the tab bar.
 - Feature-local `visualViewport` math outside `buildVisualViewportPinStyle`.
 - Hiding the dock via `innerHeight - vv.height` (URL-bar false positive). Soft keyboard = `bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX` **and** focus in an editable field (`lib/layout/is-soft-keyboard-open.js`, Stage 201.45). Browser chrome inset alone must not hide the tab bar.
-- Catalog mobile search sheet as recipe **form** (fills viewport → empty mid-floor under short filters). Prefer **action** (hug) for short editors; reserve **form** for tall editors that need a sticky footer against a scroll body (calendar block/booking).
+- Catalog mobile search sheet as recipe **form** (fills viewport → empty mid-floor under short filters). Prefer **action** (hug) for short editors; reserve **form** for tall editors that need a sticky footer against a scroll body (booking confirm). Calendar block/booking/season → **action** (Stage 201.48).
+- Safe-area `paddingBottom` on the pin while the soft keyboard is open (visualViewport already ends above the keyboard) — Stage 201.48 sets pad to `0` when `bottomInset` is large.
+
 
 ### 2.2 Code map
 
@@ -41,6 +43,7 @@ Bottom sheets and dialogs were patched across Stages 201.38–201.43 (`hug` / `f
 | Sheet API | `components/ui/sheet.jsx` — `fit="action" \| "form"` (`content`/`viewport` aliases) |
 | Dialog API | `components/ui/dialog.jsx` — `mobileAnchor="bottom"` → `form`; default → `dialog` |
 | Guest / partner docks | `MobileBottomNav`, `PartnerMobileBottomNav` — hide when dock locked or keyboard |
+| Overlay open → dock lock | `lib/layout/overlay-open-context.jsx` — Sheet/Dialog Root mirrors `open`; Content must **not** lock on mount alone (Stage 201.46) |
 
 ### 2.3 Product rule
 

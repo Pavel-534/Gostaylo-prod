@@ -500,7 +500,8 @@ export default function SeasonalPriceManager({
           </div>
           </div>
 
-          <div className="shrink-0 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
+          {/* Safe-area owned by Dialog form pin (ADR-201) — do not double-pad here. */}
+          <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
             <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
               <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full min-h-[44px] sm:w-auto">
                 {t('seasonalMgr_cancel')}

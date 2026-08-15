@@ -1,18 +1,22 @@
 ﻿/**
  * BookingModal Component
  * Booking confirmation form with guest details.
- * Stage 178.1 — adaptive shell: Vaul Drawer (<md) | Radix Dialog (md+).
+ * Stage 178.1 / 201.48 — mobile: ADR-201 Sheet (form); desktop: Dialog.
  */
 
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { TimeSelect } from '@/components/ui/time-select'
 import { Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -64,30 +68,12 @@ export function BookingModal({
   setVehicleEndTime,
 }) {
   const isMobile = useIsMobile()
-  const [mobileViewportHeight, setMobileViewportHeight] = useState('100vh')
 
   const isVehicle = isTransportListingCategory(listingCategorySlug)
   const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
   const tx = (key) => getUIText(key, language, uiListingCtx)
   const dateLocale = dateFnsLocaleForLang(language)
   const title = tx(modalTitleKey(modalIntent))
-
-  useEffect(() => {
-    if (!isMobile || typeof window === 'undefined' || !window.visualViewport) return undefined
-    const updateViewportHeight = () => {
-      setMobileViewportHeight(`${window.visualViewport.height}px`)
-    }
-    window.visualViewport.addEventListener('resize', updateViewportHeight)
-    updateViewportHeight()
-    return () => {
-      window.visualViewport?.removeEventListener('resize', updateViewportHeight)
-    }
-  }, [isMobile])
-
-  const mobileMaxHeightStyle = useMemo(
-    () => ({ maxHeight: `min(92dvh, calc(${mobileViewportHeight} - 0.5rem))` }),
-    [mobileViewportHeight],
-  )
 
   const inquiryHint =
     modalIntent !== 'book' ? (
@@ -204,21 +190,11 @@ export function BookingModal({
 
   const bookingForm = (
     <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div
-        className={cn(
-          'min-h-0 flex-1 overflow-y-auto overscroll-y-contain space-y-4 px-4 py-3 sm:px-6 sm:py-4',
-          isMobile && 'pb-[max(1rem,env(safe-area-inset-bottom,0px))]',
-        )}
-      >
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-3 sm:px-6 sm:py-4">
         {formFields}
       </div>
 
-      <div
-        className={cn(
-          'shrink-0 border-t border-slate-100 bg-background px-4 py-3 sm:px-6 sm:py-4',
-          'pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
-        )}
-      >
+      <div className="shrink-0 border-t border-slate-100 bg-background px-4 py-3 sm:px-6 sm:py-4">
         {submitButton}
       </div>
     </form>
@@ -226,21 +202,20 @@ export function BookingModal({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange} shouldScaleBackground>
-        <DrawerContent
-          style={mobileMaxHeightStyle}
-          className={cn(
-            'mt-0 flex max-h-[92dvh] flex-col rounded-t-[28px] border-slate-200 p-0',
-            '[&>div:first-child]:mt-3',
-          )}
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          fit="form"
+          data-testid="booking-modal-sheet"
+          className="gap-0 rounded-t-[28px] border-slate-200 p-0 shadow-2xl"
         >
-          <DrawerHeader className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-1 text-left">
-            <DrawerTitle className="text-lg font-semibold text-slate-900">{title}</DrawerTitle>
+          <SheetHeader className="shrink-0 space-y-1 border-b border-slate-100 px-4 pb-3 pt-1 pr-14 text-left">
+            <SheetTitle className="text-lg font-semibold text-slate-900">{title}</SheetTitle>
             {inquiryHint}
-          </DrawerHeader>
+          </SheetHeader>
           {bookingForm}
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     )
   }
 

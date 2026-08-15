@@ -70,7 +70,7 @@ export function CalendarActionOverlay({
             {children}
           </div>
           {footer ? (
-            <div className="shrink-0 border-t border-border bg-background px-4 pt-3 pb-1 sm:px-5 sm:pb-3">
+            <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-5">
               {footer}
             </div>
           ) : null}

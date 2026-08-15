@@ -11,8 +11,35 @@ import {
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
 import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
+import {
+  OverlayOpenProvider,
+  useMirroredOpenState,
+  useOverlayOpen,
+} from "@/lib/layout/overlay-open-context"
 
-const Sheet = SheetPrimitive.Root
+/**
+ * Stage 201.46 — wrap Root so SheetContent can read `open`. Content stays mounted
+ * while closed; locking on Content mount alone permanently hid the tab bar.
+ */
+const Sheet = ({ open, defaultOpen, onOpenChange, children, ...props }) => {
+  const { resolvedOpen, isControlled, handleOpenChange } = useMirroredOpenState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  })
+  return (
+    <OverlayOpenProvider open={resolvedOpen}>
+      <SheetPrimitive.Root
+        open={isControlled ? open : undefined}
+        defaultOpen={defaultOpen}
+        onOpenChange={handleOpenChange}
+        {...props}
+      >
+        {children}
+      </SheetPrimitive.Root>
+    </OverlayOpenProvider>
+  )
+}
 
 const SheetTrigger = SheetPrimitive.Trigger
 
@@ -60,9 +87,10 @@ const sheetVariants = cva(
 const SheetContent = React.forwardRef(
   ({ side = "right", fit = "action", className, overlayClassName, children, style, ...props }, ref) => {
     const frame = useVisualViewportFrame()
+    const sheetOpen = useOverlayOpen()
     const recipe = side === 'bottom' ? sheetFitToRecipe(fit) : null
-    // SheetContent mounts only while open → lock dock for the lifetime of this portal content.
-    useMobileDockLock(side === 'bottom')
+    // Lock only while Root is open — Content React tree stays mounted when closed.
+    useMobileDockLock(side === 'bottom' && sheetOpen)
 
     const pinStyle =
       recipe != null

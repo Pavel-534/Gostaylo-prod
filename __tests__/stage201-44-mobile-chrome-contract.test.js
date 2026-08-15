@@ -58,16 +58,27 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
       { recipe: 'action' },
     )
     assert.equal(keyboard.bottom, '280px')
+    assert.equal(keyboard.paddingBottom, '0px')
   })
 
   it('form pin fills visualViewport; dialog caps maxHeight', () => {
-    const { buildVisualViewportPinStyle } = require('../hooks/use-visual-viewport-frame.js')
+    const { buildVisualViewportPinStyle, MOBILE_CHROME_SAFE_PAD_BOTTOM } = require('../hooks/use-visual-viewport-frame.js')
     const form = buildVisualViewportPinStyle(
       { heightPx: 700, offsetTop: 12, offsetLeft: 0, widthPx: 390, bottomInset: 0 },
       { recipe: 'form' },
     )
     assert.equal(form.top, '12px')
     assert.equal(form.height, '700px')
+    assert.equal(form.paddingBottom, MOBILE_CHROME_SAFE_PAD_BOTTOM)
+
+    const formKeyboard = buildVisualViewportPinStyle(
+      { heightPx: 400, offsetTop: 0, offsetLeft: 0, widthPx: 390, bottomInset: 280 },
+      { recipe: 'form' },
+    )
+    assert.equal(formKeyboard.top, '0px')
+    assert.equal(formKeyboard.bottom, '280px')
+    assert.equal(formKeyboard.height, 'auto')
+    assert.equal(formKeyboard.paddingBottom, '0px')
 
     const dialog = buildVisualViewportPinStyle(
       { heightPx: 700, offsetTop: 12, offsetLeft: 0, widthPx: 390, bottomInset: 0 },
@@ -124,7 +135,8 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
     assert.match(read('components/partner/PartnerMobileBottomNav.jsx'), /useMobileDockLocked/)
 
     assert.match(read('components/calendar/calendar-action-overlay.jsx'), /fit=\{fit\}/)
-    assert.match(read('components/calendar/ActionModals.jsx'), /fit="form"/)
+    assert.match(read('components/calendar/ActionModals.jsx'), /fit="action"/)
+    assert.doesNotMatch(read('components/calendar/ActionModals.jsx'), /fit="form"/)
     assert.match(read('components/partner-chat-calendar-peek.jsx'), /fit=\{isMobile \? 'form'/)
   })
 

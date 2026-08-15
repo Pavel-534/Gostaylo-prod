@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.48 | 2026-08-16 | Overlay bottom pads: no safe-pad over keyboard; calendar hug; BookingModal Sheet | Done |
+| 201.47 | 2026-08-16 | Purge expired inquiry/invoice calendar holds; wizard/import banner no longer labels them iCal | Done |
+| 201.46 | 2026-08-16 | Dock lock only while Sheet/Dialog Root `open` (Content mount was permanently hiding tabs) | Done |
 | 201.45 | 2026-08-16 | Dock: soft-keyboard needs editable focus; search sheet → action (no empty floor); form pin border-box | Done |
 | 201.44 | 2026-08-15 | ADR-201 Mobile Chrome Contract: action/form/dialog; dock lock; no nav-height pad | Done |
 | 201.43 | 2026-08-15 | Fix sheet/tabbar float: hug pad not bottom-lift; nav keyboard = bottomInset only | Done |

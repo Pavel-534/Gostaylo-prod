@@ -665,11 +665,8 @@ export function ActionModals({
         open={actionModal.open}
         onOpenChange={actionOpenChange}
         isMobile={isMobile}
-        fit={
-          actionModal.type === 'block' || actionModal.type === 'booking'
-            ? 'form'
-            : 'action'
-        }
+        // Stage 201.48 — hug (action): form-fill left a dead floor under short CTAs.
+        fit="action"
         title={actionTitle()}
         description={actionDescription()}
         footer={actionFooter()}
@@ -681,7 +678,7 @@ export function ActionModals({
         open={priceModal.open}
         onOpenChange={(open) => setPriceModal({ open })}
         isMobile={isMobile}
-        fit="form"
+        fit="action"
         wide
         title={
           <span className="flex items-center gap-2">

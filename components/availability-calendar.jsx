@@ -25,6 +25,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { resolvePartnerDateFnsLocale } from '@/lib/ui/partner-date-fns-locale'
 import { PartnerDateRangeFields } from '@/components/partner/PartnerDateRangeFields'
+import { partitionPartnerListingBlocks } from '@/lib/calendar/block-source-display.js'
 
 /**
  * Stage 200.118 Wave C — full getUIText i18n (ru/en/zh/th) for wizard block dates UI.
@@ -128,8 +129,7 @@ export default function AvailabilityCalendar({
     }
   }
 
-  const manualBlocks = blocks.filter((b) => b.source === 'manual')
-  const icalBlocks = blocks.filter((b) => b.source !== 'manual')
+  const { manual: manualBlocks, ical: icalBlocks } = partitionPartnerListingBlocks(blocks)
   const disabledDates = blockedDates.map((d) => parseISO(d))
 
   if (loading) {

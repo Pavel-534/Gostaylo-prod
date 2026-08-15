@@ -11,8 +11,35 @@ import {
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
 import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
+import {
+  OverlayOpenProvider,
+  useMirroredOpenState,
+  useOverlayOpen,
+} from "@/lib/layout/overlay-open-context"
 
-const Dialog = DialogPrimitive.Root
+/**
+ * Stage 201.46 — Content stays in the React tree while closed; dock lock must
+ * follow Root `open`, not Content mount (otherwise every closed Dialog hid tabs).
+ */
+const Dialog = ({ open, defaultOpen, onOpenChange, children, ...props }) => {
+  const { resolvedOpen, isControlled, handleOpenChange } = useMirroredOpenState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  })
+  return (
+    <OverlayOpenProvider open={resolvedOpen}>
+      <DialogPrimitive.Root
+        open={isControlled ? open : undefined}
+        defaultOpen={defaultOpen}
+        onOpenChange={handleOpenChange}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Root>
+    </OverlayOpenProvider>
+  )
+}
 
 const DialogTrigger = DialogPrimitive.Trigger
 
@@ -59,18 +86,18 @@ const DialogContent = React.forwardRef(({
     /\bbottom-0\b/.test(className || '') || /\btop-auto\b/.test(className || '')
   const anchor = mobileAnchor === 'bottom' || classHintsBottom ? 'bottom' : 'top'
   const recipe = dialogAnchorToRecipe(anchor)
-  // Only lock the mobile dock while this dialog is mounted on a phone-sized viewport.
-  // Desktop DialogContent must not leave a stuck dock lock (ADR-201 / Stage 201.45).
-  const [lockDock, setLockDock] = React.useState(false)
+  const dialogOpen = useOverlayOpen()
+  // Lock only while open + phone viewport (Content mounts even when closed).
+  const [isPhone, setIsPhone] = React.useState(false)
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined
     const mq = window.matchMedia('(max-width: 767px)')
-    const sync = () => setLockDock(mq.matches)
+    const sync = () => setIsPhone(mq.matches)
     sync()
     mq.addEventListener?.('change', sync)
     return () => mq.removeEventListener?.('change', sync)
   }, [])
-  useMobileDockLock(lockDock)
+  useMobileDockLock(dialogOpen && isPhone)
   const viewportStyle = buildVisualViewportPinStyle(frame, { recipe })
 
   // Keep focused inputs visible inside the sheet scrollport (iOS mid-form / number pad).
