@@ -59,7 +59,18 @@ const DialogContent = React.forwardRef(({
     /\bbottom-0\b/.test(className || '') || /\btop-auto\b/.test(className || '')
   const anchor = mobileAnchor === 'bottom' || classHintsBottom ? 'bottom' : 'top'
   const recipe = dialogAnchorToRecipe(anchor)
-  useMobileDockLock(true)
+  // Only lock the mobile dock while this dialog is mounted on a phone-sized viewport.
+  // Desktop DialogContent must not leave a stuck dock lock (ADR-201 / Stage 201.45).
+  const [lockDock, setLockDock] = React.useState(false)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setLockDock(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+    return () => mq.removeEventListener?.('change', sync)
+  }, [])
+  useMobileDockLock(lockDock)
   const viewportStyle = buildVisualViewportPinStyle(frame, { recipe })
 
   // Keep focused inputs visible inside the sheet scrollport (iOS mid-form / number pad).

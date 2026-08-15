@@ -2,7 +2,8 @@
 
 /**
  * CatalogMobileSearchSheet — unified mobile search editor (<md) for home + catalog.
- * ADR-201 recipe **form**: fills visualViewport, sticky CTA, dock locked while open.
+ * ADR-201 recipe **action**: hug-to-content (no empty floor under filters); dock locked while open.
+ * Keyboard: action pin lifts when bottomInset is large (soft keyboard).
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -27,7 +28,7 @@ export function CatalogMobileSearchSheet({
   language = 'ru',
   onSearchSubmit,
   filterBarProps = {},
-  /** Sticky primary CTA at sheet bottom (<md). */
+  /** Primary CTA under filters (<md). */
   showSubmitFooter = true,
 }) {
   const sheetRef = useRef(null)
@@ -37,7 +38,7 @@ export function CatalogMobileSearchSheet({
   const pinStyle = useMemo(
     () =>
       buildVisualViewportPinStyle(frame, {
-        recipe: MOBILE_CHROME_RECIPES.FORM,
+        recipe: MOBILE_CHROME_RECIPES.ACTION,
       }),
     [frame],
   )
@@ -79,13 +80,13 @@ export function CatalogMobileSearchSheet({
         aria-modal="true"
         aria-label={getUIText('findButton', language)}
         data-testid="catalog-mobile-search-sheet"
-        data-sheet-fit="form"
-        data-mobile-chrome="form"
+        data-sheet-fit="action"
+        data-mobile-chrome="action"
         className={cn(
-          'fixed inset-x-0 z-[120] flex flex-col rounded-t-3xl bg-white md:hidden',
+          'fixed inset-x-0 z-[120] flex max-h-[inherit] flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
           'transition-transform duration-300 ease-out will-change-transform',
-          'overflow-hidden',
+          'overflow-y-auto overscroll-contain',
           open ? 'translate-y-0' : 'translate-y-full pointer-events-none',
         )}
         style={pinStyle}
@@ -112,7 +113,7 @@ export function CatalogMobileSearchSheet({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="shrink-0">
           <FilterBar
             {...filterBarProps}
             mobileSheetEditor
@@ -127,7 +128,7 @@ export function CatalogMobileSearchSheet({
         </div>
 
         {showSubmitFooter ? (
-          <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] md:hidden">
+          <div className="shrink-0 border-t border-slate-100 bg-white px-5 pt-3.5 pb-1 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] md:hidden">
             <Button
               type="button"
               variant="brand"

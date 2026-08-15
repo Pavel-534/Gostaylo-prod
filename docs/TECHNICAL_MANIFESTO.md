@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.150 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.44** Mobile Chrome Contract.
+> **Version**: 13.2.151 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.45** dock keyboard gate.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.45 — dock false-hide on Samsung / Android chrome
+
+- Bug: `bottomInset > 120` alone hid guest+partner tab bars with no overlay → `--app-bottom-nav-height: 0` and content flush to system nav.
+- Fix: `lib/layout/is-soft-keyboard-open.js` — keyboard only if large inset **and** editable focus. Dialog dock-lock only `<md`. Calendar `form` body `flex-1` so CTA sits on the sheet bottom.
+- Search sheet → recipe **action** (hug) to drop the empty mid-floor; form pin uses `border-box` + flex column so footer sits on the sheet bottom with safe-area only.
 
 ### Stage 201.44 — ADR-201 Mobile Chrome Contract
 

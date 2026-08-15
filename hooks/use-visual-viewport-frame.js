@@ -125,6 +125,10 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
         height: '100dvh',
         maxHeight: '100dvh',
         paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
       }
     }
     return {
@@ -151,9 +155,14 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
     return {
       top: `${frame.offsetTop}px`,
       bottom: 'auto',
+      // border-box: height includes padding — footer sits on the visual bottom with only safe-area pad
       height: `${h}px`,
       maxHeight: `${h}px`,
       paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
     }
   }
 

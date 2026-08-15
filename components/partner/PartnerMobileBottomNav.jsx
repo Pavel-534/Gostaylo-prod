@@ -26,7 +26,7 @@ import {
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href'
 import { useMobileDockLocked } from '@/hooks/use-mobile-dock-lock'
-import { KEYBOARD_VIEWPORT_SHRINK_PX } from '@/hooks/use-visual-viewport-frame'
+import { isSoftKeyboardOpen } from '@/lib/layout/is-soft-keyboard-open'
 
 const PRIMARY_TABS = [
   {
@@ -117,9 +117,8 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
         setKeyboardOpen(false)
         return
       }
-      // Stage 201.43 — bottom inset only (URL-bar shrink must not hide the dock).
-      const bottomInset = Math.max(0, window.innerHeight - vv.offsetTop - vv.height)
-      setKeyboardOpen(bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX)
+      // Stage 201.45 — require editable focus (Samsung chrome bottomInset false positive).
+      setKeyboardOpen(isSoftKeyboardOpen(vv))
     }
 
     syncKeyboard()

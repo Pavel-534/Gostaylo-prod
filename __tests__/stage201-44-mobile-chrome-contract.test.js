@@ -116,8 +116,9 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
     assert.match(dialog, /useMobileDockLock/)
 
     const search = read('components/search/CatalogMobileSearchSheet.jsx')
-    assert.match(search, /MOBILE_CHROME_RECIPES\.FORM/)
+    assert.match(search, /MOBILE_CHROME_RECIPES\.ACTION/)
     assert.match(search, /useMobileDockLock\(open\)/)
+    assert.match(search, /data-sheet-fit="action"/)
 
     assert.match(read('components/mobile-bottom-nav.jsx'), /useMobileDockLocked/)
     assert.match(read('components/partner/PartnerMobileBottomNav.jsx'), /useMobileDockLocked/)

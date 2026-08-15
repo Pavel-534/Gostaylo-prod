@@ -42,7 +42,7 @@ export function CalendarActionOverlay({
           overlayClassName="z-[340]"
           data-testid="partner-cal-action-overlay"
           className={cn(
-            'z-[350] flex w-full max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden',
+            'z-[350] flex w-full max-w-[100vw] min-h-0 min-w-0 flex-col gap-0 overflow-x-hidden',
             fit === 'form' ? 'overflow-y-hidden' : 'overflow-y-auto',
             'rounded-t-2xl border-t border-border p-0 shadow-2xl pt-4',
           )}
@@ -61,11 +61,16 @@ export function CalendarActionOverlay({
               ) : null}
             </SheetHeader>
           ) : null}
-          <div className="min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <div
+            className={cn(
+              'min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5',
+              fit === 'form' && 'min-h-0 flex-1',
+            )}
+          >
             {children}
           </div>
           {footer ? (
-            <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-5">
+            <div className="shrink-0 border-t border-border bg-background px-4 pt-3 pb-1 sm:px-5 sm:pb-3">
               {footer}
             </div>
           ) : null}

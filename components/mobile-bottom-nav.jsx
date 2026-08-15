@@ -3,7 +3,7 @@
  *
  * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
  * (height includes .mobile-bottom-nav-safe / safe-area — do not add inset again in shell).
- * Hidden while soft keyboard is open (bottomInset) or while an overlay locks the dock (ADR-201).
+ * Hidden while soft keyboard is open (editable focus + large bottomInset) or while an overlay locks the dock (ADR-201).
  * Stage 189.31–189.33 — iOS standalone trims 16px of safe-area pad via CSS (Android unchanged).
  */
 
@@ -27,7 +27,7 @@ import {
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href';
 import { useMobileDockLocked } from '@/hooks/use-mobile-dock-lock';
-import { KEYBOARD_VIEWPORT_SHRINK_PX } from '@/hooks/use-visual-viewport-frame';
+import { isSoftKeyboardOpen } from '@/lib/layout/is-soft-keyboard-open';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -112,10 +112,8 @@ export function MobileBottomNav() {
         setKeyboardOpen(false);
         return;
       }
-      // Stage 201.43 — use bottom inset (same as sheet hug), not innerHeight−vv.height.
-      // URL-bar / browser chrome shrinks height and was falsely hiding the tab bar.
-      const bottomInset = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-      setKeyboardOpen(bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX);
+      // Stage 201.45 — inset alone is not enough (Samsung browser chrome false positive).
+      setKeyboardOpen(isSoftKeyboardOpen(vv));
     };
 
     syncKeyboard();
