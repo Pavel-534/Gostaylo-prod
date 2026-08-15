@@ -15,13 +15,16 @@ function read(rel) {
 }
 
 describe('Stage 200.133 — referral UX plain copy', () => {
-  it('tabs list uses justify-start (not center) so first tab is scrollable into view', () => {
+  it('tabs list uses justify-start; horizontal scrollLeft only (no window scrollIntoView)', () => {
     const src = read('components/referral/ReferralProfilePage.jsx')
     assert.match(src, /TABS_LIST_CLASS[\s\S]*justify-start/)
-    assert.match(src, /inline:\s*['"]nearest['"]/)
+    assert.match(src, /el\.scrollLeft/)
+    assert.match(src, /window\.scrollTo\(0,\s*0\)/)
     // Comment may mention default justify-center; class must not apply it
     assert.match(src, /justify-start beats TabsList default justify-center/)
     assert.doesNotMatch(src, /TABS_LIST_CLASS\s*=\s*'[^']*justify-center/)
+    // scrollIntoView on the active tab scrolls the page vertically on mobile
+    assert.doesNotMatch(src, /active\.scrollIntoView/)
   })
 
   it('payout blockers never render raw machine codes to users', () => {

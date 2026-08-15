@@ -3,6 +3,7 @@
 /**
  * Brand mark SSOT — raster from public/brand/airento-mark.png
  * (same asset as PWA icons via scripts/generate-pwa-icons.mjs).
+ * Stage 201.36 — promoted former airento-mark1 (tighter crop, denser glyph).
  */
 
 import { cn } from '@/lib/utils'

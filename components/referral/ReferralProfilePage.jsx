@@ -55,15 +55,25 @@ export function ReferralProfilePage() {
     if (!isAuthenticated) router.replace('/profile?login=true')
   }, [authLoading, isAuthenticated, router])
 
+  /**
+   * Horizontal-only tab chip centering. Do not use Element.scrollIntoView here —
+   * on mobile (Samsung/iOS) it also scrolls the window and hides the page header.
+   * Stage 201.35
+   */
   useEffect(() => {
+    if (referralLoading) return
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0)
+    }
     const el = tabsListRef.current
     if (!el) return
     const active = el.querySelector('[data-state="active"]')
-    if (active && typeof active.scrollIntoView === 'function') {
-      active.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-    } else {
+    if (!active) {
       el.scrollLeft = 0
+      return
     }
+    const nextLeft = active.offsetLeft - (el.clientWidth - active.offsetWidth) / 2
+    el.scrollLeft = Math.max(0, Math.round(nextLeft))
   }, [referralLoading])
 
   useEffect(() => {

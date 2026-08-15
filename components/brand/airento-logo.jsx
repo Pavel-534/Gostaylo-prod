@@ -15,14 +15,15 @@ export function AirentoLogo({
   hideLabelOnMobile = false,
 }) {
   const showLabel = Boolean(String(label || '').trim())
-  const markSize = compact ? 28 : 34
+  /** Stage 201.36 — mark1 fills the plate more; slightly larger glyph + tighter pad. */
+  const markSize = compact ? 30 : 36
   const boxSize = compact ? 'h-10 w-10' : 'h-12 w-12'
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <div
         className={cn(
-          'grid place-items-center rounded-2xl bg-white p-1.5 ring-1 ring-slate-200 shadow-[0_10px_24px_rgba(0,102,102,0.16)] transition-opacity duration-300',
+          'grid place-items-center rounded-2xl bg-white p-1 ring-1 ring-slate-200 shadow-[0_10px_24px_rgba(0,102,102,0.16)] transition-opacity duration-300',
           boxSize,
           scrolled ? 'opacity-90' : 'opacity-100',
         )}

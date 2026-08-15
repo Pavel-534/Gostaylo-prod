@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.140 | **Last Updated**: 2026-08-14 | **Tip of tree:** Stage **203**; **201.34** listing health UX.
+> **Version**: 13.2.142 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.36** brand mark.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,17 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.36 — brand mark mark1 as SSOT
+
+- Compared `airento-mark.png` vs `airento-mark1.png`: same glyph (~286×223), mark1 has less canvas padding (ink ~40% vs ~29%) → reads larger/smoother in header.
+- Promoted mark1 → `public/brand/airento-mark.png` (legacy kept as `airento-mark-v1-legacy.png`); regenerated PWA/favicon via `scripts/generate-pwa-icons.mjs`.
+- `AirentoLogo`: mark 30/36 + `p-1` plate (was 28/34 + `p-1.5`).
+
+### Stage 201.35 — referral hub opens at top
+
+- `/profile/referral`: after load, `window.scrollTo(0, 0)`; tab chips use `TabsList.scrollLeft` only.
+- Removed `active.scrollIntoView` — on mobile it scrolled the window and hid the page header.
 
 ### Stage 201.34 — listing health weight + jump-to-step
 
@@ -241,7 +252,7 @@
 
 ### Stage 200.133 — referral UX plain copy / mobile pad
 
-- Tabs on `/profile/referral`: `justify-start` + soft `scrollIntoView` so the first tab is not clipped.
+- Tabs on `/profile/referral`: `justify-start` + horizontal `scrollLeft` (not `scrollIntoView` — see 201.35).
 - Wallet: more space between display-currency control and «Статус выплат».
 - Hide payout blocker machine codes (`BELOW_MIN_*`); localized tier names (Новичок / …).
 - User copy: no mid-market / rate lock / витринная наценка / storefront markup in referral (and partner midFx hint).

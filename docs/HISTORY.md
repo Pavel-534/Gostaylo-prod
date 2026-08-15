@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.36 | 2026-08-15 | Brand mark: promote airento-mark1 (tighter crop) as SSOT + regen PWA icons | Done |
+| 201.35 | 2026-08-15 | Referral hub: no window scrollIntoView on tabs; open at top | Done |
 | 201.34 | 2026-08-14 | Listing health: rules weight 15%; incomplete parts jump to wizard step | Done |
 | 201.33 | 2026-08-14 | Renter favorites product chrome + soft-back SSOT; settings phone field | Done |
 | 201.32 | 2026-08-14 | Public offer §6 claims + §7 RF applicable law; terms version 2026-08-14-v1 | Done |
