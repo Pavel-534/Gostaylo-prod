@@ -1,7 +1,8 @@
 ﻿/**
  * BookingModal Component
  * Booking confirmation form with guest details.
- * Stage 178.1 / 201.48 — mobile: ADR-201 Sheet (form); desktop: Dialog.
+ * Stage 178.1 / 201.48–201.49 — mobile: ADR-201 Sheet **action** (hug, no empty mid-floor);
+ * desktop: Dialog.
  */
 
 'use client'
@@ -189,8 +190,8 @@ export function BookingModal({
   )
 
   const bookingForm = (
-    <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-3 sm:px-6 sm:py-4">
+    <form onSubmit={onSubmit} className="flex min-h-0 flex-col">
+      <div className="min-h-0 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-3 sm:px-6 sm:py-4">
         {formFields}
       </div>
 
@@ -205,7 +206,7 @@ export function BookingModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          fit="form"
+          fit="action"
           data-testid="booking-modal-sheet"
           className="gap-0 rounded-t-[28px] border-slate-200 p-0 shadow-2xl"
         >

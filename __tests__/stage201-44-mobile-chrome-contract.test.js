@@ -57,8 +57,13 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
       { heightPx: 400, offsetTop: 0, offsetLeft: 0, widthPx: 390, bottomInset: 280 },
       { recipe: 'action' },
     )
-    assert.equal(keyboard.bottom, '280px')
+    // Stage 201.50 — keyboard uses vv box + justify-end (not bottomInset lift).
+    assert.equal(keyboard.top, '0px')
+    assert.equal(keyboard.height, '400px')
+    assert.equal(keyboard.bottom, 'auto')
+    assert.equal(keyboard.justifyContent, 'flex-end')
     assert.equal(keyboard.paddingBottom, '0px')
+    assert.equal(keyboard.transform, 'none')
   })
 
   it('form pin fills visualViewport; dialog caps maxHeight', () => {
@@ -72,13 +77,14 @@ describe('Stage 201.44 — Mobile Chrome Contract (ADR-201)', () => {
     assert.equal(form.paddingBottom, MOBILE_CHROME_SAFE_PAD_BOTTOM)
 
     const formKeyboard = buildVisualViewportPinStyle(
-      { heightPx: 400, offsetTop: 0, offsetLeft: 0, widthPx: 390, bottomInset: 280 },
+      { heightPx: 400, offsetTop: 8, offsetLeft: 0, widthPx: 390, bottomInset: 280 },
       { recipe: 'form' },
     )
-    assert.equal(formKeyboard.top, '0px')
-    assert.equal(formKeyboard.bottom, '280px')
-    assert.equal(formKeyboard.height, 'auto')
+    assert.equal(formKeyboard.top, '8px')
+    assert.equal(formKeyboard.height, '400px')
+    assert.equal(formKeyboard.bottom, 'auto')
     assert.equal(formKeyboard.paddingBottom, '0px')
+    assert.equal(formKeyboard.transform, 'none')
 
     const dialog = buildVisualViewportPinStyle(
       { heightPx: 700, offsetTop: 12, offsetLeft: 0, widthPx: 390, bottomInset: 0 },

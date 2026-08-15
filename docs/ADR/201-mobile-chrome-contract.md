@@ -31,6 +31,7 @@ Bottom sheets and dialogs were patched across Stages 201.38–201.43 (`hug` / `f
 - Hiding the dock via `innerHeight - vv.height` (URL-bar false positive). Soft keyboard = `bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX` **and** focus in an editable field (`lib/layout/is-soft-keyboard-open.js`, Stage 201.45). Browser chrome inset alone must not hide the tab bar.
 - Catalog mobile search sheet as recipe **form** (fills viewport → empty mid-floor under short filters). Prefer **action** (hug) for short editors; reserve **form** for tall editors that need a sticky footer against a scroll body (booking confirm). Calendar block/booking/season → **action** (Stage 201.48).
 - Safe-area `paddingBottom` on the pin while the soft keyboard is open (visualViewport already ends above the keyboard) — Stage 201.48 sets pad to `0` when `bottomInset` is large.
+- Lifting overlays with `bottom: bottomInset` on iOS (floats above the form accessory bar). Stage **201.50**: keyboard-open action/form pin to the **visualViewport box** only (`buildVisualViewportBoxStyle`); action uses `justify-end`.
 
 
 ### 2.2 Code map

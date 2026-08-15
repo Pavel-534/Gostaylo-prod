@@ -17,6 +17,8 @@ export const viewport = {
   themeColor: '#0d9488',
   /** Stage 171.42 — iOS standalone safe-area (notch / home indicator). */
   viewportFit: 'cover',
+  /** Stage 201.50 — keyboard resizes layout viewport (Chrome/Android); iOS still uses visualViewport pin. */
+  interactiveWidget: 'resizes-content',
 }
 
 export async function generateMetadata() {

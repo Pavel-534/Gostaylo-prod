@@ -14,10 +14,11 @@ export const MOBILE_CHROME_SAFE_PAD_BOTTOM =
   'max(0.75rem, env(safe-area-inset-bottom, 0px))'
 
 /**
- * Stage 200.134 / 200.135 / ADR-201 — visualViewport frame for mobile overlays.
+ * Stage 200.134 / 200.135 / ADR-201 / 201.50 — visualViewport frame for mobile overlays.
  *
- * **SSOT (iOS):** pin form sheets to the visualViewport rectangle (`top: offsetTop`,
- * `height: height`). Do not rely on `bottomInset` alone for fill mode.
+ * **SSOT (iOS):** when the soft keyboard is open, pin ONLY to the visualViewport
+ * rectangle (`top` + `height` + `left` + `width`). Never lift with `bottomInset` —
+ * that floats sheets above the iOS form accessory bar.
  *
  * @returns {{ heightPx: number | null, offsetTop: number, offsetLeft: number, widthPx: number | null, bottomInset: number }}
  */
@@ -79,6 +80,31 @@ export function useVisualViewportFrame() {
 }
 
 /**
+ * Exact visualViewport box — industrial pin for keyboard-open overlays (Stage 201.50).
+ * @param {ReturnType<typeof useVisualViewportFrame>} frame
+ */
+export function buildVisualViewportBoxStyle(frame) {
+  const h = Math.max(160, frame?.heightPx || 0)
+  const style = {
+    top: `${frame?.offsetTop || 0}px`,
+    left: `${frame?.offsetLeft || 0}px`,
+    bottom: 'auto',
+    right: 'auto',
+    height: `${h}px`,
+    maxHeight: `${h}px`,
+    width: frame?.widthPx != null ? `${frame.widthPx}px` : '100%',
+    maxWidth: '100%',
+    transform: 'none',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+    paddingBottom: '0px',
+  }
+  return style
+}
+
+/**
  * Normalize legacy mode names → ADR-201 recipe.
  * @param {{ recipe?: string, mode?: string }} opts
  * @returns {'action' | 'form' | 'dialog'}
@@ -96,18 +122,14 @@ function resolveRecipe(opts = {}) {
  *
  * @param {ReturnType<typeof useVisualViewportFrame>} frame
  * @param {{ recipe?: 'action' | 'form' | 'dialog', mode?: 'action' | 'form' | 'dialog' | 'hug' | 'fill' | 'max' }} [opts]
- *   `mode` kept as alias of `recipe` for older call sites / tests.
  *
- * - **action** — hug content, `bottom: 0`, safe-area pad only (dock locked separately).
- * - **form** — fill visualViewport (keyboard-safe); safe-area pad.
+ * - **action** — idle: hug + `bottom: 0` + safe-area. Keyboard: fill vv, `justify-end` (flush to keyboard).
+ * - **form** — fill visualViewport; no safe-area while keyboard open.
  * - **dialog** — capped to vv near top (desktop Dialog overrides to center).
- *
- * `respectAppBottomNav` is intentionally removed — it caused floating sheets / empty floors.
  */
 export function buildVisualViewportPinStyle(frame, opts = {}) {
   const recipe = resolveRecipe(opts)
   const keyboardOpen = (frame?.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
-  // Stage 201.48 — vv already ends above the keyboard; safe-area pad here becomes a dead floor.
   const padBottom = keyboardOpen ? '0px' : MOBILE_CHROME_SAFE_PAD_BOTTOM
 
   if (frame?.heightPx == null) {
@@ -140,12 +162,26 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
     }
   }
 
+  // Stage 201.50 — one geometry for soft keyboard: exact visualViewport box.
+  if (keyboardOpen && recipe !== MOBILE_CHROME_RECIPES.DIALOG) {
+    const box = buildVisualViewportBoxStyle(frame)
+    if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
+      return {
+        ...box,
+        justifyContent: 'flex-end',
+        overflow: 'hidden',
+      }
+    }
+    return {
+      ...box,
+      overflow: 'hidden',
+    }
+  }
+
   if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
-    // Real keyboard: lift with bottomInset. Browser chrome inset alone must not float the sheet.
-    const bottom = keyboardOpen ? frame.bottomInset || 0 : 0
     return {
       top: 'auto',
-      bottom: `${bottom}px`,
+      bottom: '0px',
       height: 'auto',
       maxHeight: `${Math.max(160, frame.heightPx)}px`,
       paddingBottom: padBottom,
@@ -153,26 +189,16 @@ export function buildVisualViewportPinStyle(frame, opts = {}) {
   }
 
   if (recipe === MOBILE_CHROME_RECIPES.FORM) {
-    // Keyboard: pin top+bottom to visualViewport (iOS accessory-bar safe). Idle: fill by height.
-    if (keyboardOpen) {
-      return {
-        top: `${frame.offsetTop}px`,
-        bottom: `${frame.bottomInset || 0}px`,
-        height: 'auto',
-        maxHeight: 'none',
-        paddingBottom: padBottom,
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 0,
-      }
-    }
     const h = Math.max(160, frame.heightPx)
     return {
       top: `${frame.offsetTop}px`,
+      left: `${frame.offsetLeft || 0}px`,
       bottom: 'auto',
       height: `${h}px`,
       maxHeight: `${h}px`,
+      width: frame.widthPx != null ? `${frame.widthPx}px` : '100%',
+      maxWidth: '100%',
+      transform: 'none',
       paddingBottom: padBottom,
       boxSizing: 'border-box',
       display: 'flex',

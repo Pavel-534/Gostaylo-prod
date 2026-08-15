@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.50 | 2026-08-16 | iOS keyboard: pin overlays to visualViewport box (no bottomInset float); dialog full-bleed | Done |
+| 201.49 | 2026-08-16 | Catalog map: full height under header (dock lock); booking confirm Sheet hug | Done |
 | 201.48 | 2026-08-16 | Overlay bottom pads: no safe-pad over keyboard; calendar hug; BookingModal Sheet | Done |
 | 201.47 | 2026-08-16 | Purge expired inquiry/invoice calendar holds; wizard/import banner no longer labels them iCal | Done |
 | 201.46 | 2026-08-16 | Dock lock only while Sheet/Dialog Root `open` (Content mount was permanently hiding tabs) | Done |

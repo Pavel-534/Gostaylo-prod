@@ -370,7 +370,8 @@ export default function SeasonalPriceManager({
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent
           mobileAnchor="bottom"
-          className="flex max-h-[min(92dvh,calc(100dvh-0.5rem))] w-full max-w-3xl min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full"
+          className="flex w-full max-w-3xl min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full"
+
         >
           <div className="shrink-0 border-b px-4 pb-3 pt-4 sm:px-6 sm:pt-14">
             <DialogHeader className="text-left">

@@ -23,7 +23,7 @@ describe('Stage 201.48 — overlay bottom offsets', () => {
 
   it('BookingModal mobile uses Sheet form, not Vaul Drawer', () => {
     const src = read('components/listing/BookingModal.jsx')
-    assert.match(src, /fit="form"/)
+    assert.match(src, /fit="action"/)
     assert.match(src, /SheetContent/)
     assert.doesNotMatch(src, /components\/ui\/drawer/)
     assert.doesNotMatch(src, /DrawerContent/)
@@ -44,7 +44,8 @@ describe('Stage 201.48 — overlay bottom offsets', () => {
       { recipe: 'form' },
     )
     assert.equal(pin.top, '8px')
-    assert.equal(pin.bottom, '300px')
+    assert.equal(pin.height, '420px')
+    assert.equal(pin.bottom, 'auto')
     assert.equal(pin.paddingBottom, '0px')
   })
 })

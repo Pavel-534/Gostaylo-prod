@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * CatalogMobileMapSheet — Airbnb-style full-screen map on mobile catalog (Stage 169.3).
- * Map fills viewport between top chrome and mobile bottom nav; swipe-down / buttons to close.
+ * CatalogMobileMapSheet — full-height map on mobile catalog (Stage 169.3 / 201.49).
+ * Owns the bottom edge while open (ADR-201 dock lock) so the map fills header→screen
+ * bottom; no dead floor above the tab bar.
  */
 
 import { useCallback, useEffect, useRef } from 'react'
@@ -12,6 +13,8 @@ import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { CatalogSearchMapPanel } from '@/components/search/CatalogSearchMapPanel'
 import { CatalogMapCardRail } from '@/components/search/CatalogMapCardRail'
+import { useMobileDockLock } from '@/hooks/use-mobile-dock-lock'
+import { MOBILE_CHROME_SAFE_PAD_BOTTOM } from '@/hooks/use-visual-viewport-frame'
 
 const SWIPE_CLOSE_THRESHOLD_PX = 72
 
@@ -24,6 +27,7 @@ export function CatalogMobileMapSheet({
 }) {
   const sheetRef = useRef(null)
   const touchStartYRef = useRef(null)
+  useMobileDockLock(open)
 
   useEffect(() => {
     if (!open) return
@@ -72,8 +76,11 @@ export function CatalogMobileMapSheet({
         aria-modal="true"
         aria-label={getUIText('showMap', language)}
         data-testid="catalog-mobile-map-sheet"
+        data-mobile-chrome="form"
         className={cn(
-          'fixed inset-x-0 app-fixed-below-header app-fixed-above-bottom-nav z-[90] flex flex-col bg-white md:hidden',
+          // Full height under header → screen bottom (dock locked while open).
+          'fixed inset-x-0 bottom-0 z-[90] flex flex-col bg-white md:hidden',
+          'top-[var(--app-header-height,64px)]',
           'animate-in slide-in-from-bottom duration-300',
         )}
       >
@@ -126,7 +133,7 @@ export function CatalogMobileMapSheet({
             <Button
               type="button"
               variant="outline"
-              className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[13] min-h-[44px] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
+              className="absolute bottom-4 left-1/2 z-[13] min-h-[44px] -translate-x-1/2 gap-2 rounded-full border-slate-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm"
               onClick={onClose}
               data-testid="catalog-mobile-map-floating-list"
             >
@@ -137,7 +144,10 @@ export function CatalogMobileMapSheet({
         </div>
 
         {railListings.length > 0 ? (
-          <div className="shrink-0 border-t border-slate-200 bg-white/95 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+          <div
+            className="shrink-0 border-t border-slate-200 bg-white/95 pt-1"
+            style={{ paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM }}
+          >
             <CatalogMapCardRail
               listings={railListings}
               activeListingId={railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null}

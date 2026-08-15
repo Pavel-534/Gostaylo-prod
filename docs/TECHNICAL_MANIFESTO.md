@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.154 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.48** overlay bottom pads.
+> **Version**: 13.2.156 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.50** iOS vv keyboard pin.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,10 +27,20 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.50 — iOS keyboard float (industrial vv box)
+
+- Bug: action sheets used `bottom: bottomInset` → floated above iOS form accessory; Dialog `left-50%` + max-h fought the pin.
+- Fix: keyboard-open **action/form** share `buildVisualViewportBoxStyle` (`top`+`height`+`left`+`width`); action adds `justify-end`. Bottom Dialogs full-bleed on mobile. `interactiveWidget: resizes-content` on root viewport.
+
+### Stage 201.49 — catalog map full height + booking confirm hug
+
+- Map sat above `--app-bottom-nav-height` → dead band between card rail and (barely visible) tab bar. Now: dock lock while open, sheet `top=header` → `bottom: 0`, safe-area on rail only.
+- Booking confirm `fit="form"` left empty mid-floor above sticky CTA → `fit="action"` hug.
+
 ### Stage 201.48 — overlay empty floors / keyboard gap
 
 - Screens: calendar block/booking, seasonal price, booking confirm — dead white under CTAs; sheet floated above iOS keyboard accessory.
-- Fix: `buildVisualViewportPinStyle` — no safe-area pad while keyboard open; **form** pins `top`+`bottom` to visualViewport. Calendar overlays → recipe **action** (hug). Seasonal footer drops duplicate safe pad. `BookingModal` mobile → Sheet `fit="form"` (Vaul did not pin to vv).
+- Fix: `buildVisualViewportPinStyle` — no safe-area pad while keyboard open; **form** pins `top`+`bottom` to visualViewport. Calendar overlays → recipe **action** (hug). Seasonal footer drops duplicate safe pad. `BookingModal` mobile → Sheet (later hug in 201.49).
 
 ### Stage 201.47 — expired inquiry/invoice calendar holds
 
