@@ -77,8 +77,8 @@ const SheetContent = React.forwardRef(
           className={cn(
             sheetVariants({ side }),
             side === 'bottom' && 'flex flex-col',
-            side === 'bottom' && fit === 'content' && 'overflow-y-auto pb-3',
-            // viewport fill: nav pin already clears home indicator; light pad only
+            // Bottom pad comes from buildVisualViewportPinStyle (nav reserve / keyboard) — avoid double pb-*
+            side === 'bottom' && fit === 'content' && 'overflow-y-auto',
             side === 'bottom' && fit === 'viewport' && 'pb-3',
             className,
           )}

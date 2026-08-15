@@ -91,17 +91,21 @@ function readAppBottomNavPx() {
  *
  * - `fill` — form sheet that occupies the visible vv (sticky footer / keyboard).
  * - `max` — short dialog capped to vv, pinned near the top.
- * - `hug` — bottom action sheet sized to content, anchored above bottom nav / keyboard
- *   (thumb zone). Stage 201.38 SSOT for menus (catalog sort, listing more, calendar actions).
+ * - `hug` — bottom action sheet sized to content, flush to screen bottom (Stage 201.43).
+ *   Clear the tab bar with **paddingBottom**, never `bottom: navHeight` (that floated sheets
+ *   and left a dead gap above the dock on iOS/Android).
  */
 export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBottomNav = false } = {}) {
   if (frame?.heightPx == null) {
     if (mode === 'hug') {
       return {
         top: 'auto',
-        bottom: respectAppBottomNav ? 'var(--app-bottom-nav-height, 0px)' : '0px',
+        bottom: '0px',
         height: 'auto',
         maxHeight: 'min(90dvh, 40rem)',
+        ...(respectAppBottomNav
+          ? { paddingBottom: 'max(0.75rem, var(--app-bottom-nav-height, 0px))' }
+          : { paddingBottom: '0.75rem' }),
       }
     }
     return mode === 'fill'
@@ -110,20 +114,21 @@ export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBo
   }
 
   /**
-   * Stage 201.39 — iOS Safari often reports bottomInset > 0 for browser chrome (not keyboard).
-   * `position:fixed; bottom` is layout-viewport relative: adding that inset + nav lifts the sheet
-   * into empty thumb-dead space. Only treat large inset as keyboard.
+   * Stage 201.39 / 201.43 — iOS Safari often reports bottomInset > 0 for browser chrome
+   * (not keyboard). Only treat large inset as keyboard for lifting `bottom`.
    */
   const keyboardOpen = (frame.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
   const navReserve = respectAppBottomNav && !keyboardOpen ? readAppBottomNavPx() : 0
 
   if (mode === 'hug') {
-    const bottom = keyboardOpen ? frame.bottomInset || 0 : navReserve
+    const bottom = keyboardOpen ? frame.bottomInset || 0 : 0
+    const padPx = keyboardOpen ? 12 : Math.max(12, navReserve)
     return {
       top: 'auto',
       bottom: `${bottom}px`,
       height: 'auto',
       maxHeight: `${Math.max(160, frame.heightPx)}px`,
+      paddingBottom: `${padPx}px`,
     }
   }
 

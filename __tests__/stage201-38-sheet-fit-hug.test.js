@@ -52,6 +52,33 @@ describe('Stage 201.38 / 201.39 — sheet fit hug SSOT', () => {
     assert.equal(keyboard.bottom, '280px')
   })
 
+  it('hug clears tab bar via paddingBottom — never lifts with bottom:navHeight (201.43)', () => {
+    const { buildVisualViewportPinStyle } = require('../hooks/use-visual-viewport-frame.js')
+
+    const withNav = buildVisualViewportPinStyle(
+      { heightPx: 700, offsetTop: 0, offsetLeft: 0, widthPx: 390, bottomInset: 0 },
+      { mode: 'hug', respectAppBottomNav: true },
+    )
+    assert.equal(withNav.bottom, '0px')
+    assert.notEqual(withNav.bottom, '88px')
+    assert.ok(withNav.paddingBottom)
+
+    const ssr = buildVisualViewportPinStyle(
+      { heightPx: null },
+      { mode: 'hug', respectAppBottomNav: true },
+    )
+    assert.equal(ssr.bottom, '0px')
+    assert.match(String(ssr.paddingBottom), /app-bottom-nav/)
+  })
+
+  it('bottom nav hides only on keyboard bottomInset, not URL-bar height shrink', () => {
+    const guest = read('components/mobile-bottom-nav.jsx')
+    assert.match(guest, /bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX/)
+    assert.doesNotMatch(guest, /innerHeight - vv\.height/)
+    const partner = read('components/partner/PartnerMobileBottomNav.jsx')
+    assert.match(partner, /bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX/)
+  })
+
   it('SheetContent defaults bottom to fit=content; peek uses viewport', () => {
     const sheet = read('components/ui/sheet.jsx')
     assert.match(sheet, /fit = "content"/)

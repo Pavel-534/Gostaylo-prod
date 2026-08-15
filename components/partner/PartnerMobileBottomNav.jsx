@@ -116,8 +116,9 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
         setKeyboardOpen(false)
         return
       }
-      const shrink = window.innerHeight - vv.height
-      setKeyboardOpen(shrink > KEYBOARD_VIEWPORT_SHRINK_PX)
+      // Stage 201.43 — bottom inset only (URL-bar shrink must not hide the dock).
+      const bottomInset = Math.max(0, window.innerHeight - vv.offsetTop - vv.height)
+      setKeyboardOpen(bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX)
     }
 
     syncKeyboard()

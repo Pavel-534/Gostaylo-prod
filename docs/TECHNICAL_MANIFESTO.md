@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.148 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.42** logo badge.
+> **Version**: 13.2.149 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.43** sheet/tabbar.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.43 — sheet/tabbar float regression
+
+- Regression from 201.38–201.39: hug sheets used `bottom: navHeight` → floating panels + dead gap; tab bar hid on URL-bar resize (`innerHeight − vv.height`).
+- Fix: hug `bottom: 0` + `paddingBottom` for nav clearance; keyboard still lifts via large `bottomInset`. Nav hide uses same bottomInset gate. Search sheet: `pointer-events-none` when closed.
 
 ### Stage 201.42 — header logo baked SVG badge (no CSS layers)
 

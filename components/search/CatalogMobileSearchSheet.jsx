@@ -5,7 +5,7 @@
  * Single-tab FilterBar / UnifiedSearchBar variant="filter"; SSOT filter state in parent.
  * Stage 179.0 — overview-only sheet (FAB / catalog summary); no programmatic nested picker opens.
  * Stage 190.6 — Where/Dates/Guests use accordion + `presentation="wizardStep"` (no nested drawers).
- * Stage 201.39 — hug pin above bottom nav (iOS thumb zone); no flex-1 empty grow.
+ * Stage 201.39 / 201.43 — hug pin flush to bottom; pad clears tab bar (no lift / dead gap).
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -84,10 +84,11 @@ export function CatalogMobileSearchSheet({
           'fixed inset-x-0 z-[120] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
           'transition-transform duration-300 ease-out will-change-transform',
-          'overflow-y-auto pb-3',
-          open ? 'translate-y-0' : 'translate-y-full',
+          'overflow-y-auto',
+          open ? 'translate-y-0' : 'translate-y-full pointer-events-none',
         )}
         style={pinStyle}
+        aria-hidden={!open}
       >
         <div className="flex justify-center pt-3 pb-1" aria-hidden>
           <div className="h-1 w-10 rounded-full bg-slate-200" />

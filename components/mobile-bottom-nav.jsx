@@ -111,8 +111,10 @@ export function MobileBottomNav() {
         setKeyboardOpen(false);
         return;
       }
-      const shrink = window.innerHeight - vv.height;
-      setKeyboardOpen(shrink > KEYBOARD_VIEWPORT_SHRINK_PX);
+      // Stage 201.43 — use bottom inset (same as sheet hug), not innerHeight−vv.height.
+      // URL-bar / browser chrome shrinks height and was falsely hiding the tab bar.
+      const bottomInset = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+      setKeyboardOpen(bottomInset > KEYBOARD_VIEWPORT_SHRINK_PX);
     };
 
     syncKeyboard();
