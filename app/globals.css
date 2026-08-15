@@ -526,3 +526,44 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   scroll-padding-top: calc(5.75rem + 0.75rem);
   scroll-padding-bottom: calc(5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
 }
+/**
+ * Adaptive brand logo (AirentoLogo/AirentoMark tone="auto").
+ * Keeps the header logo high-contrast as a "home" button on dark chrome,
+ * incl. system dark theme and mobile forced-dark (Samsung) that report
+ * prefers-color-scheme: dark. Also honours the `.dark` class strategy.
+ */
+.al-mark-light {
+  display: none;
+}
+.al-word {
+  color: #0d9488; /* brand teal — light backgrounds */
+}
+.al-sub {
+  color: rgba(100, 116, 139, 0.9);
+}
+@media (prefers-color-scheme: dark) {
+  .al-mark-auto .al-mark-brand {
+    display: none;
+  }
+  .al-mark-auto .al-mark-light {
+    display: inline-block;
+  }
+  .al-word {
+    color: #ffffff;
+  }
+  .al-sub {
+    color: rgba(226, 232, 240, 0.85);
+  }
+}
+.dark .al-mark-auto .al-mark-brand {
+  display: none;
+}
+.dark .al-mark-auto .al-mark-light {
+  display: inline-block;
+}
+.dark .al-word {
+  color: #ffffff;
+}
+.dark .al-sub {
+  color: rgba(226, 232, 240, 0.85);
+}

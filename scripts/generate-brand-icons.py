@@ -125,6 +125,18 @@ ico_imgs[0].save(
 )
 print("wrote favicon.ico", ico_sizes, "(simplified glyph)")
 
+# ---- Light mark variant (for dark backgrounds / dark theme) ----
+# Bright teal + light slate so the mark stays high-contrast on dark chrome.
+_master = open(MARK_SVG).read()
+_light = (
+    _master
+    .replace("#41c6b4", "#7ff0dd").replace("#0d9488", "#2dd4bf").replace("#0a5c56", "#14b8a6")
+    .replace("#94a1b1", "#e2e8f0").replace("#556170", "#aab6c6")
+)
+with open(os.path.join(PUB, "brand", "airento-mark-light.svg"), "w") as f:
+    f.write(_light)
+print("wrote brand/airento-mark-light.svg (dark-bg variant)")
+
 # ---- Notification badge (72x72, monochrome via alpha; Android tints it) ----
 badge = render_mark(72)
 # flatten to solid dark silhouette on transparent (alpha preserved)
