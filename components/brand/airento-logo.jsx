@@ -1,7 +1,8 @@
 ﻿'use client'
 
 /**
- * Header / chrome wordmark — AirentoMark (PNG SSOT) + optional text label.
+ * Header / chrome wordmark — clean transparent AirentoMark (SVG) + optional text label.
+ * No plate/ring/shadow: the vector mark sits directly on the header (light & dark safe).
  */
 
 import { AirentoMark } from '@/components/brand/airento-mark'
@@ -15,21 +16,18 @@ export function AirentoLogo({
   hideLabelOnMobile = false,
 }) {
   const showLabel = Boolean(String(label || '').trim())
-  /** Stage 201.36 — mark1 fills the plate more; slightly larger glyph + tighter pad. */
-  const markSize = compact ? 30 : 36
-  const boxSize = compact ? 'h-10 w-10' : 'h-12 w-12'
+  /** Clean transparent mark — no plate/ring/shadow (mark is wider than tall ~1.29:1). */
+  const markSize = compact ? 38 : 46
 
   return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <div
+    <div className={cn('flex items-center gap-2.5', className)}>
+      <AirentoMark
+        size={markSize}
         className={cn(
-          'grid place-items-center rounded-2xl bg-white p-1 ring-1 ring-slate-200 shadow-[0_10px_24px_rgba(0,102,102,0.16)] transition-opacity duration-300',
-          boxSize,
-          scrolled ? 'opacity-90' : 'opacity-100',
+          'transition-opacity duration-300',
+          scrolled ? 'opacity-95' : 'opacity-100',
         )}
-      >
-        <AirentoMark size={markSize} />
-      </div>
+      />
       {showLabel ? (
         <div className={cn('flex flex-col', hideLabelOnMobile ? 'hidden sm:flex' : '')}>
           <span

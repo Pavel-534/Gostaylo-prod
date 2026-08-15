@@ -4,7 +4,7 @@ import { getPublicBrandDisplayName } from '@/lib/site-url'
  * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31).
  * Splash / home-screen / share title: brand only (`Airento`) — no long tagline
  * (iOS Share sheet and Add to Home Screen otherwise pick up page title leftovers).
- * Icons: generated from public/brand/airento-mark.png via scripts/generate-pwa-icons.mjs
+ * Icons: generated from public/brand/airento-mark.svg via scripts/generate-brand-icons.py
  */
 export default function manifest() {
   const brand = getPublicBrandDisplayName()
@@ -24,8 +24,14 @@ export default function manifest() {
     icons: [
       { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      {
+        src: '/icons/icon-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
       { src: '/icons/icon-180x180.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-1024x1024.png', sizes: '1024x1024', type: 'image/png', purpose: 'any' },
     ],
     categories: ['travel', 'lifestyle', 'business'],
     shortcuts: [
