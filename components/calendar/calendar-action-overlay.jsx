@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Stage 188.0 — responsive overlay for partner calendar actions.
- * Mobile (< lg): bottom sheet hug-to-content (Stage 201.38 thumb zone). Desktop: centered dialog.
+ * Mobile (< lg): bottom sheet recipe **action** (ADR-201). Desktop: centered dialog.
  */
 export function CalendarActionOverlay({
   open,
@@ -30,17 +30,20 @@ export function CalendarActionOverlay({
   children,
   footer,
   wide = false,
+  /** ADR-201: `action` (short menu) | `form` (editors with fields / sticky footer) */
+  fit = 'action',
 }) {
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          fit="content"
+          fit={fit}
           overlayClassName="z-[340]"
           data-testid="partner-cal-action-overlay"
           className={cn(
-            'z-[350] flex w-full max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden overflow-y-hidden',
+            'z-[350] flex w-full max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden',
+            fit === 'form' ? 'overflow-y-hidden' : 'overflow-y-auto',
             'rounded-t-2xl border-t border-border p-0 shadow-2xl pt-4',
           )}
         >

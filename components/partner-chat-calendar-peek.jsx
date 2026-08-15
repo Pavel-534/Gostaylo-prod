@@ -196,7 +196,7 @@ export function PartnerChatCalendarPeek({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side={isMobile ? 'bottom' : 'right'}
-          fit={isMobile ? 'viewport' : undefined}
+          fit={isMobile ? 'form' : undefined}
           overlayClassName="z-[340]"
           className={cn(
             'z-[350] flex flex-col gap-0 overflow-hidden bg-background',

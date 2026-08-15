@@ -665,6 +665,11 @@ export function ActionModals({
         open={actionModal.open}
         onOpenChange={actionOpenChange}
         isMobile={isMobile}
+        fit={
+          actionModal.type === 'block' || actionModal.type === 'booking'
+            ? 'form'
+            : 'action'
+        }
         title={actionTitle()}
         description={actionDescription()}
         footer={actionFooter()}
@@ -676,6 +681,7 @@ export function ActionModals({
         open={priceModal.open}
         onOpenChange={(open) => setPriceModal({ open })}
         isMobile={isMobile}
+        fit="form"
         wide
         title={
           <span className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.149 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.43** sheet/tabbar.
+> **Version**: 13.2.150 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.44** Mobile Chrome Contract.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,10 +27,16 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.44 — ADR-201 Mobile Chrome Contract
+
+- Three recipes only: **`action`** (hug, safe-area pad), **`form`** (fill visualViewport), **`dialog`** (capped). Dock **locked** while overlay open (`mobile-dock-lock`).
+- Removed `respectAppBottomNav` / padding = tab-bar height (empty floor + float). Search sheet → `form`; sort/calendar menus → `action`.
+- Code: `lib/layout/mobile-chrome-contract.js`, `mobile-dock-lock.js`, Sheet `fit`, Dialog `mobileAnchor`.
+
 ### Stage 201.43 — sheet/tabbar float regression
 
 - Regression from 201.38–201.39: hug sheets used `bottom: navHeight` → floating panels + dead gap; tab bar hid on URL-bar resize (`innerHeight − vv.height`).
-- Fix: hug `bottom: 0` + `paddingBottom` for nav clearance; keyboard still lifts via large `bottomInset`. Nav hide uses same bottomInset gate. Search sheet: `pointer-events-none` when closed.
+- Partial fix superseded by **201.44** contract (safe-area pad + dock lock).
 
 ### Stage 201.42 — header logo baked SVG badge (no CSS layers)
 

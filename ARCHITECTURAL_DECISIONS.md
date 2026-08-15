@@ -406,6 +406,16 @@ Re-read this file when:
 
 ---
 
+## ADR-201: Mobile Chrome Contract (overlays + dock)
+
+**Status:** Accepted (2026-08-15) — Stage **201.44**  
+**SSOT:** [`docs/ADR/201-mobile-chrome-contract.md`](./docs/ADR/201-mobile-chrome-contract.md)  
+**Depends on:** ADR-100  
+
+Three overlay recipes only: **`action`** | **`form`** | **`dialog`**. Open bottom overlay **owns** the screen bottom (dock locked). Never lift sheets with `bottom: navHeight` or pad = full tab-bar height. Pin via `buildVisualViewportPinStyle({ recipe })`; Sheet `fit`, Dialog `mobileAnchor`, lock `lib/layout/mobile-dock-lock.js`.
+
+---
+
 ## ADR-101: Public Search Chrome SSOT (Home + Catalog)
 
 **Status:** Approved (normative); **implementation:** staged — см. Migration waves ниже  

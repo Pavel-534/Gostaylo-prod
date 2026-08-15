@@ -2,10 +2,7 @@
 
 /**
  * CatalogMobileSearchSheet — unified mobile search editor (<md) for home + catalog.
- * Single-tab FilterBar / UnifiedSearchBar variant="filter"; SSOT filter state in parent.
- * Stage 179.0 — overview-only sheet (FAB / catalog summary); no programmatic nested picker opens.
- * Stage 190.6 — Where/Dates/Guests use accordion + `presentation="wizardStep"` (no nested drawers).
- * Stage 201.39 / 201.43 — hug pin flush to bottom; pad clears tab bar (no lift / dead gap).
+ * ADR-201 recipe **form**: fills visualViewport, sticky CTA, dock locked while open.
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -14,10 +11,12 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { FilterBar } from '@/components/search/FilterBar'
+import { MOBILE_CHROME_RECIPES } from '@/lib/layout/mobile-chrome-contract'
 import {
   buildVisualViewportPinStyle,
   useVisualViewportFrame,
 } from '@/hooks/use-visual-viewport-frame'
+import { useMobileDockLock } from '@/hooks/use-mobile-dock-lock'
 
 /** Above sheet (`z-[120]`) and backdrop (`z-[110]`); matches WhereCombobox popover in overlays. */
 export const CATALOG_MOBILE_SEARCH_SHEET_SELECT_Z = 'z-[220]'
@@ -33,11 +32,12 @@ export function CatalogMobileSearchSheet({
 }) {
   const sheetRef = useRef(null)
   const frame = useVisualViewportFrame()
+  useMobileDockLock(open)
+
   const pinStyle = useMemo(
     () =>
       buildVisualViewportPinStyle(frame, {
-        mode: 'hug',
-        respectAppBottomNav: true,
+        recipe: MOBILE_CHROME_RECIPES.FORM,
       }),
     [frame],
   )
@@ -79,18 +79,19 @@ export function CatalogMobileSearchSheet({
         aria-modal="true"
         aria-label={getUIText('findButton', language)}
         data-testid="catalog-mobile-search-sheet"
-        data-sheet-fit="content"
+        data-sheet-fit="form"
+        data-mobile-chrome="form"
         className={cn(
           'fixed inset-x-0 z-[120] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
           'transition-transform duration-300 ease-out will-change-transform',
-          'overflow-y-auto',
+          'overflow-hidden',
           open ? 'translate-y-0' : 'translate-y-full pointer-events-none',
         )}
         style={pinStyle}
         aria-hidden={!open}
       >
-        <div className="flex justify-center pt-3 pb-1" aria-hidden>
+        <div className="flex justify-center pt-3 pb-1 shrink-0" aria-hidden>
           <div className="h-1 w-10 rounded-full bg-slate-200" />
         </div>
 
@@ -111,7 +112,7 @@ export function CatalogMobileSearchSheet({
           </Button>
         </div>
 
-        <div className="overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <FilterBar
             {...filterBarProps}
             mobileSheetEditor

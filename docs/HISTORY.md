@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.44 | 2026-08-15 | ADR-201 Mobile Chrome Contract: action/form/dialog; dock lock; no nav-height pad | Done |
 | 201.43 | 2026-08-15 | Fix sheet/tabbar float: hug pad not bottom-lift; nav keyboard = bottomInset only | Done |
 | 201.42 | 2026-08-15 | Header logo: white chip baked into SVG badge; drop CSS double-plate layers | Done |
 | 201.41 | 2026-08-15 | Header logo: white plate + brand mark (forced-dark proof); light SVG for dark surfaces | Done |

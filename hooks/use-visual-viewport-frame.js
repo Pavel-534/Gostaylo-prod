@@ -1,20 +1,23 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
+import { MOBILE_CHROME_RECIPES } from '@/lib/layout/mobile-chrome-contract'
 
-/** Same threshold as PartnerMobileBottomNav / MobileBottomNav. */
+/** Same threshold as MobileBottomNav / PartnerMobileBottomNav / ADR-201. */
 export const KEYBOARD_VIEWPORT_SHRINK_PX = 120
 
 /**
- * Stage 200.134 / 200.135 — visualViewport frame for mobile overlays (keyboard / iOS chrome).
+ * Safe-area bottom pad for action/form sheets (home indicator).
+ * Never use full `--app-bottom-nav-height` here — dock is locked while overlay is open (ADR-201).
+ */
+export const MOBILE_CHROME_SAFE_PAD_BOTTOM =
+  'max(0.75rem, env(safe-area-inset-bottom, 0px))'
+
+/**
+ * Stage 200.134 / 200.135 / ADR-201 — visualViewport frame for mobile overlays.
  *
- * **SSOT rule (iOS):** pin fixed dialogs/sheets to the *visualViewport rectangle*
- * (`top: offsetTop`, `height: height`). Do **not** rely on
- * `bottom: innerHeight - offsetTop - height` alone — when the user focuses a mid/lower
- * field (often with the number pad), Safari changes `offsetTop` and that bottom inset
- * sinks the sheet under the keyboard.
- *
- * Prefer this over raw `100vh` / `dvh` for overlay max-height.
+ * **SSOT (iOS):** pin form sheets to the visualViewport rectangle (`top: offsetTop`,
+ * `height: height`). Do not rely on `bottomInset` alone for fill mode.
  *
  * @returns {{ heightPx: number | null, offsetTop: number, offsetLeft: number, widthPx: number | null, bottomInset: number }}
  */
@@ -75,77 +78,90 @@ export function useVisualViewportFrame() {
   return frame
 }
 
-function readAppBottomNavPx() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return 0
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue('--app-bottom-nav-height')
-    .trim()
-  const n = Number.parseFloat(raw)
-  return Number.isFinite(n) && n > 0 ? n : 0
+/**
+ * Normalize legacy mode names → ADR-201 recipe.
+ * @param {{ recipe?: string, mode?: string }} opts
+ * @returns {'action' | 'form' | 'dialog'}
+ */
+function resolveRecipe(opts = {}) {
+  const raw = opts.recipe || opts.mode
+  if (raw === MOBILE_CHROME_RECIPES.ACTION || raw === 'hug') return MOBILE_CHROME_RECIPES.ACTION
+  if (raw === MOBILE_CHROME_RECIPES.FORM || raw === 'fill') return MOBILE_CHROME_RECIPES.FORM
+  if (raw === MOBILE_CHROME_RECIPES.DIALOG || raw === 'max') return MOBILE_CHROME_RECIPES.DIALOG
+  return MOBILE_CHROME_RECIPES.FORM
 }
 
 /**
- * CSS pin for `position: fixed` overlays inside the visible viewport.
- * @param {ReturnType<typeof useVisualViewportFrame>} frame
- * @param {{ mode?: 'fill' | 'max' | 'hug', respectAppBottomNav?: boolean }} [opts]
+ * CSS pin for `position: fixed` overlays (ADR-201 Mobile Chrome Contract).
  *
- * - `fill` — form sheet that occupies the visible vv (sticky footer / keyboard).
- * - `max` — short dialog capped to vv, pinned near the top.
- * - `hug` — bottom action sheet sized to content, flush to screen bottom (Stage 201.43).
- *   Clear the tab bar with **paddingBottom**, never `bottom: navHeight` (that floated sheets
- *   and left a dead gap above the dock on iOS/Android).
+ * @param {ReturnType<typeof useVisualViewportFrame>} frame
+ * @param {{ recipe?: 'action' | 'form' | 'dialog', mode?: 'action' | 'form' | 'dialog' | 'hug' | 'fill' | 'max' }} [opts]
+ *   `mode` kept as alias of `recipe` for older call sites / tests.
+ *
+ * - **action** — hug content, `bottom: 0`, safe-area pad only (dock locked separately).
+ * - **form** — fill visualViewport (keyboard-safe); safe-area pad.
+ * - **dialog** — capped to vv near top (desktop Dialog overrides to center).
+ *
+ * `respectAppBottomNav` is intentionally removed — it caused floating sheets / empty floors.
  */
-export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBottomNav = false } = {}) {
+export function buildVisualViewportPinStyle(frame, opts = {}) {
+  const recipe = resolveRecipe(opts)
+  const keyboardOpen = (frame?.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
+
   if (frame?.heightPx == null) {
-    if (mode === 'hug') {
+    if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
       return {
         top: 'auto',
         bottom: '0px',
         height: 'auto',
         maxHeight: 'min(90dvh, 40rem)',
-        ...(respectAppBottomNav
-          ? { paddingBottom: 'max(0.75rem, var(--app-bottom-nav-height, 0px))' }
-          : { paddingBottom: '0.75rem' }),
+        paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
       }
     }
-    return mode === 'fill'
-      ? { top: 0, bottom: 'auto', height: '100dvh', maxHeight: '100dvh' }
-      : { top: '0.5rem', bottom: 'auto', maxHeight: 'calc(100dvh - 1rem)' }
+    if (recipe === MOBILE_CHROME_RECIPES.FORM) {
+      return {
+        top: 0,
+        bottom: 'auto',
+        height: '100dvh',
+        maxHeight: '100dvh',
+        paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
+      }
+    }
+    return {
+      top: '0.5rem',
+      bottom: 'auto',
+      maxHeight: 'calc(100dvh - 1rem)',
+    }
   }
 
-  /**
-   * Stage 201.39 / 201.43 — iOS Safari often reports bottomInset > 0 for browser chrome
-   * (not keyboard). Only treat large inset as keyboard for lifting `bottom`.
-   */
-  const keyboardOpen = (frame.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
-  const navReserve = respectAppBottomNav && !keyboardOpen ? readAppBottomNavPx() : 0
-
-  if (mode === 'hug') {
+  if (recipe === MOBILE_CHROME_RECIPES.ACTION) {
+    // Real keyboard: lift with bottomInset. Browser chrome inset alone must not float the sheet.
     const bottom = keyboardOpen ? frame.bottomInset || 0 : 0
-    const padPx = keyboardOpen ? 12 : Math.max(12, navReserve)
     return {
       top: 'auto',
       bottom: `${bottom}px`,
       height: 'auto',
       maxHeight: `${Math.max(160, frame.heightPx)}px`,
-      paddingBottom: `${padPx}px`,
+      paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
     }
   }
 
-  if (mode === 'fill') {
-    const h = Math.max(160, frame.heightPx - navReserve)
+  if (recipe === MOBILE_CHROME_RECIPES.FORM) {
+    const h = Math.max(160, frame.heightPx)
     return {
       top: `${frame.offsetTop}px`,
       bottom: 'auto',
       height: `${h}px`,
       maxHeight: `${h}px`,
+      paddingBottom: MOBILE_CHROME_SAFE_PAD_BOTTOM,
     }
   }
 
+  // dialog
   return {
     top: `calc(${frame.offsetTop}px + 0.5rem)`,
     bottom: 'auto',
-    maxHeight: `calc(${frame.heightPx - navReserve}px - 1rem)`,
+    maxHeight: `calc(${frame.heightPx}px - 1rem)`,
   }
 }
 

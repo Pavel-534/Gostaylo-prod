@@ -195,7 +195,7 @@ export function PartnerListingCardActions({
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent
           side="bottom"
-          fit="content"
+          fit="action"
           data-testid="partner-listing-more-sheet"
           className="rounded-t-2xl border-t border-slate-200 px-4 pt-3"
         >

@@ -147,7 +147,7 @@ export function CalendarMobileQuickActions({
       <Sheet open={optionsOpen} onOpenChange={setOptionsOpen}>
         <SheetContent
           side="bottom"
-          fit="content"
+          fit="action"
           overlayClassName="z-[340]"
           className={cn(
             'z-[350] rounded-t-2xl border-t border-slate-200 px-4 pt-3',

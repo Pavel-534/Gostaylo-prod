@@ -282,7 +282,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Промо** | `lib/promo/promo-engine.js` + `PricingService.validatePromoCode` |
 | **Query keys (клиент)** | `lib/query-keys.js` |
 | **Design tokens** | `lib/theme/tokens.ts` / `tokens.cjs` → Tailwind / `globals.css` |
-| **Mobile keyboard / overlays** | `hooks/use-visual-viewport-frame.js` (`buildVisualViewportPinStyle`) → `components/ui/dialog.jsx` (`mobileAnchor`) + `components/ui/sheet.jsx` (`side="bottom"`). Pin to **visualViewport** `top+height`, never `bottomInset` alone. Form sheets: `mobileAnchor="bottom"`. |
+| **Mobile chrome / overlays** | **ADR-201** — recipes `action` \| `form` \| `dialog`. Pin: `hooks/use-visual-viewport-frame.js`. Sheet `fit`, Dialog `mobileAnchor`, dock lock: `lib/layout/mobile-dock-lock.js`. Open overlay **owns** the bottom edge (dock hidden). Never `bottom: navHeight` / pad = full tab bar. |
 | **List scroll restore (Back)** | `lib/navigation/route-scroll-memory.js` + root `RouteScrollMemoryHost`. Allowlist: `routeScrollKeyFromLocation` / `isScrollMemoryRouteKey`. Persist: `persistLiveRouteScroll` (Link click capture **or** before `router.push`). Back: `useSoftBack` → `markPendingRouteScrollRestore`. Не плодить page-local `useRouteScrollMemory`. |
 | **Post-auth redirect** | `lib/auth/auth-redirect.js` (`finishAuthNavigation`: `airento:nav-pending` + `replace`; apply login payload, do not block on `/me` or `router.refresh()` on the auth page). |
 | **Бренд / site name** | `lib/site-url.js` → `getSiteDisplayName()` |

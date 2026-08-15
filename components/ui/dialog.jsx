@@ -5,10 +5,12 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { dialogAnchorToRecipe } from "@/lib/layout/mobile-chrome-contract"
 import {
   buildVisualViewportPinStyle,
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
+import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
 
 const Dialog = DialogPrimitive.Root
 
@@ -30,9 +32,9 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 /**
- * @param {'top' | 'bottom'} [mobileAnchor='top'] — mobile placement inside visualViewport.
- *   `bottom` = form sheet that **fills** the visible viewport (footer stays above keyboard).
- *   `top` = short dialog capped to vv (alerts).
+ * @param {'top' | 'bottom'} [mobileAnchor='top'] — ADR-201.
+ *   `bottom` → recipe `form` (fill visualViewport, sticky footer / keyboard).
+ *   `top` → recipe `dialog` (capped to vv; desktop still centered via sm: overrides).
  */
 const DialogContent = React.forwardRef(({
   className,
@@ -56,10 +58,9 @@ const DialogContent = React.forwardRef(({
   const classHintsBottom =
     /\bbottom-0\b/.test(className || '') || /\btop-auto\b/.test(className || '')
   const anchor = mobileAnchor === 'bottom' || classHintsBottom ? 'bottom' : 'top'
-  const viewportStyle = buildVisualViewportPinStyle(frame, {
-    mode: anchor === 'bottom' ? 'fill' : 'max',
-    respectAppBottomNav: true,
-  })
+  const recipe = dialogAnchorToRecipe(anchor)
+  useMobileDockLock(true)
+  const viewportStyle = buildVisualViewportPinStyle(frame, { recipe })
 
   // Keep focused inputs visible inside the sheet scrollport (iOS mid-form / number pad).
   React.useEffect(() => {

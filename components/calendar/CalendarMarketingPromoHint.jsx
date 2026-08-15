@@ -126,7 +126,7 @@ export function CalendarMarketingPromoHint({
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent
           side="bottom"
-          fit="content"
+          fit="action"
           overlayClassName="z-[340]"
           className={cn(
             'z-[350] rounded-t-2xl border-t border-slate-200 px-4 pt-3',

@@ -21,7 +21,7 @@ export function ListingWizardPreviewSheet({ open, onOpenChange }) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        fit="content"
+        fit="action"
         overlayClassName="z-[340]"
         className={cn(
           'z-[350] flex flex-col gap-0 overflow-hidden bg-background sm:hidden',

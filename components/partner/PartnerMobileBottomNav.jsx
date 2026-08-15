@@ -25,8 +25,8 @@ import {
   isOptimisticDockTabActive,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href'
-
-const KEYBOARD_VIEWPORT_SHRINK_PX = 120
+import { useMobileDockLocked } from '@/hooks/use-mobile-dock-lock'
+import { KEYBOARD_VIEWPORT_SHRINK_PX } from '@/hooks/use-visual-viewport-frame'
 
 const PRIMARY_TABS = [
   {
@@ -101,7 +101,8 @@ export function PartnerMobileBottomNav({ language = 'ru', onMoreClick }) {
     () => mounted && shouldRenderPartnerBottomNav(pathname),
     [mounted, pathname],
   )
-  const navVisible = routeAllowsNav && !keyboardOpen
+  const dockLocked = useMobileDockLocked()
+  const navVisible = routeAllowsNav && !keyboardOpen && !dockLocked
 
   useEffect(() => {
     setMounted(true)

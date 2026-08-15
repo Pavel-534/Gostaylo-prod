@@ -42,21 +42,22 @@ describe('Stage 200.135 — iOS keyboard visualViewport pin SSOT', () => {
     assert.match(src, /focusin/)
     assert.match(src, /focusout/)
     assert.match(src, /buildVisualViewportPinStyle/)
-    assert.match(src, /Do \*\*not\*\* rely on/)
+    assert.match(src, /Do not rely on/)
   })
 
-  it('DialogContent uses fill pin + scrollIntoView on focus', () => {
+  it('DialogContent uses recipe pin + scrollIntoView on focus', () => {
     const src = read('components/ui/dialog.jsx')
     assert.match(src, /buildVisualViewportPinStyle/)
-    assert.match(src, /mode: anchor === 'bottom' \? 'fill' : 'max'/)
+    assert.match(src, /dialogAnchorToRecipe/)
     assert.match(src, /scrollIntoView/)
-    assert.match(src, /respectAppBottomNav: true/)
+    assert.match(src, /useMobileDockLock/)
   })
 
-  it('Sheet bottom side uses fill pin; calendar overlay drops !bottom fight', () => {
+  it('Sheet bottom side uses ADR-201 pin; calendar overlay drops !bottom fight', () => {
     const sheet = read('components/ui/sheet.jsx')
     assert.match(sheet, /buildVisualViewportPinStyle/)
     assert.match(sheet, /side === 'bottom'/)
+    assert.match(sheet, /sheetFitToRecipe/)
 
     const cal = read('components/calendar/calendar-action-overlay.jsx')
     assert.doesNotMatch(cal, /!bottom-\[/)

@@ -5,10 +5,12 @@ import { cva } from "class-variance-authority";
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { sheetFitToRecipe } from "@/lib/layout/mobile-chrome-contract"
 import {
   buildVisualViewportPinStyle,
   useVisualViewportFrame,
 } from "@/hooks/use-visual-viewport-frame"
+import { useMobileDockLock } from "@/hooks/use-mobile-dock-lock"
 
 const Sheet = SheetPrimitive.Root
 
@@ -50,21 +52,21 @@ const sheetVariants = cva(
 
 /**
  * @param {'right' | 'top' | 'bottom' | 'left'} [side]
- * @param {'content' | 'viewport'} [fit='content'] — Stage 201.38.
- *   `content` (default for bottom): hug thumb zone (auto height, bottom-anchored).
- *   `viewport`: fill visualViewport (tall forms / calendar peek / forced full sheet).
+ * @param {'action' | 'form' | 'content' | 'viewport'} [fit='action'] — ADR-201.
+ *   `action` (default for bottom): short menu, hug content, flush bottom, safe-area pad.
+ *   `form`: fill visualViewport (search / tall editors / sticky CTA).
+ *   Legacy aliases: `content` → action, `viewport` → form.
  */
 const SheetContent = React.forwardRef(
-  ({ side = "right", fit = "content", className, overlayClassName, children, style, ...props }, ref) => {
+  ({ side = "right", fit = "action", className, overlayClassName, children, style, ...props }, ref) => {
     const frame = useVisualViewportFrame()
-    const pinMode =
-      side === 'bottom' ? (fit === 'viewport' ? 'fill' : 'hug') : undefined
+    const recipe = side === 'bottom' ? sheetFitToRecipe(fit) : null
+    // SheetContent mounts only while open → lock dock for the lifetime of this portal content.
+    useMobileDockLock(side === 'bottom')
+
     const pinStyle =
-      pinMode != null
-        ? buildVisualViewportPinStyle(frame, {
-            mode: pinMode,
-            respectAppBottomNav: true,
-          })
+      recipe != null
+        ? buildVisualViewportPinStyle(frame, { recipe })
         : undefined
 
     return (
@@ -73,13 +75,13 @@ const SheetContent = React.forwardRef(
         <SheetPrimitive.Content
           ref={ref}
           data-sheet-fit={side === 'bottom' ? fit : undefined}
+          data-mobile-chrome={recipe || undefined}
           style={pinStyle ? { ...pinStyle, ...style } : style}
           className={cn(
             sheetVariants({ side }),
             side === 'bottom' && 'flex flex-col',
-            // Bottom pad comes from buildVisualViewportPinStyle (nav reserve / keyboard) — avoid double pb-*
-            side === 'bottom' && fit === 'content' && 'overflow-y-auto',
-            side === 'bottom' && fit === 'viewport' && 'pb-3',
+            side === 'bottom' && recipe === 'action' && 'overflow-y-auto',
+            side === 'bottom' && recipe === 'form' && 'overflow-hidden',
             className,
           )}
           {...props}

@@ -51,7 +51,7 @@ export function CatalogSortSelect({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             side="bottom"
-            fit="content"
+            fit="action"
             data-testid="catalog-sort-sheet"
             className="gap-0 rounded-t-2xl border-t border-slate-200 p-0 shadow-2xl"
           >

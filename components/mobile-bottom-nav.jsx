@@ -1,9 +1,9 @@
 /**
- * Mobile Bottom Navigation Bar (ADR-100 / Stage 189.3 + Stage 200.13 optimistic tabs).
+ * Mobile Bottom Navigation Bar (ADR-100 / ADR-201 + Stage 200.13 optimistic tabs).
  *
  * Fixed bottom nav for mobile (< md). ResizeObserver → --app-bottom-nav-height on <html>
  * (height includes .mobile-bottom-nav-safe / safe-area — do not add inset again in shell).
- * Hidden while soft keyboard is open (visualViewport).
+ * Hidden while soft keyboard is open (bottomInset) or while an overlay locks the dock (ADR-201).
  * Stage 189.31–189.33 — iOS standalone trims 16px of safe-area pad via CSS (Android unchanged).
  */
 
@@ -26,6 +26,8 @@ import {
   isOptimisticDockTabActive,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href';
+import { useMobileDockLocked } from '@/hooks/use-mobile-dock-lock';
+import { KEYBOARD_VIEWPORT_SHRINK_PX } from '@/hooks/use-visual-viewport-frame';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -65,9 +67,6 @@ const NAV_ITEMS = [
   },
 ];
 
-/** Soft keyboard typically shrinks visualViewport vs layout viewport. */
-const KEYBOARD_VIEWPORT_SHRINK_PX = 120;
-
 function shouldRenderBottomNav(pathname) {
   if (!pathname) return false;
   if (pathname.startsWith('/partner') || pathname.startsWith('/admin')) return false;
@@ -87,6 +86,7 @@ export function MobileBottomNav() {
   const { user, openLoginModal } = useAuth();
   const { totalUnread } = useChatUnreadBadge();
   const { language } = useI18n();
+  const dockLocked = useMobileDockLocked();
   const { pendingHref, markPending } = useOptimisticNavHref({
     prefetchPaths: STOREFRONT_NAV_PREFETCH_PATHS,
   });
@@ -96,7 +96,8 @@ export function MobileBottomNav() {
     [mounted, pathname],
   );
 
-  const navVisible = routeAllowsNav && !keyboardOpen;
+  /** ADR-201: overlays own the bottom edge — hide dock while locked. */
+  const navVisible = routeAllowsNav && !keyboardOpen && !dockLocked;
 
   useEffect(() => {
     setMounted(true);
