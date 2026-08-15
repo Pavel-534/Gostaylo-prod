@@ -68,3 +68,18 @@
 - Критичная телеметрия: `lib/critical-telemetry.js`
 - Бронирования: `lib/services/booking.service.js` + `lib/services/booking/`
 - Resend в тестах: `lib/email/resend-transport-guard.js`
+
+## Cursor Cloud specific instructions
+
+Durable, non-obvious notes for future cloud agents. The startup update script already runs `npm install`, so do not repeat dependency installation here.
+
+- **Single app at repo root.** This is one Next.js 14 (App Router) codebase — frontend + `app/api/**` together. `frontend/` is symlinks into the app root, `backend/` is only legacy Python test scripts, `mobile/` is a Capacitor/TWA shell. There is no separate backend service to start.
+- **Run dev:** `npm run dev` → serves on `0.0.0.0:3000` (`predev` bumps the SW cache automatically). Node 22 works; CI pins Node 20.
+- **Local env file is required for auth paths.** Create a gitignored `.env.local` with at least `JWT_SECRET` (hard failure whenever auth/session code runs — see `lib/auth/jwt-secret.js`). There is no committed `.env.example`. Optional: `NEXT_PUBLIC_SITE_NAME`/`SITE_DISPLAY_NAME` (brand, prod = `Airento`).
+- **Graceful degradation without Supabase.** With Supabase env unset, `lib/supabase.js` clients become `null`: pages still render (HTTP 200) but listing/search/booking/auth data flows are empty and the dev log shows `Cannot read properties of null (reading 'from')` from the search query builder — this is expected locally. There is no bundled local DB/Docker; for real data or E2E, point at a hosted **staging** Supabase project (never production) and apply migrations from `migrations/` + `database/migrations/`.
+- **Other integrations degrade/mocked** when unset: rate-limit → in-memory, Resend/FCM/Telegram/PostHog/OpenAI → no-op or mock (`RESEND_MOCK=1` etc.).
+- **Lint:** `npm run lint` (`eslint . --max-warnings 50`). There are pre-existing `no-undef` errors in service-worker/storage source (`public/*.js`, `src/pwa/sw.template.js`, `lib/storage/*`) — not caused by env setup.
+- **Build:** `npm run build` (resilient wrapper + type-check + SW precache) succeeds offline without any env.
+- **Unit tests:** node test runner scripts import an alias register, e.g. `npm run test:map-pin-price`, `npm run test:discovery-housing` — run offline, no DB.
+- **Known broken offline scripts (pre-existing, not env):** `npm run verify:currency` and `npm run check:i18n` fail under Node 22 with `ERR_MODULE_NOT_FOUND` (extensionless ESM imports without the alias register). `npm run check:brand` also flags historical doc literals by design.
+- **Playwright E2E** (`npm run test:e2e:nightly`, `npx playwright test`) additionally needs `npx playwright install --with-deps chromium` and a dedicated staging Supabase project; not runnable with the default no-DB local setup.
