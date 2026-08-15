@@ -48,12 +48,23 @@ const sheetVariants = cva(
   }
 )
 
+/**
+ * @param {'right' | 'top' | 'bottom' | 'left'} [side]
+ * @param {'content' | 'viewport'} [fit='content'] — Stage 201.38.
+ *   `content` (default for bottom): hug thumb zone (auto height, bottom-anchored).
+ *   `viewport`: fill visualViewport (tall forms / calendar peek / forced full sheet).
+ */
 const SheetContent = React.forwardRef(
-  ({ side = "right", className, overlayClassName, children, style, ...props }, ref) => {
+  ({ side = "right", fit = "content", className, overlayClassName, children, style, ...props }, ref) => {
     const frame = useVisualViewportFrame()
+    const pinMode =
+      side === 'bottom' ? (fit === 'viewport' ? 'fill' : 'hug') : undefined
     const pinStyle =
-      side === 'bottom'
-        ? buildVisualViewportPinStyle(frame, { mode: 'fill', respectAppBottomNav: true })
+      pinMode != null
+        ? buildVisualViewportPinStyle(frame, {
+            mode: pinMode,
+            respectAppBottomNav: true,
+          })
         : undefined
 
     return (
@@ -61,10 +72,12 @@ const SheetContent = React.forwardRef(
         <SheetOverlay className={overlayClassName} />
         <SheetPrimitive.Content
           ref={ref}
+          data-sheet-fit={side === 'bottom' ? fit : undefined}
           style={pinStyle ? { ...pinStyle, ...style } : style}
           className={cn(
             sheetVariants({ side }),
             side === 'bottom' && 'flex flex-col',
+            side === 'bottom' && fit === 'content' && 'overflow-y-auto',
             className,
           )}
           {...props}

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.38 | 2026-08-15 | Bottom Sheet fit=content hug (thumb zone); viewport only for tall peeks | Done |
+| 201.37 | 2026-08-15 | AppHeader: hide dead burger on guest /profile (menu only with onMenuClick) | Done |
 | 201.36 | 2026-08-15 | Brand mark: promote airento-mark1 (tighter crop) as SSOT + regen PWA icons | Done |
 | 201.35 | 2026-08-15 | Referral hub: no window scrollIntoView on tabs; open at top | Done |
 | 201.34 | 2026-08-14 | Listing health: rules weight 15%; incomplete parts jump to wizard step | Done |

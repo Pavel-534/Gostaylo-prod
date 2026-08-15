@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.142 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.36** brand mark.
+> **Version**: 13.2.144 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.38** sheet hug.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,18 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.38 — bottom Sheet thumb-zone hug (SSOT)
+
+- Root cause: `Sheet side=bottom` always used vv `fill` → full-height panel with actions stuck at the top and empty thumb zone.
+- SSOT: `buildVisualViewportPinStyle({ mode: 'hug' })` + `SheetContent fit="content"` (default) — `height: auto`, anchored above `--app-bottom-nav-height` / keyboard.
+- `fit="viewport"` only for tall peeks (e.g. chat calendar). Catalog sort / listing more / calendar action / wizard preview use `content`.
+- Do not add `pb` with `--app-bottom-nav-height` on hug sheets (nav already reserved by pin).
+
+### Stage 201.37 — no dead burger on guest profile hub
+
+- `/profile/*` is `workspace` variant (same as partner/renter), so AppHeader showed the sidebar Menu toggle — but storefront has no sidebar / no `onMenuClick` → dead control next to soft-back.
+- Fix: render menu only when `typeof onMenuClick === 'function'`; `StorefrontAppShell` sets `showMenuButton={false}`.
 
 ### Stage 201.36 — brand mark mark1 as SSOT
 
@@ -234,7 +246,8 @@
 ### Stage 200.135 — iOS keyboard visualViewport fill pin
 
 - Root cause of mid-form / number-pad regression: `bottom: bottomInset` breaks when Safari shifts `visualViewport.offsetTop`.
-- SSOT: `buildVisualViewportPinStyle({ mode: 'fill' })` → `top: offsetTop` + `height: vv.height` (Dialog `mobileAnchor="bottom"`, Sheet `side="bottom"`).
+- SSOT: `buildVisualViewportPinStyle({ mode: 'fill' })` → `top: offsetTop` + `height: vv.height` (Dialog `mobileAnchor="bottom"`; Sheet `fit="viewport"`).
+- Bottom action menus use Sheet `fit="content"` / mode `hug` (Stage 201.38) — not fill.
 - Focus sync + `scrollIntoView` inside dialog; form dialogs (withdraw, support, cancel, invoice, …) use `mobileAnchor="bottom"`.
 - Constitution §5 row **Mobile keyboard / overlays**. Tests: `__tests__/stage200-135-ios-keyboard-vv-pin.test.js`.
 

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Stage 188.0 — responsive overlay for partner calendar actions.
- * Mobile (< lg): bottom sheet (90dvh, sticky footer). Desktop: centered dialog.
+ * Mobile (< lg): bottom sheet hug-to-content (Stage 201.38 thumb zone). Desktop: centered dialog.
  */
 export function CalendarActionOverlay({
   open,
@@ -36,6 +36,7 @@ export function CalendarActionOverlay({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
+          fit="content"
           overlayClassName="z-[340]"
           data-testid="partner-cal-action-overlay"
           className={cn(
@@ -58,7 +59,7 @@ export function CalendarActionOverlay({
               ) : null}
             </SheetHeader>
           ) : null}
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <div className="min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
             {children}
           </div>
           {footer ? (

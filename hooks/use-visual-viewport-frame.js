@@ -87,10 +87,23 @@ function readAppBottomNavPx() {
 /**
  * CSS pin for `position: fixed` overlays inside the visible viewport.
  * @param {ReturnType<typeof useVisualViewportFrame>} frame
- * @param {{ mode?: 'fill' | 'max', respectAppBottomNav?: boolean }} [opts]
+ * @param {{ mode?: 'fill' | 'max' | 'hug', respectAppBottomNav?: boolean }} [opts]
+ *
+ * - `fill` — form sheet that occupies the visible vv (sticky footer / keyboard).
+ * - `max` — short dialog capped to vv, pinned near the top.
+ * - `hug` — bottom action sheet sized to content, anchored above bottom nav / keyboard
+ *   (thumb zone). Stage 201.38 SSOT for menus (catalog sort, listing more, calendar actions).
  */
 export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBottomNav = false } = {}) {
   if (frame?.heightPx == null) {
+    if (mode === 'hug') {
+      return {
+        top: 'auto',
+        bottom: respectAppBottomNav ? 'var(--app-bottom-nav-height, 0px)' : '0px',
+        height: 'auto',
+        maxHeight: 'min(90dvh, 40rem)',
+      }
+    }
     return mode === 'fill'
       ? { top: 0, bottom: 'auto', height: '100dvh', maxHeight: '100dvh' }
       : { top: '0.5rem', bottom: 'auto', maxHeight: 'calc(100dvh - 1rem)' }
@@ -98,6 +111,16 @@ export function buildVisualViewportPinStyle(frame, { mode = 'fill', respectAppBo
 
   const keyboardOpen = (frame.bottomInset || 0) > KEYBOARD_VIEWPORT_SHRINK_PX
   const navReserve = respectAppBottomNav && !keyboardOpen ? readAppBottomNavPx() : 0
+
+  if (mode === 'hug') {
+    const bottom = (frame.bottomInset || 0) + navReserve
+    return {
+      top: 'auto',
+      bottom: `${bottom}px`,
+      height: 'auto',
+      maxHeight: `${Math.max(160, frame.heightPx)}px`,
+    }
+  }
 
   if (mode === 'fill') {
     const h = Math.max(160, frame.heightPx - navReserve)

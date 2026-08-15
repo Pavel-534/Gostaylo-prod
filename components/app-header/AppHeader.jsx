@@ -19,7 +19,7 @@
  * @created 2026-02-05 Unified Header Sprint
  * @updated 2026-07-30 Stage 200.2 — dense mobile right cluster (icon wallet / symbol currency)
  * @updated 2026-08-14 Stage 201.12 — optional soft-back leading chevron (useSoftBack)
- * @updated 2026-08-14 Stage 201.15 — Suspense around ScrollProgressBar (useSearchParams)
+ * @updated 2026-08-15 Stage 201.37 — menu toggle only when onMenuClick is wired (no dead burger on /profile)
  */
 
 import { Suspense, useEffect, useRef, useState } from 'react'
@@ -186,7 +186,7 @@ export function AppHeader({
               </button>
             ) : null}
 
-            {isWorkspace && showMenuButton && (
+            {isWorkspace && showMenuButton && typeof onMenuClick === 'function' ? (
               <button
                 type="button"
                 onClick={onMenuClick}
@@ -196,7 +196,7 @@ export function AppHeader({
               >
                 <Menu className="h-5 w-5" />
               </button>
-            )}
+            ) : null}
 
             <Link
               href="/"

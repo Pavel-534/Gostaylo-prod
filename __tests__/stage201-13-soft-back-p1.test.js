@@ -83,11 +83,16 @@ describe('Stage 201.13 — soft-back SSOT P1', () => {
     assert.match(storefront, /resolveStorefrontSoftBack/)
     assert.match(storefront, /showSoftBack=\{showSoftBack\}/)
     assert.match(storefront, /softBackFallback=\{softBackFallback\}/)
+    assert.match(storefront, /showMenuButton=\{false\}/)
 
     const partner = read('app/(partner)/partner/layout.js')
     assert.match(partner, /resolvePartnerSoftBack/)
     assert.match(partner, /showSoftBack=\{partnerShowSoftBack\}/)
     assert.match(partner, /softBackFallback=\{partnerSoftBackFallback\}/)
+    assert.match(partner, /onMenuClick=/)
+
+    const header = read('components/app-header/AppHeader.jsx')
+    assert.match(header, /typeof onMenuClick === 'function'/)
   })
 
   it('my-bookings and partner promo drop page-local hard home/dashboard ArrowLeft', () => {

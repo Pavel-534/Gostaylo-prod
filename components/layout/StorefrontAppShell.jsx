@@ -4,6 +4,7 @@
  * Guest storefront shell — Query, analytics, nav chrome (Stage 171.25 route group).
  * Stage M1.1 — PushClientInit here (and partner layout); chat layout keeps a copy for direct /messages entry.
  * Stage 201.13 — soft-back leading on nested profile / settings / my-bookings via AppHeader.
+ * Stage 201.37 — no workspace menu toggle here (guest shell has no sidebar).
  */
 
 import { Suspense } from 'react'
@@ -35,7 +36,11 @@ export function StorefrontAppShell({ children }) {
             <ProductAnalyticsInit />
           </Suspense>
           <PushClientInit />
-          <AppHeader showSoftBack={showSoftBack} softBackFallback={softBackFallback} />
+          <AppHeader
+            showSoftBack={showSoftBack}
+            softBackFallback={softBackFallback}
+            showMenuButton={false}
+          />
           <MainContent>{children}</MainContent>
           <UnpaidCheckoutNudgeBanner />
           <MobileBottomNav />

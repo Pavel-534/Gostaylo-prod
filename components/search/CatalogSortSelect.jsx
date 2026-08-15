@@ -51,13 +51,8 @@ export function CatalogSortSelect({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             side="bottom"
+            fit="content"
             data-testid="catalog-sort-sheet"
-            style={{
-              top: 'auto',
-              height: 'auto',
-              maxHeight: 'min(70dvh, 28rem)',
-              bottom: 'var(--app-bottom-nav-height, 0px)',
-            }}
             className="gap-0 rounded-t-2xl border-t border-slate-200 p-0 shadow-2xl"
           >
             <div className="flex justify-center pt-2" aria-hidden>

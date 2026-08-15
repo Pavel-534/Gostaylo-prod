@@ -195,13 +195,9 @@ export function PartnerListingCardActions({
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent
           side="bottom"
+          fit="content"
           data-testid="partner-listing-more-sheet"
-          className={
-            'rounded-t-2xl border-t border-slate-200 px-4 pt-3 ' +
-            '!bottom-[var(--app-bottom-nav-height,0px)] ' +
-            'max-h-[calc(90dvh-var(--app-bottom-nav-height,0px))] ' +
-            'pb-[max(1rem,env(safe-area-inset-bottom))]'
-          }
+          className="rounded-t-2xl border-t border-slate-200 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <SheetHeader className="mb-2 text-left">
             <SheetTitle className="truncate text-base">
