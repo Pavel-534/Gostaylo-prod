@@ -1,33 +1,26 @@
 'use client'
 
 /**
- * Brand mark SSOT — clean two-tone vector from public/brand/airento-mark.svg
- * (same master used by scripts/generate-brand-icons.py for all PWA/favicon assets).
+ * Brand mark SSOT — vectors from public/brand/.
  *
  * `tone`:
- *   'brand'  (default) — two-tone teal/gray mark, for light backgrounds
- *   'onDark'           — bright light variant (airento-mark-light.svg), for dark backgrounds
- *   'auto'             — renders both; CSS swaps to the light variant under
- *                        `@media (prefers-color-scheme: dark)` or a `.dark` ancestor
- *                        (see .al-mark-* rules in globals.css). Prefer plate+brand
- *                        in AppHeader (AirentoLogo) — auto alone fails under forced dark.
+ *   'brand'  (default) — two-tone teal/gray mark (airento-mark.svg), transparent
+ *   'onDark'           — bright variant (airento-mark-light.svg) for dark surfaces
+ *   'badge'            — mark on white rounded chip baked into SVG (header / forced-dark proof)
+ *   'auto'             — brand + light; CSS swaps under prefers-color-scheme / .dark
+ *                        (prefer 'badge' in AppHeader — auto alone fails under forced dark)
  */
 
 import { cn } from '@/lib/utils'
 
+const SRC = {
+  brand: '/brand/airento-mark.svg',
+  onDark: '/brand/airento-mark-light.svg',
+  badge: '/brand/airento-mark-badge.svg',
+}
+
 export function AirentoMark({ size = 32, className = '', tone = 'brand' }) {
   const common = { alt: '', width: size, height: size, draggable: false }
-
-  if (tone === 'onDark') {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- static brand vector asset
-      <img
-        src="/brand/airento-mark-light.svg"
-        {...common}
-        className={cn('object-contain select-none', className)}
-      />
-    )
-  }
 
   if (tone === 'auto') {
     return (
@@ -37,13 +30,13 @@ export function AirentoMark({ size = 32, className = '', tone = 'brand' }) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand vector asset */}
         <img
-          src="/brand/airento-mark.svg"
+          src={SRC.brand}
           {...common}
           className="al-mark-brand object-contain select-none"
         />
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand vector asset */}
         <img
-          src="/brand/airento-mark-light.svg"
+          src={SRC.onDark}
           {...common}
           className="al-mark-light object-contain select-none"
         />
@@ -51,10 +44,12 @@ export function AirentoMark({ size = 32, className = '', tone = 'brand' }) {
     )
   }
 
+  const src = SRC[tone] || SRC.brand
+
   return (
     // eslint-disable-next-line @next/next/no-img-element -- static brand vector asset
     <img
-      src="/brand/airento-mark.svg"
+      src={src}
       {...common}
       className={cn('object-contain select-none', className)}
     />

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.147 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.41** logo plate.
+> **Version**: 13.2.148 | **Last Updated**: 2026-08-15 | **Tip of tree:** Stage **203**; **201.42** logo badge.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,11 +27,15 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.42 — header logo baked SVG badge (no CSS layers)
+
+- 201.41 CSS white plate still failed under Samsung forced dark (CSS bg inverted; teal `<img>` stayed dark) and stacked with AppHeader frosted Link → “layers”.
+- Fix: `public/brand/airento-mark-badge.svg` (white `rect` + mark in one image); `AirentoMark tone="badge"`; strip AppHeader logo Link border/bg/shadow. Rebuild: `node scripts/build-airento-mark-badge.cjs`.
+
 ### Stage 201.41 — header logo plate (forced-dark proof)
 
 - Problem: algorithmic dark (Samsung/Chrome) darkens header CSS but leaves dark teal SVG → invisible mark; `prefers-color-scheme` swap alone does not fix it.
-- Fix: `AirentoLogo` wraps brand mark in `.al-logo-plate` (`color-scheme: light only`, white chip). Familiar brand SVG on light **and** phone “dark sites”.
-- `airento-mark-light.svg` / `tone="dark"` — intentional dark heroes only (no plate). `:root { color-scheme: light only }`. Brand book dark sample uses light SVG.
+- Fix attempt: CSS `.al-logo-plate` — superseded by **201.42** baked badge.
 
 ### Stage 201.40 — PDP soft-back SSOT + favorite FAB
 

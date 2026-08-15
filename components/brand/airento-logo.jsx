@@ -1,19 +1,15 @@
 ﻿'use client'
 
 /**
- * Header / chrome wordmark — AirentoMark on a light plate (forced-dark proof) + optional label.
+ * Header / chrome wordmark — badge mark (white chip baked into SVG) + optional label.
  *
- * Why a plate (not CSS swap alone): Samsung/Chrome algorithmic dark darkens the header
- * background but often leaves the brand SVG as dark teal — invisible. A white chip with
- * `color-scheme: light only` + `forced-color-adjust: none` keeps the familiar brand mark
- * readable. Light SVG (`tone="dark"` / onDark) is for intentional dark surfaces without a plate.
+ * Forced-dark (Samsung/Chrome) inverts CSS backgrounds but usually leaves <img> pixels alone.
+ * A CSS white plate therefore becomes dark while the teal mark stays dark → invisible + “layers”.
+ * SSOT for header: `/brand/airento-mark-badge.svg` (white rounded rect + brand mark in one image).
  *
  * `tone`:
- *   'auto'  (default) — brand mark on plate; teal wordmark (see .al-* in globals.css)
- *   'dark'            — light mark + white wordmark, no plate (heroes / dark chrome)
- *   'light'           — brand mark on plate; teal wordmark
- *
- * `plate`: override; default true except when tone === 'dark'.
+ *   'auto'|'light' (default) — badge SVG (header chrome)
+ *   'dark'                   — light mark, no badge (heroes / intentional dark surfaces)
  */
 
 import { AirentoMark } from '@/components/brand/airento-mark'
@@ -37,37 +33,24 @@ export function AirentoLogo({
   scrolled = false,
   hideLabelOnMobile = false,
   tone = 'auto',
-  plate,
 }) {
   const showLabel = Boolean(String(label || '').trim())
-  /** Mark is wider than tall ~1.29:1; plate adds a few px of pad. */
-  const markSize = compact ? 38 : 46
-  const usePlate = plate ?? tone !== 'dark'
+  /** Badge already includes pad; slightly larger than bare mark. */
+  const markSize = compact ? 40 : 48
   const wordTone = WORD_TONE[tone] || WORD_TONE.auto
   const subTone = SUB_TONE[tone] || SUB_TONE.auto
-  /** On plate always brand; off plate follow tone (dark → onDark). */
-  const markTone = usePlate ? 'brand' : tone === 'dark' ? 'onDark' : 'brand'
-
-  const mark = (
-    <AirentoMark
-      size={markSize}
-      tone={markTone}
-      className={cn(
-        'transition-opacity duration-300',
-        scrolled ? 'opacity-95' : 'opacity-100',
-      )}
-    />
-  )
+  const markTone = tone === 'dark' ? 'onDark' : 'badge'
 
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      {usePlate ? (
-        <span className="al-logo-plate" data-testid="airento-logo-plate">
-          {mark}
-        </span>
-      ) : (
-        mark
-      )}
+      <AirentoMark
+        size={markSize}
+        tone={markTone}
+        className={cn(
+          'transition-opacity duration-300',
+          scrolled ? 'opacity-95' : 'opacity-100',
+        )}
+      />
       {showLabel ? (
         <div className={cn('flex flex-col', hideLabelOnMobile ? 'hidden sm:flex' : '')}>
           <span

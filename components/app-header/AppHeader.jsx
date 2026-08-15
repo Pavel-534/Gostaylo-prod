@@ -203,9 +203,9 @@ export function AppHeader({
               data-testid="app-header-logo"
               onClick={() => markPending('/')}
               className={cn(
-                'group flex-shrink-0 rounded-2xl px-2.5 py-1.5 transition-all',
-                isPublic && 'border border-white/70 bg-white/75 shadow-[0_10px_26px_rgba(0,102,102,0.1)] backdrop-blur-md hover:border-brand/35 hover:shadow-[0_14px_30px_rgba(0,102,102,0.16)]',
-                isWorkspace && 'hover:bg-slate-50',
+                /* No extra CSS plate/shadow — badge white lives inside airento-mark-badge.svg
+                   (avoids double “layers” + forced-dark inverting CSS bg while mark stays dark). */
+                'group flex-shrink-0 rounded-2xl px-1 py-1 transition-opacity hover:opacity-90',
               )}
             >
               <div className="flex items-center gap-3">

@@ -527,34 +527,8 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   scroll-padding-bottom: calc(5rem + 0.5rem + env(safe-area-inset-bottom, 0px));
 }
 /**
- * Header logo plate (Stage 201.41) — forced-dark proof "home" chip.
- * Brand mark always sits on white; do not rely on prefers-color-scheme alone
- * (Samsung/Chrome algorithmic dark darkens CSS but often leaves dark SVG).
- */
-.al-logo-plate {
-  color-scheme: light only;
-  forced-color-adjust: none;
-  -webkit-forced-color-adjust: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0.25rem;
-  border-radius: 1rem; /* rounded-2xl */
-  background-color: #ffffff;
-  box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.06),
-    0 1px 2px rgba(15, 23, 42, 0.06);
-}
-.al-logo-plate img {
-  forced-color-adjust: none;
-  -webkit-forced-color-adjust: none;
-}
-
-/**
- * AirentoMark tone="auto" (no plate) — swap under true dark signals.
- * Header chrome uses plate + brand instead (see AirentoLogo).
- * Wordmark next to the plate stays brand teal (heroes use tone="dark" → text-white).
+ * AirentoMark tone="auto" — swap under true dark signals.
+ * Header chrome uses tone="badge" (white chip baked into SVG) — see AirentoLogo / Stage 201.42.
  */
 .al-mark-light {
   display: none;

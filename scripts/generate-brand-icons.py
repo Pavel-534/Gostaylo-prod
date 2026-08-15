@@ -137,6 +137,10 @@ with open(os.path.join(PUB, "brand", "airento-mark-light.svg"), "w") as f:
     f.write(_light)
 print("wrote brand/airento-mark-light.svg (dark-bg variant)")
 
+# Header badge (white chip + mark in one SVG — forced-dark proof; Stage 201.42)
+import subprocess
+subprocess.check_call(["node", os.path.join(ROOT, "scripts", "build-airento-mark-badge.cjs")])
+
 # ---- Notification badge (72x72, monochrome via alpha; Android tints it) ----
 badge = render_mark(72)
 # flatten to solid dark silhouette on transparent (alpha preserved)
