@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useMemo, useRef } from 'react'
-import { Marker, Popup, useMap } from 'react-leaflet'
+import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { ListingPopupCard } from '@/components/listing/ListingPopupCard'
 import { ListingMapPopupLazy } from '@/components/listing/ListingMapPopupLazy'
@@ -42,7 +42,6 @@ export function CatalogMapSelectedPopup({
   onOpenDetails = null,
   onClose = null,
 }) {
-  const map = useMap()
   const markerRef = useRef(null)
   const listingId = String(pin?.id || listing?.id || '').trim()
   const position = useMemo(() => {
@@ -57,6 +56,7 @@ export function CatalogMapSelectedPopup({
   const useLazy = !hasFullListing && Boolean(listingId)
   const approximate = pin?.isApproximate === true
 
+  // Avoid pan loops on mobile: only open popup; MapSelectionSync owns pan policy.
   useEffect(() => {
     if (!open || !position) {
       markerRef.current?.closePopup?.()
@@ -64,19 +64,9 @@ export function CatalogMapSelectedPopup({
     }
     const t = window.setTimeout(() => {
       markerRef.current?.openPopup?.()
-      try {
-        const ll = L.latLng(position[0], position[1])
-        if (typeof map.panInside === 'function') {
-          map.panInside(ll, { padding: [72, 72] })
-        } else if (!map.getBounds()?.contains?.(ll)) {
-          map.panTo(ll, { animate: true })
-        }
-      } catch {
-        /* map not ready */
-      }
     }, 0)
     return () => window.clearTimeout(t)
-  }, [open, position, listingId, map])
+  }, [open, position, listingId])
 
   if (!open || !position || !listingId) return null
 

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.182 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.77** mobile map popup SSOT.
+> **Version**: 13.2.183 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.78** map mode `#map` (no search storm).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,17 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.78 — mobile map open without catalog remount
+
+- Map UI mode is URL **hash** `#map` (not `?map=1`). Query changes remount TanStack catalog search → hang / «Ошибка загрузки»; hash does not.
+- Soft-back still restores open map via `pathname+search+#map` in catalog-return href.
+- Price pills: inline base colors + brand selected styles (Samsung force-dark).
+
+### Catalog map data paths (scale SSOT)
+
+- **Map pins:** `GET /api/v2/search/map-pins` — **viewport bbox only**, cap **500**, clusters when denser (`MAP_CLUSTER_THRESHOLD` 200). Not a full-table dump.
+- **List / mobile rail today:** same catalog search page (`allListings`, page size ~100 / cursor) — filtered by search, **not** “every listing worldwide”, but also **not** strictly viewport-clipped. Next scale step: rail = intersection(search page ∩ viewport pin ids).
 
 ### Stage 201.77 — mobile map popup / pin / soft-back SSOT
 

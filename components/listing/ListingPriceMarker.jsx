@@ -47,6 +47,22 @@ export function ListingPriceMarker({
     const isHovered = Boolean(hovered) && !isSelected
     pill.classList.toggle('gostaylo-price-pill--selected', isSelected)
     pill.classList.toggle('gostaylo-price-pill--hovered', isHovered)
+    if (isSelected) {
+      pill.style.background = '#006666'
+      pill.style.color = '#ffffff'
+      pill.style.webkitTextFillColor = '#ffffff'
+      pill.style.borderColor = '#005757'
+    } else if (isHovered) {
+      pill.style.background = '#f1f5f9'
+      pill.style.color = '#0f172a'
+      pill.style.webkitTextFillColor = '#0f172a'
+      pill.style.borderColor = '#64748b'
+    } else {
+      pill.style.background = '#ffffff'
+      pill.style.color = '#0f172a'
+      pill.style.webkitTextFillColor = '#0f172a'
+      pill.style.borderColor = '#cbd5e1'
+    }
   }, [selected, hovered, priceLabel, icon])
 
   return (

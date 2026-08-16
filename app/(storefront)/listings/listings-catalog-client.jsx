@@ -38,6 +38,10 @@ import {
   parseCatalogSortFromParams,
   buildPublicSearchParams,
 } from '@/lib/search/listings-page-url'
+import {
+  readCatalogMobileMapOpenFromLocation,
+  writeCatalogMobileMapHash,
+} from '@/lib/navigation/catalog-mobile-map-hash'
 import { bboxCenter } from '@/lib/geo/catalog-sort-centers'
 import { useWhereGeoViewport } from '@/lib/hooks/use-where-geo-viewport'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
@@ -78,7 +82,7 @@ function ListingsContent() {
   const { prefetchListingDetail, cancelListingDetailPrefetch } = useListingDetailPrefetch()
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
-  const [showMap, setShowMap] = useState(() => searchParams.get('map') === '1')
+  const [showMap, setShowMap] = useState(false)
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
@@ -428,31 +432,43 @@ function ListingsContent() {
     if (!isMobile) return undefined
     return subscribeMobileSearchTabAction(() => {
       setShowMap(false)
+      writeCatalogMobileMapHash(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       setMobileSearchOpen(true)
     })
   }, [isMobile])
 
-  // Soft-back / share: `?map=1` restores the mobile map sheet (SSOT in URL).
+  // Hydrate map sheet from `#map` (soft-back / share). Never use `?map=` in steady state.
   useEffect(() => {
-    if (!isMobile) return
-    const open = searchParams.get('map') === '1'
-    setShowMap((prev) => (prev === open ? prev : open))
-  }, [isMobile, searchParamsKey, searchParams])
+    if (!isMobile) return undefined
+    const syncFromHash = () => {
+      const open = readCatalogMobileMapOpenFromLocation()
+      setShowMap((prev) => (prev === open ? prev : open))
+    }
+    syncFromHash()
+    window.addEventListener('hashchange', syncFromHash)
+    return () => window.removeEventListener('hashchange', syncFromHash)
+  }, [isMobile])
 
-  // Keep `map=1` in the catalog query so PDP soft-back returns to the open map, not the list.
+  // One-shot migration: legacy `?map=1` → `#map` (avoids catalog search remount storms).
   useEffect(() => {
-    if (!isMobile) return
-    const cur = searchParams.get('map') === '1'
-    if (cur === showMap) return
+    if (typeof window === 'undefined') return
+    if (searchParams.get('map') !== '1') return
     const sp = new URLSearchParams(searchParams.toString())
-    if (showMap) sp.set('map', '1')
-    else sp.delete('map')
+    sp.delete('map')
     const qs = sp.toString()
     lastPushedSearchRef.current = qs
     syncLastPushedQuery(qs)
-    router.replace(qs ? `/listings?${qs}` : '/listings', { scroll: false })
-  }, [showMap, isMobile, searchParams, searchParamsKey, syncLastPushedQuery, router])
+    writeCatalogMobileMapHash(true)
+    setShowMap(true)
+    router.replace(`${window.location.pathname}${qs ? `?${qs}` : ''}#map`, { scroll: false })
+  }, [searchParams, searchParamsKey, router, syncLastPushedQuery])
+
+  const setMobileMapOpen = useCallback((open) => {
+    const next = Boolean(open)
+    setShowMap(next)
+    writeCatalogMobileMapHash(next)
+  }, [])
 
   const clearDates = () => setDateRange({ from: null, to: null })
 
@@ -755,7 +771,7 @@ function ListingsContent() {
               onFavorite={handleFavorite}
               onLoadMore={loadMore}
               onRetry={retry}
-              onToggleMap={() => setShowMap(!showMap)}
+              onToggleMap={() => setMobileMapOpen(!showMap)}
               meta={meta}
               loadMoreRef={loadMoreRef}
               allListings={allListings}
@@ -805,7 +821,7 @@ function ListingsContent() {
 
       <CatalogMobileMapSheet
         open={isMobile && showMap}
-        onClose={() => setShowMap(false)}
+        onClose={() => setMobileMapOpen(false)}
         language={language}
         mapPanelProps={catalogMapPanelProps}
         railProps={{
