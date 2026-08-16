@@ -73,7 +73,12 @@ export function ListingPriceMarker({
         popupclose: () => setPopupOpen(false),
       }}
     >
-      <Popup autoPan={false} className="map-listing-popup">
+      <Popup
+        autoPan
+        autoPanPadding={[48, 48]}
+        keepInView
+        className="map-listing-popup"
+      >
         {useLazyPopup ? (
           <ListingMapPopupLazy
             listingId={listingId}

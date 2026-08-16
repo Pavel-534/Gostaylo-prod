@@ -2,12 +2,12 @@
 
 /**
  * Маркетинговое превью в Popup Leaflet (каталог / карта).
- * Stage 87.1 + 88.0 — доверие у заголовка; CTA **`emerald-600`** для контраста.
+ * Stage 201.73 — компактная карточка + autoPan keep-in-view у маркера.
  */
 
 import { Star } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
-import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
@@ -32,12 +32,16 @@ export function ListingPopupCard({
   )
   const categorySlug =
     listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
+  const href = `/listings/${listing.id}`
 
   return (
-    <div className="w-64">
-      <img src={image} alt={listing.title} className="h-32 w-full rounded-t-lg object-cover" />
-      <div className="rounded-b-lg bg-white p-3">
-        <div className="mb-1 flex items-start justify-between gap-2">
+    <div className="w-[220px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80">
+      <div className="relative h-28 w-full overflow-hidden bg-slate-100">
+        {/* eslint-disable-next-line @next/next/no-img-element -- Leaflet popup: avoid next/image layout in map pane */}
+        <img src={image} alt={listing.title} className="h-full w-full object-cover" />
+      </div>
+      <div className="space-y-2 p-2.5">
+        <div className="flex items-start justify-between gap-1.5">
           <h3 className="min-w-0 flex-1 truncate text-sm font-semibold leading-snug text-slate-900">
             {listing.title}
           </h3>
@@ -45,25 +49,24 @@ export function ListingPopupCard({
             <ListingTrustVerifiedMiniBadge listing={listing} language={language} compact />
           </div>
         </div>
-        <div className="mb-2 flex flex-wrap items-center gap-1">
+
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-snug text-slate-500">
           {rating > 0 ? (
-            <>
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" aria-hidden />
-              <span className="text-xs font-medium text-slate-700">{rating.toFixed(1)}</span>
-              {reviewsCt > 0 && <span className="text-xs text-slate-500">({reviewsCt})</span>}
-            </>
+            <span className="inline-flex items-center gap-0.5 font-medium text-slate-700">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden />
+              {rating.toFixed(1)}
+              {reviewsCt > 0 ? (
+                <span className="font-normal text-slate-500">({reviewsCt})</span>
+              ) : null}
+            </span>
           ) : (
-            <span className="text-xs text-slate-400">{getUIText('newListing', language)}</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              {getUIText('newListing', language)}
+            </span>
           )}
+          <span className="truncate">{locHint}</span>
         </div>
-        <p className="mb-2 text-[11px] leading-snug text-slate-500">{locHint}</p>
-        <ListingCardSpecsRow
-          listing={listing}
-          language={language}
-          compact
-          className="mb-2"
-          suppressTrustVerifiedMiniBadge
-        />
+
         <div className="flex items-baseline justify-between gap-1 border-t border-slate-100 pt-2">
           <CardPriceDisplay
             listing={listing}
@@ -75,13 +78,17 @@ export function ListingPopupCard({
             categorySlug={categorySlug}
           />
         </div>
-        <a
-          href={`/listings/${listing.id}`}
-          onClick={() => dispatchOptimisticNavPending(`/listings/${listing.id}`)}
-          className="mt-2 block w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-center text-xs font-semibold text-white antialiased shadow-none transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
+
+        <Button
+          asChild
+          variant="brand"
+          size="sm"
+          className="h-9 w-full min-h-[36px] rounded-xl text-xs font-semibold"
         >
-          {getUIText('viewDetails', language)}
-        </a>
+          <a href={href} onClick={() => dispatchOptimisticNavPending(href)}>
+            {getUIText('viewDetails', language)}
+          </a>
+        </Button>
       </div>
     </div>
   )

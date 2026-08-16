@@ -291,7 +291,11 @@ export function ListingCard({
           </div>
 
           <div className={LISTING_CARD_SPEC_ROW_MIN_H}>
-            <ListingCardSpecsRow listing={listing} language={language} />
+            <ListingCardSpecsRow
+              listing={listing}
+              language={language}
+              suppressTrustVerifiedMiniBadge={ownerVerified}
+            />
           </div>
 
           {/* Price — grid: pin to card bottom; solo: natural gap under specs */}

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.177 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.71** STALE_CRON + map UX.
+> **Version**: 13.2.178 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.73** NEW badge + map popup.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.73 — NEW trust badge + compact map popup
+
+- Partner tier `NEW` (no completed stays / cancel / decline / penalty signal) → soft pill «Новый» / «New» + tooltip; no second Verified companion on cards.
+- Catalog map popup: slimmer card (no specs row), brand CTA; `ListingPriceMarker` Popup `autoPan` + `keepInView` so the card is not clipped at the map edge.
 
 ### Stage 201.71 — STALE_CRON root cause + catalog map UX
 

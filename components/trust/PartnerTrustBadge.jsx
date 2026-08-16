@@ -65,11 +65,23 @@ export function PartnerTrustBadge({
   const { tier, reliabilityPercent, topPartner } = trust
   const isNew = tier === 'NEW' && (reliabilityPercent == null || Number.isNaN(reliabilityPercent))
   const isStrong = tier === 'STRONG'
+  // Card already shows «Подтверждённый партнёр» — don't stack a second Verified next to NEW.
+  const showCompanion = showVerifiedCompanion && !isNew
 
   const innerNew = (
     <div className={cn('flex flex-wrap items-center gap-1.5', compact ? 'mt-0.5' : 'mt-1')}>
-      <span className="text-xs text-slate-500">{getUIText('partnerTrust_newPartner', language)}</span>
-      {showVerifiedCompanion ? (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50',
+          'px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600',
+          'sm:text-[11px]',
+        )}
+        data-testid="partner-trust-new-host"
+      >
+        <Sparkles className="h-3 w-3 shrink-0 text-brand" aria-hidden />
+        {getUIText('partnerTrust_newPartner', language)}
+      </span>
+      {showCompanion ? (
         <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-brand-hover bg-brand/10 border border-brand/25 rounded px-1.5 py-0 font-medium">
           <ShieldCheck className="h-3 w-3" />
           {getUIText('partnerTrust_verified', language)}
@@ -100,10 +112,13 @@ export function PartnerTrustBadge({
       ) : null}
       {reliabilityPercent != null && Number.isFinite(reliabilityPercent) ? (
         <span className="text-xs font-medium text-slate-700 tabular-nums">
-          {getUIText('partnerTrust_percentReliability', language).replace(/\{\{percent\}\}/g, String(reliabilityPercent))}
+          {getUIText('partnerTrust_percentReliability', language).replace(
+            /\{\{percent\}\}/g,
+            String(reliabilityPercent),
+          )}
         </span>
       ) : null}
-      {showVerifiedCompanion ? (
+      {showCompanion ? (
         <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-brand-hover bg-brand/10 border border-brand/25 rounded px-1.5 py-0 font-medium">
           <ShieldCheck className="h-3 w-3" />
           {getUIText('partnerTrust_verified', language)}
@@ -116,6 +131,10 @@ export function PartnerTrustBadge({
     return isNew ? innerNew : innerMain
   }
 
+  const tipBody = isNew
+    ? getUIText('partnerTrust_newPartnerHint', language)
+    : buildTooltipDescription(trust, language)
+
   const wrap = (node) => (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -123,7 +142,9 @@ export function PartnerTrustBadge({
           <div
             role="button"
             tabIndex={0}
-            className={cn('inline-flex max-w-full cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand')}
+            className={cn(
+              'inline-flex max-w-full cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand',
+            )}
           >
             {node}
           </div>
@@ -132,7 +153,7 @@ export function PartnerTrustBadge({
           side="top"
           className="max-w-[300px] bg-slate-900 text-slate-50 border border-slate-700 px-3 py-2 text-left"
         >
-          <p className="text-xs leading-relaxed whitespace-pre-line">{buildTooltipDescription(trust, language)}</p>
+          <p className="text-xs leading-relaxed whitespace-pre-line">{tipBody}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
