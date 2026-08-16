@@ -1,16 +1,15 @@
 import { getPublicBrandDisplayName } from '@/lib/site-url'
 
 /**
- * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31 / 201.59).
+ * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31 / 201.60).
  * Splash / home-screen / share title: brand only (`Airento`) — no long tagline.
  *
- * Android Chrome splash = background_color + purpose:"any" icon + name.
- * Do NOT put lockup (logo+text) in icons — Chrome adds the name again → tiny letters
- * in a plate (Stage 201.55 regression).
+ * Android splash constraint (honest): OS builds splash from background_color +
+ * purpose:"any" icon + name — not a full iOS apple-splash frame.
  *
- * - purpose "any" → icon-dark-* (large mark on navy, matches background_color)
- * - purpose "maskable" → light mark (home-screen adaptive icon, like iOS)
- * Light favicons / apple-touch stay in app/layout.js — not used as Android splash icons.
+ * - purpose "any" → icon-splash-* (large mark on white plate; intentional when OS
+ *   centers a square on navy background_color)
+ * - purpose "maskable" → light icon-maskable-512 (home adaptive, like iOS mark)
  */
 export default function manifest() {
   const brand = getPublicBrandDisplayName()
@@ -29,19 +28,19 @@ export default function manifest() {
     scope: '/',
     icons: [
       {
-        src: '/icons/icon-dark-192x192.png',
+        src: '/icons/icon-splash-192x192.png',
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-dark-512x512.png',
+        src: '/icons/icon-splash-512x512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-dark-1024x1024.png',
+        src: '/icons/icon-splash-1024x1024.png',
         sizes: '1024x1024',
         type: 'image/png',
         purpose: 'any',

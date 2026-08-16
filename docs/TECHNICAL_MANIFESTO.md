@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.165 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.59** Android PWA splash icons.
+> **Version**: 13.2.166 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.60** splash plate + partner FAB.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.60 — Android splash plate + partner mobile chrome cleanup
+
+- Splash (honest): Android cannot use iOS `apple-touch-startup-image`. Manifest `any` icons → `icon-splash-*` (large mark ~82% on white plate) + navy `background_color`; home stays `icon-maskable-512`.
+- Partner mobile: drop `WORKSPACE_MOBILE_TOOLBAR` breadcrumbs/bell strip; bell → `PartnerCabinetMobileActionsFab` (shared `lib/layout/mobile-action-fab.js` with PDP/wizard FABs). Wizard keeps its own FAB stack (no double bell).
 
 ### Stage 201.59 — Android PWA: restore mark icon; splash without lockup plate
 

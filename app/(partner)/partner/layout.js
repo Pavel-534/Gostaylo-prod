@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { PartnerNotificationProvider } from '@/contexts/partner-notification-context'
 import { PartnerNotificationFeed } from '@/components/partner/PartnerNotificationFeed'
+import { PartnerCabinetMobileActionsFab } from '@/components/partner/PartnerCabinetMobileActionsFab'
 import { PartnerMobileBottomNav } from '@/components/partner/PartnerMobileBottomNav'
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
@@ -65,7 +66,6 @@ import {
 import {
   WORKSPACE_FRAME_CLASS,
   WORKSPACE_MAIN_CLASS,
-  WORKSPACE_MOBILE_TOOLBAR_CLASS,
   WORKSPACE_SCROLL_CLASS,
   WORKSPACE_SCROLL_ATTR,
   WORKSPACE_SIDEBAR_CLASS,
@@ -506,25 +506,7 @@ export default function PartnerLayout({ children }) {
             </div>
           ) : null}
           
-          {!isListingWizardRoute ? (
-            <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>
-              <nav className="flex items-center text-xs overflow-x-auto min-w-0 flex-1" aria-label={getUIText('partnerLayout_breadcrumbAria', language)}>
-                {breadcrumbs.slice(-2).map((crumb, index) => (
-                  <div key={crumb.href} className="flex items-center whitespace-nowrap">
-                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
-                    {crumb.isLast ? (
-                      <span className="font-medium text-slate-900">{crumb.name}</span>
-                    ) : (
-                      <Link href={crumb.href} className="text-slate-500">
-                        {crumb.name}
-                      </Link>
-                    )}
-                  </div>
-                ))}
-              </nav>
-              <PartnerNotificationFeed language={language} className="shrink-0" />
-            </div>
-          ) : null}
+          {/* Stage 201.60: no mobile breadcrumb/bell strip — bell → PartnerCabinetMobileActionsFab. */}
 
           {/* Page Content — Stage 200.95: wizard scroll-padding for fixed chrome/CTA */}
           <div
@@ -541,6 +523,10 @@ export default function PartnerLayout({ children }) {
           </div>
         </main>
       </div>
+
+      {!isListingWizardRoute ? (
+        <PartnerCabinetMobileActionsFab language={language} />
+      ) : null}
 
       {!isListingWizardRoute ? (
         <PartnerMobileBottomNav

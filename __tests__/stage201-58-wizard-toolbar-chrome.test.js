@@ -19,7 +19,7 @@ describe('Stage 201.58 — wizard desktop chrome (no breadcrumb toolbar)', () =>
     const layout = read('app/(partner)/partner/layout.js')
     assert.match(layout, /isImpersonating \|\| !isListingWizardRoute/)
     assert.match(layout, /!isListingWizardRoute \? \(\s*<div className=\{WORKSPACE_TOOLBAR_ROW_CLASS\}/)
-    assert.match(layout, /!isListingWizardRoute \? \(\s*<div className=\{WORKSPACE_MOBILE_TOOLBAR_CLASS\}/)
+    assert.doesNotMatch(layout, /WORKSPACE_MOBILE_TOOLBAR_CLASS/)
   })
 
   it('compact step bar pins under AppHeader only (no toolbar offset)', () => {

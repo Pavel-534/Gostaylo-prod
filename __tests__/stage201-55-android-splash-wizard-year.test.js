@@ -19,13 +19,13 @@ function exists(rel) {
 }
 
 describe('Stage 201.55 — android splash / wizard FAB / vehicle year', () => {
-  it('manifest uses dark mark icons for Android splash (not lockup-as-icon)', () => {
+  it('manifest uses splash plate icons for Android splash (not lockup-as-icon)', () => {
     const man = read('app/manifest.js')
-    assert.match(man, /icon-dark-512x512\.png/)
+    assert.match(man, /icon-splash-512x512\.png/)
     assert.match(man, /icon-maskable-512x512\.png/)
     assert.match(man, /background_color:\s*['\"]#0c1623['\"]/)
     assert.doesNotMatch(man, /icon-android-splash/)
-    assert.ok(exists('public/icons/icon-dark-512x512.png'))
+    assert.ok(exists('public/icons/icon-splash-512x512.png'))
     assert.ok(exists('public/icons/icon-maskable-512x512.png'))
     assert.ok(exists('public/splash/android-splash-1080-1920.png'))
     assert.ok(exists('scripts/build-android-splash-icons.mjs'))
@@ -61,7 +61,9 @@ describe('Stage 201.55 — android splash / wizard FAB / vehicle year', () => {
     assert.match(fab, /listing-wizard-actions-fab/)
     assert.match(fab, /listing-wizard-save/)
     assert.match(fab, /PartnerNotificationFeed/)
-    assert.match(fab, /2\.75rem/)
+    assert.match(fab, /MOBILE_ACTION_FAB_TOP_UNDER_WIZARD_CHROME/)
+    const fabLayout = read('lib/layout/mobile-action-fab.js')
+    assert.match(fabLayout, /2\.75rem/)
   })
 
   it('vehicle_year keeps raw digits while typing; clamps only on blur', () => {

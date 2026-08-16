@@ -1,13 +1,14 @@
 /**
- * Android PWA splash helpers (Stage 201.59).
+ * Android PWA splash helpers (Stage 201.60).
  *
- * Chrome/Samsung do NOT use apple-touch-startup-image. Splash = background_color +
- * manifest icon (purpose "any") + app name. Putting a lockup (logo+text) into the
- * icon makes tiny letters + Chrome’s own “Airento” label (the 201.55 regression).
+ * Honest constraint: Chrome/Samsung splash = background_color + purpose:"any" icon + name.
+ * No full-screen apple-touch-startup-image. Lockup-in-icon → tiny letters (201.55).
  *
- * This script builds:
- * 1) icon-dark-* — large mark only on iOS-parity navy (#0c1623) → purpose "any" splash
- * 2) android-splash-* portraits — full lockup screens for TWA/Capacitor (not webmanifest icons)
+ * Recipe that reads well when the OS draws a plate:
+ * - purpose "any" → large mark on intentional light plate (fills canvas; mark ~80%)
+ * - purpose "maskable" → light home icon (unchanged; generated elsewhere)
+ * - background_color navy → rest of splash + white “Airento” label
+ * - android-splash-* portraits → TWA/Capacitor only (full lockup like iOS)
  *
  * Run: node scripts/build-android-splash-icons.mjs
  */
@@ -23,16 +24,21 @@ const splashDir = path.join(root, 'public', 'splash')
 const markPath = path.join(root, 'public', 'brand', 'airento-mark.svg')
 const lockupPath = path.join(root, 'public', 'brand', 'airento-lockup-onbg.png')
 
-const BG_TOP = '#0c1623'
-const BG_BOT = '#0a2125'
+const SPLASH_BG_TOP = '#0c1623'
+const SPLASH_BG_BOT = '#0a2125'
+/** Light plate — intentional card when OS centers the icon on dark splash. */
+const PLATE = '#ffffff'
+const PLATE_RADIUS_FRAC = 0.18
+/** Mark fills most of the plate so it doesn’t look “tiny letters in a box”. */
+const MARK_FRAC = 0.82
 
 /** @param {number} w @param {number} h */
-function bgSvg(w, h) {
+function navyBgSvg(w, h) {
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${BG_TOP}"/>
-      <stop offset="100%" stop-color="${BG_BOT}"/>
+      <stop offset="0%" stop-color="${SPLASH_BG_TOP}"/>
+      <stop offset="100%" stop-color="${SPLASH_BG_BOT}"/>
     </linearGradient>
     <radialGradient id="r" cx="50%" cy="42%" r="55%">
       <stop offset="0%" stop-color="#0d9488" stop-opacity="0.35"/>
@@ -46,12 +52,16 @@ function bgSvg(w, h) {
 }
 
 /**
- * Square dark mark icon — no wordmark (safe for Chrome splash + home fallback).
+ * Full-bleed light plate + large transparent SVG mark (good on light; intentional on dark splash).
  * @param {number} size
- * @param {number} markFrac fraction of canvas width for the mark
  */
-async function buildDarkMarkIcon(size, markFrac) {
-  const markMax = Math.round(size * markFrac)
+async function buildSplashPlateIcon(size) {
+  const radius = Math.round(size * PLATE_RADIUS_FRAC)
+  const plateSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+  <rect width="100%" height="100%" rx="${radius}" fill="${PLATE}"/>
+</svg>`)
+
+  const markMax = Math.round(size * MARK_FRAC)
   const mark = await sharp(markPath)
     .resize({ width: markMax, height: markMax, fit: 'inside', withoutEnlargement: false })
     .ensureAlpha()
@@ -61,7 +71,7 @@ async function buildDarkMarkIcon(size, markFrac) {
   const left = Math.round((size - mark.info.width) / 2)
   const top = Math.round((size - mark.info.height) / 2)
 
-  return sharp(bgSvg(size, size))
+  return sharp(plateSvg)
     .composite([{ input: mark.data, left, top }])
     .png()
     .toBuffer()
@@ -78,7 +88,7 @@ async function buildPortraitSplash(w, h) {
   const left = Math.round((w - lockup.info.width) / 2)
   const top = Math.round(h * 0.42 - lockup.info.height / 2)
 
-  return sharp(bgSvg(w, h))
+  return sharp(navyBgSvg(w, h))
     .composite([{ input: lockup.data, left, top }])
     .png()
     .toBuffer()
@@ -91,27 +101,52 @@ async function main() {
   fs.mkdirSync(splashDir, { recursive: true })
 
   for (const size of [192, 512, 1024]) {
-    const out = path.join(iconsDir, `icon-dark-${size}x${size}.png`)
-    fs.writeFileSync(out, await buildDarkMarkIcon(size, 0.7))
-    console.log('wrote', path.relative(root, out))
+    const buf = await buildSplashPlateIcon(size)
+    const splashOut = path.join(iconsDir, `icon-splash-${size}x${size}.png`)
+    fs.writeFileSync(splashOut, buf)
+    console.log('wrote', path.relative(root, splashOut))
   }
 
-  const maskOut = path.join(iconsDir, 'icon-dark-maskable-512x512.png')
-  fs.writeFileSync(maskOut, await buildDarkMarkIcon(512, 0.56))
-  console.log('wrote', path.relative(root, maskOut))
+  // Keep true dark mark icons for surfaces that need navy (not splash plate aliases).
+  for (const size of [192, 512, 1024]) {
+    const markMax = Math.round(size * 0.7)
+    const mark = await sharp(markPath)
+      .resize({ width: markMax, height: markMax, fit: 'inside', withoutEnlargement: false })
+      .ensureAlpha()
+      .png()
+      .toBuffer({ resolveWithObject: true })
+    const left = Math.round((size - mark.info.width) / 2)
+    const top = Math.round((size - mark.info.height) / 2)
+    const darkOut = path.join(iconsDir, `icon-dark-${size}x${size}.png`)
+    fs.writeFileSync(
+      darkOut,
+      await sharp(navyBgSvg(size, size))
+        .composite([{ input: mark.data, left, top }])
+        .png()
+        .toBuffer(),
+    )
+    console.log('wrote', path.relative(root, darkOut))
+  }
 
-  // Remove mistaken 201.55 lockup-as-launcher assets if present
-  for (const name of [
-    'icon-android-splash-192x192.png',
-    'icon-android-splash-512x512.png',
-    'icon-android-splash-1024x1024.png',
-    'icon-android-splash-maskable-512x512.png',
-  ]) {
-    const p = path.join(iconsDir, name)
-    if (fs.existsSync(p)) {
-      fs.unlinkSync(p)
-      console.log('removed', path.relative(root, p))
-    }
+  const maskDark = path.join(iconsDir, 'icon-dark-maskable-512x512.png')
+  {
+    const size = 512
+    const markMax = Math.round(size * 0.56)
+    const mark = await sharp(markPath)
+      .resize({ width: markMax, height: markMax, fit: 'inside', withoutEnlargement: false })
+      .ensureAlpha()
+      .png()
+      .toBuffer({ resolveWithObject: true })
+    const left = Math.round((size - mark.info.width) / 2)
+    const top = Math.round((size - mark.info.height) / 2)
+    fs.writeFileSync(
+      maskDark,
+      await sharp(navyBgSvg(size, size))
+        .composite([{ input: mark.data, left, top }])
+        .png()
+        .toBuffer(),
+    )
+    console.log('wrote', path.relative(root, maskDark))
   }
 
   for (const [w, h] of [
