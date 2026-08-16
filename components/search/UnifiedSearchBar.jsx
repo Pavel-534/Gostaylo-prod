@@ -5,7 +5,7 @@
  *
  * variant:
  * - hero: premium 60px row (HomeHeroLuxe capsule — no outer shell)
- * - filter: catalog expanded grid + text search row
+ * - filter: catalog expanded grid; keyword row when `isCatalogKeywordSearchUiEnabled()`
  * - compact: fixed chrome single row + summary chips (home + catalog scroll)
  */
 
@@ -38,6 +38,7 @@ import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-p
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
+import { isCatalogKeywordSearchUiEnabled } from '@/lib/search/catalog-keyword-search-ui'
 
 /** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
 export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
@@ -178,7 +179,9 @@ export function UnifiedSearchBar({
     onSearch?.()
   }
 
-  const showTextSearch = typeof setTextQuery === 'function'
+  // Stage 201.80 — keyword + ИИ row gated; see lib/search/catalog-keyword-search-ui.js
+  const showTextSearch =
+    isCatalogKeywordSearchUiEnabled() && typeof setTextQuery === 'function'
 
   const transportIntervalMode = useMemo(() => {
     const eff =

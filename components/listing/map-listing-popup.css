@@ -39,8 +39,8 @@
 
 /* While a pin is selected, ignore CSS :hover flash on other pills under/near the popup */
 .catalog-map-leaflet--pin-selected .gostaylo-price-pill:hover:not(.gostaylo-price-pill--selected) {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  -webkit-text-fill-color: #0f172a;
-  border-color: #cbd5e1 !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  border-color: #1e293b !important;
 }

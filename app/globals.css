@@ -402,14 +402,14 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
-  /* Resist Android/Samsung force-dark turning every pill black */
-  color-scheme: only light;
+  /* Stage 201.79 — dark-by-design (Android force-dark already inverts white→black) */
+  color-scheme: dark;
   forced-color-adjust: none;
-  -webkit-text-fill-color: #0f172a;
-  color: #0f172a !important;
-  background: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+  -webkit-text-fill-color: #ffffff;
+  color: #ffffff !important;
+  background: #0f172a !important;
+  border: 1px solid #1e293b !important;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.2);
   cursor: pointer;
   white-space: nowrap;
   font-family: system-ui, -apple-system, sans-serif;
@@ -426,35 +426,35 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
 
 @media (hover: hover) {
   .gostaylo-price-pill:hover {
-    background: #f8fafc !important;
-    color: #0f172a !important;
-    -webkit-text-fill-color: #0f172a;
-    border-color: #94a3b8 !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff;
+    border-color: #64748b !important;
   }
 }
 
 .gostaylo-price-pill--hovered {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
-  -webkit-text-fill-color: #0f172a;
-  border-color: #64748b !important;
-  box-shadow: 0 2px 6px rgb(15 23 42 / 0.12);
-}
-
-/* Selected = brand (not inverted black) so it stays readable vs default white pills */
-.gostaylo-price-pill--selected {
-  background: #006666 !important;
+  background: #1e293b !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff;
-  border-color: #005757 !important;
-  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.95), 0 4px 12px rgb(0 102 102 / 0.35);
-  transform: scale(1.06);
+  border-color: #64748b !important;
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.25);
+}
+
+/* Selected = mint + amber ring (distinct even when OS force-dark flattens grays) */
+.gostaylo-price-pill--selected {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 3px #fbbf24, 0 4px 12px rgb(13 148 136 / 0.45);
+  transform: scale(1.08);
 }
 
 @media (hover: hover) {
   .gostaylo-price-pill--selected:hover {
-    background: #005757 !important;
-    border-color: #004f4f !important;
+    background: #0f766e !important;
+    border-color: #f59e0b !important;
   }
 }
 

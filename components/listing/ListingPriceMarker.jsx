@@ -48,20 +48,27 @@ export function ListingPriceMarker({
     pill.classList.toggle('gostaylo-price-pill--selected', isSelected)
     pill.classList.toggle('gostaylo-price-pill--hovered', isHovered)
     if (isSelected) {
-      pill.style.background = '#006666'
+      // Mint + amber ring survives force-dark better than white→black inversion.
+      pill.style.background = '#0D9488'
       pill.style.color = '#ffffff'
       pill.style.webkitTextFillColor = '#ffffff'
-      pill.style.borderColor = '#005757'
+      pill.style.borderColor = '#FBBF24'
+      pill.style.boxShadow = '0 0 0 3px #FBBF24, 0 4px 12px rgb(13 148 136 / 0.45)'
+      pill.style.transform = 'scale(1.08)'
     } else if (isHovered) {
-      pill.style.background = '#f1f5f9'
-      pill.style.color = '#0f172a'
-      pill.style.webkitTextFillColor = '#0f172a'
+      pill.style.background = '#1e293b'
+      pill.style.color = '#ffffff'
+      pill.style.webkitTextFillColor = '#ffffff'
       pill.style.borderColor = '#64748b'
+      pill.style.boxShadow = '0 2px 6px rgb(15 23 42 / 0.25)'
+      pill.style.transform = ''
     } else {
-      pill.style.background = '#ffffff'
-      pill.style.color = '#0f172a'
-      pill.style.webkitTextFillColor = '#0f172a'
-      pill.style.borderColor = '#cbd5e1'
+      pill.style.background = '#0f172a'
+      pill.style.color = '#ffffff'
+      pill.style.webkitTextFillColor = '#ffffff'
+      pill.style.borderColor = '#1e293b'
+      pill.style.boxShadow = '0 1px 2px rgb(15 23 42 / 0.2)'
+      pill.style.transform = ''
     }
   }, [selected, hovered, priceLabel, icon])
 

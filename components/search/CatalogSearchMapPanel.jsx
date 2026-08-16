@@ -5,7 +5,7 @@
  * Stage 169.3 — SSOT map instance props (pins, bbox, clusters).
  */
 
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { boundsParamsReady } from '@/lib/catalog/build-catalog-search-params'
@@ -55,6 +55,11 @@ function CatalogSearchMapPanelComponent({
   /** Stage 200.37 — from geo_locations centroid (default SEA). */
   mapCenter = [20, 100],
   mapZoom = 6,
+  /** Stage 201.79 — notify parent of viewport pins (mobile rail filter). */
+  onViewportMapData = null,
+  /** Stage 201.81 — soft-back map camera. */
+  cameraRestoreBbox = null,
+  onCameraRestoreDone = null,
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
 
@@ -77,6 +82,17 @@ function CatalogSearchMapPanelComponent({
 
   /** Bbox ready → merge API pins with catalog listings (sidebar SSOT); no flip on isLoading. */
   const mapPinsUseApi = boundsReady
+
+  useEffect(() => {
+    if (typeof onViewportMapData !== 'function') return
+    onViewportMapData({
+      mode,
+      pins: pins || [],
+      clusters: clusters || [],
+      viewportBbox: mapQueryBounds,
+      boundsReady,
+    })
+  }, [onViewportMapData, mode, pins, clusters, mapQueryBounds, boundsReady])
 
   const handleViewportBbox = useCallback(
     (bbox) => {
@@ -136,6 +152,8 @@ function CatalogSearchMapPanelComponent({
           mapFitResetKey={mapFitResetKey}
           layoutResetKey={layoutResetKey}
           selectionPanMode={selectionPanMode}
+          cameraRestoreBbox={cameraRestoreBbox}
+          onCameraRestoreDone={onCameraRestoreDone}
         />
       </div>
     </div>

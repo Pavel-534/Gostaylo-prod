@@ -1,12 +1,11 @@
 'use client'
 
 /**
- * CatalogMobileMapSheet — full-height map on mobile catalog (Stage 169.3 / 201.49).
- * Owns the bottom edge while open (ADR-201 dock lock) so the map fills header→screen
- * bottom; no dead floor above the tab bar.
+ * CatalogMobileMapSheet — full-height map on mobile catalog (Stage 169.3 / 201.49 / 201.79).
+ * Rail listings follow map viewport pins (Airbnb-style), not the full search page.
  */
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ListIcon, MapIcon, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -15,6 +14,10 @@ import { CatalogSearchMapPanel } from '@/components/search/CatalogSearchMapPanel
 import { CatalogMapCardRail } from '@/components/search/CatalogMapCardRail'
 import { useMobileDockLock } from '@/hooks/use-mobile-dock-lock'
 import { MOBILE_CHROME_SAFE_PAD_BOTTOM } from '@/hooks/use-visual-viewport-frame'
+import { filterCatalogRailListingsForMapViewport } from '@/lib/maps/catalog-map-rail-filter'
+import {
+  rememberCatalogMapViewport,
+} from '@/lib/navigation/catalog-map-viewport-memory'
 
 const SWIPE_CLOSE_THRESHOLD_PX = 72
 
@@ -27,6 +30,13 @@ export function CatalogMobileMapSheet({
 }) {
   const sheetRef = useRef(null)
   const touchStartYRef = useRef(null)
+  const [viewportMapData, setViewportMapData] = useState({
+    pins: [],
+    clusters: [],
+    viewportBbox: null,
+    boundsReady: false,
+    mode: 'pins',
+  })
   useMobileDockLock(open)
 
   useEffect(() => {
@@ -57,7 +67,48 @@ export function CatalogMobileMapSheet({
     },
     [onClose],
   )
-  const railListings = railProps.listings || mapPanelProps.listings || []
+
+  const handleViewportMapData = useCallback(
+    (next) => {
+      setViewportMapData({
+        pins: next?.pins || [],
+        clusters: next?.clusters || [],
+        viewportBbox: next?.viewportBbox || null,
+        boundsReady: Boolean(next?.boundsReady),
+        mode: next?.mode || 'pins',
+      })
+      const bbox = next?.viewportBbox
+      if (open && bbox) {
+        rememberCatalogMapViewport({
+          ...bbox,
+          selectedListingId:
+            railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null,
+        })
+      }
+    },
+    [open, railProps.activeListingId, mapPanelProps.selectedListingId],
+  )
+
+  const sourceListings = railProps.listings || mapPanelProps.listings || []
+  const activeListingId = railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null
+
+  useEffect(() => {
+    if (!open || !viewportMapData.viewportBbox) return
+    rememberCatalogMapViewport({
+      ...viewportMapData.viewportBbox,
+      selectedListingId: activeListingId,
+    })
+  }, [open, activeListingId, viewportMapData.viewportBbox])
+
+  const railListings = useMemo(
+    () =>
+      filterCatalogRailListingsForMapViewport(sourceListings, {
+        pins: viewportMapData.pins,
+        viewportBbox: viewportMapData.viewportBbox,
+        selectedListingId: activeListingId,
+      }),
+    [sourceListings, viewportMapData.pins, viewportMapData.viewportBbox, activeListingId],
+  )
 
   if (!open) return null
 
@@ -78,7 +129,6 @@ export function CatalogMobileMapSheet({
         data-testid="catalog-mobile-map-sheet"
         data-mobile-chrome="form"
         className={cn(
-          // Full height under header → screen bottom (dock locked while open).
           'fixed inset-x-0 bottom-0 z-[90] flex flex-col bg-white md:hidden',
           'top-[var(--app-header-height,64px)]',
           'animate-in slide-in-from-bottom duration-300',
@@ -128,6 +178,7 @@ export function CatalogMobileMapSheet({
             mapActive={open}
             layoutResetKey={open ? 1 : 0}
             mapShellClassName="h-full rounded-none border-0 shadow-none"
+            onViewportMapData={handleViewportMapData}
           />
           {railListings.length === 0 ? (
             <Button
@@ -150,7 +201,7 @@ export function CatalogMobileMapSheet({
           >
             <CatalogMapCardRail
               listings={railListings}
-              activeListingId={railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null}
+              activeListingId={activeListingId}
               onActiveListingChange={
                 railProps.onActiveListingChange ?? mapPanelProps.onListingMarkerClick
               }

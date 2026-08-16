@@ -145,6 +145,8 @@ function InitialListingBoundsFit({
   mapFitResetKey,
   fallbackCenter,
   fallbackZoom,
+  /** Stage 201.81 — soft-back camera restore wins over world fit. */
+  skipListingFit = false,
 }) {
   const map = useMap()
   const didFitListingsRef = useRef(false)
@@ -152,6 +154,7 @@ function InitialListingBoundsFit({
   const lastListingsSigRef = useRef('')
 
   const applyFallbackCenter = useCallback(() => {
+    if (skipListingFit) return false
     if (
       !Array.isArray(fallbackCenter) ||
       fallbackCenter.length < 2 ||
@@ -163,26 +166,32 @@ function InitialListingBoundsFit({
     suppressBoundsUntilRef.current = Date.now() + 800
     map.setView(fallbackCenter, Number(fallbackZoom) || 6)
     return true
-  }, [fallbackCenter, fallbackZoom, map, suppressBoundsUntilRef])
+  }, [fallbackCenter, fallbackZoom, map, suppressBoundsUntilRef, skipListingFit])
 
   // Stage 200.39 — on where/filter change: pan to geo target first (ignore stale pins).
   useEffect(() => {
+    if (skipListingFit) return
     if (lastResetKeyRef.current === mapFitResetKey) return
     lastResetKeyRef.current = mapFitResetKey
     didFitListingsRef.current = false
     lastListingsSigRef.current = ''
     applyFallbackCenter()
-  }, [mapFitResetKey, applyFallbackCenter])
+  }, [mapFitResetKey, applyFallbackCenter, skipListingFit])
 
   // When resolve-where centroid arrives after reset and listings not fitted yet
   useEffect(() => {
+    if (skipListingFit) return
     if (didFitListingsRef.current) return
     applyFallbackCenter()
-  }, [fallbackCenter, fallbackZoom, applyFallbackCenter])
+  }, [fallbackCenter, fallbackZoom, applyFallbackCenter, skipListingFit])
 
   // Fit once per mapFitResetKey cycle. Re-fitting when pin/cluster mode flips
   // (world catalog → local pins → clusters again) snaps the map back after cluster zoom.
   useEffect(() => {
+    if (skipListingFit) {
+      didFitListingsRef.current = true
+      return
+    }
     if (didFitListingsRef.current) return
 
     const ids = (listings || []).map((l) => l?.id).filter(Boolean)
@@ -201,7 +210,43 @@ function InitialListingBoundsFit({
     didFitListingsRef.current = true
     suppressBoundsUntilRef.current = Date.now() + 1400
     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
-  }, [listings, map, suppressBoundsUntilRef, mapFitResetKey])
+  }, [listings, map, suppressBoundsUntilRef, mapFitResetKey, skipListingFit])
+
+  return null
+}
+
+/**
+ * Stage 201.81 — restore soft-back map camera once (bbox from session).
+ */
+function CatalogMapCameraRestoreOnce({ bbox, onRestored, suppressBoundsUntilRef }) {
+  const map = useMap()
+  const didRef = useRef(false)
+
+  useEffect(() => {
+    if (didRef.current || !bbox) return
+    const south = Number(bbox.south)
+    const north = Number(bbox.north)
+    const west = Number(bbox.west)
+    const east = Number(bbox.east)
+    if (![south, north, west, east].every((n) => Number.isFinite(n))) return
+    if (!(south < north) || !(west < east)) return
+    didRef.current = true
+    try {
+      if (suppressBoundsUntilRef) {
+        suppressBoundsUntilRef.current = Date.now() + 1600
+      }
+      map.fitBounds(
+        [
+          [south, west],
+          [north, east],
+        ],
+        { padding: [40, 40], maxZoom: 16, animate: false },
+      )
+    } catch {
+      /* ignore invalid leaflet bounds */
+    }
+    onRestored?.()
+  }, [bbox, map, onRestored, suppressBoundsUntilRef])
 
   return null
 }
@@ -459,9 +504,17 @@ export default function InteractiveSearchMap({
   mapFitResetKey = '',
   layoutResetKey = 0,
   selectionPanMode = CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
+  /** Stage 201.81 — soft-back restore of previous map bbox (one-shot). */
+  cameraRestoreBbox = null,
+  onCameraRestoreDone = null,
 }) {
   const [mounted, setMounted] = useState(false)
   const suppressBoundsUntilRef = useRef(0)
+  const softBackCameraLockRef = useRef(Boolean(cameraRestoreBbox))
+
+  useEffect(() => {
+    if (cameraRestoreBbox) softBackCameraLockRef.current = true
+  }, [cameraRestoreBbox])
 
   useEffect(() => {
     setMounted(true)
@@ -608,12 +661,20 @@ export default function InteractiveSearchMap({
           mapBoundsLocked={mapBoundsLocked}
           onClearMapBounds={onClearMapBounds}
         />
+        {cameraRestoreBbox ? (
+          <CatalogMapCameraRestoreOnce
+            bbox={cameraRestoreBbox}
+            onRestored={onCameraRestoreDone}
+            suppressBoundsUntilRef={suppressBoundsUntilRef}
+          />
+        ) : null}
         <InitialListingBoundsFit
           listings={fitListings}
           suppressBoundsUntilRef={suppressBoundsUntilRef}
           mapFitResetKey={mapFitResetKey}
           fallbackCenter={center}
           fallbackZoom={zoom}
+          skipListingFit={Boolean(cameraRestoreBbox) || softBackCameraLockRef.current}
         />
 
         <MapSelectionSync

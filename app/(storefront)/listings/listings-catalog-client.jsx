@@ -42,6 +42,11 @@ import {
   readCatalogMobileMapOpenFromLocation,
   writeCatalogMobileMapHash,
 } from '@/lib/navigation/catalog-mobile-map-hash'
+import {
+  clearCatalogMapViewport,
+  normalizeCatalogMapViewport,
+  peekCatalogMapViewport,
+} from '@/lib/navigation/catalog-map-viewport-memory'
 import { bboxCenter } from '@/lib/geo/catalog-sort-centers'
 import { useWhereGeoViewport } from '@/lib/hooks/use-where-geo-viewport'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
@@ -82,11 +87,30 @@ function ListingsContent() {
   const { prefetchListingDetail, cancelListingDetailPrefetch } = useListingDetailPrefetch()
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
-  const [showMap, setShowMap] = useState(false)
+  const [showMap, setShowMap] = useState(() =>
+    typeof window !== 'undefined' ? readCatalogMobileMapOpenFromLocation() : false,
+  )
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
-  const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
+  /** Stage 201.81 — soft-back map camera (peek; clear after restore). */
+  const [cameraRestoreBbox, setCameraRestoreBbox] = useState(() => {
+    if (typeof window === 'undefined') return null
+    if (!readCatalogMobileMapOpenFromLocation()) return null
+    const snapped = normalizeCatalogMapViewport(peekCatalogMapViewport())
+    if (!snapped) return null
+    return {
+      south: snapped.south,
+      north: snapped.north,
+      west: snapped.west,
+      east: snapped.east,
+    }
+  })
+  const [mapSelectedListingId, setMapSelectedListingId] = useState(() => {
+    if (typeof window === 'undefined') return null
+    if (!readCatalogMobileMapOpenFromLocation()) return null
+    return normalizeCatalogMapViewport(peekCatalogMapViewport())?.selectedListingId || null
+  })
   const [mapHoveredListingId, setMapHoveredListingId] = useState(null)
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -468,6 +492,12 @@ function ListingsContent() {
     const next = Boolean(open)
     setShowMap(next)
     writeCatalogMobileMapHash(next)
+    if (!next) clearCatalogMapViewport()
+  }, [])
+
+  const handleCameraRestoreDone = useCallback(() => {
+    clearCatalogMapViewport()
+    setCameraRestoreBbox(null)
   }, [])
 
   const clearDates = () => setDateRange({ from: null, to: null })
@@ -563,6 +593,8 @@ function ListingsContent() {
       selectionPanMode: isMobile && showMap
         ? CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY
         : CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
+      cameraRestoreBbox,
+      onCameraRestoreDone: handleCameraRestoreDone,
     }),
     [
       allListings,
@@ -587,6 +619,8 @@ function ListingsContent() {
       whereGeoView.zoom,
       isMobile,
       showMap,
+      cameraRestoreBbox,
+      handleCameraRestoreDone,
     ],
   )
 

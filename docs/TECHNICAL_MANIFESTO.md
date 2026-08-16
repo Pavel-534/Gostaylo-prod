@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.183 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.78** map mode `#map` (no search storm).
+> **Version**: 13.2.186 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.81** soft-back restores map camera.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,6 +27,21 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.81 — soft-back restores map camera (not just `#map`)
+- Problem: PDP ← soft-back opened map sheet but Leaflet remounted at world fit.
+- Fix: `lib/navigation/catalog-map-viewport-memory.js` stores last mobile map bbox (+ selected pin) in sessionStorage while `#map` is open; catalog remount peeks and `fitBounds` once (`cameraRestoreBbox`).
+- Keeps `#map` hash approach (no search remount).
+
+### Stage 201.80 — hide catalog keyword + «ИИ» search row (launch)
+- Guest chrome: Airbnb-style What / Where / Dates / Guests only (`UnifiedSearchBar` gated by `isCatalogKeywordSearchUiEnabled()`).
+- SSOT + reactivation cheat sheet: **`lib/search/catalog-keyword-search-ui.js`** (≳1000 listings). Backend `q` / embeddings / admin `semanticSearchOnSite` unchanged.
+- Smart search default **off**; JSON-LD SearchAction lexical `q` while UI hidden.
+
+### Stage 201.79 — viewport-scoped mobile map rail + dark price pills
+- **Rail:** `filterCatalogRailListingsForMapViewport` — intersection of catalog search page ∩ viewport pin ids (fallback: listing coords in map bbox). Fixes “Phuket map + Chita card” when `where` unset.
+- **Pins:** dark-by-design slate pills (Android force-dark already inverts white→black); selected = mint + amber ring so selection stays visible.
+- Wire: `CatalogSearchMapPanel.onViewportMapData` → `CatalogMobileMapSheet` rail.
+
 ### Stage 201.78 — mobile map open without catalog remount
 
 - Map UI mode is URL **hash** `#map` (not `?map=1`). Query changes remount TanStack catalog search → hang / «Ошибка загрузки»; hash does not.
@@ -36,7 +51,8 @@
 ### Catalog map data paths (scale SSOT)
 
 - **Map pins:** `GET /api/v2/search/map-pins` — **viewport bbox only**, cap **500**, clusters when denser (`MAP_CLUSTER_THRESHOLD` 200). Not a full-table dump.
-- **List / mobile rail today:** same catalog search page (`allListings`, page size ~100 / cursor) — filtered by search, **not** “every listing worldwide”, but also **not** strictly viewport-clipped. Next scale step: rail = intersection(search page ∩ viewport pin ids).
+- **List:** catalog search page (`allListings`, ~100 / cursor) by search filters.
+- **Mobile map rail (201.79):** intersection(search page ∩ viewport pin ids), else coords-in-bbox — not the full unloaded world dump.
 
 ### Stage 201.77 — mobile map popup / pin / soft-back SSOT
 

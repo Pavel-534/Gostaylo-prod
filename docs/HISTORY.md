@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.81 | 2026-08-16 | Soft-back from PDP restores map camera bbox (session), not world fit | Done |
+| 201.80 | 2026-08-16 | Hide keyword+AI search row; Airbnb What/Where/Dates/Guests; reactivate @≳1k | Done |
+| 201.79 | 2026-08-16 | Mobile map rail = viewport pins; dark price pills + mint/amber selected | Done |
 | 201.78 | 2026-08-16 | Mobile map mode `#map` (fix `?map=1` search storm); pin color harden | Done |
 | 201.77 | 2026-08-16 | Map-level popup; brand selected pins; rail→popup; `?map=1` soft-back | Done |
 | 201.76 | 2026-08-16 | Map popup: no DivIcon thrash on list hover (DOM class highlight) | Done |

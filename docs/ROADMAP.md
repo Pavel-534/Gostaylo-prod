@@ -100,6 +100,7 @@
 | Mobile apps (store) | Web-first до PMF; Cap — shell над web |
 | AI listing generation at scale | Вторично к trust & payments |
 | Discovery / location roadmap | `docs/LOCATION_DISCOVERY_ROADMAP.md` |
+| **Keyword + semantic («ИИ») search UI** | **Hidden at launch (201.80).** SSOT: `lib/search/catalog-keyword-search-ui.js`. Revisit when **≳1000** active listings + dense geos: flip flag, admin `semanticSearchOnSite`, geo-aware ranking / newer embeddings. Backend `q`+embeddings kept. |
 
 ---
 
