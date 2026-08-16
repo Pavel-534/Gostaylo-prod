@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.65 | 2026-08-16 | Draft save undeletes soft-deleted listing (trashed row no longer invisible) | Done |
 | 201.64 | 2026-08-16 | Wizard: partial draft save (no geo gates); no ghost draft on category | Done |
 | 201.63 | 2026-08-16 | Partner listings: remove KPI summary grid (list-first mobile) | Done |
 | 201.62 | 2026-08-16 | Wizard draft save: upsert category draft, leave to /partner/listings (no orphan) | Done |

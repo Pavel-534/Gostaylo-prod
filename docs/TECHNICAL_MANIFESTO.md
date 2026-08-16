@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.170 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.64** partial draft save.
+> **Version**: 13.2.171 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.65** draft save undelete.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.65 — draft save undeletes soft-deleted listing
+
+- Bug: partner soft-deleted a draft (or stale id), then «Сохранить черновик» PUT-merged metadata and **kept `is_deleted`** → toast success + redirect, but list filters trash → listing invisible.
+- Fix: PUT clears soft-delete when keeping `is_draft`; client strips trash keys; restore iCal pause flags when undeleting via draft save.
 
 ### Stage 201.64 — partial draft save (leave mid-wizard)
 

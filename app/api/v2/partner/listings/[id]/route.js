@@ -34,7 +34,12 @@ import { assertInstantBookingCalendarPolicy } from '@/lib/ical/instant-booking-i
 import {
   buildSoftDeleteMetadataFields,
   buildSoftDeleteSyncSettingsPatch,
-} from '@/lib/listing/listing-soft-delete.js';
+  isListingSoftDeleted,
+} from '@/lib/listing/listing-soft-delete.js'
+import {
+  buildRestoredSyncSettingsPatch,
+  clearSoftDeleteMetadata,
+} from '@/lib/listing/listing-soft-delete-restore.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -497,6 +502,32 @@ export async function PATCH(request, context) {
     categorySlug = (await resolveListingCategorySlug(existing.category_id)) || '';
   }
   applyListingMaxCapacitySyncToRow(updateData, { categorySlug, existing });
+
+  // Stage 201.65 — draft save must never leave the row in trash (partner list filters is_deleted).
+  {
+    const mergedMetaNow =
+      updateData.metadata !== undefined ? updateData.metadata : existing.metadata || {}
+    const wantsDraftKeep =
+      mergedMetaNow?.is_draft === true ||
+      mergedMetaNow?.is_draft === 'true' ||
+      body.metadata?.is_draft === true ||
+      body.metadata?.is_draft === 'true'
+    if (wantsDraftKeep) {
+      const wasTrashed = isListingSoftDeleted({ metadata: mergedMetaNow })
+      const cleared = clearSoftDeleteMetadata(mergedMetaNow)
+      cleared.is_draft = true
+      updateData.metadata = cleared
+      if (wasTrashed) {
+        if (body.status === undefined && updateData.status === undefined) {
+          updateData.status = 'INACTIVE'
+        }
+        const syncSrc =
+          updateData.sync_settings !== undefined ? updateData.sync_settings : existing.sync_settings
+        const syncPatch = buildRestoredSyncSettingsPatch(syncSrc)
+        if (syncPatch) updateData.sync_settings = syncPatch
+      }
+    }
+  }
 
   // Update
   const { data: updated, error } = await supabase

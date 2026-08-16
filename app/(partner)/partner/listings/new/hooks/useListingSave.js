@@ -584,6 +584,11 @@ export function useListingSave() {
         geoForm.categoryName || '',
         listingCategoryWizardProfile,
       )
+      // Soft-delete flags must not stick when re-saving a draft into a trashed row (Stage 201.65).
+      delete draftMeta.is_deleted
+      delete draftMeta.deleted_at
+      delete draftMeta.deleted_by
+      draftMeta.is_deleted = false
       const geoFields = optionalDraftGeoFields(geoForm)
 
       const leaveToPartnerListingsAfterDraftSave = (lid) => {
