@@ -45,6 +45,7 @@ export function MapServerClusterMarker({
       { lat: position[0], lng: position[1] },
       Math.max(cellSizeM / 2, 400),
     )
+    // Stage 201.71 — animate into the cell; catalog InitialListingBoundsFit must not re-fit.
     map.fitBounds(bounds, { padding: [48, 48], animate: true, maxZoom: 15 })
   }
 

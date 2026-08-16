@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.71 | 2026-08-16 | Fix STALE_CRON (crypto CONFIRMED enum); map cluster snap-back; hide area-search | Done |
 | 201.70 | 2026-08-16 | Fix PDP photo lightbox empty overlay; Instant Booking UX emphasis | Done |
 | 201.69 | 2026-08-16 | All transactional emails → premium chrome (plain→HTML SSOT + auth/digest) | Done |
 | 201.68 | 2026-08-16 | Email SSOT chrome: lockup PNG header; premium listing approve/reject templates | Done |

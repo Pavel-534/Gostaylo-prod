@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.176 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.70** gallery lightbox + Instant Book UX.
+> **Version**: 13.2.177 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.71** STALE_CRON + map UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.71 — STALE_CRON root cause + catalog map UX
+
+- Crypto heal in `reconcile-paid-intents-without-escrow` queried `payment_status IN (COMPLETED, CONFIRMED)` → enum error → ops `error` forever → hourly `[STALE_CRON]`. Now `COMPLETED` only + per-job TG de-dupe.
+- Catalog map: fitBounds once per reset (cluster zoom no longer snaps back); area-search overlay buttons off by default.
 
 ### Stage 201.70 — PDP gallery lightbox + Instant Booking visibility
 

@@ -59,6 +59,8 @@ function MapSearchThisAreaButton({
   onSearchThisArea,
   mapBoundsLocked,
   onClearMapBounds,
+  /** Stage 201.71 — catalog map chrome off by default (obstructs browsing). */
+  enableAreaSearchControls = false,
 }) {
   const map = useMap()
   const [dirty, setDirty] = useState(false)
@@ -69,12 +71,15 @@ function MapSearchThisAreaButton({
 
   useMapEvents({
     moveend: () => {
+      if (!enableAreaSearchControls) return
       if (!listingsLength) return
       if (!onSearchThisArea && !mapBoundsLocked) return
       if (Date.now() < suppressBoundsUntilRef.current) return
       setDirty(true)
     },
   })
+
+  if (!enableAreaSearchControls) return null
 
   const applyViewportBounds = () => {
     if (!onSearchThisArea) return
@@ -173,11 +178,14 @@ function InitialListingBoundsFit({
     applyFallbackCenter()
   }, [fallbackCenter, fallbackZoom, applyFallbackCenter])
 
-  // Fit to fresh listing pins once per result set after reset
+  // Fit once per mapFitResetKey cycle. Re-fitting when pin/cluster mode flips
+  // (world catalog → local pins → clusters again) snaps the map back after cluster zoom.
   useEffect(() => {
+    if (didFitListingsRef.current) return
+
     const ids = (listings || []).map((l) => l?.id).filter(Boolean)
     const sig = ids.slice(0, 40).join(',')
-    if (!sig || sig === lastListingsSigRef.current) return
+    if (!sig) return
 
     let bounds = null
     for (const listing of listings || []) {
