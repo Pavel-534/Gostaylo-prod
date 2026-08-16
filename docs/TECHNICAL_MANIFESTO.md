@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.173 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.67** reconcile COMPLETED enum.
+> **Version**: 13.2.176 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.70** gallery lightbox + Instant Book UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,22 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.70 — PDP gallery lightbox + Instant Booking visibility
+
+- `GalleryModal`: force `!h` over Dialog `sm:!h-auto`; intrinsic `next/image` (no `fill`) so overlay never opens empty.
+- Wizard pricing Instant Booking: brand tint + Zap + badge; PDP pay hint is a brand chip when Instant Book is on.
+
+### Stage 201.69 — universal branded transactional email
+
+- Transport SSOT: `textToHtml` → `buildPremiumHtmlFromPlainText` (NotificationService / concierge / referral / disputes / plain fallbacks get lockup).
+- Auth verify/reset, product feedback, owner marketing digest → `buildSimplePremiumEmailTemplate` / `premiumEmailDocument`.
+- Dedicated premium templates (booking/payment/listing) unchanged; all share `emailHeaderRow` logo.
+
+### Stage 201.68 — branded transactional email chrome (SSOT)
+
+- Foundation: `lib/email/email-brand-assets.js` (PNG lockup path) + `premium-email-html` header logo (`getSiteDisplayName` alt) + footer site/help.
+- Listing approve/reject: premium templates (`listing-moderation-email.js` → `EmailService`) + plain fallback; TG DM adds brand name. Not a second React Email stack.
 
 ### Stage 201.67 — reconcile cron vs payment_status enum
 

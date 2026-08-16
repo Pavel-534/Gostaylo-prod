@@ -14,7 +14,7 @@ import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 import { EmailService } from '@/lib/services/email.service.js';
-import { escapeHtml } from '@/lib/email/premium-email-html';
+import { buildSimplePremiumEmailTemplate } from '@/lib/email/simple-transactional-email.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,53 +82,21 @@ export async function POST(request) {
   
   const resetUrl = `${getPublicSiteUrl()}/reset-password?token=${resetToken}`;
   const siteName = getSiteDisplayName();
-  const safeBrand = escapeHtml(siteName);
-  const safeFirst = user.first_name ? escapeHtml(String(user.first_name)) : '';
+  const first = user.first_name ? String(user.first_name).trim() : '';
   const subject = `Сброс пароля - ${siteName}`;
-  const html = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px;">
-              <tr>
-                <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
-                    <tr>
-                      <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${safeBrand}</h1>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding:32px;">
-                        <h2 style="margin:0 0 16px;color:#0f172a;font-size:24px;">
-                          Сброс пароля
-                        </h2>
-                        <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Привет${safeFirst ? `, ${safeFirst}` : ''}! Вы запросили сброс пароля.
-                          Нажмите кнопку ниже, чтобы создать новый пароль:
-                        </p>
-                        <a href="${resetUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
-                          Сбросить пароль
-                        </a>
-                        <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
-                          Ссылка действительна 1 час. Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </body>
-          </html>
-        `;
+  const template = buildSimplePremiumEmailTemplate({
+    subject,
+    preheader: 'Ссылка для сброса пароля действует 1 час',
+    title: 'Сброс пароля',
+    paragraphs: [
+      `Привет${first ? `, ${first}` : ''}! Вы запросили сброс пароля. Нажмите кнопку ниже, чтобы создать новый пароль.`,
+      'Ссылка действительна 1 час. Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.',
+    ],
+    cta: { href: resetUrl, label: 'Сбросить пароль' },
+  });
 
-  // Stage 200.72 — EmailService + transport guard (never raw Resend)
-  const result = await EmailService.sendEmail(user.email, { subject, html });
+  // Stage 201.69 — premium chrome; Stage 200.72 — EmailService + transport guard
+  const result = await EmailService.sendEmail(user.email, template);
   if (result?.error === 'API key not configured') {
     console.error('[FORGOT-PASSWORD] RESEND_API_KEY not configured');
     return authErrorJson(AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED, 500);

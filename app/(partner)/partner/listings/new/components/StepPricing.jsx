@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { memo, useEffect, useMemo } from 'react'
-import { Info } from 'lucide-react'
+import { Info, Zap } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -99,23 +99,44 @@ function StepPricingInner() {
         <div
           className={cn(
             WIZARD_MOBILE_FLAT_INSET_CLASS,
-            'mt-6 flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:border-slate-200/90',
+            'mt-6 flex items-start justify-between gap-4 rounded-2xl border p-4 transition-colors',
+            formData.instantBooking === true
+              ? 'border-brand/40 bg-brand/10 ring-1 ring-brand/25'
+              : 'border-brand/30 bg-brand/5 sm:border-brand/35',
           )}
           data-testid="partner-listing-instant-booking"
           data-partner-section="pricing-instant"
         >
-          <div className="min-w-0 flex-1 space-y-1">
-            <Label
-              htmlFor="partner-instant-booking"
-              className="text-base font-semibold text-slate-900"
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <span
+              className={cn(
+                'mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                formData.instantBooking === true
+                  ? 'bg-brand text-white'
+                  : 'bg-brand/15 text-brand',
+              )}
+              aria-hidden
             >
-              {t('partnerListing_instantBookingTitle')}
-            </Label>
-            <p className="text-sm leading-relaxed text-slate-600">
-              {transportWizard
-                ? t('partnerListing_instantBookingHintVehicle')
-                : t('partnerListing_instantBookingHint')}
-            </p>
+              <Zap className="h-5 w-5" strokeWidth={2.25} />
+            </span>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Label
+                  htmlFor="partner-instant-booking"
+                  className="text-base font-semibold text-slate-900"
+                >
+                  {t('partnerListing_instantBookingTitle')}
+                </Label>
+                <span className="inline-flex items-center rounded-full bg-brand/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                  {t('partnerListing_instantBookingBadge')}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-slate-700">
+                {transportWizard
+                  ? t('partnerListing_instantBookingHintVehicle')
+                  : t('partnerListing_instantBookingHint')}
+              </p>
+            </div>
           </div>
           <Switch
             id="partner-instant-booking"
@@ -127,7 +148,7 @@ function StepPricingInner() {
                 updateMetadata(EXCLUSIVE_MANUAL_CALENDAR_META_KEY, false)
               }
             }}
-            className="mt-1 shrink-0 data-[state=checked]:bg-brand"
+            className="mt-1 min-h-[44px] min-w-[44px] shrink-0 data-[state=checked]:bg-brand"
             aria-label={t('partnerListing_instantBookingTitle')}
           />
         </div>

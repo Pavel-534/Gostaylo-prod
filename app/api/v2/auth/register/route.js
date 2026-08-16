@@ -28,7 +28,7 @@ import {
   AUTH_PASSWORD_COMPLEXITY_RE,
 } from '@/lib/auth/password-policy';
 import { EmailService } from '@/lib/services/email.service.js';
-import { escapeHtml } from '@/lib/email/premium-email-html';
+import { buildSimplePremiumEmailTemplate } from '@/lib/email/simple-transactional-email.js';
 import { NotificationService } from '@/lib/services/notification.service.js';
 
 export const dynamic = 'force-dynamic';
@@ -53,56 +53,25 @@ function generateVerificationToken(userId, email, jwtSecret) {
   );
 }
 
-/** Stage 200.72 — verification mail via EmailService (resend-transport-guard). */
+/** Stage 200.72 / 201.69 — verification mail via EmailService + premium chrome. */
 async function sendVerificationEmail(user, token) {
   const verifyUrl = `${getPublicSiteUrl()}/api/v2/auth/verify?token=${token}`;
   const siteName = getSiteDisplayName();
-  const safeBrand = escapeHtml(siteName);
-  const safeFirst = user.first_name ? escapeHtml(String(user.first_name)) : '';
+  const first = user.first_name ? String(user.first_name).trim() : '';
   const subject = `Подтвердите ваш email - ${siteName}`;
-  const html = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px;">
-              <tr>
-                <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
-                    <tr>
-                      <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${safeBrand}</h1>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding:32px;">
-                        <h2 style="margin:0 0 16px;color:#0f172a;font-size:24px;">
-                          Подтвердите ваш email
-                        </h2>
-                        <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Привет${safeFirst ? `, ${safeFirst}` : ''}! Для завершения регистрации нажмите кнопку ниже:
-                        </p>
-                        <a href="${verifyUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
-                          Подтвердить email
-                        </a>
-                        <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
-                          Ссылка действительна 24 часа. Если вы не регистрировались на ${safeBrand}, просто проигнорируйте это письмо.
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </body>
-          </html>
-        `;
+  const template = buildSimplePremiumEmailTemplate({
+    subject,
+    preheader: 'Ссылка действует 24 часа',
+    title: 'Подтвердите ваш email',
+    paragraphs: [
+      `Привет${first ? `, ${first}` : ''}! Для завершения регистрации нажмите кнопку ниже.`,
+      `Ссылка действительна 24 часа. Если вы не регистрировались на ${siteName}, просто проигнорируйте это письмо.`,
+    ],
+    cta: { href: verifyUrl, label: 'Подтвердить email' },
+  });
 
   console.log('[EMAIL] Sending verification to:', hashPiiForLog(user.email));
-  const result = await EmailService.sendEmail(user.email, { subject, html });
+  const result = await EmailService.sendEmail(user.email, template);
   if (result?.success) {
     return { success: true, mock: Boolean(result.mock) };
   }

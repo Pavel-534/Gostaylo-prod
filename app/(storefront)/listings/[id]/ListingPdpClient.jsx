@@ -14,6 +14,7 @@ import {
   getPdpLightboxImageUrls,
   resolvePdpHeroBlurDataURL,
 } from '@/lib/media/image-delivery'
+import { mapPublicImageUrls } from '@/lib/public-image-url'
 import { useListingViewData } from '@/hooks/useListingViewData'
 import { useListingChat } from '@/hooks/useListingChat'
 import { ListingPageNav } from './components/ListingPageNav'
@@ -190,7 +191,10 @@ function ListingPdpContent({ listingId, lang }) {
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
 
-  const galleryImageUrls = useMemo(() => getPdpLightboxImageUrls(listing), [listing])
+  const galleryImageUrls = useMemo(
+    () => mapPublicImageUrls(getPdpLightboxImageUrls(listing)),
+    [listing],
+  )
   const galleryBlurDataURL = useMemo(() => resolvePdpHeroBlurDataURL(listing), [listing])
   const handleGalleryImageClick = useListingPdpGalleryClickHandler(setGalleryIndex, setGalleryOpen)
 

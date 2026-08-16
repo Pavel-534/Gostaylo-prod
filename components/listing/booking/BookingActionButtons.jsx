@@ -40,20 +40,33 @@ function ChatPreviewBadge({ preview, hasUnread, language, listingCategorySlug, w
 export function BookingPayTimingHint({ isInstantBookListing, tx, className }) {
   const instant = isInstantBookListing === true
   const Icon = instant ? Zap : Clock
+  if (instant) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-sm font-semibold leading-snug text-brand',
+          className,
+        )}
+        data-testid="listing-booking-pay-hint"
+        data-instant-book="1"
+        role="status"
+      >
+        <Icon className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.25} />
+        <span className="text-center">{tx('listingBookingPayHintInstant')}</span>
+      </div>
+    )
+  }
   return (
     <p
       className={cn(
-        'flex items-start justify-center gap-1.5 text-xs leading-relaxed px-1 text-center',
-        instant ? 'text-brand' : 'text-slate-500',
+        'flex items-start justify-center gap-1.5 text-xs leading-relaxed px-1 text-center text-slate-500',
         className,
       )}
       data-testid="listing-booking-pay-hint"
-      data-instant-book={instant ? '1' : '0'}
+      data-instant-book="0"
     >
       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-      <span>
-        {instant ? tx('listingBookingPayHintInstant') : tx('listingBookingPayHintInquiry')}
-      </span>
+      <span>{tx('listingBookingPayHintInquiry')}</span>
     </p>
   )
 }

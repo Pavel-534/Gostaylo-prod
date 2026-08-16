@@ -1,6 +1,8 @@
 /**
  * GalleryModal — full-screen image gallery with navigation.
  * Lightbox URLs + sizes from `lib/media/image-delivery.js` (Stage 171.21).
+ * Stage 201.70 — intrinsic image sizing + forced Dialog height (fixes empty dark overlay
+ * when shared DialogContent `sm:!h-auto` collapsed next/image `fill`).
  */
 
 'use client'
@@ -15,6 +17,7 @@ import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { resolvePdpImageSizes } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { cn } from '@/lib/utils'
 
 export function GalleryModal({
   open,
@@ -76,15 +79,18 @@ export function GalleryModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        style={{ maxHeight: '100dvh' }}
-        className={
-          'h-[100dvh] w-full max-w-none gap-0 border-0 bg-black p-0 shadow-none ' +
-          'left-0 top-0 translate-x-0 translate-y-0 rounded-none ' +
-          'sm:left-[50%] sm:top-[50%] sm:h-[90vh] sm:max-w-6xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:shadow-2xl'
-        }
+        style={{ height: '100dvh', maxHeight: '100dvh' }}
+        className={cn(
+          'gap-0 border-0 bg-black p-0 shadow-none',
+          // Beat DialogContent defaults (`sm:!h-auto`) so the lightbox has real box size.
+          '!inset-0 !left-0 !top-0 !h-[100dvh] !max-h-[100dvh] !w-full !max-w-none',
+          '!translate-x-0 !translate-y-0 rounded-none',
+          'sm:!inset-auto sm:!left-[50%] sm:!top-[50%] sm:!h-[90vh] sm:!max-h-[90vh]',
+          'sm:!w-full sm:!max-w-6xl sm:!-translate-x-1/2 sm:!-translate-y-1/2 sm:rounded-lg sm:shadow-2xl',
+        )}
       >
         <div
-          className="relative flex h-full w-full items-center justify-center bg-black touch-pan-y"
+          className="relative flex h-full min-h-[50vh] w-full flex-col items-center justify-center bg-black touch-pan-y"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
@@ -106,18 +112,20 @@ export function GalleryModal({
             </Button>
           </DialogClose>
 
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="flex max-h-full w-full flex-1 items-center justify-center px-2 py-14 sm:px-4">
             {currentSrc ? (
               <Image
                 key={currentSrc}
                 src={currentSrc}
                 alt={`${listingTitle} ${currentIndex + 1}`}
-                fill
-                className="object-contain"
+                width={1600}
+                height={1200}
+                className="h-auto max-h-[min(85dvh,900px)] w-auto max-w-[min(96vw,1152px)] object-contain"
                 sizes={lightboxSizes}
                 placeholder="blur"
                 blurDataURL={blurDataURL}
                 unoptimized={isRemoteHttpImageSrc(currentSrc)}
+                priority
               />
             ) : null}
           </div>
