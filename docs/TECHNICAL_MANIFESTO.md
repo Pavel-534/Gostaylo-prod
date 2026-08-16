@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.172 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.66** listing moderation TG.
+> **Version**: 13.2.173 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.67** reconcile COMPLETED enum.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.67 — reconcile cron vs payment_status enum
+
+- Prod enum: `PENDING|PROCESSING|COMPLETED|FAILED|REFUNDED` (no `CONFIRMED`). Cron `.eq('status','CONFIRMED')` → every hour `error` → `[STALE_CRON] last_success=never`.
+- Fix: legacy heal scans `COMPLETED`; `PaymentsV3Service.confirmPayment` writes `COMPLETED`.
 
 ### Stage 201.66 — listing moderation Telegram (admin)
 
