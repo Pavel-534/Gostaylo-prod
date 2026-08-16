@@ -2,16 +2,21 @@
 
 /**
  * Маркетинговое превью в Popup Leaflet (каталог / карта).
- * Stage 201.73 — компактная карточка + autoPan keep-in-view у маркера.
+ * Stage 201.73 — компактная карточка; 201.74 — brand CTA contrast + client nav.
  */
 
+import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
-import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import {
+  navigateWithListingHeroTransition,
+  prefetchListingPdp,
+} from '@/lib/navigation/listing-hero-transition'
 
 /** @param {object} props */
 export function ListingPopupCard({
@@ -21,7 +26,9 @@ export function ListingPopupCard({
   initialDates = null,
   currency = 'THB',
   exchangeRates = { THB: 1 },
+  onOpenDetails = null,
 }) {
+  const router = useRouter()
   const raw = listing.images?.[0] || listing.coverImage || listing.cover_image || '/placeholder.svg'
   const image = raw === '/placeholder.svg' ? raw : resolveImageThumbDisplayUrl(raw) || raw
   const rating = parseFloat(listing.rating || listing.avgRating || listing.average_rating || 0) || 0
@@ -32,7 +39,23 @@ export function ListingPopupCard({
   )
   const categorySlug =
     listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
-  const href = `/listings/${listing.id}`
+  const listingId = String(listing?.id || '').trim()
+  const href = listingId ? `/listings/${listingId}` : '#'
+
+  const handleOpen = useCallback(
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!listingId) return
+      if (typeof onOpenDetails === 'function') {
+        onOpenDetails(listingId)
+        return
+      }
+      prefetchListingPdp(router, listingId)
+      navigateWithListingHeroTransition(() => router.push(href), listingId, href)
+    },
+    [href, listingId, onOpenDetails, router],
+  )
 
   return (
     <div className="w-[220px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80">
@@ -80,14 +103,14 @@ export function ListingPopupCard({
         </div>
 
         <Button
-          asChild
+          type="button"
           variant="brand"
           size="sm"
-          className="h-9 w-full min-h-[36px] rounded-xl text-xs font-semibold"
+          onClick={handleOpen}
+          className="h-9 w-full min-h-[36px] rounded-xl text-xs font-semibold !text-white hover:!text-white"
+          data-testid="map-listing-popup-open"
         >
-          <a href={href} onClick={() => dispatchOptimisticNavPending(href)}>
-            {getUIText('viewDetails', language)}
-          </a>
+          {getUIText('viewDetails', language)}
         </Button>
       </div>
     </div>

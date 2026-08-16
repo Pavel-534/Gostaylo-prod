@@ -3,9 +3,10 @@
 /**
  * Маркер каталога: ценовая пилюля + Popup (**`ListingPopupCard`** или lazy **`ListingMapPopupLazy`**).
  * SSOT пилюли: **`createLeafletPricePillDivIcon`** (**`lib/maps/map-provider-adapter.js`**).
+ * Stage 201.74 — prefetch on popup open; client open via onOpenListing.
  */
 
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import { createLeafletPricePillDivIcon } from '@/lib/maps/map-provider-adapter'
@@ -23,6 +24,8 @@ import { ListingMapPopupLazy } from '@/components/listing/ListingMapPopupLazy'
  * @param {boolean} props.selected
  * @param {string} [props.language]
  * @param {(id: string) => void} [props.onSelect]
+ * @param {(id: string) => void} [props.onOpenListing]
+ * @param {(id: string) => void} [props.onPopupOpen]
  * @param {object|null} [props.initialDates]
  * @param {string} [props.currency]
  * @param {Record<string, number>} [props.exchangeRates]
@@ -38,6 +41,8 @@ export function ListingPriceMarker({
   selected,
   language = 'ru',
   onSelect,
+  onOpenListing = null,
+  onPopupOpen = null,
   initialDates = null,
   currency = 'THB',
   exchangeRates = { THB: 1 },
@@ -56,6 +61,11 @@ export function ListingPriceMarker({
     () => createLeafletPricePillDivIcon(L, priceLabel, { selected }),
     [priceLabel, selected],
   )
+
+  useEffect(() => {
+    if (!popupOpen || !listingId) return
+    onPopupOpen?.(listingId)
+  }, [popupOpen, listingId, onPopupOpen])
 
   return (
     <Marker
@@ -88,6 +98,7 @@ export function ListingPriceMarker({
             initialDates={initialDates}
             currency={currency}
             exchangeRates={exchangeRates}
+            onOpenDetails={onOpenListing}
           />
         ) : (
           <ListingPopupCard
@@ -97,6 +108,7 @@ export function ListingPriceMarker({
             initialDates={initialDates}
             currency={currency}
             exchangeRates={exchangeRates}
+            onOpenDetails={onOpenListing}
           />
         )}
       </Popup>

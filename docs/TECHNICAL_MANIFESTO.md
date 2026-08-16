@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.178 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.73** NEW badge + map popup.
+> **Version**: 13.2.179 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.74** map popup nav + soft-back.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.74 — map popup CTA + seamless catalog↔PDP
+
+- Map popup CTA: brand button with forced white text (Leaflet `a` color override); open via client `router.push` + PDP prefetch (same path as list cards), not raw `<a>` hard nav.
+- Open popup: freeze hover→pin icon thrash (selected pin only); clear selection on map background click (removed 5s auto-clear).
+- PDP soft-back: `airento:catalog-return-href-v1` remembers `/listings?…`; `useSoftBack` `replace`s that URL instead of bare `/listings`.
 
 ### Stage 201.73 — NEW trust badge + compact map popup
 

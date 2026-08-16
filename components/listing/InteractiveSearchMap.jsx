@@ -237,6 +237,19 @@ function MapViewportReporter({
   return null
 }
 
+/** Clear pin selection when user clicks empty map (not a marker / popup). */
+function MapBackgroundClick({ onMapBackgroundClick }) {
+  useMapEvents({
+    click: (e) => {
+      if (typeof onMapBackgroundClick !== 'function') return
+      const t = e?.originalEvent?.target
+      if (t?.closest?.('.leaflet-marker-icon, .leaflet-popup, .map-listing-popup')) return
+      onMapBackgroundClick()
+    },
+  })
+  return null
+}
+
 function MapSizeInvalidator({ layoutResetKey = 0 }) {
   const map = useMap()
 
@@ -434,6 +447,9 @@ export default function InteractiveSearchMap({
   selectedListingId = null,
   hoveredListingId = null,
   onListingMarkerClick,
+  onListingOpen = null,
+  onListingPopupOpen = null,
+  onMapBackgroundClick = null,
   onSearchThisArea,
   mapBoundsLocked = false,
   onClearMapBounds,
@@ -485,8 +501,11 @@ export default function InteractiveSearchMap({
       if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
       const listingMatch = listingsById.get(String(pin.id)) ?? null
       const pinId = String(pin.id)
-      const isHighlighted =
-        pinId === String(selectedListingId) || pinId === String(hoveredListingId)
+      // While a pin is selected (popup active), ignore list hover — recreating DivIcons
+      // thrash MarkerCluster and makes the open popup blink.
+      const isHighlighted = selectedListingId
+        ? pinId === String(selectedListingId)
+        : pinId === String(hoveredListingId)
       const priceText = pinPriceLabel(
         pin,
         currency,
@@ -505,6 +524,8 @@ export default function InteractiveSearchMap({
           selected={isHighlighted}
           language={language}
           onSelect={onListingMarkerClick}
+          onOpenListing={onListingOpen}
+          onPopupOpen={onListingPopupOpen}
           initialDates={initialDates}
           currency={currency}
           exchangeRates={exchangeRates}
@@ -521,6 +542,8 @@ export default function InteractiveSearchMap({
       selectedListingId,
       hoveredListingId,
       onListingMarkerClick,
+      onListingOpen,
+      onListingPopupOpen,
       initialDates,
     ],
   )
@@ -565,6 +588,10 @@ export default function InteractiveSearchMap({
 
         {typeof onViewportBbox === 'function' && (
           <MapViewportReporter onViewportBbox={onViewportBbox} />
+        )}
+
+        {typeof onMapBackgroundClick === 'function' && (
+          <MapBackgroundClick onMapBackgroundClick={onMapBackgroundClick} />
         )}
 
         <MapSearchThisAreaButton

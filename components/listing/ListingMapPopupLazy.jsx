@@ -36,6 +36,7 @@ export function ListingMapPopupLazy({
   initialDates = null,
   currency = 'THB',
   exchangeRates = { THB: 1 },
+  onOpenDetails = null,
 }) {
   const id = String(listingId || '').trim()
   const { data, isLoading, isError } = useQuery({
@@ -68,6 +69,7 @@ export function ListingMapPopupLazy({
       initialDates={initialDates}
       currency={currency}
       exchangeRates={exchangeRates}
+      onOpenDetails={onOpenDetails}
     />
   )
 }

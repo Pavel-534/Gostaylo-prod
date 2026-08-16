@@ -50,7 +50,7 @@ import {
 } from '@/lib/maps/catalog-map-ux-policy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
-import { navigateWithListingHeroTransition } from '@/lib/navigation/listing-hero-transition'
+import { navigateWithListingHeroTransition, prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 
 const ForYouRail = dynamic(
   () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
@@ -204,13 +204,6 @@ function ListingsContent() {
     setCatalogSort(parseCatalogSortFromParams(searchParams))
   }, [searchParamsKey, searchParams, syncLastPushedQuery, markUrlPushSkipped])
 
-  useEffect(() => {
-    if (!mapSelectedListingId) return
-    if (isMobile && showMap) return
-    const t = setTimeout(() => setMapSelectedListingId(null), 5000)
-    return () => clearTimeout(t)
-  }, [mapSelectedListingId, isMobile, showMap])
-
   const handleSearchThisArea = useCallback(
     (b) => {
       setAppliedBbox(b)
@@ -229,6 +222,21 @@ function ListingsContent() {
     setMapHoveredListingId(null)
   }, [])
 
+  const handleMapBackgroundClick = useCallback(() => {
+    setMapSelectedListingId(null)
+    setMapHoveredListingId(null)
+  }, [])
+
+  const handleMapListingPopupOpen = useCallback(
+    (id) => {
+      const listingId = String(id || '').trim()
+      if (!listingId) return
+      prefetchListingPdp(router, listingId)
+      prefetchListingDetail(listingId, { intent: 'touch' })
+    },
+    [prefetchListingDetail, router],
+  )
+
   const handleMapRailActiveChange = useCallback((id) => {
     setMapSelectedListingId(id)
     setMapHoveredListingId(null)
@@ -238,13 +246,15 @@ function ListingsContent() {
     (id) => {
       const listingId = String(id || '').trim()
       if (!listingId) return
+      prefetchListingPdp(router, listingId)
+      prefetchListingDetail(listingId, { intent: 'touch' })
       navigateWithListingHeroTransition(
         () => router.push(`/listings/${listingId}`),
         listingId,
         `/listings/${listingId}`,
       )
     },
-    [router],
+    [prefetchListingDetail, router],
   )
 
   const handleListingCardSelect = useCallback((id) => {
@@ -500,6 +510,9 @@ function ListingsContent() {
       selectedListingId: mapSelectedListingId,
       hoveredListingId: mapHoveredListingId,
       onListingMarkerClick: handleListingMarkerClick,
+      onListingOpen: handleMapListingOpen,
+      onListingPopupOpen: handleMapListingPopupOpen,
+      onMapBackgroundClick: handleMapBackgroundClick,
       onSearchThisArea: handleSearchThisArea,
       mapBoundsLocked: !!appliedBbox,
       onClearMapBounds: handleClearMapBounds,
@@ -524,6 +537,9 @@ function ListingsContent() {
       mapSelectedListingId,
       mapHoveredListingId,
       handleListingMarkerClick,
+      handleMapListingOpen,
+      handleMapListingPopupOpen,
+      handleMapBackgroundClick,
       handleSearchThisArea,
       handleClearMapBounds,
       appliedBboxKey,
@@ -751,6 +767,9 @@ function ListingsContent() {
             selectedListingId={mapSelectedListingId}
             hoveredListingId={mapHoveredListingId}
             onListingMarkerClick={handleListingMarkerClick}
+            onListingOpen={handleMapListingOpen}
+            onListingPopupOpen={handleMapListingPopupOpen}
+            onMapBackgroundClick={handleMapBackgroundClick}
             onSearchThisArea={handleSearchThisArea}
             mapBoundsLocked={!!appliedBbox}
             onClearMapBounds={handleClearMapBounds}

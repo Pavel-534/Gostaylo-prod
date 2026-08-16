@@ -20,6 +20,10 @@ import {
   persistLiveRouteScroll,
   saveRouteScroll,
 } from '@/lib/navigation/route-scroll-memory'
+import {
+  captureCatalogReturnBeforePdp,
+  isListingPdpHref,
+} from '@/lib/navigation/catalog-return-href'
 
 const RESTORE_RETRY_MS = 80
 const RESTORE_BUDGET_MS = 2800
@@ -79,6 +83,9 @@ export function RouteScrollMemoryHost() {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
       lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
       const rect = target.getBoundingClientRect()
+      if (isListingPdpHref(href)) {
+        captureCatalogReturnBeforePdp()
+      }
       persistCurrent({
         anchorHref: href,
         anchorTop: Math.round(rect.top),

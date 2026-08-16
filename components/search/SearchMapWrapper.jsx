@@ -24,6 +24,9 @@ function SearchMapWrapperComponent({
   selectedListingId = null,
   hoveredListingId = null,
   onListingMarkerClick,
+  onListingOpen = null,
+  onListingPopupOpen = null,
+  onMapBackgroundClick = null,
   onSearchThisArea,
   mapBoundsLocked = false,
   onClearMapBounds,
@@ -53,6 +56,9 @@ function SearchMapWrapperComponent({
         selectedListingId={selectedListingId}
         hoveredListingId={hoveredListingId}
         onListingMarkerClick={onListingMarkerClick}
+        onListingOpen={onListingOpen}
+        onListingPopupOpen={onListingPopupOpen}
+        onMapBackgroundClick={onMapBackgroundClick}
         onSearchThisArea={onSearchThisArea}
         mapBoundsLocked={mapBoundsLocked}
         onClearMapBounds={onClearMapBounds}
