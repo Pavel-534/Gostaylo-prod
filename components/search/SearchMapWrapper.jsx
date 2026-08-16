@@ -26,6 +26,7 @@ function SearchMapWrapperComponent({
   onListingMarkerClick,
   onListingOpen = null,
   onListingPopupOpen = null,
+  onListingPopupClose = null,
   onMapBackgroundClick = null,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -58,6 +59,7 @@ function SearchMapWrapperComponent({
         onListingMarkerClick={onListingMarkerClick}
         onListingOpen={onListingOpen}
         onListingPopupOpen={onListingPopupOpen}
+        onListingPopupClose={onListingPopupClose}
         onMapBackgroundClick={onMapBackgroundClick}
         onSearchThisArea={onSearchThisArea}
         mapBoundsLocked={mapBoundsLocked}

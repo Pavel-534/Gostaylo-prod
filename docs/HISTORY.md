@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.76 | 2026-08-16 | Map popup: no DivIcon thrash on list hover (DOM class highlight) | Done |
+| 201.75 | 2026-08-16 | PDP: break long unbreakable description tokens; clear Prado junk i18n | Done |
 | 201.74 | 2026-08-16 | Map popup white CTA; hover blink fix; client PDP nav + catalog return soft-back | Done |
 | 201.73 | 2026-08-16 | NEW trust pill + tooltip; compact map popup autoPan | Done |
 | 201.71 | 2026-08-16 | Fix STALE_CRON (crypto CONFIRMED enum); map cluster snap-back; hide area-search | Done |

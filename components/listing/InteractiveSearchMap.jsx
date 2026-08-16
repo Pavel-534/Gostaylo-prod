@@ -449,6 +449,7 @@ export default function InteractiveSearchMap({
   onListingMarkerClick,
   onListingOpen = null,
   onListingPopupOpen = null,
+  onListingPopupClose = null,
   onMapBackgroundClick = null,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -501,11 +502,10 @@ export default function InteractiveSearchMap({
       if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
       const listingMatch = listingsById.get(String(pin.id)) ?? null
       const pinId = String(pin.id)
-      // While a pin is selected (popup active), ignore list hover — recreating DivIcons
-      // thrash MarkerCluster and makes the open popup blink.
-      const isHighlighted = selectedListingId
-        ? pinId === String(selectedListingId)
-        : pinId === String(hoveredListingId)
+      // Selected = catalog selection / open popup pin. Hover never changes DivIcon (DOM class only).
+      const isSelected = Boolean(selectedListingId) && pinId === String(selectedListingId)
+      const isHovered =
+        !selectedListingId && Boolean(hoveredListingId) && pinId === String(hoveredListingId)
       const priceText = pinPriceLabel(
         pin,
         currency,
@@ -521,11 +521,13 @@ export default function InteractiveSearchMap({
           position={position}
           priceLabel={priceText || '—'}
           approximate={pin.isApproximate === true}
-          selected={isHighlighted}
+          selected={isSelected}
+          hovered={isHovered}
           language={language}
           onSelect={onListingMarkerClick}
           onOpenListing={onListingOpen}
           onPopupOpen={onListingPopupOpen}
+          onPopupClose={onListingPopupClose}
           initialDates={initialDates}
           currency={currency}
           exchangeRates={exchangeRates}
@@ -544,6 +546,7 @@ export default function InteractiveSearchMap({
       onListingMarkerClick,
       onListingOpen,
       onListingPopupOpen,
+      onListingPopupClose,
       initialDates,
     ],
   )
@@ -568,11 +571,17 @@ export default function InteractiveSearchMap({
   }
 
   return (
-    <div className="relative h-full w-full min-h-[300px]">
+    <div
+      className={`relative h-full w-full min-h-[300px]${
+        selectedListingId ? ' catalog-map--pin-selected' : ''
+      }`}
+    >
       <MapContainer
         center={center}
         zoom={zoom}
-        className="absolute inset-0 z-0 h-full w-full rounded-lg"
+        className={`absolute inset-0 z-0 h-full w-full rounded-lg${
+          selectedListingId ? ' catalog-map-leaflet--pin-selected' : ''
+        }`}
         scrollWheelZoom
         touchZoom
         dragging

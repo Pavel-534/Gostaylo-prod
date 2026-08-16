@@ -424,6 +424,12 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   border-color: #0f172a;
 }
 
+.gostaylo-price-pill--hovered {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
 .gostaylo-price-pill--selected {
   background: #0f172a;
   color: #ffffff;

@@ -44,6 +44,7 @@ function CatalogSearchMapPanelComponent({
   onListingMarkerClick,
   onListingOpen = null,
   onListingPopupOpen = null,
+  onListingPopupClose = null,
   onMapBackgroundClick = null,
   onSearchThisArea,
   mapBoundsLocked = false,
@@ -126,6 +127,7 @@ function CatalogSearchMapPanelComponent({
           onListingMarkerClick={onListingMarkerClick}
           onListingOpen={onListingOpen}
           onListingPopupOpen={onListingPopupOpen}
+          onListingPopupClose={onListingPopupClose}
           onMapBackgroundClick={onMapBackgroundClick}
           onSearchThisArea={onSearchThisArea}
           mapBoundsLocked={mapBoundsLocked}

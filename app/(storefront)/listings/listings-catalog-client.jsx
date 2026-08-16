@@ -231,11 +231,18 @@ function ListingsContent() {
     (id) => {
       const listingId = String(id || '').trim()
       if (!listingId) return
+      setMapSelectedListingId(listingId)
+      setMapHoveredListingId(null)
       prefetchListingPdp(router, listingId)
       prefetchListingDetail(listingId, { intent: 'touch' })
     },
     [prefetchListingDetail, router],
   )
+
+  const handleMapListingPopupClose = useCallback((id) => {
+    const listingId = String(id || '').trim()
+    setMapSelectedListingId((prev) => (prev && String(prev) === listingId ? null : prev))
+  }, [])
 
   const handleMapRailActiveChange = useCallback((id) => {
     setMapSelectedListingId(id)
@@ -508,10 +515,11 @@ function ListingsContent() {
       exchangeRates,
       initialDates: cardDates,
       selectedListingId: mapSelectedListingId,
-      hoveredListingId: mapHoveredListingId,
+      hoveredListingId: mapSelectedListingId ? null : mapHoveredListingId,
       onListingMarkerClick: handleListingMarkerClick,
       onListingOpen: handleMapListingOpen,
       onListingPopupOpen: handleMapListingPopupOpen,
+      onListingPopupClose: handleMapListingPopupClose,
       onMapBackgroundClick: handleMapBackgroundClick,
       onSearchThisArea: handleSearchThisArea,
       mapBoundsLocked: !!appliedBbox,
@@ -539,6 +547,7 @@ function ListingsContent() {
       handleListingMarkerClick,
       handleMapListingOpen,
       handleMapListingPopupOpen,
+      handleMapListingPopupClose,
       handleMapBackgroundClick,
       handleSearchThisArea,
       handleClearMapBounds,
@@ -765,10 +774,11 @@ function ListingsContent() {
             exchangeRates={exchangeRates}
             initialDates={cardDates}
             selectedListingId={mapSelectedListingId}
-            hoveredListingId={mapHoveredListingId}
+            hoveredListingId={mapSelectedListingId ? null : mapHoveredListingId}
             onListingMarkerClick={handleListingMarkerClick}
             onListingOpen={handleMapListingOpen}
             onListingPopupOpen={handleMapListingPopupOpen}
+            onListingPopupClose={handleMapListingPopupClose}
             onMapBackgroundClick={handleMapBackgroundClick}
             onSearchThisArea={handleSearchThisArea}
             mapBoundsLocked={!!appliedBbox}

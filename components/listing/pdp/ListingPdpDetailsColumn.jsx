@@ -25,7 +25,7 @@ function ListingPdpDetailsColumnInner({
   chatPreviewProps,
 }) {
   return (
-    <div className="lg:col-span-2 space-y-8">
+    <div className="lg:col-span-2 min-w-0 space-y-8 overflow-x-clip">
       <ListingHeroHeadline listing={listing} language={language} />
       <Separator />
       {/* Stage 191.0 — reviews above description/map for trust CRO */}

@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * Маркер каталога: ценовая пилюля + Popup (**`ListingPopupCard`** или lazy **`ListingMapPopupLazy`**).
- * SSOT пилюли: **`createLeafletPricePillDivIcon`** (**`lib/maps/map-provider-adapter.js`**).
- * Stage 201.74 — prefetch on popup open; client open via onOpenListing.
+ * Маркер каталога: ценовая пилюля + Popup.
+ * Stage 201.76 — highlight via DOM class (no DivIcon recreate → no popup blink on list hover).
  */
 
 import { useMemo, useState, useRef, useEffect } from 'react'
@@ -16,21 +15,23 @@ import { ListingMapPopupLazy } from '@/components/listing/ListingMapPopupLazy'
 
 /**
  * @param {object} props
- * @param {Record<string, unknown>} [props.listing] — полный листинг (fallback / legacy)
- * @param {{ id: string, lat?: number, lng?: number, price?: number|null }} [props.pin] — lean pin (Stage 163.1)
+ * @param {Record<string, unknown>} [props.listing]
+ * @param {{ id: string, lat?: number, lng?: number, price?: number|null }} [props.pin]
  * @param {[number,number]} props.position
  * @param {string} props.priceLabel
  * @param {boolean} props.approximate
- * @param {boolean} props.selected
+ * @param {boolean} props.selected — pin with open popup / catalog selection
+ * @param {boolean} [props.hovered] — list hover highlight (ignored when selected)
  * @param {string} [props.language]
  * @param {(id: string) => void} [props.onSelect]
  * @param {(id: string) => void} [props.onOpenListing]
  * @param {(id: string) => void} [props.onPopupOpen]
+ * @param {(id: string) => void} [props.onPopupClose]
  * @param {object|null} [props.initialDates]
  * @param {string} [props.currency]
  * @param {Record<string, number>} [props.exchangeRates]
  * @param {boolean} [props.lazyPopup]
- * @param {number} [props.zIndexOffset] — extra stack above clusters (Stage 171.14)
+ * @param {number} [props.zIndexOffset]
  */
 export function ListingPriceMarker({
   listing = null,
@@ -39,10 +40,12 @@ export function ListingPriceMarker({
   priceLabel,
   approximate,
   selected,
+  hovered = false,
   language = 'ru',
   onSelect,
   onOpenListing = null,
   onPopupOpen = null,
+  onPopupClose = null,
   initialDates = null,
   currency = 'THB',
   exchangeRates = { THB: 1 },
@@ -57,15 +60,31 @@ export function ListingPriceMarker({
   const useLazyPopup = lazyPopup && !hasFullListing && Boolean(listingId)
 
   const gslVerified = listing ? listingQualifiesForTrustVerifiedMiniBadge(listing) : false
-  const icon = useMemo(
-    () => createLeafletPricePillDivIcon(L, priceLabel, { selected }),
-    [priceLabel, selected],
-  )
+  // Icon identity depends only on price label — never on hover/selected (avoids setIcon blink).
+  const icon = useMemo(() => createLeafletPricePillDivIcon(L, priceLabel), [priceLabel])
+
+  useEffect(() => {
+    const root = markerRef.current?.getElement?.()
+    if (!root) return
+    const pill = root.querySelector('.gostaylo-price-pill')
+    if (!pill) return
+    const isSelected = Boolean(selected)
+    const isHovered = Boolean(hovered) && !isSelected
+    pill.classList.toggle('gostaylo-price-pill--selected', isSelected)
+    pill.classList.toggle('gostaylo-price-pill--hovered', isHovered)
+  }, [selected, hovered, priceLabel, icon])
 
   useEffect(() => {
     if (!popupOpen || !listingId) return
     onPopupOpen?.(listingId)
   }, [popupOpen, listingId, onPopupOpen])
+
+  // Selection moved to another pin → close this popup (no orphan ghost card).
+  useEffect(() => {
+    if (!popupOpen) return
+    if (selected) return
+    markerRef.current?.closePopup?.()
+  }, [selected, popupOpen])
 
   return (
     <Marker
@@ -80,14 +99,19 @@ export function ListingPriceMarker({
           markerRef.current?.openPopup()
         },
         popupopen: () => setPopupOpen(true),
-        popupclose: () => setPopupOpen(false),
+        popupclose: () => {
+          setPopupOpen(false)
+          if (listingId) onPopupClose?.(listingId)
+        },
       }}
     >
       <Popup
         autoPan
-        autoPanPadding={[48, 48]}
-        keepInView
+        autoPanPadding={[56, 56]}
+        keepInView={false}
         className="map-listing-popup"
+        autoClose={false}
+        closeOnClick={false}
       >
         {useLazyPopup ? (
           <ListingMapPopupLazy

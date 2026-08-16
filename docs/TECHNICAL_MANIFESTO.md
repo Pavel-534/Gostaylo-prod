@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.179 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.74** map popup nav + soft-back.
+> **Version**: 13.2.181 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.76** map popup hover blink.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,16 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.76 — catalog map popup blink on list hover
+
+- Price-pill `DivIcon` no longer encodes selected/hover (Leaflet `setIcon` was remounting the open popup → ghost card).
+- Highlight toggles CSS classes on the existing pill DOM; while a pin is selected, list hover is not fed to the map; popup `keepInView` off; opaque popup chrome.
+
+### Stage 201.75 — PDP description overflow (long unbreakable tokens)
+
+- Guest description: `break-words` + `[overflow-wrap:anywhere]` + column/main `min-w-0 overflow-x-clip` so keyboard-mash / URL tokens cannot stretch the PDP to multi-viewport width.
+- Root cause example: `metadata.description_translations.ru` overrides canon `listings.description` via `getListingText` — junk i18n must not break layout.
 
 ### Stage 201.74 — map popup CTA + seamless catalog↔PDP
 

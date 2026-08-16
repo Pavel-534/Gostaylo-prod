@@ -96,7 +96,7 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
     <div className="space-y-0">
       <div>
         <h2 className="text-2xl font-medium tracking-tight mb-4">{getUIText('description', language)}</h2>
-        <p className="text-base leading-relaxed text-slate-600 whitespace-pre-wrap">
+        <p className="min-w-0 max-w-full break-words text-base leading-relaxed text-slate-600 whitespace-pre-wrap [overflow-wrap:anywhere]">
           {getListingText(listing, 'description', language) || listing.description}
         </p>
       </div>

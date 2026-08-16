@@ -220,7 +220,7 @@ function ListingPdpContent({ listingId, lang }) {
           onFavorite={handleFavoriteClick}
         />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 app-pad-mobile-booking-chrome">
+        <main className="mx-auto max-w-7xl min-w-0 overflow-x-clip px-4 py-8 sm:px-6 lg:px-8 app-pad-mobile-booking-chrome">
           <GuestBookingFlowHint
             t={(key) => getUIText(key, language)}
             className="mb-4 max-w-2xl"
