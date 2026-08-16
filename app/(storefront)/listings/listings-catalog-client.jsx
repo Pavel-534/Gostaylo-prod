@@ -78,7 +78,7 @@ function ListingsContent() {
   const { prefetchListingDetail, cancelListingDetailPrefetch } = useListingDetailPrefetch()
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
-  const [showMap, setShowMap] = useState(false)
+  const [showMap, setShowMap] = useState(() => searchParams.get('map') === '1')
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
@@ -217,17 +217,7 @@ function ListingsContent() {
     commitToUrl({ appliedBbox: null, useDebounced: true })
   }, [commitToUrl])
 
-  const handleListingMarkerClick = useCallback((id) => {
-    setMapSelectedListingId(id)
-    setMapHoveredListingId(null)
-  }, [])
-
-  const handleMapBackgroundClick = useCallback(() => {
-    setMapSelectedListingId(null)
-    setMapHoveredListingId(null)
-  }, [])
-
-  const handleMapListingPopupOpen = useCallback(
+  const handleListingMarkerClick = useCallback(
     (id) => {
       const listingId = String(id || '').trim()
       if (!listingId) return
@@ -239,15 +229,22 @@ function ListingsContent() {
     [prefetchListingDetail, router],
   )
 
-  const handleMapListingPopupClose = useCallback((id) => {
-    const listingId = String(id || '').trim()
-    setMapSelectedListingId((prev) => (prev && String(prev) === listingId ? null : prev))
-  }, [])
-
-  const handleMapRailActiveChange = useCallback((id) => {
-    setMapSelectedListingId(id)
+  const handleMapBackgroundClick = useCallback(() => {
+    setMapSelectedListingId(null)
     setMapHoveredListingId(null)
   }, [])
+
+  const handleMapRailActiveChange = useCallback(
+    (id) => {
+      const listingId = String(id || '').trim()
+      if (!listingId) return
+      setMapSelectedListingId(listingId)
+      setMapHoveredListingId(null)
+      prefetchListingPdp(router, listingId)
+      prefetchListingDetail(listingId, { intent: 'touch' })
+    },
+    [prefetchListingDetail, router],
+  )
 
   const handleMapListingOpen = useCallback(
     (id) => {
@@ -436,6 +433,27 @@ function ListingsContent() {
     })
   }, [isMobile])
 
+  // Soft-back / share: `?map=1` restores the mobile map sheet (SSOT in URL).
+  useEffect(() => {
+    if (!isMobile) return
+    const open = searchParams.get('map') === '1'
+    setShowMap((prev) => (prev === open ? prev : open))
+  }, [isMobile, searchParamsKey, searchParams])
+
+  // Keep `map=1` in the catalog query so PDP soft-back returns to the open map, not the list.
+  useEffect(() => {
+    if (!isMobile) return
+    const cur = searchParams.get('map') === '1'
+    if (cur === showMap) return
+    const sp = new URLSearchParams(searchParams.toString())
+    if (showMap) sp.set('map', '1')
+    else sp.delete('map')
+    const qs = sp.toString()
+    lastPushedSearchRef.current = qs
+    syncLastPushedQuery(qs)
+    router.replace(qs ? `/listings?${qs}` : '/listings', { scroll: false })
+  }, [showMap, isMobile, searchParams, searchParamsKey, syncLastPushedQuery, router])
+
   const clearDates = () => setDateRange({ from: null, to: null })
 
   const handleFavorite = async (listingId, newIsFavorite) => {
@@ -518,8 +536,6 @@ function ListingsContent() {
       hoveredListingId: mapSelectedListingId ? null : mapHoveredListingId,
       onListingMarkerClick: handleListingMarkerClick,
       onListingOpen: handleMapListingOpen,
-      onListingPopupOpen: handleMapListingPopupOpen,
-      onListingPopupClose: handleMapListingPopupClose,
       onMapBackgroundClick: handleMapBackgroundClick,
       onSearchThisArea: handleSearchThisArea,
       mapBoundsLocked: !!appliedBbox,
@@ -546,8 +562,6 @@ function ListingsContent() {
       mapHoveredListingId,
       handleListingMarkerClick,
       handleMapListingOpen,
-      handleMapListingPopupOpen,
-      handleMapListingPopupClose,
       handleMapBackgroundClick,
       handleSearchThisArea,
       handleClearMapBounds,
@@ -777,8 +791,6 @@ function ListingsContent() {
             hoveredListingId={mapSelectedListingId ? null : mapHoveredListingId}
             onListingMarkerClick={handleListingMarkerClick}
             onListingOpen={handleMapListingOpen}
-            onListingPopupOpen={handleMapListingPopupOpen}
-            onListingPopupClose={handleMapListingPopupClose}
             onMapBackgroundClick={handleMapBackgroundClick}
             onSearchThisArea={handleSearchThisArea}
             mapBoundsLocked={!!appliedBbox}
@@ -800,7 +812,8 @@ function ListingsContent() {
           listings: allListings,
           activeListingId: mapSelectedListingId,
           onActiveListingChange: handleMapRailActiveChange,
-          onListingOpen: handleMapListingOpen,
+          // Tap rail card → select pin + open map popup (PDP only via popup CTA).
+          onListingOpen: handleMapRailActiveChange,
           language,
           currency,
           exchangeRates,

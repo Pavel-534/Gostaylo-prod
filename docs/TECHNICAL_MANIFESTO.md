@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.181 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.76** map popup hover blink.
+> **Version**: 13.2.182 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.77** mobile map popup SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.77 — mobile map popup / pin / soft-back SSOT
+
+- Popup is map-level (`CatalogMapSelectedPopup`), not a child of price `Marker` — pin remounts on pan/bbox no longer blink the card.
+- Price pills: default white (+ force-dark resist); **selected = brand teal** (not inverted black).
+- Mobile rail tap selects pin + opens popup; PDP only via popup CTA.
+- Catalog URL `?map=1` syncs mobile map sheet so soft-back returns to the open map, not the list.
 
 ### Stage 201.76 — catalog map popup blink on list hover
 

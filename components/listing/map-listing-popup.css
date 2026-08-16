@@ -29,11 +29,18 @@
 .leaflet-popup.map-listing-popup .gsl-btn-brand,
 .leaflet-popup.map-listing-popup button.bg-brand {
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+.catalog-map-popup-host-icon {
+  background: transparent !important;
+  border: none !important;
 }
 
 /* While a pin is selected, ignore CSS :hover flash on other pills under/near the popup */
 .catalog-map-leaflet--pin-selected .gostaylo-price-pill:hover:not(.gostaylo-price-pill--selected) {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a;
+  border-color: #cbd5e1 !important;
 }

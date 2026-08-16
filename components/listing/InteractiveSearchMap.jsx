@@ -19,6 +19,7 @@ import '@/components/listing/map-listing-popup.css'
 import { createSearchMapClusterDivIcon } from '@/lib/maps/search-map-cluster-icon'
 import { Button } from '@/components/ui/button'
 import { ListingPriceMarker } from '@/components/listing/ListingPriceMarker'
+import { CatalogMapSelectedPopup } from '@/components/listing/CatalogMapSelectedPopup'
 import { MapServerClusterMarker } from '@/components/listing/MapServerClusterMarker'
 import { getUIText } from '@/lib/translations'
 import { formatPrice } from '@/lib/currency'
@@ -502,7 +503,6 @@ export default function InteractiveSearchMap({
       if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return null
       const listingMatch = listingsById.get(String(pin.id)) ?? null
       const pinId = String(pin.id)
-      // Selected = catalog selection / open popup pin. Hover never changes DivIcon (DOM class only).
       const isSelected = Boolean(selectedListingId) && pinId === String(selectedListingId)
       const isHovered =
         !selectedListingId && Boolean(hoveredListingId) && pinId === String(hoveredListingId)
@@ -520,18 +520,9 @@ export default function InteractiveSearchMap({
           pin={pin}
           position={position}
           priceLabel={priceText || '—'}
-          approximate={pin.isApproximate === true}
           selected={isSelected}
           hovered={isHovered}
-          language={language}
           onSelect={onListingMarkerClick}
-          onOpenListing={onListingOpen}
-          onPopupOpen={onListingPopupOpen}
-          onPopupClose={onListingPopupClose}
-          initialDates={initialDates}
-          currency={currency}
-          exchangeRates={exchangeRates}
-          lazyPopup={!listingMatch?.title}
           zIndexOffset={zIndexOffset}
         />
       )
@@ -544,12 +535,17 @@ export default function InteractiveSearchMap({
       selectedListingId,
       hoveredListingId,
       onListingMarkerClick,
-      onListingOpen,
-      onListingPopupOpen,
-      onListingPopupClose,
-      initialDates,
     ],
   )
+
+  const selectedPopupPin = useMemo(
+    () => resolveSelectedCatalogPin(selectedListingId, listings, mapPins),
+    [selectedListingId, listings, mapPins],
+  )
+
+  const selectedPopupListing = selectedPopupPin
+    ? listingsById.get(String(selectedPopupPin.id)) ?? null
+    : null
 
   const fitListings = useMemo(() => {
     if (effectivePins.length > 0) {
@@ -625,6 +621,18 @@ export default function InteractiveSearchMap({
           pins={effectivePins}
           listings={listings}
           selectionPanMode={selectionPanMode}
+        />
+
+        <CatalogMapSelectedPopup
+          pin={selectedPopupPin}
+          listing={selectedPopupListing}
+          open={Boolean(selectedPopupPin)}
+          language={language}
+          initialDates={initialDates}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          onOpenDetails={onListingOpen}
+          onClose={onMapBackgroundClick}
         />
 
         {useServerClusters ? (

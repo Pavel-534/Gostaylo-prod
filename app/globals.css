@@ -402,10 +402,14 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
-  color: #0f172a;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  box-shadow: none;
+  /* Resist Android/Samsung force-dark turning every pill black */
+  color-scheme: only light;
+  forced-color-adjust: none;
+  -webkit-text-fill-color: #0f172a;
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
   cursor: pointer;
   white-space: nowrap;
   font-family: system-ui, -apple-system, sans-serif;
@@ -415,30 +419,43 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
-.gostaylo-price-pill:hover {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
+@media (hover: hover) {
+  .gostaylo-price-pill:hover {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a;
+    border-color: #94a3b8 !important;
+  }
 }
 
 .gostaylo-price-pill--hovered {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a;
+  border-color: #64748b !important;
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.12);
 }
 
+/* Selected = brand (not inverted black) so it stays readable vs default white pills */
 .gostaylo-price-pill--selected {
-  background: #0f172a;
-  color: #ffffff;
-  border-color: #0f172a;
+  background: #006666 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  border-color: #005757 !important;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.95), 0 4px 12px rgb(0 102 102 / 0.35);
+  transform: scale(1.06);
 }
 
-.gostaylo-price-pill--selected:hover {
-  background: #020617;
-  border-color: #020617;
+@media (hover: hover) {
+  .gostaylo-price-pill--selected:hover {
+    background: #005757 !important;
+    border-color: #004f4f !important;
+  }
 }
 
 /* Stage 170.9 — PDP map pin (SVG divIcon, no broken leaflet PNG paths) */

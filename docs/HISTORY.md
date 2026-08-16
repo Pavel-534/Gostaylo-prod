@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.77 | 2026-08-16 | Map-level popup; brand selected pins; rail→popup; `?map=1` soft-back | Done |
 | 201.76 | 2026-08-16 | Map popup: no DivIcon thrash on list hover (DOM class highlight) | Done |
 | 201.75 | 2026-08-16 | PDP: break long unbreakable description tokens; clear Prado junk i18n | Done |
 | 201.74 | 2026-08-16 | Map popup white CTA; hover blink fix; client PDP nav + catalog return soft-back | Done |
