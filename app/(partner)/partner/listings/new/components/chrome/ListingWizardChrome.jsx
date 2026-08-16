@@ -14,7 +14,6 @@ export function ListingWizardChrome({
   currentStep,
   compactStepLine,
   headerTitle,
-  currentStepLabel,
   stepMarkerLabel,
   onStepSelect,
 }) {
@@ -23,7 +22,6 @@ export function ListingWizardChrome({
       <ListingWizardMobileChrome
         steps={steps}
         currentStep={currentStep}
-        currentStepLabel={currentStepLabel}
         stepMarkerLabel={stepMarkerLabel}
       />
 

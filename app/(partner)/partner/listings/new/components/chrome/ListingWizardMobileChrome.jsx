@@ -1,26 +1,28 @@
 'use client'
 
-import { ListingWizardMobileSlimHeader } from './ListingWizardMobileSlimHeader'
 import { ListingWizardMobileStepIndicator } from './ListingWizardMobileStepIndicator'
+import { ListingWizardMobileActionsFab } from './ListingWizardMobileActionsFab'
 import { WIZARD_MOBILE_CHROME_POSITION_CLASS } from './listing-wizard-layout'
 
 /**
- * Fixed mobile wizard chrome — slim header + step dots (replaces breadcrumbs + full header below sm).
+ * Fixed mobile wizard chrome — step dots under AppHeader + FAB actions (Stage 201.55).
+ * Soft-back / exit → AppHeader SSOT; bell + save → floating FABs like PDP heart.
  */
 export function ListingWizardMobileChrome({
   steps,
   currentStep,
-  currentStepLabel,
   stepMarkerLabel,
 }) {
   return (
-    <div className={`sm:hidden ${WIZARD_MOBILE_CHROME_POSITION_CLASS}`}>
-      <ListingWizardMobileSlimHeader currentStepLabel={currentStepLabel} />
-      <ListingWizardMobileStepIndicator
-        steps={steps}
-        currentStep={currentStep}
-        stepMarkerLabel={stepMarkerLabel}
-      />
-    </div>
+    <>
+      <div className={`sm:hidden ${WIZARD_MOBILE_CHROME_POSITION_CLASS}`}>
+        <ListingWizardMobileStepIndicator
+          steps={steps}
+          currentStep={currentStep}
+          stepMarkerLabel={stepMarkerLabel}
+        />
+      </div>
+      <ListingWizardMobileActionsFab />
+    </>
   )
 }

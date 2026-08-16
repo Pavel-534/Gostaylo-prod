@@ -2,27 +2,27 @@
   "name": "Airento",
   "short_name": "Airento",
   "description": "Airento — аренда жилья, транспорта, яхт и туров по миру. Онлайн-бронирование и эскроу.",
-  "_note": "Static fallback. Runtime SSOT: app/manifest.js (getSiteDisplayName). Icons from scripts/generate-brand-icons.py (source: public/brand/airento-mark.svg).",
+  "_note": "Static fallback. Runtime SSOT: app/manifest.js. Android splash icons: scripts/build-android-splash-icons.mjs",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#0c1623",
   "theme_color": "#0d9488",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icons/icon-android-splash-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/icon-android-splash-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable-512x512.png",
+      "src": "/icons/icon-android-splash-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -34,7 +34,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-1024x1024.png",
+      "src": "/icons/icon-android-splash-1024x1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"

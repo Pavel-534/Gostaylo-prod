@@ -19,9 +19,9 @@ describe('Stage 200.94 — partner section rhythm', () => {
     const layout = read(
       'app/(partner)/partner/listings/new/components/chrome/listing-wizard-layout.js',
     )
-    assert.match(layout, /WIZARD_MOBILE_CHROME_HEIGHT = '5\.75rem'/)
+    assert.match(layout, /WIZARD_MOBILE_CHROME_HEIGHT = '2\.75rem'/)
     assert.match(layout, /WIZARD_MOBILE_ACTION_BAR_HEIGHT = '5rem'/)
-    assert.match(layout, /pt-\[calc\(5\.75rem\+0\.75rem\)\]/)
+    assert.match(layout, /pt-\[calc\(2\.75rem\+0\.75rem\)\]/)
     assert.match(layout, /pb-\[calc\(5rem\+0\.5rem\+env\(safe-area-inset-bottom\)\)\]/)
   })
 

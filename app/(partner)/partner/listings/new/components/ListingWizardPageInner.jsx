@@ -165,7 +165,6 @@ export function ListingWizardPageInner() {
         currentStep={currentStep}
         compactStepLine={compactStepLine}
         headerTitle={headerTitle}
-        currentStepLabel={currentStepLabel}
         stepMarkerLabel={stepMarkerLabel}
         onStepSelect={setCurrentStep}
       />

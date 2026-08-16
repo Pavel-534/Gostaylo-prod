@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.160 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.54** favorites currency + spacing.
+> **Version**: 13.2.161 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.55** android splash + wizard FAB + vehicle year.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.55 — Android splash lockup + wizard FAB + vehicle year
+
+- Android/PWA splash: `icon-android-splash-*` (dark glow + lockup) via `scripts/build-android-splash-icons.mjs`; manifest `background_color` `#0c1623` (iOS apple-splash parity).
+- Listing wizard mobile: remove slim back/title bar; soft-back → `resolvePartnerSoftBack` → AppHeader; bell+save → fixed FABs (`ListingWizardMobileActionsFab`, like PDP heart).
+- `vehicle_year`: raw digits while typing; clamp 1985–2100 only on blur (fixes snap to 1985/2100).
 
 ### Stage 201.54 — renter favorites currency + spacing
 

@@ -9,10 +9,10 @@ export const WIZARD_COMPACT_STEP_BAR_POSITION_CLASS =
   'fixed left-0 right-0 top-[calc(var(--app-header-height,64px)+2.5rem)] z-50 w-full lg:left-64 lg:top-[calc(var(--app-header-height,64px)+3rem)]'
 
 /**
- * Fixed mobile chrome content height (slim header min-h-11 + step dots row).
- * Stage 200.94 — was 5rem; active-dot ring + py made content clip under progress.
+ * Fixed mobile chrome content height (step dots row only — Stage 201.55).
+ * Soft-back → AppHeader; bell/save → FABs. Was 5.75rem with slim header.
  */
-export const WIZARD_MOBILE_CHROME_HEIGHT = '5.75rem'
+export const WIZARD_MOBILE_CHROME_HEIGHT = '2.75rem'
 
 /** Gap between fixed chrome and first scroll content (Stage 200.94). */
 export const WIZARD_MOBILE_CHROME_CONTENT_GAP = '0.75rem'
@@ -41,7 +41,7 @@ export const LISTING_WIZARD_SCROLL_ATTR = 'data-listing-wizard-scroll'
  * (focus) but NOT padding-bottom — that double-pad left a huge void after short steps.
  */
 export const WIZARD_MOBILE_CHROME_PT_CLASS =
-  'max-sm:pt-[calc(5.75rem+0.75rem)]'
+  'max-sm:pt-[calc(2.75rem+0.75rem)]'
 export const WIZARD_MOBILE_CONTENT_PB_CLASS =
   'max-sm:pb-[calc(5rem+0.5rem+env(safe-area-inset-bottom))]'
 
@@ -50,7 +50,7 @@ export const WIZARD_MOBILE_CONTENT_PB_CLASS =
  * (Stage 200.97). Do not add padding-bottom here.
  */
 export const WIZARD_WORKSPACE_SCROLL_PAD_CLASS =
-  'max-sm:[scroll-padding-top:calc(5.75rem+0.75rem)] max-sm:[scroll-padding-bottom:calc(5rem+0.5rem+env(safe-area-inset-bottom))]'
+  'max-sm:[scroll-padding-top:calc(2.75rem+0.75rem)] max-sm:[scroll-padding-bottom:calc(5rem+0.5rem+env(safe-area-inset-bottom))]'
 
 /** Fixed mobile wizard chrome — directly below AppHeader. */
 export const WIZARD_MOBILE_CHROME_POSITION_CLASS =

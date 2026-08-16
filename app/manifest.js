@@ -1,10 +1,11 @@
 import { getPublicBrandDisplayName } from '@/lib/site-url'
 
 /**
- * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31).
+ * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31 / 201.55).
  * Splash / home-screen / share title: brand only (`Airento`) — no long tagline
  * (iOS Share sheet and Add to Home Screen otherwise pick up page title leftovers).
- * Icons: generated from public/brand/airento-mark.svg via scripts/generate-brand-icons.py
+ * Stage 201.55 — Android Chrome splash uses dark lockup icons (parity with iOS apple-splash).
+ * Light mark icons remain for apple-touch / favicons via layout links.
  */
 export default function manifest() {
   const brand = getPublicBrandDisplayName()
@@ -15,23 +16,38 @@ export default function manifest() {
     description: `${brand} — аренда жилья, транспорта, яхт и туров по миру. Онлайн-бронирование и эскроу.`,
     start_url: '/',
     display: 'standalone',
-    background_color: '#0f172a',
+    background_color: '#0c1623',
     theme_color: '#0d9488',
     orientation: 'portrait-primary',
     lang: 'ru',
     dir: 'ltr',
     scope: '/',
     icons: [
-      { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
       {
-        src: '/icons/icon-maskable-512x512.png',
+        src: '/icons/icon-android-splash-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-android-splash-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-android-splash-maskable-512x512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
       },
+      {
+        src: '/icons/icon-android-splash-1024x1024.png',
+        sizes: '1024x1024',
+        type: 'image/png',
+        purpose: 'any',
+      },
       { src: '/icons/icon-180x180.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
-      { src: '/icons/icon-1024x1024.png', sizes: '1024x1024', type: 'image/png', purpose: 'any' },
     ],
     categories: ['travel', 'lifestyle', 'business'],
     shortcuts: [

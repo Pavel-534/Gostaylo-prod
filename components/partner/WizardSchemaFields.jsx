@@ -161,6 +161,15 @@ function renderField(field, metadata, updateMetadata, t, language = 'ru') {
           autoComplete="off"
           value={field.optionalEmpty ? display : display || String(min)}
           onChange={(e) => {
+            // Year: keep raw digits while typing — clamp only on blur (Stage 201.55).
+            // Live clamp(min=1985) made "2"/"201" snap to 1985; overflow snapped to 2100.
+            if (field.yearBlur) {
+              const digits = String(e.target.value ?? '')
+                .replace(/\D/g, '')
+                .slice(0, 4)
+              updateMetadata(field.key, digits === '' ? '' : digits)
+              return
+            }
             if (field.optionalEmpty) {
               const v = clampIntFromDigits(e.target.value, min, max, undefined)
               if (v === undefined) updateMetadata(field.key, '')
