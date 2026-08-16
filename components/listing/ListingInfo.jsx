@@ -81,7 +81,7 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
         language={language}
         variant="pdp"
         suppressTrustVerifiedMiniBadge
-        className="py-4 border-y border-slate-100"
+        className="border-t border-slate-100 py-4"
       />
     </div>
   )

@@ -12,6 +12,8 @@ import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedR
 
 /**
  * PDP left column — isolated from booking date state to avoid calendar click re-renders (Stage 171.23).
+ * Stage 201.83 — section order: story (description/amenities) → trust (reviews) → place (map) → rails.
+ * Single Separator between blocks (hero specs no longer use border-b — avoids double rule).
  */
 function ListingPdpDetailsColumnInner({
   listing,
@@ -28,15 +30,14 @@ function ListingPdpDetailsColumnInner({
     <div className="lg:col-span-2 min-w-0 space-y-8 overflow-x-clip">
       <ListingHeroHeadline listing={listing} language={language} />
       <Separator />
-      {/* Stage 191.0 — reviews above description/map for trust CRO */}
-      <ListingReviews listing={listing} reviews={reviews} language={language} />
-      <Separator />
       <ListingDescription
         listing={listing}
         language={language}
         amenities={amenities}
         belowDescription={mobileBelow}
       />
+      <Separator />
+      <ListingReviews listing={listing} reviews={reviews} language={language} />
       <Separator />
       <ListingMap listing={listing} language={language} />
       <ListingChatPreview {...chatPreviewProps} />

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.83 | 2026-08-17 | PDP: remove double divider; reviews after description (not above-fold empty) | Done |
 | 201.82 | 2026-08-17 | Supply-first Where: hide 0-inventory popular; fix Чита label; no Phuket dump | Done |
 | 201.81 | 2026-08-16 | Soft-back from PDP restores map camera bbox (session), not world fit | Done |
 | 201.80 | 2026-08-16 | Hide keyword+AI search row; Airbnb What/Where/Dates/Guests; reactivate @≳1k | Done |

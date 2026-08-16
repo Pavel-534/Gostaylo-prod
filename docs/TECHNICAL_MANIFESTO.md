@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.187 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.82** supply-first «Куда?» discovery.
+> **Version**: 13.2.188 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.83** PDP section order + single divider.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.83 — PDP: one divider + reviews below description
+- Double rule above «Отзывы»: specs `border-b` + column `Separator` — specs now `border-t` only.
+- Section order (Airbnb-like): hero → description/amenities → reviews → map/chat → similar. Empty «Пока нет отзывов» no longer sits above the story. Header star link still jumps to `#reviews`.
 
 ### Stage 201.82 — supply-first «Куда?» (no ghost destinations)
 - **Problem:** empty Where drawer dumped Phuket districts + «Другое»; popular chips showed Bali/Abu Dhabi with 0 listings; recent «чита» stored as slug `chita`.
