@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.167 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.61** vehicle wizard copy + spinners.
+> **Version**: 13.2.168 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.62** wizard draft save leave.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.62 — wizard draft save leaves to listings (no second empty draft)
+
+- Bug: create-mode «Сохранить черновик» after category ensure POSTed a **second** listing, then `router.replace(/new?edit=…)` — felt stuck in wizard; leaving left an empty «Черновик» row.
+- Fix (`useListingSave`): PUT upsert `editId || draftListingIdRef`; always `router.push('/partner/listings')`; image migrate after leave.
 
 ### Stage 201.61 — vehicle wizard: drop housing/FX noise; split draft/publish spinners
 

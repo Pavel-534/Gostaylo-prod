@@ -557,7 +557,32 @@ export function useListingSave() {
         listingCategoryWizardProfile,
       )
 
-      if (isEditMode && editId) {
+      // Stage 201.62 — upsert the category/photo draft (ref or ?edit=); never POST a second row.
+      // Leave to /partner/listings immediately (image migrate runs after navigate).
+      const existingDraftId = String(editId || draftListingIdRef?.current || '').trim() || null
+
+      const leaveToPartnerListingsAfterDraftSave = (lid) => {
+        markWizardCleanForLeave?.()
+        clearWizardDraft()
+        if (draftListingIdRef) draftListingIdRef.current = null
+        toast.success(t('draftSaved'))
+        void invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(lid, geoForm))
+        router.push('/partner/listings')
+        if (!lid) return
+        void (async () => {
+          try {
+            const mig = await migrateExternalImagesAfterSave(lid, geoForm.images)
+            if (mig?.images?.length) {
+              const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
+              if (cover) await patchPartnerListingCoverImage(lid, cover)
+            }
+          } catch (e) {
+            console.warn('[wizard] post-draft-save image migrate:', e)
+          }
+        })()
+      }
+
+      if (existingDraftId) {
         const payload = {
           ...geoForm,
           ...bookingDaysPayload,
@@ -569,7 +594,7 @@ export function useListingSave() {
           images: geoForm.images,
           metadata: draftMeta,
         }
-        const res = await fetch(`/api/v2/partner/listings/${editId}`, {
+        const res = await fetch(`/api/v2/partner/listings/${encodeURIComponent(existingDraftId)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -577,17 +602,7 @@ export function useListingSave() {
         })
         const data = await res.json()
         if (data.success) {
-          const lid = editId
-          const mig = await migrateExternalImagesAfterSave(lid, geoForm.images)
-          if (mig?.images?.length) {
-            const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
-            if (cover) await patchPartnerListingCoverImage(lid, cover)
-          }
-          markWizardCleanForLeave?.()
-          clearWizardDraft()
-          toast.success(t('draftSaved'))
-          await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
-          router.push('/partner/listings')
+          leaveToPartnerListingsAfterDraftSave(existingDraftId)
         } else {
           toast.error(data.error || t('failedToLoadListing'))
         }
@@ -619,21 +634,7 @@ export function useListingSave() {
         })
         const data = await res.json().catch(() => ({}))
         if (data.success) {
-          const lid = data.data?.id
-          const mig = await migrateExternalImagesAfterSave(lid, geoForm.images)
-          if (mig?.images?.length) {
-            const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
-            if (cover) await patchPartnerListingCoverImage(lid, cover)
-          }
-          markWizardCleanForLeave?.()
-          clearWizardDraft()
-          toast.success(t('draftSaved'))
-          await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(lid, geoForm))
-          if (lid) {
-            router.replace(`/partner/listings/new?edit=${encodeURIComponent(lid)}`)
-          } else {
-            router.push('/partner/listings')
-          }
+          leaveToPartnerListingsAfterDraftSave(data.data?.id || null)
         } else {
           toast.error(data.error || t('failedToLoadListing'))
         }
@@ -644,13 +645,14 @@ export function useListingSave() {
       setSavingDraft(false)
     }
   }, [
+    draftListingIdRef,
     editId,
     formData,
     setFormData,
-    isEditMode,
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
+    markWizardCleanForLeave,
     queryClient,
     router,
     savePatchForEdit,
