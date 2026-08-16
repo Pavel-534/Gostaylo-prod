@@ -48,6 +48,25 @@ export function UserMenuDropdown() {
     router.push(href)
   }
 
+  /** Partner zone is middleware-guarded — refresh JWT (RENTER→PARTNER) then hard-nav (avoid poisoned prefetch). */
+  const navigatePartnerCabinet = async () => {
+    markPending('/partner/dashboard')
+    try {
+      const refreshed = await refreshUserFromServer?.()
+      if (refreshed === null) {
+        openLoginModal({ redirect: '/partner/dashboard' })
+        return
+      }
+    } catch {
+      /* transient — still attempt entry */
+    }
+    if (typeof window !== 'undefined') {
+      window.location.assign('/partner/dashboard')
+      return
+    }
+    router.push('/partner/dashboard')
+  }
+
   if (!user) {
     return (
       <Button
@@ -138,7 +157,7 @@ export function UserMenuDropdown() {
           <>
             <DropdownMenuSeparator />
             <div className="py-1">
-              <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/partner/dashboard')}>
+              <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => void navigatePartnerCabinet()}>
                 <Briefcase className="mr-3 h-4 w-4 text-brand" />
                 <span className="font-medium text-brand-hover">
                   {getUIText('userMenu_switchToPartnerCabinet', language)}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useAuth } from '@/contexts/auth-context'
 
 const PARTNER_PREFETCH_PATHS = [
   '/partner/dashboard',
@@ -11,10 +12,12 @@ const PARTNER_PREFETCH_PATHS = [
 
 /**
  * Prefetch partner workspace routes + navigate with visible pending state (PWA UX).
+ * Stage 201.56 — refresh session then hard-nav into /partner (middleware + stale JWT race).
  */
 export function usePartnerDashboardNav() {
   const router = useRouter()
   const pathname = usePathname()
+  const { refreshUserFromServer, openLoginModal } = useAuth()
   const [navigating, setNavigating] = useState(false)
 
   useEffect(() => {
@@ -24,6 +27,8 @@ export function usePartnerDashboardNav() {
   }, [pathname])
 
   useEffect(() => {
+    // Only prefetch when already inside partner shell (cookie already role-ok).
+    if (!pathname?.startsWith('/partner')) return
     for (const path of PARTNER_PREFETCH_PATHS) {
       try {
         router.prefetch(path)
@@ -31,13 +36,29 @@ export function usePartnerDashboardNav() {
         /* ignore */
       }
     }
-  }, [router])
+  }, [router, pathname])
 
   const goToPartnerDashboard = useCallback(() => {
     if (navigating) return
     setNavigating(true)
-    router.push('/partner/dashboard')
-  }, [navigating, router])
+    void (async () => {
+      try {
+        const refreshed = await refreshUserFromServer?.()
+        if (refreshed === null) {
+          setNavigating(false)
+          openLoginModal?.({ redirect: '/partner/dashboard' })
+          return
+        }
+      } catch {
+        /* transient */
+      }
+      if (typeof window !== 'undefined') {
+        window.location.assign('/partner/dashboard')
+        return
+      }
+      router.push('/partner/dashboard')
+    })()
+  }, [navigating, router, refreshUserFromServer, openLoginModal])
 
   return { goToPartnerDashboard, navigating }
 }

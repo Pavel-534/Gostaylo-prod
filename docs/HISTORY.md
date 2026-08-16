@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.56 | 2026-08-16 | Partner cabinet entry: no /partner menu prefetch; refresh JWT + hard-nav | Done |
 | 201.55 | 2026-08-16 | Android splash lockup icons; wizard soft-back + FAB bell/save; vehicle_year blur clamp | Done |
 | 201.54 | 2026-08-16 | Renter favorites: UI currency SSOT + drop min-h-screen void / stacked pad | Done |
 | 201.53 | 2026-08-16 | Drop legacy renter «Rentals worldwide» footer; keep pb-bottom-nav on main | Done |

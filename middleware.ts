@@ -225,15 +225,16 @@ export async function middleware(request: NextRequest) {
   }
 
   const allowedRoles = PROTECTED_ROUTES[matchedRoute as keyof typeof PROTECTED_ROUTES];
-  // `as const` tuples union makes `.includes` expect only roles present in *every* zone; widen for runtime check.
-  const roleOk = (allowedRoles as readonly string[]).includes(decoded.role);
+  // Normalize role — JWT should be UPPERCASE, but tolerate legacy/mixed case.
+  const role = String(decoded.role || '').toUpperCase();
+  const roleOk = (allowedRoles as readonly string[]).includes(role);
 
   if (!roleOk) {
     // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
     return withGeo(request, NextResponse.redirect(new URL('/', request.url)), nonce);
   }
 
-  if (decoded.role === 'MODERATOR') {
+  if (role === 'MODERATOR') {
     const restrictedPaths = [
       '/admin/finances',
       '/admin/users',

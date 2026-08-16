@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.161 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.55** android splash + wizard FAB + vehicle year.
+> **Version**: 13.2.162 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.56** partner cabinet entry.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.56 — partner cabinet entry (logged-in → auth bounce)
+
+- Bug: «Перейти в кабинет партнёра» opened `/auth/login` while UI still showed a logged-in partner. Causes: (1) `USER_MENU_PREFETCH_PATHS` prefetched `/partner/dashboard` → middleware login redirect poisoned App Router cache; (2) stale JWT role `RENTER` after DB upgrade to `PARTNER` until `/api/v2/auth/me` refreshed the cookie.
+- Fix: drop `/partner` from user-menu prefetch; menu + `usePartnerDashboardNav` await `refreshUserFromServer` then `location.assign('/partner/dashboard')`; middleware uppercases JWT role.
 
 ### Stage 201.55 — Android splash lockup + wizard FAB + vehicle year
 
