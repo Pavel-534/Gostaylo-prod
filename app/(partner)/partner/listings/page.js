@@ -21,15 +21,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import {
-  MOBILE_FLAT_CARD_CLASS,
-  MOBILE_FLAT_INSET_CLASS,
-} from '@/lib/ui/mobile-flat-canvas'
+import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { WorkspaceEmptyState } from '@/components/empty-state'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-  PARTNER_HUB_SOFT_CARD_PAD_CLASS,
   PARTNER_LISTING_CARD_SURFACE_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
@@ -312,16 +308,13 @@ export default function PartnerListings() {
     }
   }
 
-  // Stats always from live (non-trash) list — Stage 200.130
+  // Live (non-trash) counts for header / draft banners — Stage 200.130; grid KPI removed 201.63
   const stats = {
     total: activeListings.length,
-    active: activeListings.filter((l) => l.status === 'ACTIVE').length,
     drafts: activeListings.filter(
       (l) => l.metadata?.is_draft === true || l.metadata?.is_draft === 'true',
     ).length,
     conciergeDrafts: countConciergeDraftListings(activeListings),
-    views: activeListings.reduce((sum, l) => sum + (l.views || 0), 0),
-    bookings: activeListings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
   }
 
   async function setListingOnSite(listing, onSite) {
@@ -521,58 +514,6 @@ export default function PartnerListings() {
             </Button>
           </div>
         ) : null}
-      </section>
-
-      <PartnerSectionDivider />
-
-      <section data-partner-section='listings-stats' className='space-y-3 px-4'>
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionStats')}</h2>
-        <div className='grid grid-cols-2 gap-2.5 max-sm:py-0 sm:py-1'>
-          <div
-            className={cn(
-              MOBILE_FLAT_INSET_CLASS,
-              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
-              'sm:bg-white',
-            )}
-          >
-            <div className='text-xl font-bold text-slate-900'>{stats.total}</div>
-            <div className='text-xs text-slate-500'>{t('partnerListings_statTotal')}</div>
-          </div>
-          <div
-            className={cn(
-              MOBILE_FLAT_INSET_CLASS,
-              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
-              'sm:bg-white',
-            )}
-          >
-            <div className='text-xl font-bold text-brand'>{stats.active}</div>
-            <div className='text-xs text-slate-500'>{t('partnerListings_statActive')}</div>
-          </div>
-          <div
-            className={cn(
-              MOBILE_FLAT_INSET_CLASS,
-              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
-              'sm:bg-white',
-            )}
-          >
-            <div className='text-xl font-bold text-slate-900'>{stats.views}</div>
-            <div className='text-xs text-slate-500'>{t('partnerListings_statViews')}</div>
-          </div>
-          <div
-            className={cn(
-              MOBILE_FLAT_INSET_CLASS,
-              PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
-              PARTNER_HUB_SOFT_CARD_PAD_CLASS,
-              'sm:bg-white',
-            )}
-          >
-            <div className='text-xl font-bold text-slate-900'>{stats.bookings}</div>
-            <div className='text-xs text-slate-500'>{t('partnerListings_statBookings')}</div>
-          </div>
-        </div>
       </section>
 
       <PartnerSectionDivider />

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.64 | 2026-08-16 | Wizard: partial draft save (no geo gates); no ghost draft on category | Done |
+| 201.63 | 2026-08-16 | Partner listings: remove KPI summary grid (list-first mobile) | Done |
 | 201.62 | 2026-08-16 | Wizard draft save: upsert category draft, leave to /partner/listings (no orphan) | Done |
 | 201.61 | 2026-08-16 | Vehicle wizard: no Airbnb/iCal/FX partner noise; draft vs publish spinners | Done |
 | 201.60 | 2026-08-16 | Android splash: large mark on white plate; partner mobile toolbar → notification FAB | Done |

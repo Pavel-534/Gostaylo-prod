@@ -143,6 +143,29 @@ function coordsPayloadFromForm(geoForm) {
   return {}
 }
 
+/** Stage 201.64 — partial draft: only send geo when country is a real ISO code. */
+function optionalDraftGeoFields(form) {
+  const country = String(form?.country || '')
+    .trim()
+    .toUpperCase()
+    .slice(0, 2)
+  const out = { ...coordsPayloadFromForm(form) }
+  if (!/^[A-Z]{2}$/.test(country)) return out
+  out.country = country
+  const region = String(form?.region || '').trim()
+  const city = String(form?.city || form?.metadata?.city || '').trim()
+  const district = String(form?.district || '').trim()
+  if (region) out.region = region
+  if (city) out.city = city
+  if (district) out.district = district
+  return out
+}
+
+function isWizardServerDraft(serverListing, formData) {
+  const m = serverListing?.metadata || formData?.metadata || {}
+  return m.is_draft === true || m.is_draft === 'true'
+}
+
 async function invalidatePartnerListingsCache(queryClient, opts = {}) {
   try {
     await refreshPartnerListingsAfterSave(queryClient, opts)
@@ -517,7 +540,8 @@ export function useListingSave() {
   ])
 
   const saveDraft = useCallback(async () => {
-    if (wizardMode === 'edit') {
+    // Stage 201.64 — published edit still uses full patch; drafts (create or edit) are partial.
+    if (wizardMode === 'edit' && isEditMode && !isWizardServerDraft(serverListing, formData)) {
       return savePatchForEdit()
     }
     setSavingDraft(true)
@@ -527,13 +551,17 @@ export function useListingSave() {
         toast.error(t('pleaseLogIn'))
         return
       }
-      const geoForm =
-        String(formData.country || '').trim() &&
-        (String(formData.city || '').trim() ||
-          String(formData.metadata?.city_label || formData.metadata?.city || '').trim())
-          ? await resolveFormDataWithProvisionalCity(formData, setFormData, t)
-          : formData
-      if (!geoForm) return
+
+      // Never run provisional city / country gates for draft — partner may leave mid-wizard.
+      const geoForm = formData
+      const existingDraftId = String(editId || draftListingIdRef?.current || '').trim() || null
+      if (!existingDraftId && !String(geoForm.categoryId || '').trim()) {
+        toast.error(
+          t('partnerWizard_selectCategoryBeforePhotos') ||
+            'Сначала выберите категорию на шаге «Основное»',
+        )
+        return
+      }
 
       const categorySlug = listingCategorySlug
       const tourCat =
@@ -556,10 +584,7 @@ export function useListingSave() {
         geoForm.categoryName || '',
         listingCategoryWizardProfile,
       )
-
-      // Stage 201.62 — upsert the category/photo draft (ref or ?edit=); never POST a second row.
-      // Leave to /partner/listings immediately (image migrate runs after navigate).
-      const existingDraftId = String(editId || draftListingIdRef?.current || '').trim() || null
+      const geoFields = optionalDraftGeoFields(geoForm)
 
       const leaveToPartnerListingsAfterDraftSave = (lid) => {
         markWizardCleanForLeave?.()
@@ -584,15 +609,18 @@ export function useListingSave() {
 
       if (existingDraftId) {
         const payload = {
-          ...geoForm,
-          ...bookingDaysPayload,
+          title: geoForm.title || t('draftDefaultTitle'),
           description: descriptionDb,
-          status: geoForm.status || 'INACTIVE',
+          status: 'INACTIVE',
           available: false,
           basePriceThb: parseFloat(String(geoForm.basePriceThb)) || 0,
           baseCurrency: geoForm.baseCurrency || 'THB',
-          images: geoForm.images,
+          images: geoForm.images || [],
+          categoryId: geoForm.categoryId || undefined,
           metadata: draftMeta,
+          instantBooking: geoForm.instantBooking === true,
+          ...bookingDaysPayload,
+          ...geoFields,
         }
         const res = await fetch(`/api/v2/partner/listings/${encodeURIComponent(existingDraftId)}`, {
           method: 'PUT',
@@ -600,7 +628,7 @@ export function useListingSave() {
           credentials: 'include',
           body: JSON.stringify(payload),
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         if (data.success) {
           leaveToPartnerListingsAfterDraftSave(existingDraftId)
         } else {
@@ -612,11 +640,6 @@ export function useListingSave() {
           categoryId: geoForm.categoryId,
           title: geoForm.title || t('draftDefaultTitle'),
           description: descriptionDb,
-          country: geoForm.country || undefined,
-          region: geoForm.region || undefined,
-          city: geoForm.city || undefined,
-          district: geoForm.district || '',
-          ...coordsPayloadFromForm(geoForm),
           basePriceThb: (() => {
             const n = parseFloat(String(geoForm.basePriceThb ?? '').replace(',', '.'))
             return Number.isFinite(n) && n >= 0 ? n : 0
@@ -625,6 +648,7 @@ export function useListingSave() {
           images: geoForm.images || [],
           metadata: draftMeta,
           instantBooking: geoForm.instantBooking === true,
+          ...geoFields,
         }
         const res = await fetch('/api/v2/partner/listings', {
           method: 'POST',
@@ -648,7 +672,7 @@ export function useListingSave() {
     draftListingIdRef,
     editId,
     formData,
-    setFormData,
+    isEditMode,
     language,
     listingCategorySlug,
     listingCategoryWizardProfile,
@@ -656,6 +680,7 @@ export function useListingSave() {
     queryClient,
     router,
     savePatchForEdit,
+    serverListing,
     setSavingDraft,
     t,
     wizardMode,

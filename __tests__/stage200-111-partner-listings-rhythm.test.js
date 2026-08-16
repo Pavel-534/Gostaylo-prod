@@ -22,8 +22,8 @@ describe('Stage 200.111 — partner listings list rhythm', () => {
     assert.match(page, /PARTNER_HUB_LIST_CARD_SURFACE_CLASS/)
     assert.match(page, /PARTNER_LISTING_CARD_SURFACE_CLASS/)
     assert.match(page, /listings-filters/)
-    assert.match(page, /listings-stats/)
     assert.match(page, /listings-list/)
+    assert.doesNotMatch(page, /listings-stats/)
     assert.match(page, /usePartnerListings/)
     assert.match(page, /usePartnerListingPatch/)
     assert.match(page, /usePartnerListingDelete/)
@@ -35,11 +35,7 @@ describe('Stage 200.111 — partner listings list rhythm', () => {
 
   it('section i18n keys exist for ru/en', () => {
     const i18n = read('lib/translations/slices/partner-ui.js')
-    for (const key of [
-      'partnerListings_sectionFilters',
-      'partnerListings_sectionStats',
-      'partnerListings_sectionList',
-    ]) {
+    for (const key of ['partnerListings_sectionFilters', 'partnerListings_sectionList']) {
       assert.ok(i18n.includes(`${key}:`), `missing ${key}`)
     }
   })

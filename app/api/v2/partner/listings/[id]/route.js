@@ -323,10 +323,12 @@ export async function PATCH(request, context) {
     );
   };
   const bodyHasCoords = hasFiniteCoords(body.latitude, body.longitude);
+  const nonEmptyGeo = (v) => v != null && String(v).trim() !== '';
+  // Stage 201.64 — blank country/city on partial draft must not trip GEO_COUNTRY_REQUIRED
   const geoTouched =
-    body.country != null ||
-    body.region != null ||
-    body.city != null ||
+    nonEmptyGeo(body.country) ||
+    nonEmptyGeo(body.region) ||
+    nonEmptyGeo(body.city) ||
     body.latitude !== undefined ||
     body.longitude !== undefined;
   if (publishing || geoTouched) {
@@ -336,7 +338,7 @@ export async function PATCH(request, context) {
       cityCode: updateData.city_code ?? existing.city_code,
       latitude: updateData.latitude !== undefined ? updateData.latitude : existing.latitude,
       longitude: updateData.longitude !== undefined ? updateData.longitude : existing.longitude,
-      requireCountry: publishing || body.country != null,
+      requireCountry: publishing || nonEmptyGeo(body.country),
       // Stage 200.86 — null lat/lng on draft saves must not block price/currency PATCH
       requireCoords: publishing || bodyHasCoords,
     });

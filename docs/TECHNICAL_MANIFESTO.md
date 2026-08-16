@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.168 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.62** wizard draft save leave.
+> **Version**: 13.2.170 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.64** partial draft save.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,15 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.64 — partial draft save (leave mid-wizard)
+
+- Problem: «Сохранить черновик» required country/city (edit → `savePatchForEdit`); localStorage resume looked like a draft but not in list; category POST created empty «Черновик» ghosts.
+- Fix: draft save skips provisional geo; optional ISO country only; edit drafts use same path; no server row on category (photo/calendar/Save only); resume banner explains device-local vs Save → list.
+
+### Stage 201.63 — partner listings: drop summary KPI grid
+
+- `/partner/listings`: remove «Сводка» 2×2 cards (total/active/views/bookings). List is primary; per-card `views` remains. Full partner analytics = separate backlog (Обзор / future Insights).
 
 ### Stage 201.62 — wizard draft save leaves to listings (no second empty draft)
 

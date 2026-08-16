@@ -21,7 +21,6 @@ import { applyDurationDiscountField } from '@/lib/partner/duration-discount-help
 import { mergeWizardFormGeoFromPin } from '@/lib/geo/wizard-geo-from-pin'
 import {
   ensureWizardDraftListing,
-  shouldCreateWizardDraftOnCategory,
 } from '@/lib/partner/ensure-wizard-draft-listing'
 import { saveWizardDraft } from '@/lib/partner/wizard-draft-storage'
 import { buildWizardFormDataFromListing } from './listing-wizard-load-existing'
@@ -297,20 +296,9 @@ export function useListingWizardActions(state, derived) {
         return next
       })
 
-      // Stage 200.20 — draft right after category (create mode only).
-      const existingId = editId || draftListingIdRef.current
-      if (
-        shouldCreateWizardDraftOnCategory({
-          existingListingId: existingId,
-          categoryId: value,
-        }) &&
-        snapshotForDraft
-      ) {
-        void resolveOrCreateWizardDraft(snapshotForDraft, {
-          silentCategoryToast: true,
-          updateUrl: false,
-        })
-      } else if (value && draftListingIdRef.current && !editId) {
+      // Stage 201.64 — no server draft on category alone (ghost empty rows).
+      // Photos / calendar / Save draft call resolveOrCreateWizardDraft.
+      if (value && draftListingIdRef.current && !editId) {
         // Category switch on an existing create-mode draft — keep row in sync.
         void fetch(`/api/v2/partner/listings/${encodeURIComponent(draftListingIdRef.current)}`, {
           method: 'PATCH',
@@ -339,7 +327,7 @@ export function useListingWizardActions(state, derived) {
           })
       }
     },
-    [categories, setFormData, editId, draftListingIdRef, resolveOrCreateWizardDraft, t],
+    [categories, setFormData, editId, draftListingIdRef, t],
   )
 
   const loadExistingListing = useCallback(

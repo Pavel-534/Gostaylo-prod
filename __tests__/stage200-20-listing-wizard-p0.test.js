@@ -57,14 +57,14 @@ describe('Stage 200.20 — mergeDescriptionTranslationsForSave (no silent copy-f
   })
 })
 
-describe('Stage 200.20 — draft after category', () => {
-  it('shouldCreateWizardDraftOnCategory requires category and no existing id', async () => {
+describe('Stage 200.20 / 201.64 — draft after category deferred', () => {
+  it('shouldCreateWizardDraftOnCategory is always false (no ghost rows)', async () => {
     const { shouldCreateWizardDraftOnCategory } = await import(
       '../lib/partner/ensure-wizard-draft-listing.js'
     )
 
-    assert.equal(shouldCreateWizardDraftOnCategory({ categoryId: '1', existingListingId: null }), true)
-    assert.equal(shouldCreateWizardDraftOnCategory({ categoryId: '1', existingListingId: '' }), true)
+    assert.equal(shouldCreateWizardDraftOnCategory({ categoryId: '1', existingListingId: null }), false)
+    assert.equal(shouldCreateWizardDraftOnCategory({ categoryId: '1', existingListingId: '' }), false)
     assert.equal(
       shouldCreateWizardDraftOnCategory({ categoryId: '1', existingListingId: 'lst-abc' }),
       false,
@@ -73,10 +73,11 @@ describe('Stage 200.20 — draft after category', () => {
     assert.equal(shouldCreateWizardDraftOnCategory({}), false)
   })
 
-  it('wizard actions create draft on category select (wire check)', () => {
+  it('wizard actions ensure draft on photo/calendar, not on category select', () => {
     const src = read('app/(partner)/partner/listings/new/hooks/useListingWizardActions.js')
-    assert.match(src, /shouldCreateWizardDraftOnCategory/)
     assert.match(src, /resolveOrCreateWizardDraft/)
-    assert.match(src, /silentCategoryToast/)
+    assert.match(src, /ensureCalendarListingReady/)
+    assert.doesNotMatch(src, /shouldCreateWizardDraftOnCategory/)
+    assert.match(src, /no server draft on category alone/)
   })
 })
