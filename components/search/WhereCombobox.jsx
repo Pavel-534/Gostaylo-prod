@@ -17,9 +17,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { splitLabelHighlight } from '@/lib/locations/location-text-match'
 import {
-  POPULAR_DESTINATIONS_FLAT,
-  getDestinationLabel,
-} from '@/lib/locations/popular-destinations'
+  resolveWhereDisplayLabelOrFallback,
+} from '@/lib/locations/resolve-where-display-label'
+import { POPULAR_DESTINATIONS_FLAT } from '@/lib/locations/popular-destinations'
 import { PopularDestinationChips } from '@/components/search/mobile/PopularDestinationChips'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
@@ -182,7 +182,7 @@ export function WhereCombobox({
     }
     const override = overrideLabelRef.current?.[value]
     const label =
-      override || getOptionLabel(options, value) || getDestinationLabel(value, language)
+      override || getOptionLabel(options, value) || resolveWhereDisplayLabelOrFallback(value, language)
     setInputValue(label)
   }, [value, options, language])
 
@@ -274,7 +274,7 @@ export function WhereCombobox({
       const label =
         displayLabelOverride ||
         opt.label ||
-        getDestinationLabel(opt.value, language) ||
+        resolveWhereDisplayLabelOrFallback(opt.value, language) ||
         opt.value ||
         ''
       if (opt.type !== 'all' && opt.value) {
@@ -447,7 +447,8 @@ export function WhereCombobox({
       if (flat) {
         handleChipSelect(flat)
       } else {
-        const localized = meta.label || getDestinationLabel(val, language) || val
+        const localized =
+          meta.label || resolveWhereDisplayLabelOrFallback(val, language) || val
         overrideLabelRef.current = { ...overrideLabelRef.current, [val]: localized }
         onChange?.(val)
         setInputValue(localized)

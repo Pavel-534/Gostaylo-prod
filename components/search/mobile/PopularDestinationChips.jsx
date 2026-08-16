@@ -13,6 +13,10 @@ import {
   readRecentSearchLocations,
   subscribeRecentSearchLocations,
 } from '@/lib/search/recent-search-locations'
+import {
+  isLikelyRawWhereSlugLabel,
+  resolveWhereDisplayLabelOrFallback,
+} from '@/lib/locations/resolve-where-display-label'
 import { cn } from '@/lib/utils'
 
 const ALL_OPTION = {
@@ -84,8 +88,17 @@ export function PopularDestinationChips({
   const [popularLoading, setPopularLoading] = useState(true)
 
   const refreshRecent = useCallback(() => {
-    setRecent(readRecentSearchLocations())
-  }, [])
+    const rows = readRecentSearchLocations()
+    setRecent(
+      rows.map((item) => {
+        if (!isLikelyRawWhereSlugLabel(item.label, item.value)) return item
+        return {
+          ...item,
+          label: resolveWhereDisplayLabelOrFallback(item.value, language),
+        }
+      }),
+    )
+  }, [language])
 
   useEffect(() => {
     refreshRecent()

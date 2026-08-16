@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.186 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.81** soft-back restores map camera.
+> **Version**: 13.2.187 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.82** supply-first «Куда?» discovery.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.82 — supply-first «Куда?» (no ghost destinations)
+- **Problem:** empty Where drawer dumped Phuket districts + «Другое»; popular chips showed Bali/Abu Dhabi with 0 listings; recent «чита» stored as slug `chita`.
+- **Policy:** discovery UI shows locations with **ACTIVE supply** first. Empty popular = only «Везде» + typed geo suggest.
+- **Labels:** `lib/locations/resolve-where-display-label.js` (popular → launch geo → title-case). Recent chips re-heal raw slug labels.
+- **Seed:** `getStaticLocationsSeed()` returns empty cities/districts for guest chrome; legacy Phuket dump kept as `getLegacyPhuketStaticLocationsSeed`.
+- **Clear all locations:** chip «Везде» / X on Where field → `where=all` (param omitted) → catalog worldwide.
 
 ### Stage 201.81 — soft-back restores map camera (not just `#map`)
 - Problem: PDP ← soft-back opened map sheet but Leaflet remounted at world fit.

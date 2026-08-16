@@ -101,6 +101,7 @@
 | AI listing generation at scale | Вторично к trust & payments |
 | Discovery / location roadmap | `docs/LOCATION_DISCOVERY_ROADMAP.md` |
 | **Keyword + semantic («ИИ») search UI** | **Hidden at launch (201.80).** SSOT: `lib/search/catalog-keyword-search-ui.js`. Revisit when **≳1000** active listings + dense geos: flip flag, admin `semanticSearchOnSite`, geo-aware ranking / newer embeddings. Backend `q`+embeddings kept. |
+| **Where / «Куда?» discovery** | **Supply-first (201.82).** Popular chips = inventory > 0 only; guest empty list = «Везде» (no Phuket district dump). Labels via `resolve-where-display-label.js`. Next: ops curation of popular seed vs live markets; district suggest only under city. |
 
 ---
 
