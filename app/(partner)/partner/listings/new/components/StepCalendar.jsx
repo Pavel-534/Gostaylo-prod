@@ -23,6 +23,7 @@ function StepCalendarInner() {
     serverListing,
     draftListingIdRef,
     ensureCalendarListingReady,
+    transportWizard,
   } = useListingWizard()
   const listingId = editId || draftListingIdRef?.current || null
   const [resolvedId, setResolvedId] = useState(listingId)
@@ -56,12 +57,18 @@ function StepCalendarInner() {
   }, [ready])
 
   const showTools = Boolean((resolvedId || listingId) && serverListing)
+  const calendarHint = transportWizard
+    ? t('wizardStep_calendarHintVehicle')
+    : t('wizardStep_calendarHint')
+  const needsDraftCopy = transportWizard
+    ? t('wizardStep_calendarNeedsDraftVehicle')
+    : t('wizardStep_calendarNeedsDraft')
 
   return (
     <div className={WIZARD_STEP_ROOT_CLASS} data-testid="wizard-step-calendar">
       <div>
         <h2 className={`mb-1 ${WIZARD_STEP_TITLE_CLASS}`}>{t('wizardStep_calendar')}</h2>
-        <p className="text-xs leading-relaxed text-slate-500">{t('wizardStep_calendarHint')}</p>
+        <p className="text-xs leading-relaxed text-slate-500">{calendarHint}</p>
       </div>
 
       {showTools ? (
@@ -87,7 +94,7 @@ function StepCalendarInner() {
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-mint/15 text-brand-mint">
             <CalendarDays className="h-5 w-5" aria-hidden />
           </div>
-          <p className="text-sm leading-relaxed text-slate-600">{t('wizardStep_calendarNeedsDraft')}</p>
+          <p className="text-sm leading-relaxed text-slate-600">{needsDraftCopy}</p>
         </div>
       )}
     </div>

@@ -28,7 +28,8 @@ export function ListingWizardHeader({ headerTitle, stepSubtitle = null }) {
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
   const saveBusy = isEditRoute ? patching : savingDraft
-  const lastStepBusy = isEditRoute ? loading || patching || publishing : loading
+  const publishBusy = Boolean(publishing || loading)
+  const anyBusy = saveBusy || publishBusy
 
   return (
     <div className="flex items-center justify-between gap-3 py-3">
@@ -75,25 +76,25 @@ export function ListingWizardHeader({ headerTitle, stepSubtitle = null }) {
         {isEditRoute && isDraft && canSoftPublish ? (
           <Button
             onClick={softPublishListing}
-            disabled={lastStepBusy}
+            disabled={anyBusy}
             variant="outline"
             className="hidden min-h-[44px] min-w-[44px] gap-1.5 sm:inline-flex"
             type="button"
             data-testid="wizard-header-soft-publish-btn"
           >
-            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {publishBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {t('listingQuality_softPublish')}
           </Button>
         ) : null}
         {isEditRoute && isDraft ? (
           <Button
             onClick={publishListing}
-            disabled={!canFullPublish || lastStepBusy}
+            disabled={!canFullPublish || anyBusy}
             variant="brand"
             className="hidden min-h-[44px] min-w-[44px] gap-1.5 sm:inline-flex"
             type="button"
           >
-            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {publishBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {t('partnerEdit_publish')}
           </Button>
         ) : null}

@@ -101,7 +101,10 @@ function assertInstantBookingGate(w, t) {
     syncSettings,
   })
   if (gate.ok) return true
-  toast.error(t('partnerListing_instantBookingBlocked'), { duration: 10000 })
+  const blockedKey = w.transportWizard
+    ? 'partnerListing_instantBookingBlockedVehicle'
+    : 'partnerListing_instantBookingBlocked'
+  toast.error(t(blockedKey), { duration: 10000 })
   return false
 }
 

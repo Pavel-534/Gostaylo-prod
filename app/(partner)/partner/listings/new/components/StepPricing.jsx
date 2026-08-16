@@ -112,7 +112,9 @@ function StepPricingInner() {
               {t('partnerListing_instantBookingTitle')}
             </Label>
             <p className="text-sm leading-relaxed text-slate-600">
-              {t('partnerListing_instantBookingHint')}
+              {transportWizard
+                ? t('partnerListing_instantBookingHintVehicle')
+                : t('partnerListing_instantBookingHint')}
             </p>
           </div>
           <Switch
@@ -151,7 +153,9 @@ function StepPricingInner() {
                 {tr('partnerListing_exclusiveCalendarAck', { brand })}
               </Label>
               <p className="text-xs leading-relaxed text-slate-600">
-                {t('partnerListing_exclusiveCalendarHint')}
+                {transportWizard
+                  ? t('partnerListing_exclusiveCalendarHintVehicle')
+                  : t('partnerListing_exclusiveCalendarHint')}
               </p>
             </div>
           </div>
@@ -231,14 +235,9 @@ function StepPricingInner() {
             </Select>
             {baseCurrencyLocked ? (
               <p className="mt-1.5 text-xs leading-relaxed text-amber-800">{t('wizardBaseCurrencyLockedActiveBookings')}</p>
-            ) : (
-              <div className="mt-1 space-y-1">
-                {currencyLockedToCountry ? (
-                  <p className="text-xs text-slate-500">{t('wizardBaseCurrencyFromCountryHint')}</p>
-                ) : null}
-                <p className="text-xs text-slate-500">{t('wizardBaseCurrencyFxHint')}</p>
-              </div>
-            )}
+            ) : currencyLockedToCountry ? (
+              <p className="mt-1.5 text-xs text-slate-500">{t('wizardBaseCurrencyFromCountryHint')}</p>
+            ) : null}
           </div>
         </div>
 

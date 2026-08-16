@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.61 | 2026-08-16 | Vehicle wizard: no Airbnb/iCal/FX partner noise; draft vs publish spinners | Done |
 | 201.60 | 2026-08-16 | Android splash: large mark on white plate; partner mobile toolbar → notification FAB | Done |
 | 201.59 | 2026-08-16 | Android PWA: dark mark splash icons; restore light maskable home; drop lockup-as-icon | Done |
 | 201.58 | 2026-08-16 | Wizard: drop desktop breadcrumb toolbar; step line in header / compact bar | Done |

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.166 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.60** splash plate + partner FAB.
+> **Version**: 13.2.167 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.61** vehicle wizard copy + spinners.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.61 — vehicle wizard: drop housing/FX noise; split draft/publish spinners
+
+- Transport copy: calendar / Instant Book hints without Airbnb·Booking·iCal; education card already manual-only.
+- Pricing: remove partner-facing FX/markup essay (`wizardBaseCurrencyFxHint`); keep one line — price currency from country.
+- Bug: last-step «Сохранить черновик» set shared `lastStepBusy` → moderation button also spun. Fix: `draftBusy` vs `publishBusy` spinners.
 
 ### Stage 201.60 — Android splash plate + partner mobile chrome cleanup
 

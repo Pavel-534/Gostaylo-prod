@@ -36,9 +36,10 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
-  const lastStepBusy = isEditRoute
-    ? loading || patching || publishing || savingDraft
-    : loading || savingDraft
+  /** Stage 201.61 — each CTA spins only for its own action (draft save ≠ publish). */
+  const draftBusy = Boolean(savingDraft || (isEditRoute && patching && !publishing))
+  const publishBusy = Boolean(publishing || loading)
+  const anyLastStepBusy = draftBusy || publishBusy
   const isMobileLayout = Boolean(onOpenPreview)
   const isLastStep = currentStep >= LISTING_WIZARD_STEP_COUNT
   const showStepHints =
@@ -90,7 +91,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
       <Button
         variant="outline"
         onClick={saveDraft}
-        disabled={lastStepBusy}
+        disabled={anyLastStepBusy}
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
           isMobileLayout && 'min-w-0 flex-1 px-2 text-xs',
@@ -98,7 +99,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
         type="button"
         data-testid="wizard-last-step-save-draft"
       >
-        {lastStepBusy ? (
+        {draftBusy ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         ) : (
           <Save className="h-4 w-4 shrink-0" />
@@ -111,7 +112,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
     isLastStep && canSoftPublish ? (
       <Button
         onClick={softPublishListing}
-        disabled={lastStepBusy}
+        disabled={anyLastStepBusy}
         variant="outline"
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
@@ -120,7 +121,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
         type="button"
         data-testid="wizard-soft-publish-btn"
       >
-        {lastStepBusy ? (
+        {publishBusy ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         ) : (
           <Send className="h-4 w-4 shrink-0" />
@@ -151,7 +152,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
     ) : (
       <Button
         onClick={publishListing}
-        disabled={!canFullPublish || lastStepBusy}
+        disabled={!canFullPublish || anyLastStepBusy}
         variant="brand"
         className={cn(
           'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
@@ -160,7 +161,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
         type="button"
         data-testid="wizard-full-publish-btn"
       >
-        {lastStepBusy ? (
+        {publishBusy ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         ) : (
           <CheckCircle2 className="h-4 w-4 shrink-0" />
