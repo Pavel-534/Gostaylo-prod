@@ -1,19 +1,22 @@
 /**
  * Renter Favorites — saved listings.
  * Stage 201.33 — product chrome + header soft-back SSOT (no pink/red page back).
+ * Stage 201.54 — UI currency SSOT + tighter workspace spacing (no min-h-screen void).
  */
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import { ListingCard } from '@/components/listing-card'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { Heart } from 'lucide-react'
 import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
 import { getUIText } from '@/lib/translations'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { WorkspaceEmptyState } from '@/components/empty-state'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
@@ -24,23 +27,13 @@ export default function FavoritesPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { language } = useI18n()
+  const { currency } = useCurrency()
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
 
-  useEffect(() => {
-    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.rateMap && typeof j.rateMap === 'object') {
-          setExchangeRates({ THB: 1, ...j.rateMap })
-        }
-      })
-      .catch(() => {})
-  }, [])
-
-  const fetchFavorites = async () => {
+  const fetchFavorites = useCallback(async () => {
     if (!user?.id) {
       dispatchOptimisticNavPending('/')
       router.push('/')
@@ -91,11 +84,11 @@ export default function FavoritesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id, language, router])
 
   useEffect(() => {
-    fetchFavorites()
-  }, [user])
+    void fetchFavorites()
+  }, [fetchFavorites])
 
   const handleFavorite = async (listingId, newIsFavorite) => {
     if (!newIsFavorite) {
@@ -120,7 +113,10 @@ export default function FavoritesPage() {
     : getUIText('renterFavorites_count', language, { count: favorites.length })
 
   return (
-    <ProductPageShell>
+    <ProductPageShell
+      className="min-h-0"
+      containerClassName="px-0 py-2 sm:py-4 space-y-3 sm:space-y-4"
+    >
       <PageSectionHeader
         title={
           <span className="inline-flex items-center gap-2">
@@ -158,16 +154,17 @@ export default function FavoritesPage() {
       ) : null}
 
       {!loading && !error && favorites.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
           {favorites.map((listing) => (
             <ListingCard
               key={listing.id}
               listing={listing}
               language={language}
-              currency="THB"
+              currency={currency}
               exchangeRates={exchangeRates}
               onFavorite={handleFavorite}
               isFavorited={true}
+              layout="solo"
             />
           ))}
         </div>

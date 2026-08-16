@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.159 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.53** renter footer pad.
+> **Version**: 13.2.160 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.54** favorites currency + spacing.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.54 — renter favorites currency + spacing
+
+- Bug: `/renter/favorites` hardcoded `currency="THB"` while header uses `useCurrency()` (₽ etc.); `ProductPageShell` `min-h-screen` + stacked py left a tall empty scroll floor.
+- Fix: `useCurrency` + `useFxRatesQuery({ retail: true })`; `layout="solo"`; shell `min-h-0` + tighter container pad (renter `main` already insets header).
 
 ### Stage 201.53 — drop legacy renter copyright footer
 

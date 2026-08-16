@@ -24,6 +24,16 @@ describe('Stage 201.33 — renter favorites / settings', () => {
     assert.match(fav, /WorkspaceEmptyState/)
   })
 
+  it('favorites listens to UI currency SSOT and avoids full-viewport void', () => {
+    const fav = read('app/(storefront)/renter/favorites/page.js')
+    assert.match(fav, /useCurrency/)
+    assert.match(fav, /currency=\{currency\}/)
+    assert.doesNotMatch(fav, /currency=["']THB["']/)
+    assert.match(fav, /useFxRatesQuery/)
+    assert.match(fav, /layout=["']solo["']/)
+    assert.match(fav, /className=["']min-h-0["']/)
+  })
+
   it('renter layout wires storefront soft-back SSOT for settings and favorites', () => {
     const layout = read('app/(storefront)/renter/layout.js')
     assert.match(layout, /resolveStorefrontSoftBack/)
