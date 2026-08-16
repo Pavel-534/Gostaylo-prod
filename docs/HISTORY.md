@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.66 | 2026-08-16 | Listing → PENDING: admin TG from server (fix partner→admin 403); moderation topic SSOT | Done |
 | 201.65 | 2026-08-16 | Draft save undeletes soft-deleted listing (trashed row no longer invisible) | Done |
 | 201.64 | 2026-08-16 | Wizard: partial draft save (no geo gates); no ghost draft on category | Done |
 | 201.63 | 2026-08-16 | Partner listings: remove KPI summary grid (list-first mobile) | Done |

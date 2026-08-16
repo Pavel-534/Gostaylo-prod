@@ -15,6 +15,7 @@ import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-re
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordStaffListingModeration } from '@/lib/services/audit/staff-audit'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
+import { sendToAdminTopic } from '@/lib/services/notifications/telegram.service.js'
 import {
   buildModerationFacets,
   filterPendingModerationListings,
@@ -26,9 +27,6 @@ export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const ADMIN_TOPIC_ID = '-1003832026983'
-const LISTINGS_THREAD_ID = 3
 
 const LISTING_SELECT =
   '*,owner:profiles!listings_owner_id_fkey(id,first_name,last_name,email,phone,telegram_id,custom_commission_rate),categories(slug,name,wizard_profile)'
@@ -357,16 +355,8 @@ export async function PATCH(request) {
         : `❌ <b>ОБЪЯВЛЕНИЕ ОТКЛОНЕНО</b>\n\n📍 ${listing.title}\n👤 ${listing.owner?.first_name || ''}\n📝 Причина: ${rejectReason?.substring(0, 100)}`
 
     try {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: ADMIN_TOPIC_ID,
-          message_thread_id: LISTINGS_THREAD_ID,
-          text: adminMessage,
-          parse_mode: 'HTML',
-        }),
-      })
+      // Stage 201.66 — use SSOT topic helper (env group + NEW_PARTNERS), not hardcoded chat/thread.
+      await sendToAdminTopic('NEW_PARTNERS', adminMessage)
     } catch (e) {
       console.error('Admin topic error:', e)
     }

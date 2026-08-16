@@ -39,7 +39,8 @@ import {
 import {
   buildRestoredSyncSettingsPatch,
   clearSoftDeleteMetadata,
-} from '@/lib/listing/listing-soft-delete-restore.js';
+} from '@/lib/listing/listing-soft-delete-restore.js'
+import { notifyListingSubmittedForModeration } from '@/lib/partner/notify-listing-submitted-for-moderation.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -563,6 +564,17 @@ export async function PATCH(request, context) {
   }
   
   console.log('[PARTNER-LISTING] Updated successfully');
+
+  // Stage 201.66 — admin TG on first transition → PENDING (server-side; not partner→admin API).
+  const statusAfter = String(updated?.status || updateData.status || existing.status || '').toUpperCase()
+  const statusBefore = String(existing.status || '').toUpperCase()
+  if (statusAfter === 'PENDING' && statusBefore !== 'PENDING') {
+    void notifyListingSubmittedForModeration({
+      listing: updated || { ...existing, ...updateData, id: listingId },
+      previousStatus: statusBefore,
+      nextStatus: statusAfter,
+    })
+  }
 
   try {
     await revalidateListingPaths('update', listingId);

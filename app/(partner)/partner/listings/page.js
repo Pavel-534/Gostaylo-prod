@@ -192,27 +192,6 @@ export default function PartnerListings() {
         }),
       })
 
-      // Send Telegram notification (optional - don't block on failure)
-      try {
-        await fetch('/api/v2/admin/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            action: 'send_moderation_notification',
-            listing: {
-              id: listing.id,
-              title: listing.title,
-              base_price_thb: listing.base_price_thb,
-              images_count: listing.images?.length || 0,
-              district: listing.district
-            }
-          })
-        })
-      } catch (e) {
-        console.log('Telegram notification failed (non-blocking):', e.message)
-      }
-
       toast({
         title: t('partnerListings_toastPublishOkTitle'),
         description: t('partnerListings_toastPublishOkBody'),

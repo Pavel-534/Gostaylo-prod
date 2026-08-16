@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.171 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.65** draft save undelete.
+> **Version**: 13.2.172 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.66** listing moderation TG.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.66 — listing moderation Telegram (admin)
+
+- Bug: partner list called `POST /api/v2/admin/telegram` (`requireAdminStaff`) → **403**; wizard publish never notified. Approve/reject used hardcoded chat/thread `3`.
+- Fix: server `notifyListingSubmittedForModeration` on PATCH → PENDING → topic **NEW_PARTNERS**; drop client admin call; moderation approve/reject via `sendToAdminTopic`.
 
 ### Stage 201.65 — draft save undeletes soft-deleted listing
 
