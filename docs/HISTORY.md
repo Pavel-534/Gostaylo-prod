@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.59 | 2026-08-16 | Android PWA: dark mark splash icons; restore light maskable home; drop lockup-as-icon | Done |
+| 201.58 | 2026-08-16 | Wizard: drop desktop breadcrumb toolbar; step line in header / compact bar | Done |
+| 201.57 | 2026-08-16 | Wizard: keep L1 asset on publish; vehicle rental amenities; draft+no beforeunload on submit | Done |
 | 201.56 | 2026-08-16 | Partner cabinet entry: no /partner menu prefetch; refresh JWT + hard-nav | Done |
 | 201.55 | 2026-08-16 | Android splash lockup icons; wizard soft-back + FAB bell/save; vehicle_year blur clamp | Done |
 | 201.54 | 2026-08-16 | Renter favorites: UI currency SSOT + drop min-h-screen void / stacked pad | Done |

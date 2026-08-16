@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, CheckCircle2, Eye, Loader2, Send } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, Loader2, Save, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -30,12 +30,15 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
     goBack,
     loading,
     wizardMode,
+    savingDraft,
   } = useListingWizard()
-  const { publishListing, softPublishListing, patching, publishing } = useListingSave()
+  const { publishListing, softPublishListing, saveDraft, patching, publishing } = useListingSave()
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
   const isEditRoute = wizardMode === 'edit'
-  const lastStepBusy = isEditRoute ? loading || patching || publishing : loading
+  const lastStepBusy = isEditRoute
+    ? loading || patching || publishing || savingDraft
+    : loading || savingDraft
   const isMobileLayout = Boolean(onOpenPreview)
   const isLastStep = currentStep >= LISTING_WIZARD_STEP_COUNT
   const showStepHints =
@@ -79,6 +82,30 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
       {isMobileLayout ? null : <span>{t('back')}</span>}
     </Button>
   )
+
+  const draftSaveLabel = isEditRoute ? t('partnerEdit_save') : t('saveDraft')
+
+  const saveDraftButton =
+    isLastStep ? (
+      <Button
+        variant="outline"
+        onClick={saveDraft}
+        disabled={lastStepBusy}
+        className={cn(
+          'min-h-[44px] min-w-[44px] gap-2 rounded-xl',
+          isMobileLayout && 'min-w-0 flex-1 px-2 text-xs',
+        )}
+        type="button"
+        data-testid="wizard-last-step-save-draft"
+      >
+        {lastStepBusy ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4 shrink-0" />
+        )}
+        <span className={isMobileLayout ? 'truncate' : undefined}>{draftSaveLabel}</span>
+      </Button>
+    ) : null
 
   const softPublishButton =
     isLastStep && canSoftPublish ? (
@@ -153,6 +180,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           {backButton}
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            {saveDraftButton}
             {softPublishButton}
             {primaryButton}
           </div>
@@ -175,6 +203,7 @@ export function ListingWizardStepActions({ onOpenPreview = null, showBlockersHin
       >
         <Eye className="h-4 w-4 shrink-0" />
       </Button>
+      {saveDraftButton}
       {softPublishButton}
       {primaryButton}
     </div>

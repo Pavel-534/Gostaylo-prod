@@ -35,7 +35,7 @@ export function ListingWizardChrome({
 
         <header className="relative border-b border-slate-200/80 bg-white pb-0.5">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <ListingWizardHeader headerTitle={headerTitle} />
+            <ListingWizardHeader headerTitle={headerTitle} stepSubtitle={compactStepLine} />
 
             <ListingWizardStepNav
               steps={steps}

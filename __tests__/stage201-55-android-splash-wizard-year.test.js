@@ -19,11 +19,14 @@ function exists(rel) {
 }
 
 describe('Stage 201.55 — android splash / wizard FAB / vehicle year', () => {
-  it('manifest uses android splash lockup icons + dark background', () => {
+  it('manifest uses dark mark icons for Android splash (not lockup-as-icon)', () => {
     const man = read('app/manifest.js')
-    assert.match(man, /icon-android-splash-512x512\.png/)
+    assert.match(man, /icon-dark-512x512\.png/)
+    assert.match(man, /icon-maskable-512x512\.png/)
     assert.match(man, /background_color:\s*['\"]#0c1623['\"]/)
-    assert.ok(exists('public/icons/icon-android-splash-512x512.png'))
+    assert.doesNotMatch(man, /icon-android-splash/)
+    assert.ok(exists('public/icons/icon-dark-512x512.png'))
+    assert.ok(exists('public/icons/icon-maskable-512x512.png'))
     assert.ok(exists('public/splash/android-splash-1080-1920.png'))
     assert.ok(exists('scripts/build-android-splash-icons.mjs'))
   })

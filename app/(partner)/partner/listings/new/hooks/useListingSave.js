@@ -180,6 +180,7 @@ export function useListingSave() {
     wizardMode,
     setSavingDraft,
     setLoading,
+    markWizardCleanForLeave,
   } = w
   const [patching, setPatching] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -255,6 +256,7 @@ export function useListingSave() {
           await patchPartnerListingCoverImage(editId, newCover)
         }
         await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
+        markWizardCleanForLeave?.()
         clearWizardDraft()
         router.push('/partner/listings')
       } else {
@@ -361,6 +363,7 @@ export function useListingSave() {
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
           await patchPartnerListingCoverImage(editId, newCover)
         }
+        markWizardCleanForLeave?.()
         clearWizardDraft()
         await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
         if (soft) {
@@ -475,6 +478,7 @@ export function useListingSave() {
       })
       const result = await res.json()
       if (result.success) {
+        markWizardCleanForLeave?.()
         clearWizardDraft()
         toast.success(t('listingQuality_softPublishOk'), {
           description: t('listingQuality_softPublishOkHint'),
@@ -576,6 +580,7 @@ export function useListingSave() {
             const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
+          markWizardCleanForLeave?.()
           clearWizardDraft()
           toast.success(t('draftSaved'))
           await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(editId, geoForm))
@@ -598,7 +603,7 @@ export function useListingSave() {
             const n = parseFloat(String(geoForm.basePriceThb ?? '').replace(',', '.'))
             return Number.isFinite(n) && n >= 0 ? n : 0
           })(),
-          baseCurrency: geoForm.baseCurrency || 'USD',
+          baseCurrency: geoForm.baseCurrency || 'THB',
           images: geoForm.images || [],
           metadata: draftMeta,
           instantBooking: geoForm.instantBooking === true,
@@ -617,6 +622,7 @@ export function useListingSave() {
             const cover = mapCoverUrlAfterMigration(geoForm.images, geoForm.coverImage, mig.images)
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
+          markWizardCleanForLeave?.()
           clearWizardDraft()
           toast.success(t('draftSaved'))
           await invalidatePartnerListingsCache(queryClient, listingsCacheOptsFromForm(lid, geoForm))
@@ -773,6 +779,7 @@ export function useListingSave() {
             }
           }
         }
+        markWizardCleanForLeave?.()
         clearWizardDraft()
         showListingModerationToast(t)
         router.push(resolvePostPublishCalendarOnboardingUrl(listingId))
@@ -805,6 +812,7 @@ export function useListingSave() {
     setLoading,
     t,
     wizardMode,
+    markWizardCleanForLeave,
   ])
 
   return {

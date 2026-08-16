@@ -445,66 +445,66 @@ export default function PartnerLayout({ children }) {
 
         {/* Main Content */}
         <main className={WORKSPACE_MAIN_CLASS}>
-          {/* Desktop toolbar */}
-          <div className={WORKSPACE_TOOLBAR_CLASS}>
-            {/* Impersonation Banner - Desktop */}
-            {isImpersonating && (
-              <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    {getUIText('partnerLayout_impersonationView', language)} <strong>{user?.name}</strong>
-                  </span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleReturnToAdmin}
-                  className="bg-white text-amber-900 hover:bg-amber-100"
-                  data-testid="return-to-admin-desktop"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  {getUIText('partnerLayout_returnAdmin', language)}
-                </Button>
-              </div>
-            )}
-            
-            {/* Breadcrumbs Bar */}
-            <div className={WORKSPACE_TOOLBAR_ROW_CLASS}>
-              {/* Breadcrumbs */}
-              <nav className="flex items-center text-sm" aria-label={getUIText('partnerLayout_breadcrumbAria', language)}>
-                <Link href="/" className="text-slate-400 hover:text-brand transition-colors">
-                  <Home className="w-4 h-4" />
-                </Link>
-              {breadcrumbs.map((crumb) => (
-                  <div key={crumb.href} className="flex items-center">
-                    <ChevronRight className="w-4 h-4 mx-2 text-slate-300" />
-                    {crumb.isLast ? (
-                      <span className="font-medium text-slate-900">{crumb.name}</span>
-                    ) : (
-                      <Link 
-                        href={crumb.href}
-                        className="text-slate-500 hover:text-brand transition-colors"
-                      >
-                        {crumb.name}
-                      </Link>
-                    )}
+          {/* Desktop toolbar — Stage 201.58: skip breadcrumb row on listing wizard (soft-back + wizard chrome). */}
+          {(isImpersonating || !isListingWizardRoute) ? (
+            <div className={WORKSPACE_TOOLBAR_CLASS}>
+              {isImpersonating && (
+                <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {getUIText('partnerLayout_impersonationView', language)} <strong>{user?.name}</strong>
+                    </span>
                   </div>
-                ))}
-              </nav>
-
-              {/* Quick Actions */}
-              <div className="flex items-center gap-3">
-                <HeaderWalletCompact />
-                <PartnerNotificationFeed language={language} />
-                <div className="h-6 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-2 h-2 bg-brand rounded-full"></div>
-                  <span className="text-slate-600">{user?.name}</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleReturnToAdmin}
+                    className="bg-white text-amber-900 hover:bg-amber-100"
+                    data-testid="return-to-admin-desktop"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    {getUIText('partnerLayout_returnAdmin', language)}
+                  </Button>
                 </div>
-              </div>
+              )}
+
+              {!isListingWizardRoute ? (
+                <div className={WORKSPACE_TOOLBAR_ROW_CLASS}>
+                  <nav className="flex items-center text-sm" aria-label={getUIText('partnerLayout_breadcrumbAria', language)}>
+                    <Link href="/" className="text-slate-400 hover:text-brand transition-colors">
+                      <Home className="w-4 h-4" />
+                    </Link>
+                    {breadcrumbs.map((crumb) => (
+                      <div key={crumb.href} className="flex items-center">
+                        <ChevronRight className="w-4 h-4 mx-2 text-slate-300" />
+                        {crumb.isLast ? (
+                          <span className="font-medium text-slate-900">{crumb.name}</span>
+                        ) : (
+                          <Link
+                            href={crumb.href}
+                            className="text-slate-500 hover:text-brand transition-colors"
+                          >
+                            {crumb.name}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </nav>
+
+                  <div className="flex items-center gap-3">
+                    <HeaderWalletCompact />
+                    <PartnerNotificationFeed language={language} />
+                    <div className="h-6 w-px bg-slate-200" />
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-brand rounded-full"></div>
+                      <span className="text-slate-600">{user?.name}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          </div>
+          ) : null}
           
           {!isListingWizardRoute ? (
             <div className={WORKSPACE_MOBILE_TOOLBAR_CLASS}>

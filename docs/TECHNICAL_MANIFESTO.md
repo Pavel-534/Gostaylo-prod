@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.162 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.56** partner cabinet entry.
+> **Version**: 13.2.165 | **Last Updated**: 2026-08-16 | **Tip of tree:** Stage **203**; **201.59** Android PWA splash icons.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,6 +27,21 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.59 — Android PWA: restore mark icon; splash without lockup plate
+
+- Bug: Stage 201.55 put full lockup (logo+«Airento»+RENTALS) into webmanifest icons. Android Chrome splash = icon + `name` → nested white plate + tiny letters; home icon became unreadable squircle.
+- Fix: `purpose:"any"` → `icon-dark-*` (large mark on `#0c1623`); `maskable` → light `icon-maskable-512` (home like iOS); remove `icon-android-splash-*`; portrait `android-splash-*` kept for native shells only.
+
+### Stage 201.58 — wizard: drop breadcrumb toolbar noise
+
+- Bug: desktop `WORKSPACE_TOOLBAR` (Партнёр › Объекты › Детали + wallet/name) sat under AppHeader on listing wizard — duplicated soft-back / header chrome and ate vertical space; compact step bar was offset for that toolbar.
+- Fix: skip breadcrumb toolbar on wizard (keep impersonation banner); pin compact step bar under AppHeader; header shows step line under title; remove duplicate Exit ArrowLeft (soft-back SSOT).
+
+### Stage 201.57 — wizard $0 USD + vehicle features + publish beforeunload
+
+- Bug: publish PATCH merged stale `metadata.base_price_asset={0,USD}` over post-priceWrite L1 → partner list `$0` while ledger THB ok. Vehicle quality needed 3 amenities but UI only offered parking/AC. Submit fired browser beforeunload (dirty never cleared). Last step had no draft save.
+- Fix: preserve priceWrite asset on publish; list display ignores zero USD when ledger>0; draft seed THB; vehicle amenity set (delivery/helmets/GPS/…); `markWizardCleanForLeave` before navigate; last-step «Сохранить черновик».
+
 ### Stage 201.56 — partner cabinet entry (logged-in → auth bounce)
 
 - Bug: «Перейти в кабинет партнёра» opened `/auth/login` while UI still showed a logged-in partner. Causes: (1) `USER_MENU_PREFETCH_PATHS` prefetched `/partner/dashboard` → middleware login redirect poisoned App Router cache; (2) stale JWT role `RENTER` after DB upgrade to `PARTNER` until `/api/v2/auth/me` refreshed the cookie.
@@ -34,7 +49,8 @@
 
 ### Stage 201.55 — Android splash lockup + wizard FAB + vehicle year
 
-- Android/PWA splash: `icon-android-splash-*` (dark glow + lockup) via `scripts/build-android-splash-icons.mjs`; manifest `background_color` `#0c1623` (iOS apple-splash parity).
+- Android/PWA: earlier attempt used lockup-as-icon (superseded by **201.59** — dark mark `any` + light maskable).
+- Wizard: soft-back AppHeader SSOT; bell/save → FAB; `vehicle_year` clamp on blur only.
 - Listing wizard mobile: remove slim back/title bar; soft-back → `resolvePartnerSoftBack` → AppHeader; bell+save → fixed FABs (`ListingWizardMobileActionsFab`, like PDP heart).
 - `vehicle_year`: raw digits while typing; clamp 1985–2100 only on blur (fixes snap to 1985/2100).
 

@@ -475,10 +475,16 @@ export async function PATCH(request, context) {
       };
     }
     if (body.metadata !== undefined) {
+      // Keep post-priceWrite L1 asset — publish meta merge used pre-price client/existing
+      // and could clobber with stale `{amount:0,currency:'USD'}` from draft-before-country (Stage 201.57).
+      const priceAsset = updateData.metadata?.base_price_asset
       updateData.metadata = {
         ...(updateData.metadata || existing.metadata || {}),
         ...body.metadata,
-      };
+      }
+      if (priceAsset != null && typeof priceAsset === 'object') {
+        updateData.metadata.base_price_asset = priceAsset
+      }
     }
   }
 

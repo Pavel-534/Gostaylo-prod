@@ -1,11 +1,16 @@
 import { getPublicBrandDisplayName } from '@/lib/site-url'
 
 /**
- * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31 / 201.55).
- * Splash / home-screen / share title: brand only (`Airento`) — no long tagline
- * (iOS Share sheet and Add to Home Screen otherwise pick up page title leftovers).
- * Stage 201.55 — Android Chrome splash uses dark lockup icons (parity with iOS apple-splash).
- * Light mark icons remain for apple-touch / favicons via layout links.
+ * PWA manifest (Stage 155.3 / 169.4 / 200.4 / 189.31 / 201.59).
+ * Splash / home-screen / share title: brand only (`Airento`) — no long tagline.
+ *
+ * Android Chrome splash = background_color + purpose:"any" icon + name.
+ * Do NOT put lockup (logo+text) in icons — Chrome adds the name again → tiny letters
+ * in a plate (Stage 201.55 regression).
+ *
+ * - purpose "any" → icon-dark-* (large mark on navy, matches background_color)
+ * - purpose "maskable" → light mark (home-screen adaptive icon, like iOS)
+ * Light favicons / apple-touch stay in app/layout.js — not used as Android splash icons.
  */
 export default function manifest() {
   const brand = getPublicBrandDisplayName()
@@ -24,30 +29,29 @@ export default function manifest() {
     scope: '/',
     icons: [
       {
-        src: '/icons/icon-android-splash-192x192.png',
+        src: '/icons/icon-dark-192x192.png',
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-android-splash-512x512.png',
+        src: '/icons/icon-dark-512x512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-android-splash-maskable-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
-      {
-        src: '/icons/icon-android-splash-1024x1024.png',
+        src: '/icons/icon-dark-1024x1024.png',
         sizes: '1024x1024',
         type: 'image/png',
         purpose: 'any',
       },
-      { src: '/icons/icon-180x180.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
+      {
+        src: '/icons/icon-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
     ],
     categories: ['travel', 'lifestyle', 'business'],
     shortcuts: [

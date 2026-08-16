@@ -45,6 +45,7 @@ export function ListingWizardPageInner() {
     currentStep,
     setCurrentStep,
     isDirty,
+    skipBeforeUnloadRef,
     formData,
     categories,
     getCategoryDisplayName,
@@ -56,13 +57,14 @@ export function ListingWizardPageInner() {
   useEffect(() => {
     if (!isDirty) return undefined
     const onBeforeUnload = (e) => {
+      if (skipBeforeUnloadRef?.current) return undefined
       e.preventDefault()
       e.returnValue = ''
       return ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [isDirty])
+  }, [isDirty, skipBeforeUnloadRef])
 
   /** Stage 200.26: new wizard step starts at top (workspace scrollport + window). */
   useEffect(() => {
@@ -150,8 +152,10 @@ export function ListingWizardPageInner() {
     .replace('{total}', String(LISTING_WIZARD_STEP_COUNT))
 
   const currentStepLabel = STEPS.find((s) => s.id === currentStep)?.label ?? ''
-  const compactStepLine = `${stepMarker}: ${currentStepLabel}`
   const stepMarkerLabel = formatWizardStepMarkerLabel(stepMarker)
+  const compactStepLine = currentStepLabel
+    ? `${stepMarkerLabel}: ${currentStepLabel}`
+    : stepMarkerLabel
 
   const previewStickyTop = isScrolled
     ? WIZARD_COMPACT_STEP_INDICATOR_HEIGHT

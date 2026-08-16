@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Send } from 'lucide-react'
+import { Loader2, Save, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   PartnerListingStatusBadge,
@@ -11,10 +10,10 @@ import { useListingWizard } from '../../context/ListingWizardContext'
 import { useListingSave } from '../../hooks/useListingSave'
 
 /**
- * Wizard top row: exit, title, status badge, save draft, publish (edit+draft).
+ * Wizard top row: title + step line, status badge, save draft, publish (edit+draft).
+ * Exit → AppHeader soft-back (Stage 201.58 — no duplicate exit control).
  */
-export function ListingWizardHeader({ headerTitle }) {
-  const router = useRouter()
+export function ListingWizardHeader({ headerTitle, stepSubtitle = null }) {
   const {
     t,
     wizardMode,
@@ -33,19 +32,15 @@ export function ListingWizardHeader({ headerTitle }) {
 
   return (
     <div className="flex items-center justify-between gap-3 py-3">
-      <Button
-        variant="ghost"
-        onClick={() => router.push('/partner/listings')}
-        className="min-h-[44px] min-w-[44px] gap-1.5 px-2 text-slate-600 hover:text-slate-900"
-        type="button"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="hidden sm:inline">{t('exit')}</span>
-      </Button>
-      <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+      <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
           {headerTitle}
         </h1>
+        {stepSubtitle ? (
+          <p className="mt-0.5 truncate text-xs font-medium tracking-wide text-slate-500 sm:text-sm">
+            {stepSubtitle}
+          </p>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center justify-end gap-2">
         {isEditRoute && serverListing ? (

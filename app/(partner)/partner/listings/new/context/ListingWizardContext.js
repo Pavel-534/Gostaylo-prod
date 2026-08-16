@@ -38,6 +38,8 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     currentStep: state.currentStep,
     setCurrentStep: state.setCurrentStep,
     isDirty: state.isDirty,
+    skipBeforeUnloadRef: state.skipBeforeUnloadRef,
+    markWizardCleanForLeave: state.markWizardCleanForLeave,
     draftRestored: state.draftRestored,
     showResumeDraftBanner: state.showResumeDraftBanner,
     dismissResumeDraftBanner: state.dismissResumeDraftBanner,

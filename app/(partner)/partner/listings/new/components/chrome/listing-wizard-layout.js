@@ -2,11 +2,11 @@
 export const WIZARD_COMPACT_STEP_INDICATOR_HEIGHT = '2.375rem'
 
 /**
- * Flush under partner breadcrumb toolbar (outside scrollport).
- * Mobile toolbar ≈2.5rem (py-2); desktop row ≈3rem (py-3) — see WORKSPACE_*_TOOLBAR in layout.
+ * Flush under AppHeader (outside scrollport).
+ * Stage 201.58 — wizard no longer mounts WORKSPACE_TOOLBAR breadcrumbs; pin under header only.
  */
 export const WIZARD_COMPACT_STEP_BAR_POSITION_CLASS =
-  'fixed left-0 right-0 top-[calc(var(--app-header-height,64px)+2.5rem)] z-50 w-full lg:left-64 lg:top-[calc(var(--app-header-height,64px)+3rem)]'
+  'fixed left-0 right-0 top-[var(--app-header-height,64px)] z-50 w-full lg:left-64'
 
 /**
  * Fixed mobile chrome content height (step dots row only — Stage 201.55).

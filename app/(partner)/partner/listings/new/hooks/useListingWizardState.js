@@ -184,6 +184,15 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     return isWizardFormDirty(formData)
   }, [isEditMode, formData, editBaseline])
 
+  /** Stage 201.57 — intentional leave (publish / draft save) must not trigger beforeunload. */
+  const skipBeforeUnloadRef = useRef(false)
+  const markWizardCleanForLeave = useCallback(() => {
+    skipBeforeUnloadRef.current = true
+    if (isEditMode) {
+      setEditBaseline(wizardCompareKey(formData))
+    }
+  }, [isEditMode, formData])
+
   /** Stage 140.1 / 200.21 — debounced autosave to localStorage (create mode only). */
   useEffect(() => {
     if (isEditMode || typeof window === 'undefined') return undefined
@@ -230,6 +239,8 @@ export function useListingWizardState({ initialListingId = null, wizardMode = 'c
     currentStep,
     setCurrentStep,
     isDirty,
+    skipBeforeUnloadRef,
+    markWizardCleanForLeave,
     draftRestored,
     showResumeDraftBanner,
     dismissResumeDraftBanner,
