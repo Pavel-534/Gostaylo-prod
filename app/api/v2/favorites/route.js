@@ -13,6 +13,7 @@ import {
   getGuestDisplayPerNight,
   normalizeGuestServiceFeePercent,
 } from '@/lib/pricing/guest-display-price.js';
+import { catalogPublicCurrencyFields } from '@/lib/api/search/listing-search-payload.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,8 @@ export async function GET() {
           id,
           title,
           base_price_thb,
+          base_currency,
+          metadata,
           images,
           cover_image,
           district,
@@ -89,8 +92,11 @@ export async function GET() {
         ...row,
         listings: {
           ...raw,
+          ...catalogPublicCurrencyFields(raw),
+          guestServiceFeePercent: guestFeePct,
           guest_service_fee_percent: guestFeePct,
           guest_display_price_thb: guestDisplayPriceThb,
+          guestDisplayPriceThb,
         },
       };
     });

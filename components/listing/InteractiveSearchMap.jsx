@@ -24,6 +24,7 @@ import { MapServerClusterMarker } from '@/components/listing/MapServerClusterMar
 import { getUIText } from '@/lib/translations'
 import { formatPrice } from '@/lib/currency'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
+import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { extractListingLatLng } from '@/lib/maps/map-provider-adapter'
 import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
 import {
@@ -484,6 +485,17 @@ function resolvePinDisplayPriceThb(pin, listing) {
 }
 
 function pinPriceLabel(pin, currency, exchangeRates, language, listing = null) {
+  const sameListing = listing || (pin?.basePriceAsset
+    ? {
+        baseCurrency: pin.baseCurrency,
+        basePriceAsset: pin.basePriceAsset,
+        guestServiceFeePercent: pin.guestServiceFeePercent,
+      }
+    : null)
+  const same = sameListing
+    ? formatSameCurrencyGuestDisplay(sameListing, currency, language)
+    : null
+  if (same) return same
   const thb = resolvePinDisplayPriceThb(pin, listing)
   return thb != null ? formatPrice(thb, currency, exchangeRates, language) : '—'
 }
@@ -731,21 +743,29 @@ export default function InteractiveSearchMap({
             {effectivePins.map((pin) => renderCatalogPriceMarker(pin, { zIndexOffset: 2000 }))}
           </>
         ) : (
-          <MarkerClusterGroup
-            chunkedLoading
-            chunkInterval={200}
-            chunkDelay={50}
-            maxClusterRadius={72}
-            spiderfyOnMaxZoom={true}
-            showCoverageOnHover={false}
-            zoomToBoundsOnClick={true}
-            removeOutsideVisibleBounds={true}
-            disableClusteringAtZoom={13}
-            animateAddingMarkers={false}
-            iconCreateFunction={(cluster) => createSearchMapClusterDivIcon(L, cluster)}
-          >
-            {effectivePins.map((pin) => renderCatalogPriceMarker(pin))}
-          </MarkerClusterGroup>
+          <>
+            {/* Stage 201.89 — keep selected pin outside cluster so teal ring stays with popup. */}
+            {selectedPopupPin
+              ? renderCatalogPriceMarker(selectedPopupPin, { zIndexOffset: 2500 })
+              : null}
+            <MarkerClusterGroup
+              chunkedLoading
+              chunkInterval={200}
+              chunkDelay={50}
+              maxClusterRadius={72}
+              spiderfyOnMaxZoom={true}
+              showCoverageOnHover={false}
+              zoomToBoundsOnClick={true}
+              removeOutsideVisibleBounds={true}
+              disableClusteringAtZoom={13}
+              animateAddingMarkers={false}
+              iconCreateFunction={(cluster) => createSearchMapClusterDivIcon(L, cluster)}
+            >
+              {effectivePins
+                .filter((pin) => String(pin.id) !== String(selectedListingId || ''))
+                .map((pin) => renderCatalogPriceMarker(pin))}
+            </MarkerClusterGroup>
+          </>
         )}
       </MapContainer>
     </div>

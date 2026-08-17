@@ -48,13 +48,13 @@ export function ListingPriceMarker({
     pill.classList.toggle('gostaylo-price-pill--selected', isSelected)
     pill.classList.toggle('gostaylo-price-pill--hovered', isHovered)
     if (isSelected) {
-      // Brand teal ring (matches rail card / CTA) — stays while pin selected.
+      // Brand teal ring — thin outline (Stage 201.89); stays while pin selected.
       pill.style.background = '#006666'
       pill.style.color = '#ffffff'
       pill.style.webkitTextFillColor = '#ffffff'
       pill.style.borderColor = '#006666'
-      pill.style.boxShadow = '0 0 0 3px #006666, 0 4px 12px rgb(0 102 102 / 0.4)'
-      pill.style.transform = 'scale(1.08)'
+      pill.style.boxShadow = '0 0 0 1.5px #006666, 0 2px 8px rgb(0 102 102 / 0.28)'
+      pill.style.transform = 'scale(1.04)'
     } else if (isHovered) {
       pill.style.background = '#1e293b'
       pill.style.color = '#ffffff'

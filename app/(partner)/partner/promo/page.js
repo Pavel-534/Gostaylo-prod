@@ -34,6 +34,7 @@ import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivide
 import {
   PARTNER_FIELD_LABEL_CLASS,
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
+  PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 
@@ -271,11 +272,16 @@ export default function PartnerPromoPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-0">
       <div className="mb-4">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
+        <h1
+          className={cn(
+            'flex items-center gap-2 text-2xl font-bold text-slate-900',
+            PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS,
+          )}
+        >
           <Tag className="h-7 w-7 text-brand" />
           {t('partnerPromo_pageTitle')}
         </h1>
-        <p className="mt-1 text-sm text-slate-600">{t('partnerPromo_pageSubtitle')}</p>
+        <p className="mt-1 text-sm text-slate-600 md:mt-0">{t('partnerPromo_pageSubtitle')}</p>
       </div>
 
       {quickFlashCode ? (

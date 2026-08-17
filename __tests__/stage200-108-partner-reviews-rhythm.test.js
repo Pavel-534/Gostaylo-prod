@@ -15,15 +15,17 @@ function read(rel) {
 }
 
 describe('Stage 200.108 — partner reviews rhythm', () => {
-  it('reviews page uses section titles, divider, hub surface; keeps reply API', () => {
+  it('reviews page: no redundant section H2; hub surface; reply API; md+ title hide', () => {
     const page = read('app/(partner)/partner/reviews/page.js')
     assert.match(page, /PartnerSectionDivider/)
-    assert.match(page, /PARTNER_SECTION_TITLE_CLASS/)
+    assert.match(page, /PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS/)
     assert.match(page, /PARTNER_HUB_LIST_CARD_SURFACE_CLASS/)
     assert.match(page, /reviews-stats/)
     assert.match(page, /reviews-list/)
     assert.match(page, /handleSubmitReply/)
     assert.match(page, /\/api\/v2\/reviews/)
+    assert.doesNotMatch(page, /partnerReviews_sectionStats/)
+    assert.doesNotMatch(page, /partnerReviews_sectionList/)
     assert.doesNotMatch(page, /border-slate-500/)
     assert.doesNotMatch(page, /border-\[#/)
   })

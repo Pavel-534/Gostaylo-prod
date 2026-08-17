@@ -24,7 +24,6 @@ import {
   ListingPdpNotFoundView,
 } from './ListingPdpGateViews'
 import dynamic from 'next/dynamic'
-import { getUIText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 import { ListingHeroGallery } from '@/components/listing/pdp/ListingHero'
@@ -34,7 +33,6 @@ import {
   ListingBookingProvider,
   useListingBooking,
 } from '@/components/listing/pdp/ListingBookingProvider'
-import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { ReferralCatalogFunnelStrip } from '@/components/referral/ReferralCatalogFunnelStrip'
 import { GuestBookingNextStepsCard } from '@/components/guest/GuestBookingNextStepsCard'
 import {
@@ -221,15 +219,6 @@ function ListingPdpContent({ listingId, lang }) {
         />
 
         <main className="mx-auto max-w-7xl min-w-0 overflow-x-clip px-4 py-8 sm:px-6 lg:px-8 app-pad-mobile-booking-chrome">
-          <GuestBookingFlowHint
-            t={(key) => getUIText(key, language)}
-            className="mb-4 max-w-2xl"
-            bookingMode={
-              listing?.instantBooking === true || listing?.instant_booking === true
-                ? 'instant'
-                : 'request'
-            }
-          />
           <ListingBookingProvider
             listing={listing}
             user={user}

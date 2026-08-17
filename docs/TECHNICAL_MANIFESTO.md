@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.191 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.86** listing sync (Instant Book, Concierge amenities/geo, house rules, fees).
+> **Version**: 13.2.194 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.89** map soft-back + pin ring.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,20 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.89 — map soft-back + pin ring + PDP flow hint
+- Selected pin ring **1.5px** (was 3px); ignore programmatic `popupclose`; selected pin outside cluster.
+- Soft-back: restore camera from session **without requiring `#map`**; re-apply hash after `router.replace` (App Router drop).
+- PDP: remove above-fold `GuestBookingFlowHint` («Поиск > Запрос > …») — keep component on checkout/messages.
+
+### Stage 201.88 — catalog vs PDP RUB price mismatch
+- Home/search lite omitted `base_currency` / `base_price_asset` → cards converted THB→header with **retail**; PDP used L1 × guest fee (same-currency).
+- Catalog, recommendations, map pins, favorites now send `baseCurrency` + compact `basePriceAsset`. Checkout FX unchanged (`pay ≠ base` only).
+
+### Stage 201.87 — partner hub chrome declutter
+- Listings: drop redundant «Фильтры» / «Объявления» H2; unify title to «Мои объявления»; breadcrumb = «Объявления».
+- Hub SSOT: `PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS` — page H1 hidden from md+ (AppHeader already titles).
+- Same pattern: bookings (no filters H2), finances, reviews, promo, dashboard.
 
 ### Stage 201.86 — listing sync gaps (wizard ↔ PDP ↔ Concierge)
 - `mapListingDetailFromApi` passes **`instantBooking`** (Instant Book CTAs / hints).

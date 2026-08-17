@@ -22,7 +22,9 @@ Ledger / escrow remain **THB mid** (L3).
 | **Checkout FX (курсовая)** | `pricing_profiles.fx_markup_pct` | **`payment_currency ≠ listing_base_currency`**. Partner netto unchanged. Stage **200.88** covers pay=THB × base≠THB. |
 
 Same-currency UI (`display === base`): L1 × (1 + guest fee), no retail round-trip (`same-currency-guest-display.js`).  
-Same-currency **payment** (`pay === base`): checkout FX = **0**.
+Catalog/home/search **must** send `baseCurrency` + `basePriceAsset` (Stage **201.88**); lite metadata alone used to strip the asset and silently apply retail.  
+Same-currency **payment** (`pay === base`): checkout FX = **0**.  
+Header currency is **not** payment currency: guest can view RUB then pay USDT/THB → catalog stays native RUB; **checkout FX** applies only at pay.
 
 ## Matrix (catalog vs checkout)
 

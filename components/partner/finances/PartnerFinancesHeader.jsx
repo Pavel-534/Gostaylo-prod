@@ -3,6 +3,7 @@
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS } from '@/lib/ui/partner-section-rhythm'
 
 /** Title + CSV export only — escrow buckets live in BalanceStrip (Stage 186.1). */
 export function PartnerFinancesHeader({ t, bookingsLength, onExportCsv }) {
@@ -11,6 +12,7 @@ export function PartnerFinancesHeader({ t, bookingsLength, onExportCsv }) {
       className="mb-2"
       title={t('financesTitle')}
       subtitle={t('financesDesc')}
+      titleClassName={PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS}
       action={
         <Button
           onClick={onExportCsv}

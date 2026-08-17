@@ -1,5 +1,5 @@
 /**
- * Stage 200.111 — Partner listings list section rhythm SSOT.
+ * Stage 200.111 / 201.87 — Partner listings list rhythm (no duplicate page titles).
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/stage200-111-partner-listings-rhythm.test.js
  */
 
@@ -14,15 +14,16 @@ function read(rel) {
   return fs.readFileSync(path.join(root, rel), 'utf8')
 }
 
-describe('Stage 200.111 — partner listings list rhythm', () => {
-  it('listings page uses section titles, dividers, hub surface; keeps patch/delete hooks', () => {
+describe('Stage 200.111 / 201.87 — partner listings list rhythm', () => {
+  it('listings page: filters+list without redundant section H2; hub surface; patch/delete', () => {
     const page = read('app/(partner)/partner/listings/page.js')
     assert.match(page, /PartnerSectionDivider/)
-    assert.match(page, /PARTNER_SECTION_TITLE_CLASS/)
+    assert.match(page, /PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS/)
     assert.match(page, /PARTNER_HUB_LIST_CARD_SURFACE_CLASS/)
     assert.match(page, /PARTNER_LISTING_CARD_SURFACE_CLASS/)
     assert.match(page, /listings-filters/)
     assert.match(page, /listings-list/)
+    assert.doesNotMatch(page, /partnerListings_sectionList/)
     assert.doesNotMatch(page, /listings-stats/)
     assert.match(page, /usePartnerListings/)
     assert.match(page, /usePartnerListingPatch/)
@@ -33,10 +34,11 @@ describe('Stage 200.111 — partner listings list rhythm', () => {
     assert.doesNotMatch(page, /border-\[#/)
   })
 
-  it('section i18n keys exist for ru/en', () => {
+  it('section i18n keys + unified title exist for ru/en', () => {
     const i18n = read('lib/translations/slices/partner-ui.js')
-    for (const key of ['partnerListings_sectionFilters', 'partnerListings_sectionList']) {
+    for (const key of ['partnerListings_sectionFilters', 'partnerListings_sectionList', 'partnerListings_title']) {
       assert.ok(i18n.includes(`${key}:`), `missing ${key}`)
     }
+    assert.match(i18n, /partnerListings_title: 'Мои объявления'/)
   })
 })

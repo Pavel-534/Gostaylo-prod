@@ -54,6 +54,8 @@ export default function FavoritesPage() {
             id: fav.listings.id,
             title: fav.listings.title,
             basePriceThb: fav.listings.base_price_thb,
+            baseCurrency: fav.listings.baseCurrency || fav.listings.base_currency,
+            basePriceAsset: fav.listings.basePriceAsset || null,
             guestServiceFeePercent:
               fav.listings.guest_service_fee_percent ?? data.guestServiceFeePercent,
             guestDisplayPriceThb: getGuestDisplayPerNight({

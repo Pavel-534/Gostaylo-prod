@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.82 | **Last Updated**: 2026-08-16 | **201.47** expired calendar-hold purge; **201.23** post-login.  
+> **Version**: 13.2.84 | **Last Updated**: 2026-08-17 | **201.89** catalog map soft-back / pin ring; **201.88** catalog L1 currency.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -93,7 +93,7 @@
 |------|
 | `GET /api/v2/listings` |
 | `GET /api/v2/listings/[id]` |
-| `GET /api/v2/search` / listings search |
+| `GET /api/v2/search` / listings search (lite: `baseCurrency` + `basePriceAsset`, 201.88) |
 | `GET /api/v2/categories` |
 | `GET /api/v2/exchange-rates` |
 | `GET /api/v2/favorites` · `…/check` |

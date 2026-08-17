@@ -33,7 +33,7 @@ import { PartnerBookingList } from '@/components/partner/bookings/PartnerBooking
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { PartnerPageShell } from '@/components/product/PartnerPageShell'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
-import { PARTNER_SECTION_TITLE_CLASS } from '@/lib/ui/partner-section-rhythm'
+import { PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS } from '@/lib/ui/partner-section-rhythm'
 import {
   filterPartnerBookingsByTab,
   countPartnerBookingsByTab,
@@ -267,6 +267,7 @@ export default function PartnerBookings() {
         className="mb-6"
         title={getUIText('partnerBreadcrumb_bookings', language)}
         subtitle={getUIText('partnerBookings_pageSubtitle', language)}
+        titleClassName={PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS}
       />
 
       <OrdersSummary role="partner" partnerStats={stats} language={language} />
@@ -274,9 +275,6 @@ export default function PartnerBookings() {
       <PartnerSectionDivider />
 
       <section data-partner-section="bookings-filters" className="space-y-3">
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
-          {getUIText('partnerBookings_filtersSectionTitle', language)}
-        </h2>
         <PartnerBookingStatusTabs
           activeTab={activeTab}
           counters={tabCounters}

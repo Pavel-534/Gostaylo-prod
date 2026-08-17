@@ -3,6 +3,7 @@
 /**
  * Stage 201.77 — map-level listing popup host (not a child of price Marker).
  * Marker icon/cluster remounts must not destroy the open card (mobile blink root cause).
+ * Stage 201.89 — ignore programmatic popupclose (open/remount) so pin ring stays while card open.
  */
 
 import { useEffect, useMemo, useRef } from 'react'
@@ -43,6 +44,8 @@ export function CatalogMapSelectedPopup({
   onClose = null,
 }) {
   const markerRef = useRef(null)
+  /** Suppress selection clear when we close/reopen popup ourselves (cluster remount / open cycle). */
+  const ignorePopupCloseRef = useRef(false)
   const listingId = String(pin?.id || listing?.id || '').trim()
   const position = useMemo(() => {
     if (!pin) return null
@@ -59,13 +62,22 @@ export function CatalogMapSelectedPopup({
   // Avoid pan loops on mobile: only open popup; MapSelectionSync owns pan policy.
   useEffect(() => {
     if (!open || !position) {
+      ignorePopupCloseRef.current = true
       markerRef.current?.closePopup?.()
-      return undefined
+      const t = window.setTimeout(() => {
+        ignorePopupCloseRef.current = false
+      }, 0)
+      return () => window.clearTimeout(t)
     }
+    ignorePopupCloseRef.current = true
     const t = window.setTimeout(() => {
       markerRef.current?.openPopup?.()
+      ignorePopupCloseRef.current = false
     }, 0)
-    return () => window.clearTimeout(t)
+    return () => {
+      ignorePopupCloseRef.current = true
+      window.clearTimeout(t)
+    }
   }, [open, position, listingId])
 
   if (!open || !position || !listingId) return null
@@ -79,7 +91,10 @@ export function CatalogMapSelectedPopup({
       keyboard={false}
       zIndexOffset={6000}
       eventHandlers={{
-        popupclose: () => onClose?.(),
+        popupclose: () => {
+          if (ignorePopupCloseRef.current) return
+          onClose?.()
+        },
       }}
     >
       <Popup

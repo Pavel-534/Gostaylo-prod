@@ -6,6 +6,7 @@ import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatPrice } from '@/lib/currency'
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
+import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { getListingCardImageUrls } from '@/lib/media/image-delivery'
 import { CATALOG_MAP_MOBILE_RAIL_CARD_HEIGHT } from '@/lib/maps/catalog-map-ux-policy'
 
@@ -31,7 +32,9 @@ export function MapRailCard({
   const rating = Number.parseFloat(ratingRaw) || 0
 
   const priceThb = getGuestDisplayPerNight(listing)
-  const priceText = formatPrice(priceThb, currency, exchangeRates, language)
+  const priceText =
+    formatSameCurrencyGuestDisplay(listing, currency, language) ||
+    formatPrice(priceThb, currency, exchangeRates, language)
 
   return (
     <button

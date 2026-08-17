@@ -50,6 +50,7 @@ import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivide
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
   PARTNER_HUB_SOFT_CARD_PAD_CLASS,
+  PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS,
   PARTNER_SECTION_TITLE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 
@@ -195,7 +196,7 @@ export default function PartnerDashboardPageContent() {
         <PageSectionHeader
           title={getUIText('partnerDashboard_overviewTitle', language)}
           subtitle={format(new Date(), 'EEEE, d MMMM yyyy', { locale: dashLocale })}
-          titleClassName="flex items-center gap-2"
+          titleClassName={cn('flex items-center gap-2', PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS)}
         />
         <h2 className={PARTNER_SECTION_TITLE_CLASS}>
           {getUIText('partnerDashboard_sectionQuickActions', language)}

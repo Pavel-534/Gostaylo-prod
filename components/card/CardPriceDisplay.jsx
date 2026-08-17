@@ -11,7 +11,10 @@ import {
   formatDisplayPriceInCurrency,
   displayPriceRawForTest,
 } from '@/lib/pricing/fx-display-client'
-import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
+import {
+  getSameCurrencyGuestNativeAmount,
+} from '@/lib/pricing/same-currency-guest-display'
+import { formatNativeAmountInCurrency } from '@/lib/currency'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { AnimatedPrice } from '@/components/card/AnimatedPrice'
 import {
@@ -75,10 +78,11 @@ export function CardPriceDisplay({
   )
 
   const formattedPrice = useMemo(() => {
-    // Same listing/UI currency: L1 × guest fee, no retail FX (Stage 200.86)
-    if (nights <= 0) {
-      const same = formatSameCurrencyGuestDisplay(listingForPrice, currency, language)
-      if (same) return same
+    // Same listing/UI currency: L1 × guest fee, no retail FX (Stage 200.86 / 201.88)
+    const nativePerNight = getSameCurrencyGuestNativeAmount(listingForPrice, currency)
+    if (nativePerNight != null) {
+      const amount = nights > 0 ? nativePerNight * nights : nativePerNight
+      return formatNativeAmountInCurrency(amount, currency, language)
     }
     return formatDisplayPriceInCurrency(displayPrice, currency, rates, language)
   }, [listingForPrice, currency, language, nights, displayPrice, rates])

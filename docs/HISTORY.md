@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.89 | 2026-08-17 | Map: thinner pin ring; soft-back camera without #map drop; PDP drop flow stepper | Done |
+| 201.88 | 2026-08-17 | Catalog lite L1 currency so RUB+RUB matches PDP (no retail round-trip) | Done |
+| 201.87 | 2026-08-17 | Partner hub chrome: no stacked H1/H2; listings title unify | Done |
 | 201.86 | 2026-08-17 | Listing sync: Instant Book mapper; Concierge amenities/geo; house rules; PDP fees | Done |
 | 201.85 | 2026-08-17 | PDP section rhythm SSOT (equal py + one hairline; host→dates divider) | Done |
 | 201.84 | 2026-08-17 | Soft-back exact map center/zoom; brand teal pin ring; keep selection | Done |

@@ -447,8 +447,9 @@ html[data-pwa-standalone='1'] .pb-safe-chat-composer {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff;
   border-color: #006666 !important;
-  box-shadow: 0 0 0 3px #006666, 0 4px 12px rgb(0 102 102 / 0.4);
-  transform: scale(1.08);
+  /* Stage 201.89 — ~50% thinner ring than 3px; lighter lift */
+  box-shadow: 0 0 0 1.5px #006666, 0 2px 8px rgb(0 102 102 / 0.28);
+  transform: scale(1.04);
 }
 
 @media (hover: hover) {

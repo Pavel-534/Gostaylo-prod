@@ -27,7 +27,7 @@ import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivide
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
   PARTNER_LISTING_CARD_SURFACE_CLASS,
-  PARTNER_SECTION_TITLE_CLASS,
+  PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 import { ProxiedImage } from '@/components/proxied-image'
 import {
@@ -385,12 +385,14 @@ export default function PartnerListings() {
 
   return (
     <div className='max-w-full space-y-0 overflow-x-hidden'>
-      {/* Header - Mobile optimized */}
-      <div className={`px-4 py-4 ${WORKSPACE_SCROLL_STICKY_CLASS} z-30 mb-1`}>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-lg font-bold text-slate-900'>{t('partnerListings_title')}</h1>
-            <p className='text-xs text-slate-500'>
+      {/* Toolbar: mobile title (AppHeader has desktop title); count + create CTA */}
+      <div className={`px-4 py-3 ${WORKSPACE_SCROLL_STICKY_CLASS} z-30`}>
+        <div className='flex items-center justify-between gap-3'>
+          <div className='min-w-0'>
+            <h1 className={cn('text-lg font-bold text-slate-900', PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS)}>
+              {t('partnerListings_title')}
+            </h1>
+            <p className='text-xs text-slate-500 md:pt-0.5'>
               {t('partnerListings_count').replace(
                 '{count}',
                 String(trashMode ? listings.length : stats.total),
@@ -401,7 +403,7 @@ export default function PartnerListings() {
             asChild
             size='sm'
             variant='brand'
-            className='min-h-[44px]'
+            className='min-h-[44px] shrink-0'
             data-testid='add-listing-btn'
           >
             <Link href='/partner/listings/new'>
@@ -412,11 +414,12 @@ export default function PartnerListings() {
         </div>
       </div>
 
-      <section data-partner-section='listings-filters' className='space-y-3 px-4 pt-2'>
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerListings_sectionFilters')}</h2>
+      <section data-partner-section='listings-filters' className='space-y-3 px-4 pt-1 pb-1'>
         <div
           className='-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-thin'
           data-testid='partner-listings-filter-tabs'
+          role='tablist'
+          aria-label={t('partnerListings_sectionFilters')}
         >
           {[
             { id: 'all', label: t('partnerListings_filterAll') },
@@ -429,6 +432,8 @@ export default function PartnerListings() {
             <button
               key={tab.id}
               type='button'
+              role='tab'
+              aria-selected={listFilter === tab.id}
               ref={(node) => {
                 filterTabRefs.current[tab.id] = node
               }}
@@ -498,9 +503,6 @@ export default function PartnerListings() {
       <PartnerSectionDivider />
 
       <section data-partner-section='listings-list' className='space-y-3 px-4 pb-4 max-sm:px-0'>
-        <h2 className={cn(PARTNER_SECTION_TITLE_CLASS, 'max-sm:px-4')}>
-          {t('partnerListings_sectionList')}
-        </h2>
         {listings.length === 0 ? (
           <WorkspaceEmptyState
             icon={Briefcase}

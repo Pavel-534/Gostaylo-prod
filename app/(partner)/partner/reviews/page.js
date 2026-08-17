@@ -23,7 +23,7 @@ import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivide
 import {
   PARTNER_HUB_LIST_CARD_SURFACE_CLASS,
   PARTNER_HUB_SOFT_CARD_PAD_CLASS,
-  PARTNER_SECTION_TITLE_CLASS,
+  PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS,
 } from '@/lib/ui/partner-section-rhythm'
 
 // Star rating display
@@ -127,18 +127,15 @@ export default function PartnerReviewsPage() {
   return (
     <div className='mx-auto max-w-4xl space-y-0 max-sm:p-0 sm:p-6'>
       <div className='mb-4'>
-        <h1 className='text-2xl font-bold text-slate-900'>
+        <h1 className={cn('text-2xl font-bold text-slate-900', PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS)}>
           {getUIText('partnerReviewsPageTitle', language)}
         </h1>
-        <p className='mt-1 text-xs leading-relaxed text-slate-500'>
+        <p className='mt-1 text-xs leading-relaxed text-slate-500 md:mt-0'>
           {getUIText('partnerReviewsPageSubtitle', language)}
         </p>
       </div>
 
       <section data-partner-section='reviews-stats' className='space-y-3'>
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
-          {getUIText('partnerReviews_sectionStats', language)}
-        </h2>
         <div className='grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4'>
           <Card className={cn(MOBILE_FLAT_CARD_CLASS, PARTNER_HUB_LIST_CARD_SURFACE_CLASS)}>
             <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, PARTNER_HUB_SOFT_CARD_PAD_CLASS, 'sm:pt-6')}>
@@ -179,9 +176,6 @@ export default function PartnerReviewsPage() {
       <PartnerSectionDivider />
 
       <section data-partner-section='reviews-list' className='space-y-3'>
-        <h2 className={PARTNER_SECTION_TITLE_CLASS}>
-          {getUIText('partnerReviews_sectionList', language)}
-        </h2>
         {loading ? (
           <LoadingPageShell
             variant="inline"

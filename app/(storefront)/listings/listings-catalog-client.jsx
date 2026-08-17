@@ -87,18 +87,22 @@ function ListingsContent() {
   const { prefetchListingDetail, cancelListingDetailPrefetch } = useListingDetailPrefetch()
   const [currency, setCurrency] = useState('THB')
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
-  const [showMap, setShowMap] = useState(() =>
-    typeof window !== 'undefined' ? readCatalogMobileMapOpenFromLocation() : false,
-  )
+  /** Stage 201.89 — soft-back camera from session even if App Router dropped `#map`. */
+  const [softBackMapView, setSoftBackMapView] = useState(() => {
+    if (typeof window === 'undefined') return null
+    return normalizeCatalogMapViewport(peekCatalogMapViewport())
+  })
+  const [showMap, setShowMap] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (
+      readCatalogMobileMapOpenFromLocation() ||
+      Boolean(normalizeCatalogMapViewport(peekCatalogMapViewport()))
+    )
+  })
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
-  /** Stage 201.81 / 201.84 — soft-back map camera (peek; React lock holds after restore). */
-  const [softBackMapView, setSoftBackMapView] = useState(() => {
-    if (typeof window === 'undefined') return null
-    if (!readCatalogMobileMapOpenFromLocation()) return null
-    return normalizeCatalogMapViewport(peekCatalogMapViewport())
-  })
+  /** Stage 201.81 / 201.84 / 201.89 — soft-back map camera (peek; React lock holds after restore). */
   const [cameraRestoreBbox, setCameraRestoreBbox] = useState(() => {
     if (!softBackMapView) return null
     return {
@@ -112,6 +116,8 @@ function ListingsContent() {
     }
   })
   const [holdSoftBackCamera, setHoldSoftBackCamera] = useState(() => Boolean(softBackMapView))
+  const holdSoftBackCameraRef = useRef(Boolean(softBackMapView))
+  holdSoftBackCameraRef.current = holdSoftBackCamera
   const [mapSelectedListingId, setMapSelectedListingId] = useState(
     () => softBackMapView?.selectedListingId || null,
   )
@@ -459,17 +465,64 @@ function ListingsContent() {
     })
   }, [isMobile])
 
-  // Hydrate map sheet from `#map` (soft-back / share). Never use `?map=` in steady state.
+  // Hydrate map sheet from `#map` / soft-back viewport (Stage 201.89).
+  // App Router often drops `#map` on replace — reopen from session + re-write hash.
   useEffect(() => {
     if (!isMobile) return undefined
-    const syncFromHash = () => {
-      const open = readCatalogMobileMapOpenFromLocation()
-      setShowMap((prev) => (prev === open ? prev : open))
+
+    const hydrateSoftBackCamera = () => {
+      const snap = normalizeCatalogMapViewport(peekCatalogMapViewport())
+      if (!snap) return false
+      setSoftBackMapView((prev) => prev || snap)
+      setCameraRestoreBbox((prev) => {
+        if (prev) return prev
+        return {
+          south: snap.south,
+          north: snap.north,
+          west: snap.west,
+          east: snap.east,
+          centerLat: snap.centerLat,
+          centerLng: snap.centerLng,
+          zoom: snap.zoom,
+        }
+      })
+      setHoldSoftBackCamera(true)
+      if (snap.selectedListingId) {
+        setMapSelectedListingId((prev) => prev || snap.selectedListingId)
+      }
+      return true
     }
+
+    const syncFromHash = () => {
+      const hashOpen = readCatalogMobileMapOpenFromLocation()
+      const hasViewport = Boolean(peekCatalogMapViewport())
+      const open = hashOpen || hasViewport || holdSoftBackCameraRef.current
+      if (open) {
+        hydrateSoftBackCamera()
+        if (!hashOpen) writeCatalogMobileMapHash(true)
+      }
+      setShowMap((prev) => {
+        if (open) return prev === true ? prev : true
+        // Do not close sheet while soft-back camera lock is held (viewport may already be consumed).
+        if (holdSoftBackCameraRef.current) return prev
+        return false
+      })
+    }
+
     syncFromHash()
     window.addEventListener('hashchange', syncFromHash)
     return () => window.removeEventListener('hashchange', syncFromHash)
   }, [isMobile])
+
+  // One-shot: if we remounted with stored camera, force `#map` so sheet stays open.
+  useEffect(() => {
+    if (!isMobile) return
+    if (!softBackMapView && !holdSoftBackCamera) return
+    if (!readCatalogMobileMapOpenFromLocation()) {
+      writeCatalogMobileMapHash(true)
+    }
+    setShowMap(true)
+  }, [isMobile, softBackMapView, holdSoftBackCamera])
 
   // One-shot migration: legacy `?map=1` → `#map` (avoids catalog search remount storms).
   useEffect(() => {

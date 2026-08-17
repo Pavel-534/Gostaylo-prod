@@ -34,15 +34,16 @@ describe('Stage 200.103 — partner bookings rhythm', () => {
     assert.match(list, /bookings-list-groups/)
   })
 
-  it('bookings page wires filters section + dividers without touching mutate handlers', () => {
+  it('bookings page wires filters section + dividers; hides duplicate H1 on md+', () => {
     const page = read('app/(partner)/partner/bookings/page.js')
     assert.match(page, /PartnerSectionDivider/)
-    assert.match(page, /PARTNER_SECTION_TITLE_CLASS/)
+    assert.match(page, /PARTNER_HUB_PAGE_TITLE_MD_HIDE_CLASS/)
     assert.match(page, /bookings-filters/)
     assert.match(page, /bookings-list/)
     assert.match(page, /useUpdateBookingStatus/)
     assert.match(page, /filterPartnerBookingsByTab/)
     assert.match(page, /buildPartnerUnifiedOrder/)
+    assert.doesNotMatch(page, /partnerBookings_filtersSectionTitle/)
   })
 
   it('hub list surface alias exists on partner-section-rhythm SSOT', () => {
