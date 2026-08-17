@@ -6,6 +6,9 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.86 | 2026-08-17 | Listing sync: Instant Book mapper; Concierge amenities/geo; house rules; PDP fees | Done |
+| 201.85 | 2026-08-17 | PDP section rhythm SSOT (equal py + one hairline; host→dates divider) | Done |
+| 201.84 | 2026-08-17 | Soft-back exact map center/zoom; brand teal pin ring; keep selection | Done |
 | 201.83 | 2026-08-17 | PDP: remove double divider; reviews after description (not above-fold empty) | Done |
 | 201.82 | 2026-08-17 | Supply-first Where: hide 0-inventory popular; fix Чита label; no Phuket dump | Done |
 | 201.81 | 2026-08-16 | Soft-back from PDP restores map camera bbox (session), not world fit | Done |

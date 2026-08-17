@@ -104,9 +104,14 @@ describe('Stage 210.2 — concierge helpers', () => {
       basePriceThb: 3300,
       seasons: [{ startDate: '2026-12-15', endDate: '2027-01-15', priceDaily: 3300 }],
       images: ['https://x/a.jpg'],
+      amenities: ['wifi', 'pool'],
+      geo: { lat: 7.9, lng: 98.3, countryCode: 'TH', cityCode: 'phuket' },
     })
     assert.equal(good.ok, true)
     assert.equal(good.value.externalId, 'JU208')
+    assert.deepEqual(good.value.amenities, ['wifi', 'pool'])
+    assert.equal(good.value.geo.countryCode, 'TH')
+    assert.equal(good.value.geo.cityCode, 'phuket')
   })
 })
 

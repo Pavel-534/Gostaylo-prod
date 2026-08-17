@@ -15,6 +15,11 @@ import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import {
+  LISTING_PDP_SECTION_PAD_CLASS,
+  LISTING_PDP_SECTION_RULE_CLASS,
+  LISTING_PDP_SECTION_TITLE_CLASS,
+} from '@/lib/listing/pdp-section-rhythm'
 
 /**
  * PDP mobile: inline date/guest planner (lg:hidden) + fixed bottom **`MobileBookingBar`**.
@@ -118,8 +123,16 @@ export function ListingMobileActions({ chat }) {
 
   return (
     <>
-      <div className="lg:hidden scroll-mt-24" {...{ [PDP_BOOKING_DATES_ANCHOR_ATTR]: '' }}>
-        <h2 className="text-2xl font-medium tracking-tight mb-4">{tx('selectYourDates')}</h2>
+      <div
+        className={cn(
+          'lg:hidden scroll-mt-24',
+          LISTING_PDP_SECTION_PAD_CLASS,
+          'border-y',
+          LISTING_PDP_SECTION_RULE_CLASS,
+        )}
+        {...{ [PDP_BOOKING_DATES_ANCHOR_ATTR]: '' }}
+      >
+        <h2 className={cn(LISTING_PDP_SECTION_TITLE_CLASS, 'mb-4')}>{tx('selectYourDates')}</h2>
         <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200 sm:bg-slate-50')}>
           <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4 sm:p-4')}>
             <div>

@@ -216,7 +216,7 @@ function InitialListingBoundsFit({
 }
 
 /**
- * Stage 201.81 — restore soft-back map camera once (bbox from session).
+ * Stage 201.81 / 201.84 — restore soft-back map camera once (center+zoom preferred, else bbox).
  */
 function CatalogMapCameraRestoreOnce({ bbox, onRestored, suppressBoundsUntilRef }) {
   const map = useMap()
@@ -233,15 +233,26 @@ function CatalogMapCameraRestoreOnce({ bbox, onRestored, suppressBoundsUntilRef 
     didRef.current = true
     try {
       if (suppressBoundsUntilRef) {
-        suppressBoundsUntilRef.current = Date.now() + 1600
+        suppressBoundsUntilRef.current = Date.now() + 2400
       }
-      map.fitBounds(
-        [
-          [south, west],
-          [north, east],
-        ],
-        { padding: [40, 40], maxZoom: 16, animate: false },
-      )
+      const centerLat = Number(bbox.centerLat)
+      const centerLng = Number(bbox.centerLng)
+      const zoom = Number(bbox.zoom)
+      if (
+        Number.isFinite(centerLat) &&
+        Number.isFinite(centerLng) &&
+        Number.isFinite(zoom)
+      ) {
+        map.setView([centerLat, centerLng], zoom, { animate: false })
+      } else {
+        map.fitBounds(
+          [
+            [south, west],
+            [north, east],
+          ],
+          { padding: [40, 40], maxZoom: 16, animate: false },
+        )
+      }
     } catch {
       /* ignore invalid leaflet bounds */
     }
@@ -260,11 +271,15 @@ function MapViewportReporter({
 
   const emitBounds = useCallback(() => {
     const b = map.getBounds()
+    const c = map.getCenter()
     onViewportBbox?.({
       south: b.getSouth(),
       west: b.getWest(),
       north: b.getNorth(),
       east: b.getEast(),
+      centerLat: c?.lat,
+      centerLng: c?.lng,
+      zoom: map.getZoom(),
     })
   }, [map, onViewportBbox])
 
@@ -507,14 +522,16 @@ export default function InteractiveSearchMap({
   /** Stage 201.81 — soft-back restore of previous map bbox (one-shot). */
   cameraRestoreBbox = null,
   onCameraRestoreDone = null,
+  /** Stage 201.84 — keep skipListingFit after restore bbox cleared (parent React state). */
+  holdSoftBackCamera = false,
 }) {
   const [mounted, setMounted] = useState(false)
   const suppressBoundsUntilRef = useRef(0)
-  const softBackCameraLockRef = useRef(Boolean(cameraRestoreBbox))
+  const softBackCameraLockRef = useRef(Boolean(cameraRestoreBbox) || Boolean(holdSoftBackCamera))
 
   useEffect(() => {
-    if (cameraRestoreBbox) softBackCameraLockRef.current = true
-  }, [cameraRestoreBbox])
+    if (cameraRestoreBbox || holdSoftBackCamera) softBackCameraLockRef.current = true
+  }, [cameraRestoreBbox, holdSoftBackCamera])
 
   useEffect(() => {
     setMounted(true)
@@ -674,7 +691,11 @@ export default function InteractiveSearchMap({
           mapFitResetKey={mapFitResetKey}
           fallbackCenter={center}
           fallbackZoom={zoom}
-          skipListingFit={Boolean(cameraRestoreBbox) || softBackCameraLockRef.current}
+          skipListingFit={
+            Boolean(cameraRestoreBbox) ||
+            Boolean(holdSoftBackCamera) ||
+            softBackCameraLockRef.current
+          }
         />
 
         <MapSelectionSync

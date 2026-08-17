@@ -1,19 +1,28 @@
 'use client'
 
 import { memo, useCallback } from 'react'
-import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { ListingHeroHeadline } from '@/components/listing/pdp/ListingHero'
 import { ListingDescription } from '@/components/listing/pdp/ListingDescription'
 import { ListingMap } from '@/components/listing/pdp/ListingMap'
 import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
 import { ListingReviews } from '@/components/listing/pdp/ListingReviews'
+import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { SimilarListingsRail } from '@/components/recommendations/SimilarListingsRail'
 import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
+import {
+  ListingPdpSection,
+  ListingPdpSectionStack,
+} from '@/components/listing/pdp/ListingPdpSection'
+import {
+  LISTING_PDP_RAIL_SECTION_CLASS,
+  LISTING_PDP_SECTION_RULE_CLASS,
+} from '@/lib/listing/pdp-section-rhythm'
 
 /**
  * PDP left column — isolated from booking date state to avoid calendar click re-renders (Stage 171.23).
- * Stage 201.83 — section order: story (description/amenities) → trust (reviews) → place (map) → rails.
- * Single Separator between blocks (hero specs no longer use border-b — avoids double rule).
+ * Stage 201.83 — section order: story → trust (reviews) → place (map) → rails.
+ * Stage 201.85 — SSOT section rhythm; mobile dates sit between stacks (not inside divide-y).
  */
 function ListingPdpDetailsColumnInner({
   listing,
@@ -26,27 +35,54 @@ function ListingPdpDetailsColumnInner({
   mobileBelow,
   chatPreviewProps,
 }) {
+  const showChatPreview = Boolean(chatPreviewProps?.showContactPartner)
+  const hasAmenities = Array.isArray(amenities) && amenities.length > 0
+
   return (
-    <div className="lg:col-span-2 min-w-0 space-y-8 overflow-x-clip">
-      <ListingHeroHeadline listing={listing} language={language} />
-      <Separator />
-      <ListingDescription
-        listing={listing}
-        language={language}
-        amenities={amenities}
-        belowDescription={mobileBelow}
-      />
-      <Separator />
-      <ListingReviews listing={listing} reviews={reviews} language={language} />
-      <Separator />
-      <ListingMap listing={listing} language={language} />
-      <ListingChatPreview {...chatPreviewProps} />
-      <Separator />
+    <div className="lg:col-span-2 min-w-0 overflow-x-clip">
+      <ListingPdpSectionStack>
+        <ListingPdpSection>
+          <ListingHeroHeadline listing={listing} language={language} />
+        </ListingPdpSection>
+        <ListingDescription
+          listing={listing}
+          language={language}
+          currency={currency}
+          exchangeRates={exchangeRates}
+        />
+      </ListingPdpSectionStack>
+
+      {/* Outside divide-y: `lg:hidden` must not leave orphan section rules on desktop. */}
+      {mobileBelow}
+
+      <ListingPdpSectionStack
+        className={cn('border-t max-lg:border-t-0', LISTING_PDP_SECTION_RULE_CLASS)}
+      >
+        {hasAmenities ? (
+          <ListingPdpSection>
+            <AmenitiesGrid amenities={amenities} language={language} />
+          </ListingPdpSection>
+        ) : null}
+        <ListingPdpSection>
+          <ListingReviews listing={listing} reviews={reviews} language={language} />
+        </ListingPdpSection>
+        <ListingPdpSection>
+          <ListingMap listing={listing} language={language} />
+        </ListingPdpSection>
+      </ListingPdpSectionStack>
+
+      {showChatPreview ? (
+        <div className={cn(LISTING_PDP_RAIL_SECTION_CLASS, 'hidden lg:block')}>
+          <ListingChatPreview {...chatPreviewProps} />
+        </div>
+      ) : null}
+
       <SimilarListingsRail
         listingId={listing.id}
         language={language}
         currency={currency}
         exchangeRates={exchangeRates}
+        className={LISTING_PDP_RAIL_SECTION_CLASS}
       />
       <RecentlyViewedRail
         currentListingId={listing.id}
@@ -54,6 +90,7 @@ function ListingPdpDetailsColumnInner({
         language={language}
         currency={currency}
         exchangeRates={exchangeRates}
+        className={LISTING_PDP_RAIL_SECTION_CLASS}
       />
     </div>
   )

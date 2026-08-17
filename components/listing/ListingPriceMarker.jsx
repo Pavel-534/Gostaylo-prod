@@ -48,12 +48,12 @@ export function ListingPriceMarker({
     pill.classList.toggle('gostaylo-price-pill--selected', isSelected)
     pill.classList.toggle('gostaylo-price-pill--hovered', isHovered)
     if (isSelected) {
-      // Mint + amber ring survives force-dark better than white→black inversion.
-      pill.style.background = '#0D9488'
+      // Brand teal ring (matches rail card / CTA) — stays while pin selected.
+      pill.style.background = '#006666'
       pill.style.color = '#ffffff'
       pill.style.webkitTextFillColor = '#ffffff'
-      pill.style.borderColor = '#FBBF24'
-      pill.style.boxShadow = '0 0 0 3px #FBBF24, 0 4px 12px rgb(13 148 136 / 0.45)'
+      pill.style.borderColor = '#006666'
+      pill.style.boxShadow = '0 0 0 3px #006666, 0 4px 12px rgb(0 102 102 / 0.4)'
       pill.style.transform = 'scale(1.08)'
     } else if (isHovered) {
       pill.style.background = '#1e293b'

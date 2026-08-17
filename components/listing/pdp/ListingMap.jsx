@@ -57,7 +57,7 @@ export const ListingMap = memo(function ListingMap({ listing, language }) {
 
   return (
     <div ref={ref}>
-      <h2 className="text-2xl font-medium tracking-tight mb-4">
+      <h2 className="text-2xl font-medium tracking-tight mb-4 text-slate-900">
         {getUIText('whereYoullBe', language, {
           listingCategorySlug: slug,
           wizardProfile,

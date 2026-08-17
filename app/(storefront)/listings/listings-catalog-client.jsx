@@ -93,24 +93,28 @@ function ListingsContent() {
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
-  /** Stage 201.81 — soft-back map camera (peek; clear after restore). */
-  const [cameraRestoreBbox, setCameraRestoreBbox] = useState(() => {
+  /** Stage 201.81 / 201.84 — soft-back map camera (peek; React lock holds after restore). */
+  const [softBackMapView, setSoftBackMapView] = useState(() => {
     if (typeof window === 'undefined') return null
     if (!readCatalogMobileMapOpenFromLocation()) return null
-    const snapped = normalizeCatalogMapViewport(peekCatalogMapViewport())
-    if (!snapped) return null
+    return normalizeCatalogMapViewport(peekCatalogMapViewport())
+  })
+  const [cameraRestoreBbox, setCameraRestoreBbox] = useState(() => {
+    if (!softBackMapView) return null
     return {
-      south: snapped.south,
-      north: snapped.north,
-      west: snapped.west,
-      east: snapped.east,
+      south: softBackMapView.south,
+      north: softBackMapView.north,
+      west: softBackMapView.west,
+      east: softBackMapView.east,
+      centerLat: softBackMapView.centerLat,
+      centerLng: softBackMapView.centerLng,
+      zoom: softBackMapView.zoom,
     }
   })
-  const [mapSelectedListingId, setMapSelectedListingId] = useState(() => {
-    if (typeof window === 'undefined') return null
-    if (!readCatalogMobileMapOpenFromLocation()) return null
-    return normalizeCatalogMapViewport(peekCatalogMapViewport())?.selectedListingId || null
-  })
+  const [holdSoftBackCamera, setHoldSoftBackCamera] = useState(() => Boolean(softBackMapView))
+  const [mapSelectedListingId, setMapSelectedListingId] = useState(
+    () => softBackMapView?.selectedListingId || null,
+  )
   const [mapHoveredListingId, setMapHoveredListingId] = useState(null)
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -385,13 +389,6 @@ function ListingsContent() {
     if (!loading) setAiSearchPending(false)
   }, [loading])
 
-  useEffect(() => {
-    if (!mapSelectedListingId) return
-    if (!allListings.some((l) => l.id === mapSelectedListingId)) {
-      setMapSelectedListingId(null)
-    }
-  }, [allListings, mapSelectedListingId])
-
   const catalogSortDistanceAvailable = useMemo(() => {
     if (appliedBbox && bboxCenter(appliedBbox)) return true
     return Boolean(whereGeoView.sortCenter)
@@ -492,13 +489,31 @@ function ListingsContent() {
     const next = Boolean(open)
     setShowMap(next)
     writeCatalogMobileMapHash(next)
-    if (!next) clearCatalogMapViewport()
+    if (!next) {
+      clearCatalogMapViewport()
+      setHoldSoftBackCamera(false)
+      setCameraRestoreBbox(null)
+      setSoftBackMapView(null)
+    }
   }, [])
 
   const handleCameraRestoreDone = useCallback(() => {
     clearCatalogMapViewport()
     setCameraRestoreBbox(null)
+    setHoldSoftBackCamera(true)
   }, [])
+
+  const softBackMapCenter = useMemo(() => {
+    const v = softBackMapView
+    if (!v) return null
+    if (!Number.isFinite(Number(v.centerLat)) || !Number.isFinite(Number(v.centerLng))) return null
+    return [Number(v.centerLat), Number(v.centerLng)]
+  }, [softBackMapView])
+
+  const softBackMapZoom = useMemo(() => {
+    const z = Number(softBackMapView?.zoom)
+    return Number.isFinite(z) ? z : null
+  }, [softBackMapView])
 
   const clearDates = () => setDateRange({ from: null, to: null })
 
@@ -588,13 +603,14 @@ function ListingsContent() {
       onClearMapBounds: handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
-      mapCenter: whereGeoView.center,
-      mapZoom: whereGeoView.zoom,
+      mapCenter: softBackMapCenter || whereGeoView.center,
+      mapZoom: softBackMapZoom ?? whereGeoView.zoom,
       selectionPanMode: isMobile && showMap
         ? CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY
         : CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
       cameraRestoreBbox,
       onCameraRestoreDone: handleCameraRestoreDone,
+      holdSoftBackCamera,
     }),
     [
       allListings,
@@ -617,10 +633,13 @@ function ListingsContent() {
       mapFitResetKey,
       whereGeoView.center,
       whereGeoView.zoom,
+      softBackMapCenter,
+      softBackMapZoom,
       isMobile,
       showMap,
       cameraRestoreBbox,
       handleCameraRestoreDone,
+      holdSoftBackCamera,
     ],
   )
 

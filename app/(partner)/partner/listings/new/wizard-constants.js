@@ -53,6 +53,8 @@ export function getDefaultWizardFormData() {
       check_in_instructions: '',
       /** Stage 31.0 — до 3 URL, копируются в booking.metadata как `check_in_photos` */
       check_in_photos: [],
+      /** Stage 201.86 — guest house rules (PDP + listing health) */
+      house_rules: '',
       /** Stage 30.0 — `full_to_full` скрывает подсказку «топливо не включено» в чеке */
       fuel_policy: '',
     },

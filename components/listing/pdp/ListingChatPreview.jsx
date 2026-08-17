@@ -34,7 +34,7 @@ export function ListingChatPreview({
       : '?'
 
   return (
-    <Card className="hidden lg:block border-brand/20 bg-gradient-to-br from-brand/10 to-white shadow-sm">
+    <Card className="border-brand/20 bg-gradient-to-br from-brand/10 to-white shadow-sm">
       <CardContent className="p-4 sm:p-5">
         <div className="flex gap-3 sm:gap-4 items-start">
           <Avatar className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 border border-brand/20">

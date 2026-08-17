@@ -60,8 +60,12 @@ function CatalogSearchMapPanelComponent({
   /** Stage 201.81 — soft-back map camera. */
   cameraRestoreBbox = null,
   onCameraRestoreDone = null,
+  /** Stage 201.84 — parent lock so remount does not world-fit. */
+  holdSoftBackCamera = false,
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
+  /** Live center/zoom for soft-back (not quantized away). */
+  const [liveCamera, setLiveCamera] = useState(null)
 
   const quantizedAppliedBbox = useMemo(
     () => (appliedBbox ? quantizeMapBbox(appliedBbox) : null),
@@ -83,19 +87,36 @@ function CatalogSearchMapPanelComponent({
   /** Bbox ready → merge API pins with catalog listings (sidebar SSOT); no flip on isLoading. */
   const mapPinsUseApi = boundsReady
 
+  const viewportForParent = useMemo(() => {
+    if (!mapQueryBounds) return null
+    return {
+      ...mapQueryBounds,
+      centerLat: liveCamera?.centerLat ?? null,
+      centerLng: liveCamera?.centerLng ?? null,
+      zoom: liveCamera?.zoom ?? null,
+    }
+  }, [mapQueryBounds, liveCamera])
+
   useEffect(() => {
     if (typeof onViewportMapData !== 'function') return
     onViewportMapData({
       mode,
       pins: pins || [],
       clusters: clusters || [],
-      viewportBbox: mapQueryBounds,
+      viewportBbox: viewportForParent,
       boundsReady,
     })
-  }, [onViewportMapData, mode, pins, clusters, mapQueryBounds, boundsReady])
+  }, [onViewportMapData, mode, pins, clusters, viewportForParent, boundsReady])
 
   const handleViewportBbox = useCallback(
     (bbox) => {
+      if (bbox && Number.isFinite(Number(bbox.centerLat)) && Number.isFinite(Number(bbox.centerLng))) {
+        setLiveCamera({
+          centerLat: Number(bbox.centerLat),
+          centerLng: Number(bbox.centerLng),
+          zoom: Number.isFinite(Number(bbox.zoom)) ? Number(bbox.zoom) : null,
+        })
+      }
       if (appliedBbox) return
       const quantized = quantizeMapBbox(bbox)
       if (!quantized) return
@@ -154,6 +175,7 @@ function CatalogSearchMapPanelComponent({
           selectionPanMode={selectionPanMode}
           cameraRestoreBbox={cameraRestoreBbox}
           onCameraRestoreDone={onCameraRestoreDone}
+          holdSoftBackCamera={holdSoftBackCamera}
         />
       </div>
     </div>

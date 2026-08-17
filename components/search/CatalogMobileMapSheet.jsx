@@ -80,7 +80,13 @@ export function CatalogMobileMapSheet({
       const bbox = next?.viewportBbox
       if (open && bbox) {
         rememberCatalogMapViewport({
-          ...bbox,
+          south: bbox.south,
+          north: bbox.north,
+          west: bbox.west,
+          east: bbox.east,
+          centerLat: bbox.centerLat,
+          centerLng: bbox.centerLng,
+          zoom: bbox.zoom,
           selectedListingId:
             railProps.activeListingId ?? mapPanelProps.selectedListingId ?? null,
         })
@@ -94,8 +100,15 @@ export function CatalogMobileMapSheet({
 
   useEffect(() => {
     if (!open || !viewportMapData.viewportBbox) return
+    const bbox = viewportMapData.viewportBbox
     rememberCatalogMapViewport({
-      ...viewportMapData.viewportBbox,
+      south: bbox.south,
+      north: bbox.north,
+      west: bbox.west,
+      east: bbox.east,
+      centerLat: bbox.centerLat,
+      centerLng: bbox.centerLng,
+      zoom: bbox.zoom,
       selectedListingId: activeListingId,
     })
   }, [open, activeListingId, viewportMapData.viewportBbox])

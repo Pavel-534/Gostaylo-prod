@@ -18,6 +18,8 @@ import {
   Check
 } from 'lucide-react'
 import { getUIText, getAmenityName } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+import { LISTING_PDP_SECTION_TITLE_CLASS } from '@/lib/listing/pdp-section-rhythm'
 
 const AMENITY_ICONS = {
   'wifi': Wifi,
@@ -51,7 +53,7 @@ export function AmenitiesGrid({ amenities, language = 'en' }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-medium tracking-tight mb-4">
+      <h2 className={cn(LISTING_PDP_SECTION_TITLE_CLASS, 'mb-4')}>
         {getUIText('amenities', language)}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -60,7 +62,7 @@ export function AmenitiesGrid({ amenities, language = 'en' }) {
           return (
             <div 
               key={idx} 
-              className="flex items-center gap-3 text-slate-700 py-2 border-b border-slate-50 last:border-0"
+              className="flex items-center gap-3 text-slate-700 py-2 border-b border-slate-50 last:border-0 md:border-0"
             >
               <Icon className="h-5 w-5 text-brand flex-shrink-0" />
               <span>{getAmenityName(amenity, language) || amenity}</span>

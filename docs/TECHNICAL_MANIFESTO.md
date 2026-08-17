@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.188 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.83** PDP section order + single divider.
+> **Version**: 13.2.191 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.86** listing sync (Instant Book, Concierge amenities/geo, house rules, fees).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,23 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.86 — listing sync gaps (wizard ↔ PDP ↔ Concierge)
+- `mapListingDetailFromApi` passes **`instantBooking`** (Instant Book CTAs / hints).
+- Concierge ingest keeps **`metadata.amenities`** + writes **`country_code` / `city_code`** from geo.
+- Stay wizard: **`house_rules`** field (whitelist + PDP «Good to know»).
+- PDP: **`ListingGuestFeeHints`** — cleaning / deposit / fuel exclusions before date pick.
+
+### Stage 201.85 — PDP section rhythm SSOT
+- SSOT: `lib/listing/pdp-section-rhythm.js` + `ListingPdpSectionStack` / `ListingPdpSection`.
+- One hairline (`border-slate-100`) between semantic blocks; equal `py-8` on both sides — no nested `<Separator my-8>` / double rules.
+- Mobile «Выберите даты» sits between stacks (`border-y`) so `lg:hidden` does not orphan divide rules on desktop.
+- Hero title→specs uses internal split (`mt-8`/`pt-8`) matching stack weight.
+
+### Stage 201.84 — soft-back exact map camera + brand selected pins
+- Soft-back stores **center+zoom+bbox** (+ selected pin); restore via `setView`; React `holdSoftBackCamera` prevents world-fit remount.
+- Capture forces `#map` when viewport memory exists.
+- Selected price pill: brand teal `#006666` ring (not amber). Selection no longer cleared when listing missing from current search page.
 
 ### Stage 201.83 — PDP: one divider + reviews below description
 - Double rule above «Отзывы»: specs `border-b` + column `Separator` — specs now `border-t` only.

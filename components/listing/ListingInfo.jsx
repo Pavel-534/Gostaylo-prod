@@ -7,7 +7,6 @@
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Star, ShieldCheck } from 'lucide-react'
@@ -16,7 +15,6 @@ import {
   MOBILE_FLAT_CARD_CLASS,
   MOBILE_FLAT_CARD_CONTENT_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
-import { toPublicImageUrl } from '@/lib/public-image-url'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { getUIText, getListingText } from '@/lib/translations'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
@@ -25,9 +23,18 @@ import { listingHasGuestPolicies } from '@/lib/listing/listing-good-to-know'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 import { HostResponseSlaBadge } from '@/components/listing/HostResponseSlaBadge'
+import {
+  ListingPdpSection,
+  ListingPdpSectionStack,
+} from '@/components/listing/pdp/ListingPdpSection'
+import {
+  LISTING_PDP_INTERNAL_SPLIT_CLASS,
+  LISTING_PDP_SECTION_TITLE_CLASS,
+} from '@/lib/listing/pdp-section-rhythm'
 
 /**
  * Title, location, rating, and spec row (SSOT: `ListingCardSpecsRow`).
+ * Specs sit under an internal split matching PDP section rhythm (Stage 201.85).
  */
 export function GuestListingTitleBlock({ listing, language = 'en' }) {
   if (!listing) return null
@@ -81,93 +88,131 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
         language={language}
         variant="pdp"
         suppressTrustVerifiedMiniBadge
-        className="border-t border-slate-100 py-4"
+        className={LISTING_PDP_INTERNAL_SPLIT_CLASS}
       />
     </div>
   )
 }
 
+/** Long description only (no policies/host — those are sibling PDP sections). */
+export function GuestListingDescriptionSection({ listing, language = 'en' }) {
+  if (!listing) return null
+  return (
+    <div>
+      <h2 className={cn(LISTING_PDP_SECTION_TITLE_CLASS, 'mb-4')}>
+        {getUIText('description', language)}
+      </h2>
+      <p className="min-w-0 max-w-full break-words text-base leading-relaxed text-slate-600 whitespace-pre-wrap [overflow-wrap:anywhere]">
+        {getListingText(listing, 'description', language) || listing.description}
+      </p>
+    </div>
+  )
+}
+
+/** Stay / cancellation policies when the listing has guest policy content. */
+export function GuestListingPoliciesSection({ listing, language = 'en' }) {
+  if (!listing || !listingHasGuestPolicies(listing)) return null
+  return <ListingGuestPolicies listing={listing} language={language} />
+}
+
+/** Partner / host card. */
+export function GuestListingHostSection({ listing, language = 'en' }) {
+  if (!listing?.owner) return null
+  return (
+    <div>
+      <h2 className={cn(LISTING_PDP_SECTION_TITLE_CLASS, 'mb-4')}>
+        {getUIText('meetYourHost', language)}
+      </h2>
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200')}>
+        <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
+          <Link
+            href={listing.owner?.id ? `/u/${listing.owner.id}` : '#'}
+            className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+              listing.owner?.id ? 'hover:bg-slate-50' : 'pointer-events-none opacity-80'
+            }`}
+            aria-label={getUIText('publicProfileOpenHostHint', language)}
+          >
+            <Avatar className="h-16 w-16 border border-slate-200">
+              {listing.owner.avatar ? (
+                <AvatarImage
+                  src={resolveAvatarDisplaySrc(listing.owner.avatar) || ''}
+                  alt=""
+                  className="object-cover"
+                />
+              ) : null}
+              <AvatarFallback className="bg-brand/15 text-brand-hover text-lg font-semibold">
+                {(listing.owner.first_name?.charAt(0) || listing.owner.last_name?.charAt(0) || '?').toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <h3 className="font-medium text-lg text-slate-900 group-hover:text-brand-hover">
+                {[listing.owner.first_name, listing.owner.last_name].filter(Boolean).join(' ').trim() ||
+                  getUIText('hostNamePlaceholder', language)}
+              </h3>
+              <p className="text-sm text-slate-500">{getUIText('propertyOwner', language)}</p>
+              <HostResponseSlaBadge
+                trust={listing.partnerTrust}
+                language={language}
+                className="pt-0.5"
+              />
+              {listing.partnerTrust ? (
+                <div className="pt-2 space-y-1.5">
+                  <PartnerTrustBadge trust={listing.partnerTrust} language={language} />
+                  <PartnerRenterTrustBadges trust={listing.partnerTrust} language={language} />
+                </div>
+              ) : null}
+            </div>
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 /**
- * Long description, policies, host.
+ * Long description, policies, host — stacked without nested Separators
+ * (rhythm comes from `ListingPdpSectionStack` when composed on PDP).
  */
 export function GuestListingBodyBlock({ listing, language = 'en' }) {
   if (!listing) return null
   return (
-    <div className="space-y-0">
-      <div>
-        <h2 className="text-2xl font-medium tracking-tight mb-4">{getUIText('description', language)}</h2>
-        <p className="min-w-0 max-w-full break-words text-base leading-relaxed text-slate-600 whitespace-pre-wrap [overflow-wrap:anywhere]">
-          {getListingText(listing, 'description', language) || listing.description}
-        </p>
-      </div>
-
+    <ListingPdpSectionStack>
+      <ListingPdpSection>
+        <GuestListingDescriptionSection listing={listing} language={language} />
+      </ListingPdpSection>
       {listingHasGuestPolicies(listing) ? (
-        <>
-          <Separator className="my-8" />
-          <ListingGuestPolicies listing={listing} language={language} />
-        </>
+        <ListingPdpSection>
+          <GuestListingPoliciesSection listing={listing} language={language} />
+        </ListingPdpSection>
       ) : null}
-
       {listing.owner ? (
-        <>
-          <Separator className="my-8" />
-          <div>
-            <h2 className="text-2xl font-medium tracking-tight mb-4">{getUIText('meetYourHost', language)}</h2>
-            <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'sm:border-slate-200')}>
-              <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'sm:p-6')}>
-                <Link
-                  href={listing.owner?.id ? `/u/${listing.owner.id}` : '#'}
-                  className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                    listing.owner?.id ? 'hover:bg-slate-50' : 'pointer-events-none opacity-80'
-                  }`}
-                  aria-label={getUIText('publicProfileOpenHostHint', language)}
-                >
-                  <Avatar className="h-16 w-16 border border-slate-200">
-                    {listing.owner.avatar ? (
-                      <AvatarImage
-                        src={resolveAvatarDisplaySrc(listing.owner.avatar) || ''}
-                        alt=""
-                        className="object-cover"
-                      />
-                    ) : null}
-                    <AvatarFallback className="bg-brand/15 text-brand-hover text-lg font-semibold">
-                      {(listing.owner.first_name?.charAt(0) || listing.owner.last_name?.charAt(0) || '?').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <h3 className="font-medium text-lg text-slate-900 group-hover:text-brand-hover">
-                      {[listing.owner.first_name, listing.owner.last_name].filter(Boolean).join(' ').trim() ||
-                        getUIText('hostNamePlaceholder', language)}
-                    </h3>
-                    <p className="text-sm text-slate-500">{getUIText('propertyOwner', language)}</p>
-                    <HostResponseSlaBadge
-                      trust={listing.partnerTrust}
-                      language={language}
-                      className="pt-0.5"
-                    />
-                    {listing.partnerTrust ? (
-                      <div className="pt-2 space-y-1.5">
-                        <PartnerTrustBadge trust={listing.partnerTrust} language={language} />
-                        <PartnerRenterTrustBadges trust={listing.partnerTrust} language={language} />
-                      </div>
-                    ) : null}
-                  </div>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+        <ListingPdpSection>
+          <GuestListingHostSection listing={listing} language={language} />
+        </ListingPdpSection>
       ) : null}
-    </div>
+    </ListingPdpSectionStack>
   )
 }
 
 export function ListingInfo({ listing, language = 'en' }) {
   return (
-    <div className="space-y-8">
-      <GuestListingTitleBlock listing={listing} language={language} />
-      <Separator />
-      <GuestListingBodyBlock listing={listing} language={language} />
-    </div>
+    <ListingPdpSectionStack>
+      <ListingPdpSection>
+        <GuestListingTitleBlock listing={listing} language={language} />
+      </ListingPdpSection>
+      <ListingPdpSection>
+        <GuestListingDescriptionSection listing={listing} language={language} />
+      </ListingPdpSection>
+      {listingHasGuestPolicies(listing) ? (
+        <ListingPdpSection>
+          <GuestListingPoliciesSection listing={listing} language={language} />
+        </ListingPdpSection>
+      ) : null}
+      {listing?.owner ? (
+        <ListingPdpSection>
+          <GuestListingHostSection listing={listing} language={language} />
+        </ListingPdpSection>
+      ) : null}
+    </ListingPdpSectionStack>
   )
 }

@@ -331,6 +331,24 @@ function StepGeneralInfoInner() {
             onEarlyCheckIn={(v) => updateMetadata('early_check_in_on_request', v)}
             onLateCheckOut={(v) => updateMetadata('late_check_out_on_request', v)}
           />
+          <div
+            className={cn(WIZARD_MOBILE_FLAT_SECTION_CLASS, 'mt-4 space-y-2')}
+            data-listing-health-anchor="house-rules"
+          >
+            <Label className={PARTNER_FIELD_LABEL_CLASS}>{t('wizardHouseRulesLabel')}</Label>
+            <Textarea
+              value={String(formData.metadata?.house_rules ?? '')}
+              onChange={(e) => updateMetadata('house_rules', e.target.value)}
+              placeholder={t('wizardHouseRulesPlaceholder')}
+              className="min-h-[96px]"
+              maxLength={2000}
+              data-testid="wizard-house-rules"
+            />
+            <p className="text-xs text-slate-600 leading-relaxed">{t('wizardHouseRulesHint')}</p>
+            <p className="text-xs text-slate-500">
+              {String(formData.metadata?.house_rules ?? '').length}/2000 {t('characters')}
+            </p>
+          </div>
         </>
       ) : null}
 
