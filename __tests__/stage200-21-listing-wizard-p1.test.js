@@ -130,6 +130,7 @@ describe('Stage 200.21 P1a — draft hygiene & category i18n', () => {
     assert.match(actions, /partnerListings_continueDraft/)
     const page = read('app/(partner)/partner/listings/page.js')
     assert.match(page, /partnerListings_resumeDraftsBanner/)
-    assert.match(page, /showContinueDraft=\{isDraftListing\}/)
+    assert.match(page, /showContinueDraft=\{showContinueDraft\}/)
+    assert.match(page, /resolvePartnerListingCardCta/)
   })
 })

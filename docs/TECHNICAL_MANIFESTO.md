@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.194 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.89** map soft-back + pin ring.
+> **Version**: 13.2.196 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.91** listing L1 notify price SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,15 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.91 — listing L1 price in Telegram / email
+- Admin TG «873 RUB/день» was ledger THB labeled as listing currency.
+- SSOT: `lib/listing/listing-l1-price-display.js` — L1 asset, else THB ledger labeled THB.
+- Guest booking emails use `formatBookingAmountForNotify` (pay currency); partner net stays THB.
+
+### Stage 201.90 — partner draft Publish CTA
+- Same wizard quality checklist: ready draft shows **Опубликовать** on the card (not only in ⋯).
+- Incomplete draft keeps **Продолжить** + `N из M`; rejected Publish only when checklist is ok.
 
 ### Stage 201.89 — map soft-back + pin ring + PDP flow hint
 - Selected pin ring **1.5px** (was 3px); ignore programmatic `popupclose`; selected pin outside cluster.

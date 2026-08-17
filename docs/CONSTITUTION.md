@@ -265,7 +265,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Guest breakdown UI** | `lib/booking/guest-price-breakdown.js`, `components/orders/OrderPriceBreakdown` |
 | **FX display** | `lib/pricing/fx-display.js`, `lib/hooks/use-fx-rates-query.js`, `lib/client-data.js` |
 | **FX policy matrix** | `docs/CURRENCY_FX_SSOT.md`, `lib/pricing/fx-policy.js` |
-| **Listing asset currency** | `lib/listing/listing-base-price-canon.js`, `listing-asset-currency.js`, `listing-financial-lock.js` |
+| **Listing asset currency** | `lib/listing/listing-base-price-canon.js`, `listing-asset-currency.js`, `listing-financial-lock.js`, **L1 notify/ops label** `lib/listing/listing-l1-price-display.js` |
 | **Бронирование (оркестратор)** | `lib/services/booking.service.js` + `lib/services/booking/*` |
 | **Unified order UI** | `lib/models/unified-order.js`, `components/orders/UnifiedOrderCard.jsx` |
 | **Эскроу / thaw** | `lib/services/escrow.service.js`, `lib/escrow-thaw-rules.js` |

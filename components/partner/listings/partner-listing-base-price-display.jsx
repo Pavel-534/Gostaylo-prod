@@ -10,6 +10,7 @@ export function PartnerListingBasePriceDisplay({
   amount,
   baseCurrency = 'THB',
   basePriceAsset = null,
+  metadata = null,
   className,
   priceClassName = 'text-sm font-semibold text-slate-900',
 }) {
@@ -17,6 +18,7 @@ export function PartnerListingBasePriceDisplay({
     basePriceThb: amount,
     baseCurrency,
     basePriceAsset,
+    metadata,
   })
 
   return (

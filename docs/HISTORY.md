@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.91 | 2026-08-17 | Listing L1 SSOT for admin TG/email; never THB ledger labeled as RUB | Done |
+| 201.90 | 2026-08-17 | Partner listings: Publish on ready drafts; rejected Publish only if checklist ok | Done |
 | 201.89 | 2026-08-17 | Map: thinner pin ring; soft-back camera without #map drop; PDP drop flow stepper | Done |
 | 201.88 | 2026-08-17 | Catalog lite L1 currency so RUB+RUB matches PDP (no retail round-trip) | Done |
 | 201.87 | 2026-08-17 | Partner hub chrome: no stacked H1/H2; listings title unify | Done |

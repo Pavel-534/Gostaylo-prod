@@ -33,7 +33,9 @@ import { ProxiedImage } from '@/components/proxied-image'
 import {
   buildListingPublishQualityChecklist,
   listingQualityInputFromPartnerListing,
+  listingPublishQualityProgress,
 } from '@/lib/partner/listing-quality-gates'
+import { resolvePartnerListingCardCta } from '@/lib/partner/partner-listing-card-cta'
 import { PartnerListingPublishQualityModal } from '@/components/partner/PartnerListingPublishQualityModal'
 import {
   PartnerListingStatusBadge,
@@ -528,13 +530,18 @@ export default function PartnerListings() {
             const isDraftListing = status === 'DRAFT'
             const isConcierge = isConciergeImportListing(listing)
             const isConciergeDraft = isConciergeDraftListing(listing)
-            const showPublishCta =
-              !trashMode &&
-              !isDraftListing &&
-              (status === 'INACTIVE' || status === 'REJECTED') &&
-              !isPartnerHiddenMetadata(listing.metadata)
             const publishChecklist = getPublishChecklist(listing)
             const ready = publishChecklist.ok
+            const qualityProgress = listingPublishQualityProgress(publishChecklist)
+            const { showPublishCta, showContinueDraft, showConciergeReviewCta } =
+              resolvePartnerListingCardCta({
+                trashMode,
+                status,
+                isDraftListing,
+                isConciergeDraft,
+                ready,
+                isHidden: isPartnerHiddenMetadata(listing.metadata),
+              })
             const canHideFromSite =
               !trashMode &&
               listing.status === 'ACTIVE' &&
@@ -598,6 +605,7 @@ export default function PartnerListings() {
                               amount={listing.base_price_thb}
                               baseCurrency={listing.base_currency || listing.baseCurrency || 'THB'}
                               basePriceAsset={listing.basePriceAsset || null}
+                              metadata={listing.metadata || null}
                               className="items-start"
                             />
                           ) : (
@@ -620,6 +628,25 @@ export default function PartnerListings() {
                         >
                           {statusLabel}
                         </PartnerListingStatusBadge>
+                        {isDraftListing && ready ? (
+                          <PartnerListingStatusBadge
+                            tone="active"
+                            className="h-5 px-2 py-0 text-[10px]"
+                            data-testid={`listing-ready-badge-${listing.id}`}
+                          >
+                            {t('partnerListings_readyToPublish')}
+                          </PartnerListingStatusBadge>
+                        ) : null}
+                        {isDraftListing && !ready && qualityProgress.total > 0 ? (
+                          <span
+                            className="text-[10px] tabular-nums text-slate-500"
+                            data-testid={`listing-quality-progress-${listing.id}`}
+                          >
+                            {t('partnerListings_checklistProgress')
+                              .replace('{done}', String(qualityProgress.done))
+                              .replace('{total}', String(qualityProgress.total))}
+                          </span>
+                        ) : null}
                         {isTelegramDraft(listing) && (
                           <Badge variant='outline' className='h-5 border-blue-200 bg-blue-50 px-2 py-0 text-[10px] text-blue-700'>
                             Telegram
@@ -704,8 +731,9 @@ export default function PartnerListings() {
                   listing={listing}
                   t={t}
                   showPublishCta={showPublishCta}
-                  showContinueDraft={isDraftListing && !isConciergeDraft}
-                  showConciergeReviewCta={isConciergeDraft}
+                  showContinueDraft={showContinueDraft}
+                  showConciergeReviewCta={showConciergeReviewCta}
+                  isOwnDraft={isDraftListing && !isConciergeDraft}
                   ready={ready}
                   publishingId={publishingId}
                   visibilityBusyId={visibilityBusyId}

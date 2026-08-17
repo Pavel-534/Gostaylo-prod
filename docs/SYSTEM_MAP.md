@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.84 | **Last Updated**: 2026-08-17 | **201.89** catalog map soft-back / pin ring; **201.88** catalog L1 currency.  
+> **Version**: 13.2.86 | **Last Updated**: 2026-08-17 | **201.91** listing L1 notify price; **201.90** partner draft Publish CTA.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

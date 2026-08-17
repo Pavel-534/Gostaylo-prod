@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getPublicSiteUrl, getTelegramWebhookUrl, getSiteDisplayName } from '@/lib/site-url.js';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access';
+import { formatListingL1PriceLine } from '@/lib/listing/listing-l1-price-display.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -214,7 +215,7 @@ export async function POST(request) {
         '🔔 <b>НОВОЕ ОБЪЯВЛЕНИЕ НА МОДЕРАЦИЮ</b>',
         '',
         `🏠 <b>Название:</b> ${(listing.title || 'Без названия').substring(0, 60)}`,
-        `💰 <b>Цена:</b> ฿${listing.base_price_thb?.toLocaleString() || 0}/день`,
+        `💰 <b>Цена:</b> ${formatListingL1PriceLine(listing, 'ru', { perDay: true })}`,
         `📸 <b>Фото:</b> ${listing.images_count || 0}`,
         `📍 <b>Район:</b> ${listing.district || 'Не указан'}`,
         '',

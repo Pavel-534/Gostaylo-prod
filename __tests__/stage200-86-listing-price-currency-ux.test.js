@@ -84,11 +84,11 @@ describe('Stage 200.86 — admin & pricing UI wiring', () => {
   })
 
   it('client display helpers do not import listing-base-price-canon', () => {
-    const mod = read('lib/admin/moderation-listing-price-display.js')
+    const l1 = read('lib/listing/listing-l1-price-display.js')
     const same = read('lib/pricing/same-currency-guest-display.js')
-    assert.match(mod, /read-base-price-asset/)
+    assert.match(l1, /read-base-price-asset/)
     assert.match(same, /read-base-price-asset/)
-    assert.doesNotMatch(mod, /listing-base-price-canon/)
+    assert.doesNotMatch(l1, /listing-base-price-canon/)
     assert.doesNotMatch(same, /listing-base-price-canon/)
   })
 })

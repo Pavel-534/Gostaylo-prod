@@ -35,6 +35,7 @@ export function PartnerListingCardActions({
   showPublishCta,
   showContinueDraft = false,
   showConciergeReviewCta = false,
+  isOwnDraft = false,
   ready,
   publishingId,
   visibilityBusyId,
@@ -217,7 +218,7 @@ export function PartnerListingCardActions({
                 <Edit className="mr-2 h-4 w-4" />
                 {showConciergeReviewCta
                   ? t('partnerListings_conciergeReviewCta')
-                  : showContinueDraft
+                  : showContinueDraft || isOwnDraft
                     ? t('partnerListings_continueDraft')
                     : t('partnerListings_edit')}
               </Link>

@@ -94,6 +94,8 @@ Payable set: `lib/finance/currency-codes.js` → `BOOKING_PAYMENT_CURRENCIES`.
 | THB FX surcharge helpers | `lib/pricing-engine/guest-fx-charge.js` |
 | Retail rate map | `lib/services/currency.service.js` |
 | Same-currency display | `lib/pricing/same-currency-guest-display.js` |
+| Listing L1 ops/notify label | `lib/listing/listing-l1-price-display.js` |
+| Guest notify amount | `lib/services/notifications/formatting.js` → `readGuestPaymentDisplay` |
 | Checkout rate helper | `lib/services/pricing/pricing-fx-helpers.js` |
 | Acquirer charge | `lib/services/payment-adapters/acquirer-charge-amount.js` |
 | Guest refund display | `lib/booking/guest-refund-display.js` |
