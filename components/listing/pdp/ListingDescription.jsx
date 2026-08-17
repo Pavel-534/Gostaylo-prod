@@ -18,7 +18,7 @@ import {
 import { listingHasGuestPolicies } from '@/lib/listing/listing-good-to-know'
 import { ListingPdpSection } from '@/components/listing/pdp/ListingPdpSection'
 
-export function ListingDescription({ listing, language, currency, exchangeRates }) {
+export function ListingDescription({ listing, language }) {
   const hasPolicies = listingHasGuestPolicies(listing)
   const hasFees = listingHasGuestFeeHints(listing)
 
@@ -34,12 +34,7 @@ export function ListingDescription({ listing, language, currency, exchangeRates 
       ) : null}
       {hasFees ? (
         <ListingPdpSection>
-          <ListingGuestFeeHints
-            listing={listing}
-            language={language}
-            currency={currency}
-            exchangeRates={exchangeRates}
-          />
+          <ListingGuestFeeHints listing={listing} language={language} />
         </ListingPdpSection>
       ) : null}
       {listing?.owner ? (

@@ -20,6 +20,7 @@ import { getUIText, getListingText } from '@/lib/translations'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingGuestPolicies } from '@/components/listing/ListingStayPolicies'
 import { listingHasGuestPolicies } from '@/lib/listing/listing-good-to-know'
+import { useListingLocationLabel } from '@/lib/hooks/use-listing-location-label'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 import { HostResponseSlaBadge } from '@/components/listing/HostResponseSlaBadge'
@@ -37,6 +38,7 @@ import {
  * Specs sit under an internal split matching PDP section rhythm (Stage 201.85).
  */
 export function GuestListingTitleBlock({ listing, language = 'en' }) {
+  const locationLabel = useListingLocationLabel(listing, language)
   if (!listing) return null
 
   const ownerVerified =
@@ -61,10 +63,12 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
             </div>
           ) : null}
           <div className="flex items-center gap-4 text-slate-600">
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              <span>{listing.district}</span>
-            </div>
+            {locationLabel ? (
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span>{locationLabel}</span>
+              </div>
+            ) : null}
             {Number(listing.rating || listing.average_rating || listing.avgRating || 0) > 0 && (
               <a
                 href="#reviews"

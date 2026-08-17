@@ -48,7 +48,6 @@ function PartnerFinancesV2Content() {
     setPdfDateFrom,
     pdfDateTo,
     setPdfDateTo,
-    pdfLoading,
     financeFocusBooking,
     setFinanceFocusBooking,
     withdrawOpen,
@@ -81,6 +80,14 @@ function PartnerFinancesV2Content() {
     handleExportCSV,
     handleExportPdf,
     applyPdfMonthPreset,
+    exportAxis,
+    setExportAxis,
+    exportLoading,
+    csvLoading,
+    periodPack,
+    periodPackLoading,
+    periodPackError,
+    refetchPeriodPack,
     payoutPreviewBatchLoading,
     getBookingPayoutPreview,
   } = fin
@@ -141,7 +148,14 @@ function PartnerFinancesV2Content() {
 
   return (
     <PartnerPageShell className="space-y-6">
-      <PartnerFinancesHeader t={t} bookingsLength={bookings.length} onExportCsv={handleExportCSV} />
+      <PartnerFinancesHeader
+        t={t}
+        language={language}
+        pdfDateFrom={pdfDateFrom}
+        pdfDateTo={pdfDateTo}
+        csvLoading={csvLoading}
+        onExportCsv={handleExportCSV}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <PartnerFinancesTabNav
@@ -203,17 +217,24 @@ function PartnerFinancesV2Content() {
           <PartnerFinancesReportsTab
             t={t}
             language={language}
-            financesSummary={financesSummary}
-            summaryLoadingCombined={summaryLoadingCombined}
-            payoutPreviewBatchLoading={payoutPreviewBatchLoading}
             pdfDateFrom={pdfDateFrom}
             setPdfDateFrom={setPdfDateFrom}
             pdfDateTo={pdfDateTo}
             setPdfDateTo={setPdfDateTo}
-            pdfLoading={pdfLoading}
+            exportAxis={exportAxis}
+            setExportAxis={setExportAxis}
+            exportLoading={exportLoading}
+            pdfLoading={exportLoading === 'pdf'}
+            csvLoading={csvLoading}
+            onExportCsv={handleExportCSV}
             onExportPdf={handleExportPdf}
             onPresetCurrent={() => applyPdfMonthPreset('current')}
             onPresetPrev={() => applyPdfMonthPreset('prev')}
+            onPresetQuarter={() => applyPdfMonthPreset('quarter')}
+            periodPack={periodPack}
+            periodPackLoading={periodPackLoading}
+            periodPackError={periodPackError}
+            onRefetchPeriodPack={refetchPeriodPack}
             payouts={payouts}
             payoutsLoading={payoutsLoading}
             payoutsError={payoutsError}

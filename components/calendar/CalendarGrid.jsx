@@ -27,6 +27,7 @@ import {
   isSoftHoldDisplayKind,
 } from '@/lib/calendar/calendar-cell-presentation.js'
 import { calendarRangeHighlightClass } from '@/lib/calendar/partner-calendar-range-utils.js'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
 
@@ -130,7 +131,7 @@ export function CalendarGrid({
                       </h4>
                       <p className="flex items-center gap-1 text-sm text-slate-600">
                         <TypeIcon className="h-3 w-3" />
-                        {item.listing.district}
+                        {formatListingLocationLineSync(item.listing, language)}
                       </p>
                     </div>
                   </div>

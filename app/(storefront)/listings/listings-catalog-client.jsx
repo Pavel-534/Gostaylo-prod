@@ -4,22 +4,24 @@
  * Storefront catalog search results (client).
  * Stage 171.26 — TanStack hydrate from RSC bootstrap (`CatalogHydrationBoundary`).
  * Stage 200.114 — guest catalog rhythm polish (empty/skeleton/banner; no discovery API change).
+ * Stage 201.96 — mobile-first mount: desktop FilterBar / compact search / Leaflet only after
+ * `min-width` is confirmed; search + map sheets lazy-mount (CSS hide still hydrated them).
+ * Stage 201.97 — catalog tree parked in storefront shell; frozen search params while hidden.
  * @see app/(storefront)/listings/page.js — server bootstrap + dehydrate
  */
 
 import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useFrozenCatalogSearchParams, useIsStorefrontCatalogListRoute } from '@/hooks/use-frozen-catalog-search-params'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
-import { FilterBar } from '@/components/search/FilterBar'
 import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
-import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
-import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { CatalogSearchSummaryBar } from '@/components/search/mobile/CatalogSearchSummaryBar'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useMinWidthConfirmed, VIEWPORT_LG_MIN_PX, VIEWPORT_MD_MIN_PX } from '@/hooks/use-min-width'
 import { recordPwaEngagement } from '@/lib/pwa/pwa-install-storage.js'
 import { deferPwaPrompt, resumePwaPrompt } from '@/lib/pwa/pwa-prompt-defer.js'
 import { useAuth } from '@/contexts/auth-context'
@@ -73,14 +75,29 @@ const CatalogMobileSearchSheet = dynamic(
   () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
   { ssr: false, loading: () => null },
 )
+const SearchMapWrapper = dynamic(
+  () => import('@/components/search/SearchMapWrapper').then((m) => m.SearchMapWrapper),
+  { ssr: false, loading: () => null },
+)
+const FilterBar = dynamic(
+  () => import('@/components/search/FilterBar').then((m) => m.FilterBar),
+  { ssr: false, loading: () => null },
+)
+const UnifiedSearchBar = dynamic(
+  () => import('@/components/search/UnifiedSearchBar').then((m) => m.UnifiedSearchBar),
+  { ssr: false, loading: () => null },
+)
 
 const ITEMS_PER_PAGE = 12
 
 function ListingsContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useFrozenCatalogSearchParams()
+  const isCatalogListRoute = useIsStorefrontCatalogListRoute()
   const router = useRouter()
   const { user } = useAuth()
   const isMobile = useIsMobile()
+  const isMdUp = useMinWidthConfirmed(VIEWPORT_MD_MIN_PX)
+  const isLgUp = useMinWidthConfirmed(VIEWPORT_LG_MIN_PX)
 
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const { data: catalogCategories = [] } = usePublicCategoriesQuery()
@@ -125,6 +142,11 @@ function ListingsContent() {
   const [catalogSort, setCatalogSort] = useState(() => parseCatalogSortFromParams(searchParams))
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const [searchSheetReady, setSearchSheetReady] = useState(false)
+
+  useEffect(() => {
+    if (mobileSearchOpen) setSearchSheetReady(true)
+  }, [mobileSearchOpen])
 
   const searchParamsKey = searchParams.toString()
 
@@ -178,6 +200,9 @@ function ListingsContent() {
     categoriesFromApi: catalogCategories,
     wizardProfileBySlug,
     urlCommitExtras,
+    searchParams,
+    pathname: '/listings',
+    urlSyncEnabled: isCatalogListRoute,
   })
 
   const whereGeoView = useWhereGeoViewport(debouncedWhere, language)
@@ -527,6 +552,7 @@ function ListingsContent() {
   // One-shot migration: legacy `?map=1` → `#map` (avoids catalog search remount storms).
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (!isCatalogListRoute) return
     if (searchParams.get('map') !== '1') return
     const sp = new URLSearchParams(searchParams.toString())
     sp.delete('map')
@@ -536,7 +562,7 @@ function ListingsContent() {
     writeCatalogMobileMapHash(true)
     setShowMap(true)
     router.replace(`${window.location.pathname}${qs ? `?${qs}` : ''}#map`, { scroll: false })
-  }, [searchParams, searchParamsKey, router, syncLastPushedQuery])
+  }, [searchParams, searchParamsKey, router, syncLastPushedQuery, isCatalogListRoute])
 
   const setMobileMapOpen = useCallback((open) => {
     const next = Boolean(open)
@@ -814,12 +840,11 @@ function ListingsContent() {
                 onOpenSearch={() => setMobileSearchOpen(true)}
               />
             </div>
-            <div className="hidden md:block">
-              <FilterBar shellWrapper={false} {...catalogFilterBarProps} />
-            </div>
+            {isMdUp ? <FilterBar shellWrapper={false} {...catalogFilterBarProps} /> : null}
           </>
         }
         compact={
+          isMdUp ? (
           <UnifiedSearchBar
             variant="compact"
             language={language}
@@ -836,6 +861,7 @@ function ListingsContent() {
             showFiltersButton
             onFiltersClick={() => setFiltersOpen(true)}
           />
+          ) : null
         }
       />
 
@@ -899,6 +925,7 @@ function ListingsContent() {
             />
           </div>
 
+          {isLgUp ? (
           <SearchMapWrapper
             listings={allListings}
             searchKeyParams={searchKeyParams}
@@ -922,9 +949,11 @@ function ListingsContent() {
             mapCenter={whereGeoView.center}
             mapZoom={whereGeoView.zoom}
           />
+          ) : null}
         </div>
       </div>
 
+      {showMap ? (
       <CatalogMobileMapSheet
         open={isMobile && showMap}
         onClose={() => setMobileMapOpen(false)}
@@ -941,6 +970,7 @@ function ListingsContent() {
           exchangeRates,
         }}
       />
+      ) : null}
 
       <MobileSearchFAB
         language={language}
@@ -948,6 +978,7 @@ function ListingsContent() {
         hasActiveFilters={catalogMobileSearchActive}
         onClick={() => setMobileSearchOpen(true)}
       />
+      {searchSheetReady ? (
       <CatalogMobileSearchSheet
         open={mobileSearchOpen}
         onClose={() => setMobileSearchOpen(false)}
@@ -955,6 +986,7 @@ function ListingsContent() {
         onSearchSubmit={handleCatalogSearchSubmit}
         filterBarProps={catalogFilterBarProps}
       />
+      ) : null}
     </div>
   )
 }

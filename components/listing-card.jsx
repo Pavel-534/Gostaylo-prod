@@ -35,6 +35,7 @@ import {
   LISTING_CARD_TRUST_ROW_MIN_H,
 } from '@/lib/listing/listing-card-layout'
 import { useListingLocationLabel } from '@/lib/hooks/use-listing-location-label'
+import { resolveListingHousingPropertyTypeSlug } from '@/lib/listing/housing-property-type'
 
 export function ListingCard({
   listing,
@@ -70,7 +71,6 @@ export function ListingCard({
   const {
     id,
     title = 'Untitled Property',
-    district: districtRaw = '',
     basePriceThb = 0,
     base_price_thb = 0,
     images = [],
@@ -94,8 +94,7 @@ export function ListingCard({
     catalog_flash_social_proof = null,
   } = listing
 
-  const locationLabel = useListingLocationLabel(listing, language)
-  const district = locationLabel || String(districtRaw || '').trim() 
+  const locationLabel = useListingLocationLabel(listing, language) 
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||
@@ -107,7 +106,8 @@ export function ListingCard({
   const displayReviewsCount = reviews_count || reviewsCount || 0
   
   const categorySlugForCard = listingCategorySlug || category?.slug || ''
-  const propertyType = metadata?.property_type || category?.slug || 'default'
+  const propertyType =
+    resolveListingHousingPropertyTypeSlug(listing) || categorySlugForCard || 'default'
   
   const allImages = useMemo(
     () => getListingCardImageUrls({ coverImage, cover_image, images }),
@@ -260,10 +260,10 @@ export function ListingCard({
                 {categoryLine ? (
                   <p className="text-[10px] font-medium leading-snug text-slate-400 sm:text-[11px]">{categoryLine}</p>
                 ) : null}
-                {district ? (
+                {locationLabel ? (
                   <p className="flex items-center gap-1 text-xs text-slate-500 sm:text-sm">
                     <MapPin className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" aria-hidden />
-                    <span className="min-w-0 truncate">{district}</span>
+                    <span className="min-w-0 truncate">{locationLabel}</span>
                   </p>
                 ) : null}
               </div>

@@ -44,12 +44,7 @@ function ListingPdpDetailsColumnInner({
         <ListingPdpSection>
           <ListingHeroHeadline listing={listing} language={language} />
         </ListingPdpSection>
-        <ListingDescription
-          listing={listing}
-          language={language}
-          currency={currency}
-          exchangeRates={exchangeRates}
-        />
+        <ListingDescription listing={listing} language={language} />
       </ListingPdpSectionStack>
 
       {/* Outside divide-y: `lg:hidden` must not leave orphan section rules on desktop. */}

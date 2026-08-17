@@ -9,6 +9,7 @@ import {
   getSameCurrencyGuestNativeAmount,
   resolveListingBaseCurrencyCode,
 } from '@/lib/pricing/same-currency-guest-display'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 export function ListingContextCard({ listing, checkIn, checkOut, className = '', language = 'ru' }) {
   if (!listing) return null
@@ -32,6 +33,8 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
           language,
         )
 
+  const locationLabel = formatListingLocationLineSync(listing, language)
+
   return (
     <Card className={`overflow-hidden ${className}`}>
       <div className="flex gap-3 p-3">
@@ -51,10 +54,12 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
           <h4 className="font-semibold text-slate-900 text-sm line-clamp-2">
             {listing.title}
           </h4>
-          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-            <MapPin className="h-3 w-3" />
-            <span>{listing.district}</span>
-          </div>
+          {locationLabel ? (
+            <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+              <MapPin className="h-3 w-3" />
+              <span>{locationLabel}</span>
+            </div>
+          ) : null}
           {checkIn && checkOut && (
             <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
               <Calendar className="h-3 w-3" />

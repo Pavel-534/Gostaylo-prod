@@ -22,8 +22,10 @@ import { CatalogSortSelect } from '@/components/search/CatalogSortSelect';
 import { resolveListingCardImagePriority } from '@/lib/media/image-delivery';
 import { useNetworkQuality } from '@/hooks/use-network-quality';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LISTING_CATALOG_GRID_CLASSES } from '@/lib/listing/listing-card-layout'
+import { LISTING_CATALOG_GRID_CLASSES, MOBILE_CATALOG_ABOVE_FOLD_COUNT } from '@/lib/listing/listing-card-layout'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { CatalogDeferredCardSlot } from '@/components/search/CatalogDeferredCardSlot'
+import { useMinWidthConfirmed, VIEWPORT_MD_MIN_PX } from '@/hooks/use-min-width'
 
 function ListingSidebarComponent({
   listings = [],
@@ -68,6 +70,8 @@ function ListingSidebarComponent({
 }) {
   const networkQuality = useNetworkQuality()
   const isMobile = useIsMobile()
+  const isMdUp = useMinWidthConfirmed(VIEWPORT_MD_MIN_PX)
+  const deferBelowFold = !isMdUp
 
   /** Stage 179.2 — mobile: skeleton replaces list during refetch (no opacity flash / CLS). */
   const showMobileRefetchSkeleton =
@@ -242,53 +246,68 @@ function ListingSidebarComponent({
             !isMobile && isTransitioning ? 'opacity-50' : 'opacity-100',
           )}
         >
-          {listings.map((listing, index) => (
-            <div
-              key={listing.id}
-              className="flex h-full flex-col animate-in fade-in slide-in-from-bottom-4 duration-300"
-              style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
-              onMouseEnter={() => {
-                onListingPointerEnter?.(listing.id, { intent: 'hover' })
-                onListingCardHover?.(listing.id)
-              }}
-              onMouseLeave={() => {
-                onListingPointerLeave?.(listing.id)
-                onListingCardHoverEnd?.(listing.id)
-              }}
-              onPointerDown={(e) => {
-                if (e.pointerType === 'touch') {
-                  onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
+          {listings.map((listing, index) => {
+            const aboveFold = !deferBelowFold || index < MOBILE_CATALOG_ABOVE_FOLD_COUNT
+            const forceMount =
+              highlightedListingId === listing.id || scrollToListingId === listing.id
+            const card = (
+              <div
+                key={listing.id}
+                className={
+                  aboveFold
+                    ? 'flex h-full flex-col animate-in fade-in slide-in-from-bottom-4 duration-300'
+                    : 'flex h-full flex-col'
                 }
-              }}
-              onTouchStart={() => {
-                onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
-              }}
-              onPointerUp={(e) => {
-                if (e.pointerType === 'touch') {
+                style={aboveFold ? { animationDelay: `${Math.min(index * 50, 300)}ms` } : undefined}
+                onMouseEnter={() => {
+                  onListingPointerEnter?.(listing.id, { intent: 'hover' })
+                  onListingCardHover?.(listing.id)
+                }}
+                onMouseLeave={() => {
                   onListingPointerLeave?.(listing.id)
-                }
-              }}
-              onTouchEnd={() => onListingPointerLeave?.(listing.id)}
-              onTouchCancel={() => onListingPointerLeave?.(listing.id)}
-              onClick={() => onListingCardSelect?.(listing.id)}
-              role="presentation"
-            >
-              <ListingCard 
-                listing={listing}
-                initialDates={cardDates}
-                guests={guests}
-                language={language}
-                currency={currency}
-                exchangeRates={exchangeRates}
-                onFavorite={onFavorite}
-                isFavorited={userFavorites.has(listing.id)}
-                isMapHighlighted={highlightedListingId === listing.id}
-                catalogCategories={catalogCategories}
-                imagePriority={resolveListingCardImagePriority({ cardIndex: index }, networkQuality)}
-                className="h-full flex-1"
-              />
-            </div>
-          ))}
+                  onListingCardHoverEnd?.(listing.id)
+                }}
+                onPointerDown={(e) => {
+                  if (e.pointerType === 'touch') {
+                    onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
+                  }
+                }}
+                onTouchStart={() => {
+                  onListingPointerEnter?.(listing.id, { intent: 'touch', listing })
+                }}
+                onPointerUp={(e) => {
+                  if (e.pointerType === 'touch') {
+                    onListingPointerLeave?.(listing.id)
+                  }
+                }}
+                onTouchEnd={() => onListingPointerLeave?.(listing.id)}
+                onTouchCancel={() => onListingPointerLeave?.(listing.id)}
+                onClick={() => onListingCardSelect?.(listing.id)}
+                role="presentation"
+              >
+                <ListingCard 
+                  listing={listing}
+                  initialDates={cardDates}
+                  guests={guests}
+                  language={language}
+                  currency={currency}
+                  exchangeRates={exchangeRates}
+                  onFavorite={onFavorite}
+                  isFavorited={userFavorites.has(listing.id)}
+                  isMapHighlighted={highlightedListingId === listing.id}
+                  catalogCategories={catalogCategories}
+                  imagePriority={resolveListingCardImagePriority({ cardIndex: index }, networkQuality)}
+                  className="h-full flex-1"
+                />
+              </div>
+            )
+            if (aboveFold) return card
+            return (
+              <CatalogDeferredCardSlot key={listing.id} forceMount={forceMount}>
+                {card}
+              </CatalogDeferredCardSlot>
+            )
+          })}
         </div>
 
         {/* Load More / Infinite Scroll Trigger */}

@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.86 | **Last Updated**: 2026-08-17 | **201.91** listing L1 notify price; **201.90** partner draft Publish CTA.  
+> **Version**: 13.2.91 | **Last Updated**: 2026-08-18 | **201.97** Search keep-alive + prewarm; **201.96** catalog mobile-first mount.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -20,7 +20,7 @@
 | Concierge ops | treasury / payouts UI + runbooks | Ops |
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
-| PWA / push | SW + FCM; **201.19** silent push ack (no Chromium “updated in background”); **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81** | Clients |
+| PWA / push | SW + FCM; **201.19** silent push ack; **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81**. Catalog phone Search: **201.96** mobile-first mount; **201.97** shell keep-alive (Home↔list) + idle chunk prewarm | Clients |
 | List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**). Allowlist home `/`, `/listings?…`, `/my-bookings`. New list page → map in `routeScrollKeyFromLocation` | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
@@ -93,7 +93,7 @@
 |------|
 | `GET /api/v2/listings` |
 | `GET /api/v2/listings/[id]` |
-| `GET /api/v2/search` / listings search (lite: `baseCurrency` + `basePriceAsset`, 201.88) |
+| `GET /api/v2/search` / listings search (lite: L1 currency **201.88** + `countryCode`/`cityCode` **201.93**) |
 | `GET /api/v2/categories` |
 | `GET /api/v2/exchange-rates` |
 | `GET /api/v2/favorites` · `…/check` |
@@ -138,6 +138,9 @@
 | `GET /api/v2/partner/stats` |
 | `GET /api/v2/partner/balance-breakdown` |
 | `GET /api/v2/partner/finances-summary` |
+| `GET /api/v2/partner/finances-export` | CSV/PDF statement; `from`/`to`/`format`/`axis=created\|checkout` (Stage 211.1; read-model SSOT; max 366d / 2000 rows) |
+| `GET /api/v2/partner/finances-period` | Stage 211.2 period pack: gross/fee/net earned + PAID/COMPLETED payouts + linked settlement acts |
+| `GET /api/v2/partner/finances-statement-pdf` | Legacy PDF alias (`created_at` only) → same loader as `finances-export` |
 | `GET|POST /api/v2/partner/payouts*` |
 | `POST /api/v2/partner/promo-codes*` |
 | `POST /api/v2/partner/guest-reviews` |

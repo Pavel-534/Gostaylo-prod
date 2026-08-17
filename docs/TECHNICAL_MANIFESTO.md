@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.196 | **Last Updated**: 2026-08-17 | **Tip of tree:** Stage **203**; **201.91** listing L1 notify price SSOT.
+> **Version**: 13.2.203 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.97** Search tab keep-alive + catalog chunk prewarm.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,51 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.97 — Search tab: prewarm + keep-alive + above-fold cards
+- Home idle-imports the catalog client chunk (`requestIdleCallback`; skip `saveData`). Leaflet/FilterBar stay out of that prewarm (201.96).
+- Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. Not kept on PDP/messages/profile.
+- Phone list hydrates 6 cards first; the rest are skeletons until they approach the viewport. Non-LCP card images use `loading="lazy"`.
+- First Search tap still needs one catalog mount. Repeat tap is the instant path. Persistent Home tree is a later slice.
+
+### Stage 201.96 — Search tab: do not hydrate desktop catalog on phone
+- Phone `/listings` no longer mounts Leaflet, desktop `FilterBar`, or compact `UnifiedSearchBar` behind `hidden` CSS (`useMinWidthConfirmed`). Search/map sheets mount when opened.
+- Home Search tab `router.push` stays in `startTransition`; idle `router.prefetch` uses the same query href the tab will open (bare `/listings` was a cache miss).
+- First visit still pays RSC + list hydrate; this removes the 6–10s main-thread freeze from unused desktop widgets. Repeat Home ↔ Search: **201.97** keep-alive.
+
+### Stage 201.95 — location: neighborhoods + pin snap
+- Launch seed now has the Phuket areas from `PHUKET_DISTRICTS_CANON` (Kata, Kamala, …) with RU/EN/TH labels.
+- `matchLaunchGeoByCoords` fills `city_code` from the pin when cascade is missing (write + catalog display). No Nominatim on catalog GET; Berlin coords still do not become Phuket.
+- Guest chat/order/calendar stop dumping raw OSM `district`.
+
+### Stage 201.94 — on-site cleaning / deposit stay in listing THB
+- Guest PDP and booking widget no longer FX-convert `cleaning_fee_thb` / `security_deposit_thb` with the header currency switcher.
+- Copy is the partner amount in THB (`Уборка: 1 000 THB`) — paid on site, not in the online checkout.
+
+### Stage 201.93 — catalog location line (area, city, country)
+- Guest cards no longer dump raw OSM `district` (Thai / empty / duplicated English). Lite catalog now returns `country_code` / `region_code` / `city_code`; display SSOT `formatListingLocationLineSync` uses launch-seed labels in UI lang, else English/Latin.
+- `/api/v2/geo/listing-label` only when city/region code exists **and** seed city is missing (no N+1 on Phuket/Chita grids). Hide the pin row when the line is empty.
+
+### Stage 211.3 — reports tab: one period, earned vs paid, acts archive
+- `/partner/finances` Reports: lifetime portfolio moved to Overview; statements follow the period controller (dates + presets + axis).
+- Header CSV label shows the selected period (`CSV · {period}`). Period pack has an earned-vs-paid callout; full acts list opens via «All acts (archive)».
+- No change to export/period APIs, read-model, or escrow.
+
+### Stage 201.92 — housing property type follows category
+- Stay wizard no longer defaults `metadata.property_type` to **Villa**.
+- Guest PDP «Тип объекта» uses the housing **category** (apartment/villa/…) like Airbnb/Booking; leftover Villa metadata cannot override an apartment listing.
+
+### Stage 211.2 — partner period statement pack
+
+- `GET /api/v2/partner/finances-period` — same booking axis/range as export; gross/fee/net from read-model; paid-out from `payouts` PAID/COMPLETED; closing acts from `listPartnerSettlementDocuments`.
+- UI `/partner/finances` reports: quarter preset + period summary card. Full documents archive is behind «All acts» (Stage 211.3). PDF header/footer print the pack totals.
+- Does **not** call `getPartnerBalance` / escrow.
+
+### Stage 211.1 — partner finances export (CSV/PDF + date axis)
+
+- Canonical `GET /api/v2/partner/finances-export` (`format=csv|pdf`, `axis=created|checkout`). Gross/fee/net from `buildBookingFinancialSnapshotFromRow`; CSV UTF-8 BOM; filename `{brand}-finances-statement-{from}-{to}.{ext}`.
+- Axis `checkout` filters `bookings.check_out` (no `end_date` column). Caps: 366 days / 2000 rows. UI `/partner/finances` reports card: axis toggle; client blob CSV removed.
+- Legacy `GET /api/v2/partner/finances-statement-pdf` remains a created_at PDF alias.
 
 ### Stage 201.91 — listing L1 price in Telegram / email
 - Admin TG «873 RUB/день» was ledger THB labeled as listing currency.
@@ -54,7 +99,7 @@
 - `mapListingDetailFromApi` passes **`instantBooking`** (Instant Book CTAs / hints).
 - Concierge ingest keeps **`metadata.amenities`** + writes **`country_code` / `city_code`** from geo.
 - Stay wizard: **`house_rules`** field (whitelist + PDP «Good to know»).
-- PDP: **`ListingGuestFeeHints`** — cleaning / deposit / fuel exclusions before date pick.
+- PDP: **`ListingGuestFeeHints`** — cleaning / deposit / fuel exclusions before date pick (amounts in listing THB, Stage **201.94**).
 
 ### Stage 201.85 — PDP section rhythm SSOT
 - SSOT: `lib/listing/pdp-section-rhythm.js` + `ListingPdpSectionStack` / `ListingPdpSection`.

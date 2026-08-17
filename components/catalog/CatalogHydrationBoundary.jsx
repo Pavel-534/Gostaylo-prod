@@ -6,17 +6,15 @@
  */
 
 import { HydrationBoundary } from '@tanstack/react-query'
-import ListingsCatalogClient from '@/app/(storefront)/listings/listings-catalog-client'
 
 /**
+ * Hydrates TanStack cache only. Catalog UI is parked in the storefront shell
+ * (`StorefrontSearchKeepAlivePane`) so Home ↔ Search does not remount the tree.
+ *
  * @param {object} props
  * @param {import('@tanstack/react-query').DehydratedState} props.state
  * @param {import('react').ReactNode} [props.children]
  */
 export function CatalogHydrationBoundary({ state, children }) {
-  return (
-    <HydrationBoundary state={state}>
-      {children ?? <ListingsCatalogClient />}
-    </HydrationBoundary>
-  )
+  return <HydrationBoundary state={state}>{children ?? null}</HydrationBoundary>
 }

@@ -3,7 +3,7 @@
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { buildGuestPriceBreakdownFromBooking } from '@/lib/booking/guest-price-breakdown'
-import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions'
+import { buildGuestPriceExclusionHints, formatGuestOnSiteFeeAmount } from '@/lib/booking/guest-price-exclusions'
 import { PartnerHostLedgerAmount } from '@/components/partner/finances/partner-host-amount-display'
 
 function n(x) {
@@ -153,7 +153,7 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
               const base = getUIText(hint.key, language)
               const line =
                 hint.amountThb != null && hint.amountThb > 0
-                  ? base.replace(/\{\{amount\}\}/g, formatPrice(hint.amountThb, currency))
+                  ? base.replace(/\{\{amount\}\}/g, formatGuestOnSiteFeeAmount(hint.amountThb, language))
                   : base
               return <li key={hint.key}>{line}</li>
             })}

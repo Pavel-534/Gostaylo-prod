@@ -8,7 +8,10 @@ import {
   BOOKING_PRICE_BREAKDOWN_ID,
   getGuestPayableTotalThb,
 } from '@/lib/pricing/guest-display-price'
-import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions.js'
+import {
+  buildGuestPriceExclusionHints,
+  formatGuestOnSiteFeeAmount,
+} from '@/lib/booking/guest-price-exclusions.js'
 
 function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
@@ -245,7 +248,7 @@ export function BookingPriceBreakdown({
             <li key={hint.key}>
               {getUIText(hint.key, language).replace(
                 /\{\{amount\}\}/g,
-                hint.amountThb != null ? fmt(hint.amountThb) : '',
+                hint.amountThb != null ? formatGuestOnSiteFeeAmount(hint.amountThb, language) : '',
               )}
             </li>
           ))}

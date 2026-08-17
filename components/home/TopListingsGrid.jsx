@@ -22,6 +22,7 @@ import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-hr
 import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_INSET_CLASS } from '@/lib/ui/mobile-flat-canvas'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 export function TopListingsGrid({
   language,
@@ -126,6 +127,7 @@ export function TopListingsGrid({
                 thumbRaw === '/placeholder.svg'
                   ? thumbRaw
                   : resolveImageThumbDisplayUrl(thumbRaw) || thumbRaw
+              const locationLabel = formatListingLocationLineSync(listing, language)
 
               return (
                 <Link
@@ -185,10 +187,12 @@ export function TopListingsGrid({
                       <h3 className="font-semibold text-slate-900 line-clamp-1 text-[18px] leading-6 tracking-[-0.01em] mb-1.5">
                         {getListingText(listing, 'title', language)}
                       </h3>
-                      <div className="flex items-center gap-1 text-sm text-slate-500 mb-3">
-                        <MapPin className="h-3 w-3" />
-                        <span>{listing.district}</span>
-                      </div>
+                      {locationLabel ? (
+                        <div className="flex items-center gap-1 text-sm text-slate-500 mb-3">
+                          <MapPin className="h-3 w-3" />
+                          <span>{locationLabel}</span>
+                        </div>
+                      ) : null}
                       <ListingCardSpecsRow listing={listing} language={language} compact />
                       <div className="mt-auto flex items-baseline justify-between gap-2">
                         <CardPriceDisplay

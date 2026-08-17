@@ -7,7 +7,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subMonths } from 'date-fns'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
@@ -18,13 +18,14 @@ import {
   fetchPartnerBalanceBreakdown,
   fetchPartnerBookingsForFinances,
   fetchPartnerFinancesSummary,
+  fetchPartnerFinancesPeriodPack,
   fetchDefaultPartnerPayoutProfile,
   fetchPartnerPayoutProfiles,
   fetchAuthMe,
   fetchPartnerPayoutPreview,
   fetchPartnerPayoutPreviewBatch,
   requestPartnerPayout,
-  fetchFinancesStatementPdf,
+  fetchPartnerFinancesExport,
 } from '@/lib/api/partner-finances-client'
 
 export const PARTNER_LEDGER_PAGE_SIZE = 40
@@ -46,7 +47,8 @@ export function usePartnerFinances() {
   const [payoutProfiles, setPayoutProfiles] = useState([])
   const [pdfDateFrom, setPdfDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [pdfDateTo, setPdfDateTo] = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  const [pdfLoading, setPdfLoading] = useState(false)
+  const [exportAxis, setExportAxis] = useState('created')
+  const [exportLoading, setExportLoading] = useState(null)
   const [financeFocusBooking, setFinanceFocusBooking] = useState(null)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false)
@@ -147,6 +149,27 @@ export function usePartnerFinances() {
     queryKey: ['partner-finances-summary', partnerId],
     queryFn: () => fetchPartnerFinancesSummary(),
     enabled: !!partnerId,
+    staleTime: 30 * 1000,
+  })
+
+  const periodRangeValid =
+    Boolean(pdfDateFrom && pdfDateTo && pdfDateFrom <= pdfDateTo)
+
+  const {
+    data: periodPack,
+    isLoading: periodPackLoading,
+    isError: periodPackError,
+    error: periodPackErr,
+    refetch: refetchPeriodPack,
+  } = useQuery({
+    queryKey: ['partner-finances-period', partnerId, pdfDateFrom, pdfDateTo, exportAxis],
+    queryFn: () =>
+      fetchPartnerFinancesPeriodPack({
+        from: pdfDateFrom,
+        to: pdfDateTo,
+        axis: exportAxis,
+      }),
+    enabled: !!partnerId && periodRangeValid,
     staleTime: 30 * 1000,
   })
 
@@ -334,76 +357,51 @@ export function usePartnerFinances() {
     }
   }
 
+  const downloadExportBlob = useCallback(
+    async (format) => {
+      if (!pdfDateFrom || !pdfDateTo || pdfDateFrom > pdfDateTo) {
+        toast.error(t('partnerFinances_pdfError'))
+        return
+      }
+      setExportLoading(format)
+      try {
+        const { blob, filename } = await fetchPartnerFinancesExport({
+          from: pdfDateFrom,
+          to: pdfDateTo,
+          format,
+          axis: exportAxis,
+        })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success(format === 'csv' ? t('reportDownloaded') : t('partnerFinances_pdfSuccess'))
+      } catch (e) {
+        toast.error(e?.message || t('partnerFinances_pdfError'))
+      } finally {
+        setExportLoading(null)
+      }
+    },
+    [pdfDateFrom, pdfDateTo, exportAxis, t],
+  )
+
   const handleExportCSV = () => {
-    if (bookings.length === 0) {
-      toast.error(t('noTransactionsExport'))
-      return
-    }
-
-    const csvRows = [
-      [
-        'Date',
-        'Booking ID',
-        t('partnerFinances_csvCategory'),
-        t('listing'),
-        t('guest'),
-        'Status',
-        t('gross'),
-        t('fee'),
-        t('netEarnings'),
-      ].join(','),
-      ...bookings.map((b) => {
-        const { gross, fee, net } = snapshotMoney(b)
-        const categorySlug = String(b.financial_snapshot?.category_slug ?? '').replace(/"/g, '""')
-        return [
-          format(new Date(b.createdAt || b.created_at), 'yyyy-MM-dd'),
-          b.id,
-          `"${categorySlug}"`,
-          `"${b.listing?.title || 'N/A'}"`,
-          `"${b.guestName || b.guest_name || 'N/A'}"`,
-          b.status,
-          gross.toFixed(2),
-          fee.toFixed(2),
-          net.toFixed(2),
-        ].join(',')
-      }),
-    ]
-
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `gostaylo-finances-${format(new Date(), 'yyyy-MM-dd')}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-
-    toast.success(t('reportDownloaded'))
+    void downloadExportBlob('csv')
   }
 
-  const handleExportPdf = async () => {
-    if (!pdfDateFrom || !pdfDateTo || pdfDateFrom > pdfDateTo) {
-      toast.error(t('partnerFinances_pdfError'))
-      return
-    }
-    setPdfLoading(true)
-    try {
-      const blob = await fetchFinancesStatementPdf({ from: pdfDateFrom, to: pdfDateTo })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `gostaylo-financial-statement-${pdfDateFrom}_${pdfDateTo}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success(t('partnerFinances_pdfSuccess'))
-    } catch (e) {
-      toast.error(e?.message || t('partnerFinances_pdfError'))
-    } finally {
-      setPdfLoading(false)
-    }
+  const handleExportPdf = () => {
+    void downloadExportBlob('pdf')
   }
 
   const applyPdfMonthPreset = (which) => {
     const now = new Date()
+    if (which === 'quarter') {
+      setPdfDateFrom(format(startOfQuarter(now), 'yyyy-MM-dd'))
+      setPdfDateTo(format(endOfQuarter(now), 'yyyy-MM-dd'))
+      return
+    }
     const ref = which === 'prev' ? subMonths(now, 1) : now
     setPdfDateFrom(format(startOfMonth(ref), 'yyyy-MM-dd'))
     setPdfDateTo(format(endOfMonth(ref), 'yyyy-MM-dd'))
@@ -423,7 +421,11 @@ export function usePartnerFinances() {
     setPdfDateFrom,
     pdfDateTo,
     setPdfDateTo,
-    pdfLoading,
+    exportAxis,
+    setExportAxis,
+    exportLoading,
+    pdfLoading: exportLoading === 'pdf',
+    csvLoading: exportLoading === 'csv',
     financeFocusBooking,
     setFinanceFocusBooking,
     withdrawOpen,
@@ -441,6 +443,11 @@ export function usePartnerFinances() {
     summaryError,
     summaryErr,
     refetchSummary,
+    periodPack,
+    periodPackLoading,
+    periodPackError,
+    periodPackErr,
+    refetchPeriodPack,
     payouts,
     payoutsLoading,
     payoutsError,

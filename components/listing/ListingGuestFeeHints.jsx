@@ -2,11 +2,14 @@
 
 /**
  * Stage 201.86 — PDP: fees / fuel policy visible before dates (not only inside price breakdown).
+ * Stage 201.94 — cleaning/deposit amounts stay in listing THB (no header FX).
  */
 import { Info } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
-import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions.js'
+import {
+  buildGuestPriceExclusionHints,
+  formatGuestOnSiteFeeAmount,
+} from '@/lib/booking/guest-price-exclusions.js'
 import { LISTING_PDP_SECTION_TITLE_CLASS } from '@/lib/listing/pdp-section-rhythm'
 import { cn } from '@/lib/utils'
 
@@ -14,21 +17,12 @@ import { cn } from '@/lib/utils'
  * @param {object} props
  * @param {object} props.listing
  * @param {string} [props.language]
- * @param {string} [props.currency]
- * @param {Record<string, number>} [props.exchangeRates]
  */
-export function ListingGuestFeeHints({
-  listing,
-  language = 'ru',
-  currency = 'THB',
-  exchangeRates = { THB: 1 },
-}) {
+export function ListingGuestFeeHints({ listing, language = 'ru' }) {
   const slug = listing?.categorySlug || listing?.category?.slug || ''
   const meta = listing?.metadata && typeof listing.metadata === 'object' ? listing.metadata : {}
   const hints = buildGuestPriceExclusionHints(slug, meta)
   if (!hints.length) return null
-
-  const fmt = (thb) => formatPrice(thb, currency, exchangeRates, language)
 
   return (
     <div data-testid="listing-guest-fee-hints">
@@ -39,7 +33,7 @@ export function ListingGuestFeeHints({
         {hints.map((h) => {
           let text = getUIText(h.key, language)
           if (h.amountThb != null && Number(h.amountThb) > 0) {
-            text = text.replace(/\{\{amount\}\}/g, fmt(h.amountThb))
+            text = text.replace(/\{\{amount\}\}/g, formatGuestOnSiteFeeAmount(h.amountThb, language))
           }
           return (
             <li key={h.key} className="flex gap-2">

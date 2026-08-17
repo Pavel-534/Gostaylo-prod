@@ -135,6 +135,7 @@ export function CardImageCarousel({
             setImageLoaded(true)
           }}
           priority={priority && currentIndex === 0}
+          loading={priority && currentIndex === 0 ? 'eager' : 'lazy'}
         />
       </div>
       {detailHref ? (

@@ -6,6 +6,15 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.97 | 2026-08-18 | Search tab: catalog chunk prewarm, shell keep-alive, mobile 6-card first paint | Done |
+| 201.96 | 2026-08-18 | Catalog: mobile-first mount — no Leaflet/FilterBar hydrate on phone Search tab | Done |
+| 201.95 | 2026-08-17 | Location: Phuket neighborhoods in seed; snap city from pin coords | Done |
+| 201.94 | 2026-08-17 | PDP on-site cleaning/deposit in listing THB; drop «ориентир» hedge | Done |
+| 201.93 | 2026-08-17 | Catalog location: UI-lang area/city/country from geo codes, not raw OSM | Done |
+| 211.3 | 2026-08-17 | Partner reports UX: one period, earned-vs-paid hint, acts archive | Done |
+| 201.92 | 2026-08-17 | PDP property type from housing category; stop defaulting Villa | Done |
+| 211.2 | 2026-08-17 | Partner period pack: earned vs paid + linked payout acts | Done |
+| 211.1 | 2026-08-17 | Partner finances export: server CSV/PDF + created/checkout axis | Done |
 | 201.91 | 2026-08-17 | Listing L1 SSOT for admin TG/email; never THB ledger labeled as RUB | Done |
 | 201.90 | 2026-08-17 | Partner listings: Publish on ready drafts; rejected Publish only if checklist ok | Done |
 | 201.89 | 2026-08-17 | Map: thinner pin ring; soft-back camera without #map drop; PDP drop flow stepper | Done |

@@ -17,6 +17,7 @@ import {
   categorySlugMatchesListingServiceType,
   defaultMetadataForListingServiceType,
 } from '@/lib/partner/listing-service-type'
+import { applyHousingPropertyTypeFromCategorySlug } from '@/lib/listing/housing-property-type.js'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import { mergeWizardFormGeoFromPin } from '@/lib/geo/wizard-geo-from-pin'
 import {
@@ -287,10 +288,13 @@ export function useListingWizardActions(state, derived) {
             amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
           }
         } else {
-          next.metadata = {
-            ...baseMeta,
-            amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
-          }
+          next.metadata = applyHousingPropertyTypeFromCategorySlug(
+            {
+              ...baseMeta,
+              amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
+            },
+            slug,
+          )
         }
         snapshotForDraft = next
         return next

@@ -4,6 +4,7 @@
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
  * Stage 171.27 — TanStack hydrate from RSC bootstrap (`HomeHydrationBoundary`).
  * Stage 201.18 — scroll memory via root RouteScrollMemoryHost (not page-local).
+ * Stage 201.97 — idle prewarm of catalog client chunks for the Search tab.
  */
 
 import { useMemo, useEffect } from 'react'
@@ -24,6 +25,7 @@ import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
+import { scheduleCatalogChunkPrewarm } from '@/lib/navigation/prewarm-catalog-chunks'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
 import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -175,6 +177,8 @@ export function PlatformHomeContent() {
       handleSearch()
     })
   }, [handleSearch])
+
+  useEffect(() => scheduleCatalogChunkPrewarm(), [])
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-slate-900">

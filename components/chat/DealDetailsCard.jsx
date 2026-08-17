@@ -23,6 +23,7 @@ import { getHostMoneyStage } from '@/lib/booking/host-money-stage.js'
 import { readGuestPaymentDisplay } from '@/lib/booking/guest-payment-display.js'
 import { isBookingPayable } from '@/lib/booking/booking-status-rules'
 import { resolveChatOrderDeepLink } from '@/lib/chat/thread-trip-strip-model'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 import DisputeStatusWidget from '@/components/orders/DisputeStatusWidget.jsx'
 import { getGuestDateLabel } from '@/lib/i18n/guest-booking-labels'
 import { HostMoneyTimelineChip } from '@/components/partner/HostMoneyTimelineChip'
@@ -111,6 +112,7 @@ export function DealDetailsCard({
   onOpenCalendar,
 }) {
   const title = listing?.title || getUIText('dealCard_listingFallback', language) || 'Listing'
+  const locationLabel = formatListingLocationLineSync(listing, language)
   const imgRaw = listing?.images?.[0]
   const img = imgRaw ? resolveImageThumbDisplayUrl(imgRaw) || imgRaw : null
 
@@ -161,8 +163,8 @@ export function DealDetailsCard({
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">{title}</p>
-              {listing?.district ? (
-                <p className="text-xs text-slate-500 mt-0.5 truncate">{listing.district}</p>
+              {locationLabel ? (
+                <p className="text-xs text-slate-500 mt-0.5 truncate">{locationLabel}</p>
               ) : null}
             </div>
           </div>

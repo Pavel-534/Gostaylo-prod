@@ -5,6 +5,7 @@
  * Stage M1.1 — PushClientInit here (and partner layout); chat layout keeps a copy for direct /messages entry.
  * Stage 201.13 — soft-back leading on nested profile / settings / my-bookings via AppHeader.
  * Stage 201.37 — no workspace menu toggle here (guest shell has no sidebar).
+ * Stage 201.97 — Search tab keep-alive pane (catalog tree parked in this shell).
  */
 
 import { Suspense } from 'react'
@@ -13,6 +14,7 @@ import GeoSuggestToast from '@/components/geo/GeoSuggestToast'
 import { AppHeader } from '@/components/app-header/AppHeader'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
+import { StorefrontSearchKeepAlivePane } from '@/components/navigation/StorefrontSearchKeepAlive'
 import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
@@ -41,7 +43,9 @@ export function StorefrontAppShell({ children }) {
             softBackFallback={softBackFallback}
             showMenuButton={false}
           />
-          <MainContent>{children}</MainContent>
+          <MainContent>
+            <StorefrontSearchKeepAlivePane>{children}</StorefrontSearchKeepAlivePane>
+          </MainContent>
           <UnpaidCheckoutNudgeBanner />
           <MobileBottomNav />
           <PwaInstallChrome />

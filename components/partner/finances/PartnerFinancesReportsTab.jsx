@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { PartnerFinancesDocuments } from '@/components/partner/finances/PartnerFinancesDocuments'
 import { PartnerFinancesPdfCard } from '@/components/partner/finances/PartnerFinancesPdfCard'
+import { PartnerFinancesPeriodPackCard } from '@/components/partner/finances/PartnerFinancesPeriodPackCard'
 import { PartnerFinancesPayoutHistory } from '@/components/partner/finances/PartnerFinancesPayoutHistory'
-import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
 import { PartnerFinancesReportsSubNav } from '@/components/partner/finances/PartnerFinancesReportsSubNav'
 import { PartnerSectionDivider } from '@/components/partner/PartnerSectionDivider'
 import {
@@ -23,17 +23,24 @@ import { cn } from '@/lib/utils'
 export function PartnerFinancesReportsTab({
   t,
   language,
-  financesSummary,
-  summaryLoadingCombined,
-  payoutPreviewBatchLoading,
   pdfDateFrom,
   setPdfDateFrom,
   pdfDateTo,
   setPdfDateTo,
+  exportAxis,
+  setExportAxis,
+  exportLoading,
   pdfLoading,
+  csvLoading,
+  onExportCsv,
   onExportPdf,
   onPresetCurrent,
   onPresetPrev,
+  onPresetQuarter,
+  periodPack,
+  periodPackLoading,
+  periodPackError,
+  onRefetchPeriodPack,
   payouts,
   payoutsLoading,
   payoutsError,
@@ -42,6 +49,13 @@ export function PartnerFinancesReportsTab({
   payoutsInfoText,
 }) {
   const [activeSubTab, setActiveSubTab] = useState('statements')
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const archiveRef = useRef(null)
+
+  useEffect(() => {
+    if (!archiveOpen) return
+    archiveRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [archiveOpen])
 
   return (
     <div className="space-y-0">
@@ -52,25 +66,41 @@ export function PartnerFinancesReportsTab({
       {activeSubTab === 'statements' ? (
         <section data-partner-section="finances-statements" className="space-y-3">
           <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionReports')}</h2>
-          <PartnerFinancesPortfolioCards
-            t={t}
-            financesSummary={financesSummary}
-            loading={summaryLoadingCombined || payoutPreviewBatchLoading}
-          />
 
           <PartnerFinancesPdfCard
             t={t}
+            language={language}
             pdfDateFrom={pdfDateFrom}
             setPdfDateFrom={setPdfDateFrom}
             pdfDateTo={pdfDateTo}
             setPdfDateTo={setPdfDateTo}
+            exportAxis={exportAxis}
+            setExportAxis={setExportAxis}
+            exportLoading={exportLoading}
             pdfLoading={pdfLoading}
+            csvLoading={csvLoading}
+            onExportCsv={onExportCsv}
             onExportPdf={onExportPdf}
             onPresetCurrent={onPresetCurrent}
             onPresetPrev={onPresetPrev}
+            onPresetQuarter={onPresetQuarter}
           />
 
-          <PartnerFinancesDocuments t={t} language={language} />
+          <PartnerFinancesPeriodPackCard
+            t={t}
+            pack={periodPack}
+            loading={periodPackLoading}
+            error={periodPackError}
+            onRetry={onRefetchPeriodPack}
+            archiveOpen={archiveOpen}
+            onToggleArchive={() => setArchiveOpen((open) => !open)}
+          />
+
+          {archiveOpen ? (
+            <div id="partner-finances-docs-archive" ref={archiveRef}>
+              <PartnerFinancesDocuments t={t} language={language} />
+            </div>
+          ) : null}
         </section>
       ) : null}
 

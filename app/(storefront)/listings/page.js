@@ -17,6 +17,7 @@ export default async function ListingsPage({ searchParams }) {
   return (
     <>
       <ListingsCatalogItemListSchema bootstrap={bootstrap} />
+      {/* Stage 201.97 — query hydrate only; catalog UI parks in StorefrontSearchKeepAlivePane. */}
       <CatalogHydrationBoundary state={dehydratedState} />
     </>
   )

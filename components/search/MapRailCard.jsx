@@ -9,6 +9,7 @@ import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { getListingCardImageUrls } from '@/lib/media/image-delivery'
 import { CATALOG_MAP_MOBILE_RAIL_CARD_HEIGHT } from '@/lib/maps/catalog-map-ux-policy'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 /**
  * Lightweight map rail card — compact horizontal chip for docked mobile rail.
@@ -25,7 +26,7 @@ export function MapRailCard({
   const imageUrls = useMemo(() => getListingCardImageUrls(listing), [listing])
   const imageSrc = imageUrls[0] || '/placeholder.svg'
   const title = String(listing?.title || 'Untitled listing')
-  const district = String(listing?.district || '')
+  const locationLabel = formatListingLocationLineSync(listing, language)
 
   const ratingRaw =
     listing?.avgRating ?? listing?.average_rating ?? listing?.rating ?? 0
@@ -72,7 +73,9 @@ export function MapRailCard({
           ) : null}
         </div>
 
-        {district ? <p className="line-clamp-1 text-[11px] text-slate-500">{district}</p> : null}
+        {locationLabel ? (
+          <p className="line-clamp-1 text-[11px] text-slate-500">{locationLabel}</p>
+        ) : null}
 
         <p className="text-xs font-semibold text-slate-900">{priceText}</p>
       </div>

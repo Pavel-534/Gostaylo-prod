@@ -33,6 +33,7 @@ import {
   resolveBookingStatusBadgeClass,
 } from '@/lib/calendar/calendar-cell-presentation.js'
 import { calendarRangeHighlightClass } from '@/lib/calendar/partner-calendar-range-utils.js'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 const TYPE_ICONS = {
   villa: Home,
@@ -266,7 +267,7 @@ export function CalendarMobileAgenda({
                 <p className={cn('mt-0.5 truncate text-xs font-medium', summaryClass)}>{summary.text}</p>
                 <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-slate-500">
                   <TypeIcon className="h-3 w-3 shrink-0" />
-                  {item.listing.district}
+                  {formatListingLocationLineSync(item.listing, language)}
                 </p>
               </div>
               {!bare ? (

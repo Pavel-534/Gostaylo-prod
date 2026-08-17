@@ -33,6 +33,7 @@ import { ChatHeaderActions } from '@/components/chat/ChatHeaderActions'
 import { ThreadTripStrip } from '@/components/chat/ThreadTripStrip'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
+import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
 
 function formatBookingStatusBadge(status, language) {
   const s = String(status || '').toUpperCase()
@@ -134,6 +135,7 @@ export function StickyChatHeader({
   const imgRaw = listing?.images?.[0]
   const img = imgRaw ? resolveImageThumbDisplayUrl(imgRaw) || imgRaw : null
   const title = listing?.title || '—'
+  const locationLabel = formatListingLocationLineSync(listing, language)
 
   const showUnifiedTop = Boolean(
     unifiedMobileTopBar && embedded && compact && messagesListHref && !hideBackButton
@@ -263,8 +265,8 @@ export function StickyChatHeader({
             ) : (
               <p className="truncate font-semibold text-slate-900 text-sm">{title}</p>
             )}
-            {listing?.district ? (
-              <p className="truncate text-[11px] text-slate-500">{listing.district}</p>
+            {locationLabel ? (
+              <p className="truncate text-[11px] text-slate-500">{locationLabel}</p>
             ) : null}
           </div>
           <div className="flex min-h-9 min-w-9 shrink-0 items-center justify-end gap-1">
@@ -348,7 +350,7 @@ export function StickyChatHeader({
             </p>
           )}
 
-          {listing?.district ? (
+          {locationLabel ? (
             <p
               className={cn(
                 'text-slate-500 truncate',
@@ -356,7 +358,7 @@ export function StickyChatHeader({
                 showUnifiedTop && 'hidden xl:block'
               )}
             >
-              {listing.district}
+              {locationLabel}
             </p>
           ) : null}
 

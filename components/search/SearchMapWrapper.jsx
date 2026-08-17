@@ -2,6 +2,7 @@
  * SearchMapWrapper — Leaflet map (~40% width on lg), price pills, viewport bounds callback.
  * Stage 163.1 — map-pins API + lazy popup.
  * Stage 169.3 — mobile inline map removed; use CatalogMobileMapSheet + CatalogSearchMapPanel.
+ * Stage 201.96 — do not mount Leaflet below lg (CSS hide still initialized the map).
  */
 
 'use client'
@@ -9,6 +10,7 @@
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { CatalogSearchMapPanel } from '@/components/search/CatalogSearchMapPanel'
+import { useMinWidthConfirmed, VIEWPORT_LG_MIN_PX } from '@/hooks/use-min-width'
 
 function SearchMapWrapperComponent({
   listings = [],
@@ -36,6 +38,9 @@ function SearchMapWrapperComponent({
   mapCenter,
   mapZoom,
 }) {
+  const isDesktopMap = useMinWidthConfirmed(VIEWPORT_LG_MIN_PX)
+  if (!isDesktopMap) return null
+
   return (
     <div
       className={cn(

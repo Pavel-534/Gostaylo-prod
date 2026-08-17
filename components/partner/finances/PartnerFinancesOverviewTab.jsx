@@ -4,6 +4,7 @@ import { Calendar } from 'lucide-react'
 import { PartnerConciergePayoutBanner } from '@/components/partner/finances/PartnerConciergePayoutBanner'
 import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
 import { PartnerFinancesPayoutMathCard } from '@/components/partner/finances/PartnerFinancesPayoutMathCard'
+import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
 import { PartnerFinancesStatCard } from '@/components/partner/finances/PartnerFinancesStatCard'
 import { PartnerFinancesStatusAlerts } from '@/components/partner/finances/PartnerFinancesStatusAlerts'
 import { PartnerFinancesWithdrawStickyCta } from '@/components/partner/finances/PartnerFinancesWithdrawStickyCta'
@@ -63,6 +64,17 @@ export function PartnerFinancesOverviewTab({
             loading={summaryLoadingCombined}
           />
         ) : null}
+      </section>
+
+      <PartnerSectionDivider />
+
+      <section data-partner-section="finances-portfolio" className="space-y-3">
+        <h2 className={PARTNER_SECTION_TITLE_CLASS}>{t('partnerFinances_sectionPortfolio')}</h2>
+        <PartnerFinancesPortfolioCards
+          t={t}
+          financesSummary={financesSummary}
+          loading={summaryLoadingCombined}
+        />
       </section>
 
       <PartnerSectionDivider />
