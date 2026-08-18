@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Star, MapPin } from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
@@ -59,6 +59,7 @@ export function ListingCard({
   layout = 'grid',
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [isFavorite, setIsFavorite] = useState(isFavorited)
   const [pdpPending, setPdpPending] = useState(false)
   
@@ -66,6 +67,10 @@ export function ListingCard({
   useEffect(() => {
     setIsFavorite(isFavorited)
   }, [isFavorited])
+
+  useEffect(() => {
+    setPdpPending(false)
+  }, [pathname])
 
   // Extract listing data
   const {
@@ -171,6 +176,7 @@ export function ListingCard({
       data-pdp-pending={pdpPending ? 'true' : undefined}
       data-listing-card-layout={isSolo ? 'solo' : 'grid'}
       onMouseEnter={handlePrefetch}
+      onPointerDown={handlePrefetch}
       onTouchStart={handlePrefetch}
       className={cn(
         // Base

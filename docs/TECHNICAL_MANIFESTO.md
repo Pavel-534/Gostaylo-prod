@@ -1,8 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.205 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.99** Home widget 10 min cache; catalog lite lock.
-
-**Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
+> **Version**: 13.2.207 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.101** instant PDP shell from cache; PDP back pops history.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -29,6 +27,16 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.101 — Instant PDP chrome + history.back to parked catalog
+- Catalog → PDP paints hero/title/price/Book from TanStack cache (`readPdpInstantListing`) while RSC bootstrap streams. Do **not** drop the listing SELECT: 404 / moderation / OG stay in the async child.
+- Leaflet/calendar were already deferred (`dynamic` + viewport gate). Header Back pops `history` when the catalog URL is remembered; catalog list stays parked (**201.100**).
+- Card `router.prefetch` on touch/hover was already in `ListingCard` (**201.100** idle first-6).
+
+### Stage 201.100 — catalog ↔ PDP: park list; do not freeze on View Transition
+- Card tap no longer `preventDefault` + `startViewTransition` around `router.push` (Samsung/Chromium froze the teal ring, then an empty shell).
+- Catalog (+ Home) stay parked on listing PDP; Back shows the list immediately. Window scroll resets to 0 when leaving the list so PDP is not opened mid-page.
+- Idle prefetch of the first 6 PDP routes + detail JSON after catalog paint.
+
 ### Stage 201.99 — Home widget cache 10 min; catalog search stays lite
 - For You, featured («Топ»), recently viewed: `staleTime` 10 min, `refetchOnMount: false`, `refetchOnWindowFocus: false`. Recently viewed is TanStack + localStorage placeholder.
 - Catalog GET already uses `LISTINGS_SELECT_LITE` (no `description`, 3 images, picked metadata). Do not shrink to id/title/price/photo[0] — cards need rating, specs, L1 currency, geo codes, trust.
@@ -41,7 +49,7 @@
 
 ### Stage 201.97 — Search tab: prewarm + keep-alive + above-fold cards
 - Home idle-imports the catalog client chunk (`requestIdleCallback`; skip `saveData`). Leaflet/FilterBar stay out of that prewarm (201.96).
-- Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. Not kept on PDP/messages/profile.
+- Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. PDP also keeps the list parked (**201.100**).
 - Phone list hydrates 6 cards first; the rest are skeletons until they approach the viewport. Non-LCP card images use `loading="lazy"`.
 - First Search tap still needs one catalog mount. Repeat tap is the instant path. Home tree parks in **201.98**.
 

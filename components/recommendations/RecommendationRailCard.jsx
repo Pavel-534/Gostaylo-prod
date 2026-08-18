@@ -6,10 +6,10 @@
  * Минимум: фото, название, категория, цена — без specs/trust/location дублей.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { getListingText, getCategoryName } from '@/lib/translations'
 import { getCategoryDisplayName } from '@/lib/category-display-name'
@@ -18,8 +18,7 @@ import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
-import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
-import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
+import { prefetchListingPdp, prepareListingPdpNavigation } from '@/lib/navigation/listing-hero-transition'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -48,6 +47,7 @@ export function RecommendationRailCard({
   onNavigate,
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [pdpPending, setPdpPending] = useState(false)
   const id = String(listing?.id || '').trim()
   const detailUrl = href || (id ? `/listings/${id}` : '#')
@@ -74,12 +74,20 @@ export function RecommendationRailCard({
     prefetchListingPdp(router, id)
   }, [id, router])
 
-  const handleNavigate = useCallback(() => {
-    if (!id || detailUrl === '#') return
-    setPdpPending(true)
-    dispatchOptimisticNavPending(detailUrl)
-    onNavigate?.()
-  }, [detailUrl, id, onNavigate])
+  useEffect(() => {
+    setPdpPending(false)
+  }, [pathname])
+
+  const handleNavigate = useCallback(
+    (e) => {
+      if (!id || detailUrl === '#') return
+      if (e?.metaKey || e?.ctrlKey || e?.shiftKey || e?.altKey) return
+      setPdpPending(true)
+      prepareListingPdpNavigation(detailUrl)
+      onNavigate?.()
+    },
+    [detailUrl, id, onNavigate],
+  )
 
   if (!id) return null
 

@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.101 | 2026-08-18 | Instant PDP shell from cache; PDP Back uses history.back | Done |
+| 201.100 | 2026-08-18 | Catalog↔PDP keep-alive; drop View Transition around router.push | Done |
 | 201.99 | 2026-08-18 | Home rails 10 min cache; catalog lite SELECT lock | Done |
 | 201.98 | 2026-08-18 | Search tab: no auto sheet; park Home rails; For You query cache | Done |
 | 201.97 | 2026-08-18 | Search tab: catalog chunk prewarm, shell keep-alive, mobile 6-card first paint | Done |

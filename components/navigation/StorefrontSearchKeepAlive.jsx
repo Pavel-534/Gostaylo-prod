@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Stage 201.97 / 201.98 — park Home + catalog across bottom-tab Search.
+ * Stage 201.97 / 201.98 / 201.100 — park Home + catalog across Search and listing PDP.
  * Next App Router unmounts the page slot; these panes live in the storefront shell.
  */
 
@@ -12,10 +12,13 @@ import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { HomePageSkeleton } from '@/components/home-page-skeleton'
 import {
   isStorefrontCatalogListPath,
+  isStorefrontListingPdpPath,
   isStorefrontSearchKeepAlivePath,
   registerStorefrontSearchKeepAliveReveal,
+  storefrontListingPdpId,
 } from '@/lib/navigation/storefront-search-keep-alive'
 import { persistLiveRouteScroll } from '@/lib/navigation/route-scroll-memory'
+import { ListingPdpInstantShell } from '@/components/listing/pdp/ListingPdpInstantShell'
 
 const ListingsCatalogClient = dynamic(
   () => import('@/app/(storefront)/listings/listings-catalog-client'),
@@ -29,6 +32,8 @@ const PlatformHomeContent = dynamic(
 export function StorefrontSearchKeepAlivePane({ children }) {
   const pathname = usePathname()
   const isList = isStorefrontCatalogListPath(pathname)
+  const isPdp = isStorefrontListingPdpPath(pathname)
+  const pdpId = storefrontListingPdpId(pathname)
   const keepAlivePath = isStorefrontSearchKeepAlivePath(pathname)
   const isHome = (String(pathname || '').replace(/\/+$/, '') || '/') === '/'
 
@@ -38,6 +43,7 @@ export function StorefrontSearchKeepAlivePane({ children }) {
   const catalogScrollYRef = useRef(0)
   const homeScrollYRef = useRef(0)
   const prevCatalogFgRef = useRef(false)
+  const prevHomeFgRef = useRef(false)
   const catalogParkedRef = useRef(false)
 
   const catalogForeground = isList || (catalogParked && isHome && revealRequested)
@@ -45,6 +51,10 @@ export function StorefrontSearchKeepAlivePane({ children }) {
   const hidePageSlot = Boolean(homeForeground || catalogForeground)
   const showCatalog = Boolean(isList || catalogParked)
   const showHome = Boolean(isHome || homeParked)
+  const catalogBehindPdp = Boolean(isPdp && catalogParked && !catalogForeground)
+
+  const pdpSlotRef = useRef(null)
+  const [pdpSlotReady, setPdpSlotReady] = useState(false)
 
   catalogParkedRef.current = catalogParked
 
@@ -68,7 +78,9 @@ export function StorefrontSearchKeepAlivePane({ children }) {
       return undefined
     }
     if (!wasCatalog && catalogForeground) {
-      homeScrollYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      if (prevHomeFgRef.current) {
+        homeScrollYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      }
       persistLiveRouteScroll()
       const y = catalogScrollYRef.current
       requestAnimationFrame(() => window.scrollTo(0, y))
@@ -76,12 +88,17 @@ export function StorefrontSearchKeepAlivePane({ children }) {
     if (wasCatalog && !catalogForeground) {
       catalogScrollYRef.current = Math.max(0, Math.round(window.scrollY || 0))
       persistLiveRouteScroll()
-      const y = homeScrollYRef.current
-      requestAnimationFrame(() => window.scrollTo(0, y))
+      if (homeForeground) {
+        const y = homeScrollYRef.current
+        requestAnimationFrame(() => window.scrollTo(0, y))
+      } else {
+        requestAnimationFrame(() => window.scrollTo(0, 0))
+      }
     }
     prevCatalogFgRef.current = catalogForeground
+    prevHomeFgRef.current = homeForeground
     return undefined
-  }, [catalogForeground])
+  }, [catalogForeground, homeForeground])
 
   const reveal = useCallback(() => {
     if (!catalogParkedRef.current) return false
@@ -92,9 +109,24 @@ export function StorefrontSearchKeepAlivePane({ children }) {
 
   useEffect(() => registerStorefrontSearchKeepAliveReveal(reveal), [reveal])
 
+  useEffect(() => {
+    if (!isPdp) {
+      setPdpSlotReady(false)
+      return undefined
+    }
+    const el = pdpSlotRef.current
+    if (!el || typeof MutationObserver === 'undefined') return undefined
+    const check = () => {
+      setPdpSlotReady(Boolean(el.querySelector('[data-testid="listing-pdp-page"]')))
+    }
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(el, { childList: true, subtree: true })
+    return () => obs.disconnect()
+  }, [isPdp, pdpId])
+
   return (
     <>
-      <div hidden={hidePageSlot}>{children}</div>
       {showHome ? (
         <div
           hidden={!homeForeground}
@@ -107,14 +139,27 @@ export function StorefrontSearchKeepAlivePane({ children }) {
       ) : null}
       {showCatalog ? (
         <div
-          hidden={!catalogForeground}
+          hidden={!(catalogForeground || catalogBehindPdp)}
           inert={!catalogForeground ? '' : undefined}
+          className={catalogBehindPdp ? 'pointer-events-none' : undefined}
           data-testid="storefront-search-keep-alive"
           data-catalog-foreground={catalogForeground ? 'true' : 'false'}
         >
           <ListingsCatalogClient />
         </div>
       ) : null}
+      {isPdp && pdpId && !pdpSlotReady ? (
+        <div className="relative z-10" data-testid="storefront-pdp-instant-shell">
+          <ListingPdpInstantShell listingId={pdpId} />
+        </div>
+      ) : null}
+      <div
+        ref={pdpSlotRef}
+        hidden={hidePageSlot}
+        className={isPdp ? 'relative z-20' : undefined}
+      >
+        {children}
+      </div>
     </>
   )
 }

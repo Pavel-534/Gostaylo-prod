@@ -210,7 +210,7 @@ function ListingPdpContent({ listingId, lang }) {
 
   return (
     <>
-      <div className="min-h-screen bg-white text-slate-900">
+      <div className="min-h-screen bg-white text-slate-900" data-testid="listing-pdp-page">
         <ListingPageNav
           language={language}
           isFavorite={isFavorite}

@@ -56,8 +56,14 @@ export function useSoftBack(fallbackHref = '/') {
     dispatchOptimisticNavPending(target)
     markPendingRouteScrollRestore()
 
-    // PDP opened from catalog → restore exact `/listings?…` (map/filters), replace PDP entry.
+    // Catalog → PDP: pop history so the parked list paints immediately (no /listings RSC wait).
+    // Deep link / empty history still replace()s the remembered catalog URL.
     if (catalogReturn && isCatalogListingsHref(catalogReturn)) {
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back()
+        ensureCatalogMapHashAfterSoftBack(catalogReturn)
+        return
+      }
       const pathAndSearch = String(catalogReturn).replace(/#.*$/, '')
       const wantMap =
         /#map\b/i.test(catalogReturn) || Boolean(peekCatalogMapViewport())

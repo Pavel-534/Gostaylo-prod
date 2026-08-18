@@ -18,7 +18,7 @@ import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { useIsMobile } from '@/hooks/use-mobile'
 import {
   listingHeroTransitionStyle,
-  navigateWithListingHeroTransition,
+  prepareListingPdpNavigation,
   prefetchListingPdp,
 } from '@/lib/navigation/listing-hero-transition'
 import { LISTING_CARD_MEDIA_ASPECT } from '@/lib/listing/listing-card-layout'
@@ -93,11 +93,11 @@ export function CardImageCarousel({
   const handleDetailNavigate = useCallback(
     (e) => {
       if (!detailHref) return
-      e.preventDefault()
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return
       onNavigateStart?.(detailHref)
-      navigateWithListingHeroTransition(() => router.push(detailHref), listingId, detailHref)
+      prepareListingPdpNavigation(detailHref)
     },
-    [detailHref, listingId, onNavigateStart, router],
+    [detailHref, onNavigateStart],
   )
 
   const showNavigationArrows = imagesProxied.length > 1 && (isHovered || isMobile)

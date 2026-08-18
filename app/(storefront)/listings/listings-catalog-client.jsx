@@ -63,6 +63,7 @@ import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-a
 import { isStorefrontCatalogListPath } from '@/lib/navigation/storefront-search-keep-alive'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { navigateWithListingHeroTransition, prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
+import { MOBILE_CATALOG_ABOVE_FOLD_COUNT } from '@/lib/listing/listing-card-layout'
 
 const ForYouRail = dynamic(
   () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
@@ -391,6 +392,37 @@ function ListingsContent() {
     catalogSort,
     whereSortCenter: whereGeoView.sortCenter,
   })
+
+  const aboveFoldListingIdsKey = useMemo(
+    () =>
+      (listings || [])
+        .slice(0, MOBILE_CATALOG_ABOVE_FOLD_COUNT)
+        .map((row) => String(row?.id || '').trim())
+        .filter(Boolean)
+        .join(','),
+    [listings],
+  )
+
+  useEffect(() => {
+    if (!isCatalogListRoute || !aboveFoldListingIdsKey) return undefined
+    if (typeof window === 'undefined') return undefined
+    const connection =
+      navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    if (connection?.saveData) return undefined
+    const ids = aboveFoldListingIdsKey.split(',')
+    const run = () => {
+      for (const id of ids) {
+        prefetchListingPdp(router, id)
+        prefetchListingDetail(id, { intent: 'hover' })
+      }
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(run, { timeout: 2500 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+    const t = window.setTimeout(run, 400)
+    return () => window.clearTimeout(t)
+  }, [aboveFoldListingIdsKey, isCatalogListRoute, prefetchListingDetail, router])
 
   const visibleListingIds = useMemo(() => listings.map((listing) => listing.id), [listings])
   const { favoriteIds: userFavorites, applyOptimisticFavorite } = useFavoritesBatch({

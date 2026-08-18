@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * While the catalog tree is parked on Home, Next `useSearchParams()` is the home URL.
+ * While the catalog tree is parked on Home or PDP, Next `useSearchParams()` is not the list URL.
  * Freeze the last `/listings` query so filters/list do not reset.
  */
 

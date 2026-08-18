@@ -21,12 +21,13 @@ function read(rel) {
 }
 
 describe('Stage 201.97 — catalog keep-alive + prewarm + above-fold', () => {
-  it('treats only the catalog list path as keep-alive (not PDP)', () => {
+  it('treats catalog list + PDP as keep-alive (not messages)', () => {
     assert.equal(isStorefrontCatalogListPath('/listings'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/abc'), false)
     assert.equal(isStorefrontSearchKeepAlivePath('/'), true)
     assert.equal(isStorefrontSearchKeepAlivePath('/listings'), true)
+    assert.equal(isStorefrontSearchKeepAlivePath('/listings/abc'), true)
     assert.equal(isStorefrontSearchKeepAlivePath('/messages'), false)
   })
 
