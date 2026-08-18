@@ -26,7 +26,7 @@ import {
 } from '@/lib/navigation/catalog-return-href'
 
 const RESTORE_RETRY_MS = 80
-const RESTORE_BUDGET_MS = 2800
+const RESTORE_BUDGET_MS = 8000
 const ANCHOR_TOLERANCE_PX = 12
 
 function readSearchKey() {
@@ -200,12 +200,25 @@ export function RouteScrollMemoryHost() {
       }
     }, RESTORE_RETRY_MS)
 
+    const resizeRoot = document.documentElement
+    const ro =
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => {
+            if (tryRestore() && restoreTimerRef.current) {
+              window.clearInterval(restoreTimerRef.current)
+              restoreTimerRef.current = null
+            }
+          })
+        : null
+    if (ro && resizeRoot) ro.observe(resizeRoot)
+
     return () => {
       cancelled = true
       if (restoreTimerRef.current) {
         window.clearInterval(restoreTimerRef.current)
         restoreTimerRef.current = null
       }
+      ro?.disconnect()
     }
   }, [pathname, searchKey, restoreGen])
 

@@ -37,6 +37,33 @@
   border: none !important;
 }
 
+/* Default Leaflet × sits on the photo in slate-400 — invisible. Brand chip, 44px. */
+.leaflet-popup.map-listing-popup .leaflet-popup-close-button {
+  top: 8px;
+  right: 8px;
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 9999px;
+  background: #fff;
+  color: #0f172a !important;
+  font: 22px/1 sans-serif;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.18), 0 0 0 1px rgb(0 102 102 / 0.2);
+}
+
+.leaflet-popup.map-listing-popup .leaflet-popup-close-button:hover,
+.leaflet-popup.map-listing-popup .leaflet-popup-close-button:focus-visible {
+  background: #e6f4f3;
+  color: #006666 !important;
+}
+
 /* While a pin is selected, ignore CSS :hover flash on other pills under/near the popup */
 .catalog-map-leaflet--pin-selected .gostaylo-price-pill:hover:not(.gostaylo-price-pill--selected) {
   background: #0f172a !important;

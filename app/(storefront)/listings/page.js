@@ -7,24 +7,29 @@ import ListingsCatalogClient from './listings-catalog-client'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { Suspense } from 'react'
 
-/** Stage 87.0 — title/description: **`buildListingsCatalogMetadata`** → shared catalog bootstrap. */
+/** Stage 87.0 / 201.104 — metadata must not await catalog search (blocks Search tab). */
 export async function generateMetadata({ searchParams }) {
-  const bootstrap = await getCatalogBootstrapFromSearchParams(searchParams)
-  return buildListingsCatalogMetadata(searchParams, bootstrap)
+  return buildListingsCatalogMetadata(searchParams, null, { skipHeavyBootstrap: true })
 }
 
-export default async function ListingsPage({ searchParams }) {
+async function ListingsCatalogRscBody({ searchParams }) {
   const bootstrap = await getCatalogBootstrapFromSearchParams(searchParams)
   const dehydratedState = await buildCatalogDehydratedState(bootstrap)
 
   return (
     <>
       <ListingsCatalogItemListSchema bootstrap={bootstrap} />
-      <Suspense fallback={<ListingsCatalogSkeleton />}>
-        <CatalogHydrationBoundary state={dehydratedState}>
-          <ListingsCatalogClient />
-        </CatalogHydrationBoundary>
-      </Suspense>
+      <CatalogHydrationBoundary state={dehydratedState}>
+        <ListingsCatalogClient />
+      </CatalogHydrationBoundary>
     </>
+  )
+}
+
+export default function ListingsPage({ searchParams }) {
+  return (
+    <Suspense fallback={<ListingsCatalogSkeleton />}>
+      <ListingsCatalogRscBody searchParams={searchParams} />
+    </Suspense>
   )
 }

@@ -6,6 +6,7 @@
  * Stage 201.13 — soft-back leading on nested profile / settings / my-bookings via AppHeader.
  * Stage 201.37 — no workspace menu toggle here (guest shell has no sidebar).
  * Stage 201.103 — keep-alive pane is a passthrough; Home/catalog live in page RSC.
+ * Stage 201.104 — pending Search on Home paints catalog skeleton immediately.
  */
 
 import { Suspense } from 'react'
@@ -15,6 +16,7 @@ import { AppHeader } from '@/components/app-header/AppHeader'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { StorefrontSearchKeepAlivePane } from '@/components/navigation/StorefrontSearchKeepAlive'
+import { StorefrontPendingCatalogShell } from '@/components/navigation/StorefrontPendingCatalogShell'
 import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
@@ -44,7 +46,9 @@ export function StorefrontAppShell({ children }) {
             showMenuButton={false}
           />
           <MainContent>
-            <StorefrontSearchKeepAlivePane>{children}</StorefrontSearchKeepAlivePane>
+            <StorefrontSearchKeepAlivePane>
+              <StorefrontPendingCatalogShell>{children}</StorefrontPendingCatalogShell>
+            </StorefrontSearchKeepAlivePane>
           </MainContent>
           <UnpaidCheckoutNudgeBanner />
           <MobileBottomNav />

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.209 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.103** Home/catalog UI back inside page HydrationBoundary (no shell park).
+> **Version**: 13.2.210 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.104** instant Search shell; map popup close chip; scroll restore waits for layout.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.104 — Instant Search shell, popup close, scroll restore
+- Search tab: paint catalog skeleton on Home as soon as the dock is pending (`StorefrontPendingCatalogShell`). `/listings` metadata no longer awaits catalog search; the page streams the list behind `Suspense`.
+- Map listing popup close is a 44px white chip with a brand ring (Leaflet’s default × sat on the photo).
+- Back-to-list / back-to-home: restore retries up to 8s and on `ResizeObserver` so a short skeleton does not eat the saved Y (list middle, home footer).
 
 ### Stage 201.103 — Stop parking Home/catalog in the shell
 - Visible Home and catalog UI render **inside** their page `HydrationBoundary` again. Shell keep-alive (201.97–201.102) hid the dehydrated cache as a sibling and kept two full trees mounted — iPhone white/skeleton home, Samsung Search stuck on card skeletons.
