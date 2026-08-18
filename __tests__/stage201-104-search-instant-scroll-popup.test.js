@@ -32,6 +32,7 @@ describe('Stage 201.104 — Search instant shell + popup close + scroll restore'
     assert.match(shell, /StorefrontPendingCatalogShell/)
     const pending = read('components/navigation/StorefrontPendingCatalogShell.jsx')
     assert.match(pending, /AIRENTO_NAV_PENDING_EVENT/)
+    assert.match(pending, /shouldPaintPendingCatalogSkeleton/)
     assert.match(pending, /ListingsCatalogSkeleton/)
   })
 
@@ -46,6 +47,6 @@ describe('Stage 201.104 — Search instant shell + popup close + scroll restore'
     const host = read('components/navigation/RouteScrollMemoryHost.jsx')
     assert.match(host, /RESTORE_BUDGET_MS = 8000/)
     assert.match(host, /ResizeObserver/)
-    assert.match(host, /maxScroll >= Math\.max\(0, Number\(activeEntry\.y \|\| 0\) - 24\)/)
+    assert.match(host, /isRouteScrollLayoutReady/)
   })
 })

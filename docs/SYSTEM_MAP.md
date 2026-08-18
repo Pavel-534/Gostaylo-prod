@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.99 | **Last Updated**: 2026-08-18 | **201.106** map-rail debug; **201.104** instant Search shell; **201.103** Home/catalog in page HydrationBoundary.  
+> **Version**: 13.2.103 | **Last Updated**: 2026-08-18 | **201.110** Home Top PDP back hang; **201.109** Back restore commits Y.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -21,7 +21,7 @@
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
 | PWA / push | SW + FCM; **201.19** silent push ack; **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81**. Catalog phone: **201.96** mobile-first mount; **201.104** Search tab paints catalog skeleton immediately, listings metadata skips search; **201.103** Home/catalog UI inside page HydrationBoundary; **201.101** instant PDP chrome; Search tab does not open filter sheet; **201.99** Home rails 10 min stale | Clients |
-| List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**, **201.104** 8s + ResizeObserver). Allowlist home `/`, `/listings?…`, `/my-bookings`. Map camera is separate (`catalog-map-viewport-memory`). | Clients |
+| List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**, **201.109** wait for layout then apply Y; never silent miss). Allowlist home `/`, `/listings?…`, `/my-bookings`. Map camera is separate (`catalog-map-viewport-memory`). | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
 

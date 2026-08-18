@@ -130,7 +130,7 @@ Wave F (167.0–167.2) добавила discovery-слой: similar, recently vi
 | `for_you_catalog` | `listings-catalog-client` → `ForYouRail` | Catalog, **before results** (review in 169.1) |
 | `similar_pdp` | PDP → `SimilarListingsRail` | PDP, below reviews |
 | `recent_pdp` | PDP → `RecentlyViewedRail` | PDP, below similar |
-| `recent_home` | Home → `RecentlyViewedRail` | **Planned 169.1** (ADR-167 §2.4) |
+| `recent_home` | — | **Retired 201.107** — do not emit; historical PostHog only |
 
 **Запрещено:** произвольные строки `surface` в PR без обновления этой таблицы.
 
@@ -283,7 +283,7 @@ components/search/CatalogSortSelect.jsx              ← catalog_sort_change
 
 **Acceptance criteria (169.0):**
 
-- [x] All five `surface` values emit impression+click when rail visible (169.1: `recent_home` on home).
+- [x] Live surfaces emit impression+click when rail visible (`for_you_home`, `for_you_catalog`, `similar_pdp`, `recent_pdp`). `recent_home` retired **201.107**.
 - [ ] Impression deduped per mount (no double-count on re-render).
 - [ ] `catalog_sort_change` on user-initiated sort change only (not URL hydrate).
 - [ ] ADR-167 §3 acceptance item «Impression/click … similar|recent» satisfied.
@@ -293,7 +293,7 @@ components/search/CatalogSortSelect.jsx              ← catalog_sort_change
 
 | Work item | Notes |
 |-----------|-------|
-| `RecentlyViewedRail` on home (`recent_home`) | ADR-167 §2.4 | **169.1** ✓ |
+| `RecentlyViewedRail` on home (`recent_home`) | ADR-167 §2.4 | **169.1** ✓ → **retired 201.107** (PDP only) |
 | Lower `PERSONALIZATION_MIN_RESULTS` or fallback UX | Product decision |
 | ForYou catalog placement after results | Product decision |
 | PostHog `identify` on auth | `auth-context` |

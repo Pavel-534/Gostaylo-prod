@@ -18,8 +18,6 @@ import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
-import { RECENTLY_VIEWED_MIN_HOME } from '@/lib/recommendations/constants'
-import { useAuth } from '@/contexts/auth-context'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
@@ -29,7 +27,7 @@ import { FooterSwitchers } from '@/components/FooterSwitchers'
 import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner'
 import { ForYouRail } from '@/components/recommendations/ForYouRail'
-import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
+import { listingIdsForRailDedupe } from '@/lib/recommendations/for-you-rail-display'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -40,7 +38,6 @@ const CatalogMobileSearchSheet = dynamic(
 )
 
 export function PlatformHomeContent() {
-  const { user } = useAuth()
   const {
     language,
     currency,
@@ -99,6 +96,8 @@ export function PlatformHomeContent() {
     if (!selectedCategory || selectedCategory === 'all') return null
     return effectiveCategoryWizardProfileRaw(selectedCategory, categories)
   }, [selectedCategory, categories])
+
+  const featuredListingIds = useMemo(() => listingIdsForRailDedupe(listings), [listings])
 
   const homeFilterBarProps = useMemo(
     () => ({
@@ -310,14 +309,7 @@ export function PlatformHomeContent() {
           currency={currency}
           exchangeRates={exchangeRates}
           surface="for_you_home"
-        />
-        <RecentlyViewedRail
-          surface="recent_home"
-          userId={user?.id ?? null}
-          language={language}
-          currency={currency}
-          exchangeRates={exchangeRates}
-          minItems={RECENTLY_VIEWED_MIN_HOME}
+          excludeListingIds={featuredListingIds}
         />
       </div>
 

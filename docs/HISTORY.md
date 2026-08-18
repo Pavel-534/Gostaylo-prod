@@ -6,6 +6,10 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.110 | 2026-08-18 | Home Top → PDP Back: do not cover Home with catalog skeleton | Done |
+| 201.109 | 2026-08-18 | Back restore: wait for layout, always apply saved Y | Done |
+| 201.108 | 2026-08-18 | Popular nearby rail: rating, dedupe vs top, cold-guest min 2 | Done |
+| 201.107 | 2026-08-18 | Recently viewed off home; keep on listing PDP only | Done |
 | 201.106 | 2026-08-18 | Dev-only map rail jump log (no prod noise) | Done |
 | 201.104 | 2026-08-18 | Instant Search skeleton; map popup close chip; scroll restore waits for layout | Done |
 | 201.103 | 2026-08-18 | Reunite Home/catalog UI with page HydrationBoundary; drop shell keep-alive park | Done |

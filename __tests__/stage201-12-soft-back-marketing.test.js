@@ -19,7 +19,7 @@ describe('Stage 201.12 — soft-back SSOT P0 marketing', () => {
     const hook = read('hooks/use-soft-back.js')
     assert.match(hook, /export function useSoftBack/)
     assert.match(hook, /router\.back\(/)
-    assert.match(hook, /router\.push\(fallback\)/)
+    assert.match(hook, /router\.push\(target\)/)
   })
 
   it('AppHeader exposes showSoftBack + softBackFallback via useSoftBack', () => {

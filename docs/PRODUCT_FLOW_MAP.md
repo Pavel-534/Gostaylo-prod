@@ -1,7 +1,7 @@
 # Product Flow Map — Platform (white-label)
 
 **Version:** 2.0.0  
-**Last updated:** 2026-06-19 | **Stage 169.0 (proposed):** Guest retention analytics SSOT — Wave G P0 docs.  
+**Last updated:** 2026-08-18 | **201.108** popular nearby rail + featured dedupe; recently viewed is PDP-only.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -141,8 +141,8 @@ flowchart TB
 | Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter`; гистограмма цены из API |
 | PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]`; **`SimilarListingsRail`**, **`RecentlyViewedRail`** |
 | Похожие | `SimilarListingsRail` | `GET /api/v2/listings/[id]/similar` |
-| Для вас | `ForYouRail` (home + catalog) | `GET /api/v2/recommendations/for-you` → **`personalization-v1.service.js`** (auth + **guest cookie** 169.5) |
-| Недавно смотрели | `RecentlyViewedRail`, `useRecentlyViewed({ userId })` | localStorage + **`GET /api/v2/listing-views`** merge; **`POST`** on PDP view |
+| Для вас / Популярно рядом | `ForYouRail` (home + catalog), title `forYouTitle` | `GET /api/v2/recommendations/for-you` → **`personalization-v1.service.js`** (auth + **guest cookie** 169.5). Home excludes featured/top ids (**201.108**). |
+| Недавно смотрели | `RecentlyViewedRail` on PDP only (`recent_pdp`); `useRecentlyViewed({ userId })` | localStorage + **`GET /api/v2/listing-views`** merge; **`POST`** on PDP view. Home strip retired **201.107**. |
 | Каталог map↔list | `ListingSidebar` + `CatalogSearchMapPanel` / `CatalogMobileMapSheet` (mobile) | hover/click card ↔ marker; cluster `fitBounds`; mobile full-screen map sheet (169.3) |
 | Heart catalog | `useFavoritesBatch` | `GET /api/v2/favorites/check?listingIds=` (visible cards, chunked) |
 | Heart PDP | `useFavoriteState` | `GET /api/v2/favorites/check?listingId=` (не полный список) |

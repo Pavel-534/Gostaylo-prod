@@ -47,6 +47,7 @@ describe('Stage 201.105 — scroll anchor matching', () => {
   it('host restore checks anchor with anchorTop + layout readiness', () => {
     const host = read('components/navigation/RouteScrollMemoryHost.jsx')
     assert.match(host, /findScrollAnchorElement\(entry\.anchorHref, entry\.anchorTop\)/)
-    assert.match(host, /anchorReady && isAnchorStable\(activeEntry\) && layoutReady/)
+    assert.match(host, /isRouteScrollLayoutReady/)
+    assert.match(host, /resolveRouteScrollRestoreStep/)
   })
 })

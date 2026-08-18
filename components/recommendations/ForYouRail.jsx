@@ -34,6 +34,7 @@ export function ForYouRail({
   exchangeRates = { THB: 1 },
   className,
   surface = 'for_you_home',
+  excludeListingIds = null,
 }) {
   const whereKey = where && where !== 'all' ? String(where) : 'all'
   const containerRef = useRef(null)
@@ -70,8 +71,9 @@ export function ForYouRail({
         isMobile,
         isCatalogXsHidden: surface === 'for_you_catalog' && isCatalogXs,
         mobileMaxCards: FOR_YOU_MOBILE_MAX_CARDS,
+        excludeListingIds,
       }),
-    [listings, isMobile, isCatalogXs, surface],
+    [listings, isMobile, isCatalogXs, surface, excludeListingIds],
   )
 
   const railReady = !loading && shouldRender

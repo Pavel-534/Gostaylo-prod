@@ -43,7 +43,7 @@ All recommendation and discovery-adjacent logic lives under **`lib/recommendatio
 | `similar-listings.service.js` | PDP «Похожие» — geo + category + price band |
 | `recently-viewed.service.js` | Server persist (optional 167.1) + merge with client cache |
 | `ranking-policy.js` | **When** reputation vs distance vs price vs semantic (catalog SSOT) |
-| `personalization-v1.service.js` | Home «Для вас» — recent + favorites + category affinity (167.2) |
+| `personalization-v1.service.js` | Home «Популярно рядом» — recent + favorites + category affinity (167.2) |
 
 **Forbidden:** ad-hoc similar queries in PDP hooks, parallel ranking in components.
 
@@ -83,9 +83,9 @@ All recommendation and discovery-adjacent logic lives under **`lib/recommendatio
 |-------|------------|--------------|
 | Client | Keep `useRecentlyViewed` localStorage | Merge server wins on login |
 | Server | — | `listing_views(user_id, listing_id, viewed_at)` |
-| UI | Rail on PDP + catalog footer | Same + home strip |
+| UI | Rail on PDP | Same; home strip added in 169.1, **retired 201.107** |
 
-**SSOT display:** `components/recommendations/RecentlyViewedRail.jsx` — one component, three placements.
+**SSOT display:** `components/recommendations/RecentlyViewedRail.jsx` — PDP only (`recent_pdp`). Do not remount on home: same card chrome as «Популярно рядом» stacked and confused guests.
 
 ### 2.5 Favorites SSOT
 
@@ -133,7 +133,7 @@ resolveCatalogSort(searchParams) → 'recommended' | 'price_asc' | 'price_desc' 
 | Geo centroid of views | 20% |
 | Featured / reputation | 10% |
 
-Output: 12–20 listings on home / «Для вас» when logged in; **guests** with cookie signals → `guest_personalized` (**169.5**); cold anonymous → popular in region only.
+Output: 12–20 listings on home / «Популярно рядом» (`forYouTitle`) when logged in; **guests** with cookie signals → `guest_personalized` (**169.5**); cold anonymous → popular in region only. UI shows the rail from **2** remaining cards after featured dedupe (**201.108**). Server still tops up personalization below **6** scored hits (`PERSONALIZATION_MIN_RESULTS`).
 
 **Guest signals (169.5):** cookie `guest_viewed_listings` (max 40 ids, 30d TTL, no fingerprinting). Server reads cookie in **`GET /api/v2/recommendations/for-you`** and **`GET …/similar`**. On login, cookie ids merge to **`listing_views`** via **`useRecentlyViewed`**.
 
@@ -141,11 +141,11 @@ Output: 12–20 listings on home / «Для вас» when logged in; **guests** 
 
 | Surface key (`surface` prop / analytics) | Component | Page | Order vs primary content | Min visible (API) | Mobile (≤768px) | Stage |
 |------------------------------------------|-----------|------|--------------------------|-------------------|-----------------|-------|
-| `for_you_home` | `ForYouRail` | `/` (home) | After hero, **before** `TopListingsGrid` | 6 (`FOR_YOU_MIN_RESULTS`) | max 5 cards (`FOR_YOU_MOBILE_MAX_CARDS`) | 167.2 / **169.1** |
-| `for_you_catalog` | `ForYouRail` | `/listings` | **Before** `#listings-results` | 6 | max 5 cards; **hidden ≤480px** (`FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX`) | 167.2 / **169.1** |
+| `for_you_home` | `ForYouRail` | `/` (home) | After hero, **before** `TopListingsGrid`; **exclude featured ids** (201.108) | 2 (`FOR_YOU_MIN_RESULTS`) | max 5 cards (`FOR_YOU_MOBILE_MAX_CARDS`) | 167.2 / **169.1** / **201.108** |
+| `for_you_catalog` | `ForYouRail` | `/listings` | **Before** `#listings-results` | 2 | max 5 cards; **hidden ≤480px** (`FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX`) | 167.2 / **169.1** / **201.108** |
 | `similar_pdp` | `SimilarListingsRail` | `/listings/[id]` | After reviews, before recently viewed | 4 (`SIMILAR_MIN_RESULTS`) | horizontal scroll, no cap | 167.0 ✓ |
 | `recent_pdp` | `RecentlyViewedRail` | `/listings/[id]` | After similar | ≥1 (`RECENTLY_VIEWED_MIN_PDP`) | horizontal scroll | 167.0 ✓ |
-| `recent_home` | `RecentlyViewedRail` | `/` (home) | After `ForYouRail`, before `TopListingsGrid` | ≥2 (`RECENTLY_VIEWED_MIN_HOME`) | horizontal scroll | **169.1** ✓ |
+| `recent_home` | — | `/` (home) | **Retired 201.107** — do not mount; keep For You as the only home rail | — | — | 169.1 → **201.107** |
 
 **Display SSOT (169.1):** `lib/recommendations/for-you-rail-display.js` — API min vs visible slice.
 
@@ -218,7 +218,7 @@ Telemetry contract — **`docs/ADR/169-guest-retention-analytics.md`** (Wave G).
 - [x] Selecting sidebar card scrolls list + highlights pin (`highlightedListingId` + `scrollIntoView`).
 - [x] Ranking policy documented in ADR-167 §2.6; no duplicate sort matrices in components.
 - [x] Docs v12.167.1.
-- [x] **`recent_home` placement** — `PlatformHomeContent` after `ForYouRail` (Stage 169.1).
+- [x] **`recent_home` placement** — `PlatformHomeContent` after `ForYouRail` (Stage 169.1); **retired 201.107** (PDP only).
 
 ---
 
@@ -236,7 +236,7 @@ Telemetry contract — **`docs/ADR/169-guest-retention-analytics.md`** (Wave G).
 
 **Acceptance criteria (167.2):**
 
-- [x] Logged-in home shows personalized strip (≥6 listings when enough signal — `FOR_YOU_MIN_RESULTS`, Stage 169.1).
+- [x] Logged-in home shows personalized strip (≥2 remaining cards after featured dedupe — `FOR_YOU_MIN_RESULTS`, Stage **201.108**; server top-up still uses `PERSONALIZATION_MIN_RESULTS` = 6).
 - [x] Anonymous users see regional popular (no PII).
 - [x] Impression/click events in `product-analytics` with `surface=for_you|similar|recent` — Wave G P0 (169.0): all rails + `catalog_sort_change`.
 - [x] ADR-167 status → **Accepted**; Wave F (Product Features) declared in manifesto.

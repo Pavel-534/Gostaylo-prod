@@ -13,11 +13,13 @@ import {
   consumePendingRouteScrollRestore,
   consumeRouteScrollEntry,
   findScrollAnchorElement,
+  isRouteScrollLayoutReady,
   liveRouteScrollKey,
   markPendingRouteScrollRestore,
   peekPendingRouteScrollRestore,
   peekRouteScrollEntry,
   persistLiveRouteScroll,
+  resolveRouteScrollRestoreStep,
   saveRouteScroll,
 } from '@/lib/navigation/route-scroll-memory'
 import {
@@ -146,9 +148,10 @@ export function RouteScrollMemoryHost() {
       return Math.abs(el.getBoundingClientRect().top - Number(entry.anchorTop)) <= ANCHOR_TOLERANCE_PX
     }
 
-    const finishMiss = () => {
+    const finish = (applied) => {
       pendingPopRestoreRef.current = false
       consumePendingRouteScrollRestore()
+      if (applied && activeKey) consumeRouteScrollEntry(activeKey)
       lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
     }
 
@@ -160,42 +163,36 @@ export function RouteScrollMemoryHost() {
         const entry = key ? peekRouteScrollEntry(key) : null
         if (!entry || (entry.y <= 0 && !entry.anchorHref)) {
           if (Date.now() - startedAt >= RESTORE_BUDGET_MS) {
-            finishMiss()
+            finish(false)
             return true
           }
           return false
         }
         activeKey = key
         activeEntry = entry
-        pendingPopRestoreRef.current = false
-        consumePendingRouteScrollRestore()
       }
-
-      applyRouteScrollEntry(activeEntry)
 
       const maxScroll = Math.max(
         0,
         (document.documentElement?.scrollHeight || 0) - window.innerHeight,
       )
-      const layoutReady = maxScroll >= Math.max(0, Number(activeEntry.y || 0) - 24)
-      const anchorReady = activeEntry.anchorHref
-        ? Boolean(findScrollAnchorElement(activeEntry.anchorHref, activeEntry.anchorTop))
-        : true
-      const stable = activeEntry.anchorHref
-        ? anchorReady && isAnchorStable(activeEntry) && layoutReady
-        : layoutReady
-      const budgetExceeded = Date.now() - startedAt >= RESTORE_BUDGET_MS
+      const layoutReady = isRouteScrollLayoutReady(activeEntry, maxScroll)
+      const anchorStable = isAnchorStable(activeEntry)
+      const step = resolveRouteScrollRestoreStep({
+        layoutReady,
+        anchorStable,
+        budgetExceeded: Date.now() - startedAt >= RESTORE_BUDGET_MS,
+        hasY: Number(activeEntry.y) > 0,
+      })
 
-      if (!stable && !budgetExceeded) return false
-
-      if (!stable) {
-        finishMiss()
-        return true
+      if (step.applyMode) {
+        applyRouteScrollEntry(activeEntry, { mode: step.applyMode })
       }
 
-      if (activeKey) consumeRouteScrollEntry(activeKey)
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
-      applyRouteScrollEntry(activeEntry)
+      if (step.wait) return false
+
+      finish(Boolean(step.applyMode))
+      if (step.applyMode) applyRouteScrollEntry(activeEntry, { mode: step.applyMode })
       return true
     }
 

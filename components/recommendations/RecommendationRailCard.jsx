@@ -3,7 +3,7 @@
 /**
  * Stage 170.9 — compact rail card SSOT («Недавно смотрели», discovery rails).
  * Stage 200.15 — optimistic PDP entry (progress + prefetch + press).
- * Минимум: фото, название, категория, цена — без specs/trust/location дублей.
+ * Минимум: фото, название, рейтинг (если есть), категория, цена — без specs/trust/location дублей.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -19,6 +19,8 @@ import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { prefetchListingPdp, prepareListingPdpNavigation } from '@/lib/navigation/listing-hero-transition'
+import { resolveRecommendationRailRating } from '@/lib/recommendations/recommendation-rail-rating'
+import { Star } from 'lucide-react'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -54,6 +56,7 @@ export function RecommendationRailCard({
 
   const title = getListingText(listing, 'title', language) || listing?.title || ''
   const categoryLabel = resolveCategoryLabel(listing, language)
+  const { rating, show: showRating } = resolveRecommendationRailRating(listing)
   const images = useMemo(
     () => mapPublicImageUrls(getListingCardImageUrls(listing || {})),
     [listing],
@@ -124,9 +127,19 @@ export function RecommendationRailCard({
         </div>
 
         <div className="flex min-h-[5.5rem] flex-1 flex-col gap-0.5 p-2.5">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
-            {title}
-          </h3>
+          <div className="flex items-start justify-between gap-1.5">
+            <h3 className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
+              {title}
+            </h3>
+            {showRating ? (
+              <div className="flex shrink-0 items-center gap-0.5 pt-0.5" aria-label={rating.toFixed(1)}>
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden />
+                <span className="text-xs font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                  {rating.toFixed(1)}
+                </span>
+              </div>
+            ) : null}
+          </div>
           {categoryLabel ? (
             <p className="line-clamp-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
               {categoryLabel}

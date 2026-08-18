@@ -1,5 +1,5 @@
 /**
- * GET /api/v2/recommendations/for-you — «Для вас» feed (Stage 167.2).
+ * GET /api/v2/recommendations/for-you — «Популярно рядом» feed (Stage 167.2 / 201.108).
  */
 
 import { NextResponse } from 'next/server'

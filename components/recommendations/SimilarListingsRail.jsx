@@ -15,7 +15,7 @@ import {
 } from '@/lib/recommendations/constants'
 
 /**
- * PDP «Похожие объявления» — тот же compact rail SSOT, что «Недавно смотрели» / «Для вас».
+ * PDP «Похожие объявления» — тот же compact rail SSOT, что «Недавно смотрели» / «Популярно рядом».
  * Без skeleton: грузится в фоне, секция появляется только когда есть ≥ SIMILAR_MIN_RESULTS.
  */
 export function SimilarListingsRail({

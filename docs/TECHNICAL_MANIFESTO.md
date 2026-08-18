@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.211 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.106** map-rail jump debug (dev-only).
+> **Version**: 13.2.215 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.110** Home Top → PDP Back no catalog-skeleton hang.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,21 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.110 — Home Top → PDP Back does not hang Home
+- PDP header Back fallback is `/listings`. After a Top-grid click, `history.back()` lands on `/` but pending catalog used to replace Home with `ListingsCatalogSkeleton` forever.
+- Arm the pending catalog skeleton only while the live route is Home. Soft-back from PDP without a catalog return pending `/`.
+
+### Stage 201.109 — Back restore commits saved Y
+- Do not drop the pending flag before the page is tall enough. A footer/card anchor on a short remount parked the viewport in the middle (home «Связаться с нами», catalog → PDP Back).
+- When layout catches up, apply saved Y (anchor only if it is still within 12px). If the 8s budget ends, still apply Y — never finish without scrolling.
+
+### Stage 201.108 — «Популярно рядом»: rating, featured dedupe, cold guest
+- Rail title `forYouTitle` is «Популярно рядом» / Popular nearby. Compact cards show rating when `avg_rating` > 0.
+- Home excludes ids already in the featured/top grid. Display min is **2** cards so a cold guest still sees regional popular; server personalization top-up stays at 6.
+
+### Stage 201.107 — Recently viewed is PDP-only
+- Home no longer mounts `RecentlyViewedRail` (`recent_home` retired). «Для вас» stays as the only discovery carousel above the featured grid. History resume stays on the listing page after similar.
 
 ### Stage 201.106 — Map rail jump debug (dev-only)
 - `lib/maps/catalog-map-rail-debug.js` logs `[airento:map-rail]` only when the bottom card count jumps or one card vs several pins. Off in production unless `localStorage.airento:map-rail-debug = 1`.

@@ -51,15 +51,15 @@ export function useSoftBack(fallbackHref = '/') {
 
   return useCallback(() => {
     const catalogReturn = isListingPdpPath(pathname) ? peekCatalogReturnHref() : null
-    const target = catalogReturn || fallback
+    const canPop = typeof window !== 'undefined' && window.history.length > 1
 
-    dispatchOptimisticNavPending(target)
     markPendingRouteScrollRestore()
 
-    // Catalog → PDP: pop history so the parked list paints immediately (no /listings RSC wait).
-    // Deep link / empty history still replace()s the remembered catalog URL.
+    // Catalog → PDP: pending the remembered list URL. Home → PDP must not
+    // pending `/listings` or Home stays on the catalog skeleton after back.
     if (catalogReturn && isCatalogListingsHref(catalogReturn)) {
-      if (typeof window !== 'undefined' && window.history.length > 1) {
+      dispatchOptimisticNavPending(catalogReturn)
+      if (canPop) {
         router.back()
         ensureCatalogMapHashAfterSoftBack(catalogReturn)
         return
@@ -72,10 +72,14 @@ export function useSoftBack(fallbackHref = '/') {
       return
     }
 
-    if (typeof window !== 'undefined' && window.history.length > 1) {
+    if (canPop) {
+      dispatchOptimisticNavPending(isListingPdpPath(pathname) ? '/' : fallback)
       router.back()
       return
     }
+
+    const target = catalogReturn || fallback
+    dispatchOptimisticNavPending(target)
     router.push(target)
   }, [fallback, pathname, router])
 }
