@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Stage 201.97 / 201.98 / 201.100 — park Home + catalog across Search and listing PDP.
+ * Stage 201.97 / 201.98 / 201.102 — park Home + catalog across Home ↔ Search only.
  * Next App Router unmounts the page slot; these panes live in the storefront shell.
  *
  * Parked panes stay mounted with HTML `hidden` (display:none). Never leave them in
@@ -15,7 +15,6 @@ import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { HomePageSkeleton } from '@/components/home-page-skeleton'
 import {
   isStorefrontCatalogListPath,
-  isStorefrontListingPdpPath,
   isStorefrontSearchKeepAlivePath,
   registerStorefrontSearchKeepAliveReveal,
 } from '@/lib/navigation/storefront-search-keep-alive'
@@ -33,7 +32,6 @@ const PlatformHomeContent = dynamic(
 export function StorefrontSearchKeepAlivePane({ children }) {
   const pathname = usePathname()
   const isList = isStorefrontCatalogListPath(pathname)
-  const isPdp = isStorefrontListingPdpPath(pathname)
   const keepAlivePath = isStorefrontSearchKeepAlivePath(pathname)
   const isHome = (String(pathname || '').replace(/\/+$/, '') || '/') === '/'
 
@@ -87,14 +85,14 @@ export function StorefrontSearchKeepAlivePane({ children }) {
       if (homeForeground) {
         const y = homeScrollYRef.current
         requestAnimationFrame(() => window.scrollTo(0, y))
-      } else if (isPdp) {
+      } else {
         requestAnimationFrame(() => window.scrollTo(0, 0))
       }
     }
     prevCatalogFgRef.current = catalogForeground
     prevHomeFgRef.current = homeForeground
     return undefined
-  }, [catalogForeground, homeForeground, isPdp])
+  }, [catalogForeground, homeForeground])
 
   const reveal = useCallback(() => {
     if (!catalogParkedRef.current) return false

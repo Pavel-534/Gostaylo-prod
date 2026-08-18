@@ -20,14 +20,14 @@ function read(rel) {
   return readFileSync(join(root, rel), 'utf8')
 }
 
-describe('Stage 201.97 — catalog keep-alive + prewarm + above-fold', () => {
-  it('treats catalog list + PDP as keep-alive (not messages)', () => {
+describe('Stage 201.97 / 201.102 — catalog keep-alive + prewarm + above-fold', () => {
+  it('keeps only home + catalog list alive (not PDP/messages)', () => {
     assert.equal(isStorefrontCatalogListPath('/listings'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/abc'), false)
     assert.equal(isStorefrontSearchKeepAlivePath('/'), true)
     assert.equal(isStorefrontSearchKeepAlivePath('/listings'), true)
-    assert.equal(isStorefrontSearchKeepAlivePath('/listings/abc'), true)
+    assert.equal(isStorefrontSearchKeepAlivePath('/listings/abc'), false)
     assert.equal(isStorefrontSearchKeepAlivePath('/messages'), false)
   })
 

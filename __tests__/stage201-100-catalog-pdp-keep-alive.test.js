@@ -20,12 +20,12 @@ function read(rel) {
   return readFileSync(join(root, rel), 'utf8')
 }
 
-describe('Stage 201.100 — catalog ↔ PDP keep-alive', () => {
-  it('parks Home + catalog on listing PDP, not messages', () => {
+describe('Stage 201.100 / 201.102 — catalog ↔ PDP navigation', () => {
+  it('does not keep storefront panes parked on listing PDP', () => {
     assert.equal(isStorefrontCatalogListPath('/listings'), true)
     assert.equal(isStorefrontListingPdpPath('/listings/yamaha-1'), true)
     assert.equal(isStorefrontListingPdpPath('/listings'), false)
-    assert.equal(isStorefrontSearchKeepAlivePath('/listings/yamaha-1'), true)
+    assert.equal(isStorefrontSearchKeepAlivePath('/listings/yamaha-1'), false)
     assert.equal(isStorefrontSearchKeepAlivePath('/messages'), false)
   })
 
@@ -59,7 +59,7 @@ describe('Stage 201.100 — catalog ↔ PDP keep-alive', () => {
     assert.match(pane, /hidden=\{!catalogForeground\}/)
     assert.doesNotMatch(pane, /catalogBehindPdp/)
     assert.doesNotMatch(pane, /ListingPdpInstantShell/)
-    assert.match(pane, /isStorefrontListingPdpPath/)
+    assert.doesNotMatch(pane, /isStorefrontListingPdpPath/)
     assert.match(pane, /window\.scrollTo\(0, 0\)/)
   })
 })

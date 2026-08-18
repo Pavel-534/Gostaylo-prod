@@ -5,7 +5,7 @@
 
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -17,7 +17,6 @@ import { resolveListingCardImageSizes } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { useIsMobile } from '@/hooks/use-mobile'
 import {
-  listingHeroTransitionStyle,
   prepareListingPdpNavigation,
   prefetchListingPdp,
 } from '@/lib/navigation/listing-hero-transition'
@@ -56,7 +55,6 @@ export function CardImageCarousel({
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
   /** индексы слайдов, для которых удалённый URL не загрузился */
   const [failed, setFailed] = useState(() => ({}))
   
@@ -73,18 +71,13 @@ export function CardImageCarousel({
   }, [imagesProxied.length])
   
   const handleLoad = () => {
-    setImageLoaded(true)
     onImageLoad?.()
   }
-
-  useEffect(() => {
-    setImageLoaded(false)
-  }, [currentIndex])
 
   const rawSrc = imagesProxied[currentIndex]
   const displaySrc = failed[currentIndex] ? PLACEHOLDER : rawSrc
   const unoptimized = isRemoteHttpImageSrc(displaySrc)
-  const heroTransitionStyle = listingHeroTransitionStyle(listingId)
+  void listingId
 
   const handlePrefetch = useCallback(() => {
     prefetchListingPdp(router, listingId)
@@ -115,7 +108,7 @@ export function CardImageCarousel({
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={handlePrefetch}
     >
-      <div className="absolute inset-0" style={heroTransitionStyle}>
+      <div className="absolute inset-0">
         <Image
           src={displaySrc}
           alt={`${title} - Photo ${currentIndex + 1}`}
@@ -125,14 +118,13 @@ export function CardImageCarousel({
           blurDataURL={blurDataURL}
           unoptimized={unoptimized}
           className={cn(
-            'object-cover transition-transform duration-500 ease-out will-change-transform',
-            imageLoaded ? 'opacity-100' : 'opacity-0',
+            'object-cover transition-transform duration-500 ease-out',
+            'opacity-100',
             'group-hover:scale-[1.06]',
           )}
           onLoad={handleLoad}
           onError={() => {
             setFailed((f) => ({ ...f, [currentIndex]: true }))
-            setImageLoaded(true)
           }}
           priority={priority && currentIndex === 0}
           loading={priority && currentIndex === 0 ? 'eager' : 'lazy'}

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.207 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.101** instant PDP shell from cache; PDP back pops history.
+> **Version**: 13.2.208 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.102** mobile stability pass (no PDP keep-alive, no idle PDP burst prefetch, map close parity).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -33,10 +33,16 @@
 - Leaflet/calendar were already deferred (`dynamic` + viewport gate). Header Back pops `history` when the catalog URL is remembered.
 - Card `router.prefetch` on touch/hover was already in `ListingCard` (**201.100** idle first-6).
 
+### Stage 201.102 — Mobile stability: no PDP park, no idle PDP burst prefetch
+- `StorefrontSearchKeepAlivePane` now parks only `/` and `/listings`; listing PDP is excluded to reduce Android memory pressure and prevent PWA cold restart after backgrounding.
+- Removed idle first-screen burst prefetch of PDP route + detail JSON in catalog, and removed home-idle catalog data prefetch from `usePublicSearchFilters`; visible content keeps network priority.
+- `CardImageCarousel` no longer hides media with `opacity-0` before `onLoad`; blur placeholder stays visible instead of black tiles under congestion.
+- Mobile catalog map now force-closes (hash + viewport memory clear) when leaving `/listings`, preventing stale `#map` reopen loops.
+
 ### Stage 201.100 — catalog ↔ PDP: park list; do not freeze on View Transition
 - Card tap no longer `preventDefault` + `startViewTransition` around `router.push` (Samsung/Chromium froze the teal ring, then an empty shell).
-- Catalog (+ Home) stay parked on listing PDP; Back shows the list immediately. Window scroll resets to 0 when leaving the list so PDP is not opened mid-page.
-- Idle prefetch of the first 6 PDP routes + detail JSON after catalog paint.
+- Catalog/Home keep-alive is now constrained to Home ↔ list only (**201.102**). PDP returns via URL + TanStack cache, not RAM-parked trees.
+- Idle first-6 PDP burst prefetch was rolled back in **201.102** due to mobile contention with visible images.
 
 ### Stage 201.99 — Home widget cache 10 min; catalog search stays lite
 - For You, featured («Топ»), recently viewed: `staleTime` 10 min, `refetchOnMount: false`, `refetchOnWindowFocus: false`. Recently viewed is TanStack + localStorage placeholder.
@@ -46,11 +52,11 @@
 - Bottom tab «Поиск» on the catalog list no longer opens the filter sheet (keep-alive was also opening it on the second Home→Search tap). Sheet stays on the summary bar / FAB.
 - Home tree parks in the same storefront shell as catalog, so «Для вас» / «Вы недавно смотрели» do not remount on return.
 - For You uses TanStack Query (5 min stale). Recently viewed shows localStorage rows immediately, then validates.
-- Home idle also prefetches the catalog search query so the first Search tap can skip the empty skeleton when filters match.
+- Home-idle catalog data prefetch was removed in **201.102** to avoid competing with visible media/network on mobile.
 
 ### Stage 201.97 — Search tab: prewarm + keep-alive + above-fold cards
 - Home idle-imports the catalog client chunk (`requestIdleCallback`; skip `saveData`). Leaflet/FilterBar stay out of that prewarm (201.96).
-- Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. PDP also keeps the list parked (**201.100**).
+- Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. PDP is excluded from keep-alive in **201.102**.
 - Phone list hydrates 6 cards first; the rest are skeletons until they approach the viewport. Non-LCP card images use `loading="lazy"`.
 - First Search tap still needs one catalog mount. Repeat tap is the instant path. Home tree parks in **201.98**.
 

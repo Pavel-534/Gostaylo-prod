@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.95 | **Last Updated**: 2026-08-18 | **201.101** instant PDP shell; **201.100** catalog↔PDP keep-alive; **201.99** Home widget 10 min cache.  
+> **Version**: 13.2.96 | **Last Updated**: 2026-08-18 | **201.102** mobile stability pass; **201.101** instant PDP shell; **201.99** Home widget 10 min cache.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -20,7 +20,7 @@
 | Concierge ops | treasury / payouts UI + runbooks | Ops |
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
-| PWA / push | SW + FCM; **201.19** silent push ack; **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81**. Catalog phone Search: **201.96** mobile-first mount; **201.97–201.101** shell keep-alive Home↔list↔PDP, instant PDP chrome from cache, idle prefetch, Search tab does not open filter sheet; **201.99** Home rails 10 min stale | Clients |
+| PWA / push | SW + FCM; **201.19** silent push ack; **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81**. Catalog phone Search: **201.96** mobile-first mount; **201.102** keep-alive only Home↔list (no PDP park), no idle first-6 PDP burst prefetch, map sheet closes/clears state when leaving list; **201.101** instant PDP chrome from cache; Search tab does not open filter sheet; **201.99** Home rails 10 min stale | Clients |
 | List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**). Allowlist home `/`, `/listings?…`, `/my-bookings`. New list page → map in `routeScrollKeyFromLocation` | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
