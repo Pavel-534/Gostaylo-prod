@@ -1,8 +1,7 @@
 'use client'
 
 /**
- * While the catalog tree is parked on Home or PDP, Next `useSearchParams()` is not the list URL.
- * Freeze the last `/listings` query so filters/list do not reset.
+ * Stage 201.103 — catalog mounts only on `/listings`; freeze is a no-op there.
  */
 
 import { useMemo, useRef } from 'react'

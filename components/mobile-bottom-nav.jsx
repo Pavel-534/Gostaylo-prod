@@ -21,7 +21,6 @@ import {
   dispatchMobileSearchTabAction,
   isMobileSearchTabInterceptPath,
 } from '@/lib/search/mobile-search-tab-action';
-import { revealStorefrontSearchKeepAlive } from '@/lib/navigation/storefront-search-keep-alive';
 import {
   STOREFRONT_NAV_PREFETCH_PATHS,
   isOptimisticDockTabActive,
@@ -167,7 +166,6 @@ export function MobileBottomNav() {
       const normalized = String(pathname || '').replace(/\/+$/, '') || '/'
       if (normalized === '/') {
         markPending('/listings')
-        revealStorefrontSearchKeepAlive()
       }
       dispatchMobileSearchTabAction({ source: 'bottom-nav' });
       return;

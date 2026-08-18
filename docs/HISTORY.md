@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.103 | 2026-08-18 | Reunite Home/catalog UI with page HydrationBoundary; drop shell keep-alive park | Done |
 | 201.102 | 2026-08-18 | Mobile stability: no PDP keep-alive, no idle first-6 PDP burst prefetch, map close parity | Done |
 | 201.101 | 2026-08-18 | Instant PDP shell from cache; PDP Back uses history.back | Done |
 | 201.100 | 2026-08-18 | Catalog↔PDP keep-alive; drop View Transition around router.push | Done |

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.208 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.102** mobile stability pass (no PDP keep-alive, no idle PDP burst prefetch, map close parity).
+> **Version**: 13.2.209 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.103** Home/catalog UI back inside page HydrationBoundary (no shell park).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,14 +27,19 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.103 — Stop parking Home/catalog in the shell
+- Visible Home and catalog UI render **inside** their page `HydrationBoundary` again. Shell keep-alive (201.97–201.102) hid the dehydrated cache as a sibling and kept two full trees mounted — iPhone white/skeleton home, Samsung Search stuck on card skeletons.
+- Home no longer idle-imports the catalog chunk. Search tab no longer `reveal`s a parked list on `/`. Catalog `router.push` is not wrapped in `startTransition`.
+- Keep: mobile-first catalog (201.96), Search tab does not open the filter sheet (201.98), native card `<Link>` (201.100), instant PDP shell (201.101), no idle first-6 PDP prefetch / visible images (201.102).
+
 ### Stage 201.101 — Instant PDP chrome + history.back to parked catalog
-- Catalog → PDP paints hero/title/price/Book from TanStack cache (`readPdpInstantListing`) in the **page slot** (`Suspense` fallback) while RSC bootstrap streams. Parked catalog stays `hidden` (mounted, not in the layout). Do **not** paint PDP under the list.
+- Catalog → PDP paints hero/title/price/Book from TanStack cache (`readPdpInstantListing`) in the **page slot** (`Suspense` fallback) while RSC bootstrap streams. Do **not** paint PDP under the list.
 - Do **not** drop the listing SELECT: 404 / moderation / OG stay in the async child.
 - Leaflet/calendar were already deferred (`dynamic` + viewport gate). Header Back pops `history` when the catalog URL is remembered.
 - Card `router.prefetch` on touch/hover was already in `ListingCard` (**201.100** idle first-6).
 
 ### Stage 201.102 — Mobile stability: no PDP park, no idle PDP burst prefetch
-- `StorefrontSearchKeepAlivePane` now parks only `/` and `/listings`; listing PDP is excluded to reduce Android memory pressure and prevent PWA cold restart after backgrounding.
+- `StorefrontSearchKeepAlivePane` was a shell park of Home+catalog; **201.103** removed that park (UI is in the page again). Remaining 201.102 bits: no idle first-6 PDP prefetch, card images not `opacity-0`, map state cleared when leaving `/listings`.
 - Removed idle first-screen burst prefetch of PDP route + detail JSON in catalog, and removed home-idle catalog data prefetch from `usePublicSearchFilters`; visible content keeps network priority.
 - `CardImageCarousel` no longer hides media with `opacity-0` before `onLoad`; blur placeholder stays visible instead of black tiles under congestion.
 - Mobile catalog map now force-closes (hash + viewport memory clear) when leaving `/listings`, preventing stale `#map` reopen loops.

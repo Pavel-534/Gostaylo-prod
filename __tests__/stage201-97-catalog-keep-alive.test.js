@@ -1,5 +1,6 @@
 /**
- * Stage 201.97 — catalog JS prewarm, Search tab keep-alive, mobile above-fold cards.
+ * Stage 201.97 / 201.103 — catalog keep-alive helpers remain for path checks.
+ * UI no longer parks in the storefront shell (201.103).
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/stage201-97-catalog-keep-alive.test.js
  */
 
@@ -20,8 +21,8 @@ function read(rel) {
   return readFileSync(join(root, rel), 'utf8')
 }
 
-describe('Stage 201.97 / 201.102 — catalog keep-alive + prewarm + above-fold', () => {
-  it('keeps only home + catalog list alive (not PDP/messages)', () => {
+describe('Stage 201.97 / 201.103 — catalog paths + above-fold', () => {
+  it('treats only home + catalog list as keep-alive paths (not PDP/messages)', () => {
     assert.equal(isStorefrontCatalogListPath('/listings'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/'), true)
     assert.equal(isStorefrontCatalogListPath('/listings/abc'), false)
@@ -31,27 +32,19 @@ describe('Stage 201.97 / 201.102 — catalog keep-alive + prewarm + above-fold',
     assert.equal(isStorefrontSearchKeepAlivePath('/messages'), false)
   })
 
-  it('prewarms catalog client chunks, not Leaflet or FilterBar', () => {
+  it('does not prewarm catalog chunks from Home', () => {
     assert.ok(CATALOG_CHUNK_PREWARM_MODULES.some((m) => m.includes('listings-catalog-client')))
-    const src = read('lib/navigation/prewarm-catalog-chunks.js')
-    assert.doesNotMatch(src, /import\(['"]@\/components\/search\/FilterBar['"]\)/)
-    assert.doesNotMatch(src, /import\(['"]@\/components\/search\/SearchMapWrapper['"]\)/)
-    assert.match(read('components/PlatformHomeContent.jsx'), /scheduleCatalogChunkPrewarm/)
+    assert.doesNotMatch(read('components/PlatformHomeContent.jsx'), /scheduleCatalogChunkPrewarm/)
   })
 
-  it('parks catalog UI in the storefront shell, not in CatalogHydrationBoundary', () => {
+  it('renders catalog UI inside CatalogHydrationBoundary, not the storefront shell', () => {
     const boundary = read('components/catalog/CatalogHydrationBoundary.jsx')
+    const page = read('app/(storefront)/listings/page.js')
+    const pane = read('components/navigation/StorefrontSearchKeepAlive.jsx')
+    assert.match(page, /ListingsCatalogClient/)
+    assert.match(page, /CatalogHydrationBoundary/)
+    assert.doesNotMatch(pane, /listings-catalog-client/)
     assert.doesNotMatch(boundary, /ListingsCatalogClient/)
-    assert.match(
-      read('components/layout/StorefrontAppShell.jsx'),
-      /StorefrontSearchKeepAlivePane/,
-    )
-    assert.match(
-      read('components/navigation/StorefrontSearchKeepAlive.jsx'),
-      /listings-catalog-client/,
-    )
-    assert.match(read('lib/hooks/use-public-search-filters.js'), /revealStorefrontSearchKeepAlive/)
-    assert.match(read('lib/hooks/use-public-search-filters.js'), /urlSyncEnabled/)
   })
 
   it('defers below-fold mobile cards and lazy-loads non-LCP images', () => {

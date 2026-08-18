@@ -6,7 +6,7 @@
  * Stage 200.114 — guest catalog rhythm polish (empty/skeleton/banner; no discovery API change).
  * Stage 201.96 — mobile-first mount: desktop FilterBar / compact search / Leaflet only after
  * `min-width` is confirmed; search + map sheets lazy-mount (CSS hide still hydrated them).
- * Stage 201.97 — catalog tree parked in storefront shell; frozen search params while hidden.
+ * Stage 201.103 — catalog UI renders inside CatalogHydrationBoundary (no shell park).
  * @see app/(storefront)/listings/page.js — server bootstrap + dehydrate
  */
 

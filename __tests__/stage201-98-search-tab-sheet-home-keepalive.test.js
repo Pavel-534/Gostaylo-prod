@@ -28,12 +28,12 @@ describe('Stage 201.98 — Search tab sheet + Home keep-alive', () => {
     assert.match(action, /do not open the search sheet/)
   })
 
-  it('parks Home UI in the storefront shell like catalog', () => {
+  it('renders Home UI inside HomeHydrationBoundary, not the storefront shell', () => {
+    const page = read('app/(storefront)/page.js')
     const pane = read('components/navigation/StorefrontSearchKeepAlive.jsx')
-    assert.match(pane, /PlatformHomeContent/)
-    assert.match(pane, /storefront-home-keep-alive/)
-    const homeBoundary = read('components/home/HomeHydrationBoundary.jsx')
-    assert.doesNotMatch(homeBoundary, /PlatformHomeContent/)
+    assert.match(page, /PlatformHomeContent/)
+    assert.match(page, /HomeHydrationBoundary/)
+    assert.doesNotMatch(pane, /PlatformHomeContent/)
   })
 
   it('For You uses TanStack Query; recently viewed hydrates via query cache', () => {

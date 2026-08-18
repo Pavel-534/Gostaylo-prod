@@ -54,12 +54,12 @@ describe('Stage 201.100 / 201.102 — catalog ↔ PDP navigation', () => {
     assert.doesNotMatch(nav[0], /router\.push/)
   })
 
-  it('parks catalog with hidden on PDP (not in-flow under the listing)', () => {
+  it('does not park catalog under PDP; listing page owns the catalog tree', () => {
     const pane = read('components/navigation/StorefrontSearchKeepAlive.jsx')
-    assert.match(pane, /hidden=\{!catalogForeground\}/)
+    const listingsPage = read('app/(storefront)/listings/page.js')
     assert.doesNotMatch(pane, /catalogBehindPdp/)
     assert.doesNotMatch(pane, /ListingPdpInstantShell/)
-    assert.doesNotMatch(pane, /isStorefrontListingPdpPath/)
-    assert.match(pane, /window\.scrollTo\(0, 0\)/)
+    assert.doesNotMatch(pane, /ListingsCatalogClient/)
+    assert.match(listingsPage, /ListingsCatalogClient/)
   })
 })

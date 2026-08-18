@@ -8,13 +8,12 @@
 import { HydrationBoundary } from '@tanstack/react-query'
 
 /**
- * Hydrates TanStack cache only. Home UI parks in the storefront shell
- * (`StorefrontSearchKeepAlivePane`) so Search ↔ Home does not remount rails.
+ * Hydrates TanStack cache around the home composer (Stage 201.103).
  *
  * @param {object} props
  * @param {import('@tanstack/react-query').DehydratedState} props.state
  * @param {import('react').ReactNode} [props.children]
  */
 export function HomeHydrationBoundary({ state, children }) {
-  return <HydrationBoundary state={state}>{children ?? null}</HydrationBoundary>
+  return <HydrationBoundary state={state}>{children}</HydrationBoundary>
 }

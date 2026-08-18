@@ -56,6 +56,6 @@ describe('Stage 201.101 — instant PDP shell + back', () => {
     assert.match(page, /ListingPdpInstantShell/)
     const pane = read('components/navigation/StorefrontSearchKeepAlive.jsx')
     assert.doesNotMatch(pane, /ListingPdpInstantShell/)
-    assert.match(pane, /hidden=\{!catalogForeground\}/)
+    assert.doesNotMatch(pane, /hidden=\{!catalogForeground\}/)
   })
 })

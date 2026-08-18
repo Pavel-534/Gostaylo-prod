@@ -8,13 +8,12 @@
 import { HydrationBoundary } from '@tanstack/react-query'
 
 /**
- * Hydrates TanStack cache only. Catalog UI is parked in the storefront shell
- * (`StorefrontSearchKeepAlivePane`) so Home ↔ Search does not remount the tree.
+ * Hydrates TanStack cache around the catalog composer (Stage 201.103).
  *
  * @param {object} props
  * @param {import('@tanstack/react-query').DehydratedState} props.state
  * @param {import('react').ReactNode} [props.children]
  */
 export function CatalogHydrationBoundary({ state, children }) {
-  return <HydrationBoundary state={state}>{children ?? null}</HydrationBoundary>
+  return <HydrationBoundary state={state}>{children}</HydrationBoundary>
 }

@@ -4,6 +4,7 @@ import { HomePageSkeleton } from '@/components/home-page-skeleton'
 import { getCachedHomeBootstrap } from '@/lib/listing/get-cached-home-bootstrap.js'
 import { buildHomeDehydratedState } from '@/lib/query-prefetch/prefetch-home-queries'
 import { HomeHydrationBoundary } from '@/components/home/HomeHydrationBoundary'
+import { PlatformHomeContent } from '@/components/PlatformHomeContent'
 import { getPublicBrandDisplayName, getPublicSiteUrl } from '@/lib/site-url'
 import { cookies, headers } from 'next/headers'
 import { getLangFromRequest } from '@/lib/translations'
@@ -60,8 +61,9 @@ export default async function Page() {
   return (
     <>
       <Suspense fallback={<HomePageSkeleton />}>
-        {/* Stage 201.98 — query hydrate only; home UI parks in StorefrontSearchKeepAlivePane. */}
-        <HomeHydrationBoundary state={dehydratedState} />
+        <HomeHydrationBoundary state={dehydratedState}>
+          <PlatformHomeContent />
+        </HomeHydrationBoundary>
       </Suspense>
     </>
   )
