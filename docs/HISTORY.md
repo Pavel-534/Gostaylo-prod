@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.112 | 2026-08-18 | FX cron: skip if updated <4h; never upsert empty on 429/5xx | Done |
+| 201.111 | 2026-08-18 | Popular nearby stays on small catalogs; Back pins until Home height is stable | Done |
 | 201.110 | 2026-08-18 | Home Top → PDP Back: do not cover Home with catalog skeleton | Done |
 | 201.109 | 2026-08-18 | Back restore: wait for layout, always apply saved Y | Done |
 | 201.108 | 2026-08-18 | Popular nearby rail: rating, dedupe vs top, cold-guest min 2 | Done |

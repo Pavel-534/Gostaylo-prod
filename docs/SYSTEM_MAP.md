@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.103 | **Last Updated**: 2026-08-18 | **201.110** Home Top PDP back hang; **201.109** Back restore commits Y.  
+> **Version**: 13.2.105 | **Last Updated**: 2026-08-18 | **201.112** FX cron skip/keep-existing; **201.111** Popular nearby + Back height stable.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -21,7 +21,7 @@
 | Auth | `/auth/*` immersive | All |
 | API | `/api/v2/*`, `/api/webhooks/*`, `/api/cron/*` | Server |
 | PWA / push | SW + FCM; **201.19** silent push ack; **M1.1** `PushClientInit`; Soft CTA; `unregister` on logout; install UX **200.81**. Catalog phone: **201.96** mobile-first mount; **201.104** Search tab paints catalog skeleton immediately, listings metadata skips search; **201.103** Home/catalog UI inside page HydrationBoundary; **201.101** instant PDP chrome; Search tab does not open filter sheet; **201.99** Home rails 10 min stale | Clients |
-| List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**, **201.109** wait for layout then apply Y; never silent miss). Allowlist home `/`, `/listings?…`, `/my-bookings`. Map camera is separate (`catalog-map-viewport-memory`). | Clients |
+| List scroll restore | Soft-back to same Y/card: `route-scroll-memory.js` + root `RouteScrollMemoryHost` (**201.18–201.22**, **201.111** pin clicked link until height is stable; **201.109** never silent miss). Allowlist home `/`, `/listings?…`, `/my-bookings`. Map camera is separate (`catalog-map-viewport-memory`). | Clients |
 
 Детальный продуктовый поток — [`PRODUCT_FLOW_MAP.md`](./PRODUCT_FLOW_MAP.md). Деньги — [`FINANCIAL_FLOW_MAP.md`](./FINANCIAL_FLOW_MAP.md).
 
@@ -198,7 +198,7 @@
 | `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d; **201.09** stale unpaid past check-out cancel |
 | `/api/cron/cleanup-test-data` — Stage **201.09**: E2E/smoke + `purge_test_ledger_rows(markers)` |
 | GitHub Actions **`.github/workflows/playwright.yml`** — Stage **201.11**: nightly keep-list `npm run test:e2e:nightly` (03:00 UTC), then cleanup |
-| `/api/cron/exchange-rates-refresh` |
+| `/api/cron/exchange-rates-refresh` | Bearer/`x-cron-secret`; skip if `exchange_rates` <4h; 429/502 keep existing (**201.112**) |
 | `/api/cron/referral-*` · financial health monitors |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |
 

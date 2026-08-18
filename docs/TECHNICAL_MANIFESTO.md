@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.215 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.110** Home Top → PDP Back no catalog-skeleton hang.
+> **Version**: 13.2.217 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.112** FX cron skip + no empty upsert.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,15 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.112 — FX cron: skip fresh rows, keep DB on upstream failure
+- `GET|POST /api/cron/exchange-rates-refresh` still requires Bearer / `x-cron-secret` (`assertCronAuthorized`). Missing `CRON_SECRET` env → **503**; bad/missing token → **401**.
+- If all display codes in `exchange_rates` were updated within **4h**, response is **200** `{ success: true, message: "Skipped, updated recently" }` — no ExchangeRate-API call.
+- Upstream **429/5xx** or empty payload: **no upsert**; **429** or **502** with `keptExisting: true`. Guest TTL remains **2h** (`EXCHANGE_RATES_DB_TTL_MS`).
+
+### Stage 201.111 — Popular nearby stays; Back waits for a finished Home
+- «Популярно рядом» no longer disappears when the rail and Top share the same small catalog: unique first, then skip only the first 4 Top cards, then show overlap rather than hide.
+- Cold Home reserves a rail skeleton (no `return null` while loading). Restore keeps pinning the clicked card/footer link until document height stops growing — Contact Us / Top no longer commit on a short remount and land in the middle.
 
 ### Stage 201.110 — Home Top → PDP Back does not hang Home
 - PDP header Back fallback is `/listings`. After a Top-grid click, `history.back()` lands on `/` but pending catalog used to replace Home with `ListingsCatalogSkeleton` forever.
@@ -1911,7 +1920,7 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 1. Добавить pathname → ключ в **`routeScrollKeyFromLocation`** и префикс в **`isScrollMemoryRouteKey`**. Если фильтры в query — ключ строить из **`window.location.search`**, не из React `searchParams` (иначе Back попадёт в чужой ключ, как каталог `semantic=1` vs PDP `checkInTime`).
 2. Уход со списка: обычный **`<Link>` / `<a>`** (host сам persist на click) **или** перед **`router.push`** вызвать **`persistLiveRouteScroll({ anchorHref })`**.
 3. На детали Back только через **`useSoftBack`** / `AppHeader showSoftBack` (`markPendingRouteScrollRestore`). Restore идёт только на pop/soft-back, не на forward.
-4. Persist в момент клика (Next часто обнуляет `scrollY` до unmount). Restore выравнивает **якорь** (`anchorHref` + `anchorTop`), raw Y — запасной путь.
+4. Persist в момент клика (Next часто обнуляет `scrollY` до unmount). Пока страница ещё растёт (Home widgets / catalog cards), хост **пиннит якорь** (`anchorHref` + `anchorTop`) и коммитит только когда высота документа стабильна (**201.111**). Raw Y — запасной путь (`readWindowScrollY` / `scrollingElement`).
 
 ### 5.2 Telegram: продуктовые события и личка админа
 

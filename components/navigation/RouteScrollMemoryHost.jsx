@@ -19,8 +19,11 @@ import {
   peekPendingRouteScrollRestore,
   peekRouteScrollEntry,
   persistLiveRouteScroll,
+  readWindowScrollY,
   resolveRouteScrollRestoreStep,
   saveRouteScroll,
+  nextRouteScrollHeightStableState,
+  isRouteScrollHeightStable,
 } from '@/lib/navigation/route-scroll-memory'
 import {
   captureCatalogReturnBeforePdp,
@@ -58,7 +61,7 @@ export function RouteScrollMemoryHost() {
       /* ignore */
     }
 
-    lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+    lastYRef.current = readWindowScrollY()
     setSearchKey(readSearchKey())
 
     const persistCurrent = (extra = null) => {
@@ -66,7 +69,7 @@ export function RouteScrollMemoryHost() {
     }
 
     const onScroll = () => {
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      lastYRef.current = readWindowScrollY()
     }
 
     const onPopState = () => {
@@ -83,12 +86,13 @@ export function RouteScrollMemoryHost() {
       if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return
       if (target.getAttribute('target') === '_blank') return
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      lastYRef.current = readWindowScrollY() || lastYRef.current
       const rect = target.getBoundingClientRect()
       if (isListingPdpHref(href)) {
         captureCatalogReturnBeforePdp()
       }
       persistCurrent({
+        y: lastYRef.current,
         anchorHref: href,
         anchorTop: Math.round(rect.top),
       })
@@ -132,7 +136,7 @@ export function RouteScrollMemoryHost() {
     const wantsRestore = pendingPopRestoreRef.current || peekPendingRouteScrollRestore()
 
     if (!wantsRestore) {
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      lastYRef.current = readWindowScrollY()
       return undefined
     }
 
@@ -140,6 +144,7 @@ export function RouteScrollMemoryHost() {
     const startedAt = Date.now()
     let activeKey = null
     let activeEntry = null
+    let heightState = { lastMaxScroll: null, ticks: 0 }
 
     const isAnchorStable = (entry) => {
       if (!entry?.anchorHref || !Number.isFinite(Number(entry.anchorTop))) return false
@@ -152,7 +157,7 @@ export function RouteScrollMemoryHost() {
       pendingPopRestoreRef.current = false
       consumePendingRouteScrollRestore()
       if (applied && activeKey) consumeRouteScrollEntry(activeKey)
-      lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))
+      lastYRef.current = readWindowScrollY()
     }
 
     const tryRestore = () => {
@@ -176,13 +181,16 @@ export function RouteScrollMemoryHost() {
         0,
         (document.documentElement?.scrollHeight || 0) - window.innerHeight,
       )
+      heightState = nextRouteScrollHeightStableState(heightState, maxScroll)
       const layoutReady = isRouteScrollLayoutReady(activeEntry, maxScroll)
       const anchorStable = isAnchorStable(activeEntry)
       const step = resolveRouteScrollRestoreStep({
         layoutReady,
+        heightStable: isRouteScrollHeightStable(heightState),
         anchorStable,
         budgetExceeded: Date.now() - startedAt >= RESTORE_BUDGET_MS,
         hasY: Number(activeEntry.y) > 0,
+        hasAnchor: Boolean(activeEntry.anchorHref),
       })
 
       if (step.applyMode) {

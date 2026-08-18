@@ -36,14 +36,25 @@ describe('Stage 201.109 — scroll restore commit', () => {
 
     const waiting = resolveRouteScrollRestoreStep({
       layoutReady: false,
+      heightStable: false,
       anchorStable: false,
       budgetExceeded: false,
       hasY: true,
     })
     assert.deepEqual(waiting, { wait: true, applyMode: 'y', commit: false })
 
+    const readyTooSoon = resolveRouteScrollRestoreStep({
+      layoutReady: true,
+      heightStable: false,
+      anchorStable: false,
+      budgetExceeded: false,
+      hasY: true,
+    })
+    assert.deepEqual(readyTooSoon, { wait: true, applyMode: 'y', commit: false })
+
     const readyY = resolveRouteScrollRestoreStep({
       layoutReady: true,
+      heightStable: true,
       anchorStable: false,
       budgetExceeded: false,
       hasY: true,
