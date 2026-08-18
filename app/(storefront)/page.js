@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import '@/lib/translations/register-listings-public-i18n'
-import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner'
 import { HomePageSkeleton } from '@/components/home-page-skeleton'
 import { getCachedHomeBootstrap } from '@/lib/listing/get-cached-home-bootstrap.js'
 import { buildHomeDehydratedState } from '@/lib/query-prefetch/prefetch-home-queries'
@@ -60,8 +59,8 @@ export default async function Page() {
 
   return (
     <>
-      <MobileSmartInstallBanner />
       <Suspense fallback={<HomePageSkeleton />}>
+        {/* Stage 201.98 — query hydrate only; home UI parks in StorefrontSearchKeepAlivePane. */}
         <HomeHydrationBoundary state={dehydratedState} />
       </Suspense>
     </>

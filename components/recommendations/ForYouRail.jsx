@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { RecommendationRailCard } from '@/components/recommendations/RecommendationRailCard'
 import { getUIText } from '@/lib/translations'
@@ -20,6 +21,9 @@ import {
   RECOMMENDATION_RAIL_CARD_CLASS,
 } from '@/lib/recommendations/constants'
 import { resolveForYouRailDisplay } from '@/lib/recommendations/for-you-rail-display'
+import { fetchForYouRail } from '@/lib/recommendations/fetch-for-you-rail'
+import { queryKeys } from '@/lib/query-keys'
+import { HOME_WIDGET_QUERY_OPTIONS } from '@/lib/query-prefetch/home-query-constants'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
@@ -31,45 +35,33 @@ export function ForYouRail({
   className,
   surface = 'for_you_home',
 }) {
-  const [listings, setListings] = useState([])
-  const [meta, setMeta] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const whereKey = where && where !== 'all' ? String(where) : 'all'
   const containerRef = useRef(null)
   const isMobile = useIsMobile()
   const isCatalogXs = useMediaQuery(`(max-width: ${FOR_YOU_CATALOG_HIDE_MAX_WIDTH_PX}px)`)
 
+  const { data, isPending } = useQuery({
+    queryKey: queryKeys.recommendations.forYou(whereKey),
+    queryFn: () => fetchForYouRail(whereKey),
+    ...HOME_WIDGET_QUERY_OPTIONS,
+  })
+
+  const listings = data?.listings || []
+  const meta = data?.meta ?? null
+  const loading = isPending && !data
+
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-
-    const params = new URLSearchParams({ limit: '16' })
-    if (where && where !== 'all') params.set('where', where)
-
-    fetch(`/api/v2/recommendations/for-you?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled || !data?.success) return
-        setListings(Array.isArray(data.listings) ? data.listings : [])
-        setMeta(data.meta ?? null)
-        if (data.meta?.mode === 'guest_personalized' || data.meta?.mode === 'guest_personalized_topup') {
-          void trackProductEvent(ProductAnalyticsEvents.GUEST_PERSONALIZATION_FOR_YOU, {
-            mode: data.meta.mode,
-            guest_signals: data.meta.guest_signals ?? 0,
-            authenticated: false,
-            where: where && where !== 'all' ? where : undefined,
-            surface,
-          })
-        }
+    if (!meta) return
+    if (meta.mode === 'guest_personalized' || meta.mode === 'guest_personalized_topup') {
+      void trackProductEvent(ProductAnalyticsEvents.GUEST_PERSONALIZATION_FOR_YOU, {
+        mode: meta.mode,
+        guest_signals: meta.guest_signals ?? 0,
+        authenticated: false,
+        where: whereKey !== 'all' ? whereKey : undefined,
+        surface,
       })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
     }
-  }, [where, surface])
+  }, [meta, whereKey, surface])
 
   const { visible: displayListings, shouldRender } = useMemo(
     () =>
@@ -93,7 +85,7 @@ export function ForYouRail({
     [meta?.mode, meta?.authenticated, meta?.guest_signals],
   )
 
-  const dedupeExtra = where && where !== 'all' ? String(where) : null
+  const dedupeExtra = whereKey !== 'all' ? whereKey : null
 
   useRecommendationRailAnalytics({
     surface,
@@ -105,10 +97,7 @@ export function ForYouRail({
     dedupeExtra,
   })
 
-  if (loading) {
-    return null
-  }
-
+  if (loading) return null
   if (!shouldRender) return null
 
   return (

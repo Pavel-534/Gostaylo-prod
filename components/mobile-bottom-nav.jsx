@@ -164,8 +164,6 @@ export function MobileBottomNav() {
 
     if (item.interceptSearchTab && isMobileSearchTabInterceptPath(pathname)) {
       e.preventDefault();
-      // Home → catalog: paint Search immediately (intercept skips <Link> navigation).
-      // Catalog → sheet: already on /listings; keep Search active without a fake pending.
       const normalized = String(pathname || '').replace(/\/+$/, '') || '/'
       if (normalized === '/') {
         markPending('/listings')

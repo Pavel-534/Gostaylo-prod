@@ -28,18 +28,13 @@ import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-a
 import { scheduleCatalogChunkPrewarm } from '@/lib/navigation/prewarm-catalog-chunks'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
 import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
+import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner'
+import { ForYouRail } from '@/components/recommendations/ForYouRail'
+import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-const ForYouRail = dynamic(
-  () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
-  { ssr: false, loading: () => null },
-)
-const RecentlyViewedRail = dynamic(
-  () => import('@/components/recommendations/RecentlyViewedRail').then((m) => m.RecentlyViewedRail),
-  { ssr: false, loading: () => null },
-)
 const CatalogMobileSearchSheet = dynamic(
   () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
   { ssr: false, loading: () => null },
@@ -182,6 +177,7 @@ export function PlatformHomeContent() {
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-slate-900">
+      <MobileSmartInstallBanner />
       <ReferralVanityWelcomeHost />
       <HomeHeroLuxe
         language={language}

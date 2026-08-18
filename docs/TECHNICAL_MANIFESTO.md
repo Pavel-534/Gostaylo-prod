@@ -1,6 +1,8 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.203 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.97** Search tab keep-alive + catalog chunk prewarm.
+> **Version**: 13.2.205 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.99** Home widget 10 min cache; catalog lite lock.
+
+**Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,11 +29,21 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 201.99 — Home widget cache 10 min; catalog search stays lite
+- For You, featured («Топ»), recently viewed: `staleTime` 10 min, `refetchOnMount: false`, `refetchOnWindowFocus: false`. Recently viewed is TanStack + localStorage placeholder.
+- Catalog GET already uses `LISTINGS_SELECT_LITE` (no `description`, 3 images, picked metadata). Do not shrink to id/title/price/photo[0] — cards need rating, specs, L1 currency, geo codes, trust.
+
+### Stage 201.98 — Search tab does not open the sheet; Home rails stay parked
+- Bottom tab «Поиск» on the catalog list no longer opens the filter sheet (keep-alive was also opening it on the second Home→Search tap). Sheet stays on the summary bar / FAB.
+- Home tree parks in the same storefront shell as catalog, so «Для вас» / «Вы недавно смотрели» do not remount on return.
+- For You uses TanStack Query (5 min stale). Recently viewed shows localStorage rows immediately, then validates.
+- Home idle also prefetches the catalog search query so the first Search tap can skip the empty skeleton when filters match.
+
 ### Stage 201.97 — Search tab: prewarm + keep-alive + above-fold cards
 - Home idle-imports the catalog client chunk (`requestIdleCallback`; skip `saveData`). Leaflet/FilterBar stay out of that prewarm (201.96).
 - Catalog React tree parks in the storefront shell (`StorefrontSearchKeepAlivePane`). Repeat Home ↔ Search shows the parked list immediately; URL still syncs via `router.push`. Not kept on PDP/messages/profile.
 - Phone list hydrates 6 cards first; the rest are skeletons until they approach the viewport. Non-LCP card images use `loading="lazy"`.
-- First Search tap still needs one catalog mount. Repeat tap is the instant path. Persistent Home tree is a later slice.
+- First Search tap still needs one catalog mount. Repeat tap is the instant path. Home tree parks in **201.98**.
 
 ### Stage 201.96 — Search tab: do not hydrate desktop catalog on phone
 - Phone `/listings` no longer mounts Leaflet, desktop `FilterBar`, or compact `UnifiedSearchBar` behind `hidden` CSS (`useMinWidthConfirmed`). Search/map sheets mount when opened.

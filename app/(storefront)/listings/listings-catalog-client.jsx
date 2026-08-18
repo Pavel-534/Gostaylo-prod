@@ -60,6 +60,7 @@ import {
   CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 } from '@/lib/maps/catalog-map-ux-policy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
+import { isStorefrontCatalogListPath } from '@/lib/navigation/storefront-search-keep-alive'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { navigateWithListingHeroTransition, prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 
@@ -483,12 +484,17 @@ function ListingsContent() {
   useEffect(() => {
     if (!isMobile) return undefined
     return subscribeMobileSearchTabAction(() => {
+      if (!isStorefrontCatalogListPath(window.location.pathname)) return
       setShowMap(false)
       writeCatalogMobileMapHash(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
-      setMobileSearchOpen(true)
     })
   }, [isMobile])
+
+  useEffect(() => {
+    if (isCatalogListRoute) return
+    setMobileSearchOpen(false)
+  }, [isCatalogListRoute])
 
   // Hydrate map sheet from `#map` / soft-back viewport (Stage 201.89).
   // App Router often drops `#map` on replace — reopen from session + re-write hash.
