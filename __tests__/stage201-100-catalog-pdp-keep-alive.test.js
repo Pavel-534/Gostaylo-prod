@@ -54,9 +54,11 @@ describe('Stage 201.100 — catalog ↔ PDP keep-alive', () => {
     assert.doesNotMatch(nav[0], /router\.push/)
   })
 
-  it('keep-alive pane keeps catalog behind PDP and resets scroll on leave', () => {
+  it('parks catalog with hidden on PDP (not in-flow under the listing)', () => {
     const pane = read('components/navigation/StorefrontSearchKeepAlive.jsx')
-    assert.match(pane, /catalogBehindPdp/)
+    assert.match(pane, /hidden=\{!catalogForeground\}/)
+    assert.doesNotMatch(pane, /catalogBehindPdp/)
+    assert.doesNotMatch(pane, /ListingPdpInstantShell/)
     assert.match(pane, /isStorefrontListingPdpPath/)
     assert.match(pane, /window\.scrollTo\(0, 0\)/)
   })

@@ -28,8 +28,9 @@
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
 ### Stage 201.101 — Instant PDP chrome + history.back to parked catalog
-- Catalog → PDP paints hero/title/price/Book from TanStack cache (`readPdpInstantListing`) while RSC bootstrap streams. Do **not** drop the listing SELECT: 404 / moderation / OG stay in the async child.
-- Leaflet/calendar were already deferred (`dynamic` + viewport gate). Header Back pops `history` when the catalog URL is remembered; catalog list stays parked (**201.100**).
+- Catalog → PDP paints hero/title/price/Book from TanStack cache (`readPdpInstantListing`) in the **page slot** (`Suspense` fallback) while RSC bootstrap streams. Parked catalog stays `hidden` (mounted, not in the layout). Do **not** paint PDP under the list.
+- Do **not** drop the listing SELECT: 404 / moderation / OG stay in the async child.
+- Leaflet/calendar were already deferred (`dynamic` + viewport gate). Header Back pops `history` when the catalog URL is remembered.
 - Card `router.prefetch` on touch/hover was already in `ListingCard` (**201.100** idle first-6).
 
 ### Stage 201.100 — catalog ↔ PDP: park list; do not freeze on View Transition
