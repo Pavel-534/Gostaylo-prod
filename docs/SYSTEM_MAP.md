@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.98 | **Last Updated**: 2026-08-18 | **201.104** instant Search shell; **201.103** Home/catalog in page HydrationBoundary; **201.101** instant PDP shell.  
+> **Version**: 13.2.99 | **Last Updated**: 2026-08-18 | **201.106** map-rail debug; **201.104** instant Search shell; **201.103** Home/catalog in page HydrationBoundary.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).

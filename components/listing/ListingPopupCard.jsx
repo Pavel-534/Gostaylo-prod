@@ -5,7 +5,7 @@
  * Stage 201.73 — компактная карточка; 201.74 — brand CTA contrast + client nav.
  */
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,7 +30,11 @@ export function ListingPopupCard({
 }) {
   const router = useRouter()
   const raw = listing.images?.[0] || listing.coverImage || listing.cover_image || '/placeholder.svg'
-  const image = raw === '/placeholder.svg' ? raw : resolveImageThumbDisplayUrl(raw) || raw
+  const resolvedImage = raw === '/placeholder.svg' ? raw : resolveImageThumbDisplayUrl(raw) || raw
+  const [image, setImage] = useState(resolvedImage)
+  useEffect(() => {
+    setImage(resolvedImage)
+  }, [resolvedImage])
   const rating = parseFloat(listing.rating || listing.avgRating || listing.average_rating || 0) || 0
   const reviewsCt = listing.reviewsCount ?? listing.reviews_count ?? 0
   const locHint = getUIText(
@@ -61,7 +65,14 @@ export function ListingPopupCard({
     <div className="w-[220px] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80">
       <div className="relative h-28 w-full overflow-hidden bg-slate-100">
         {/* eslint-disable-next-line @next/next/no-img-element -- Leaflet popup: avoid next/image layout in map pane */}
-        <img src={image} alt={listing.title} className="h-full w-full object-cover" />
+        <img
+          src={image}
+          alt={listing.title}
+          className="h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
+          onError={() => setImage('/placeholder.svg')}
+        />
       </div>
       <div className="space-y-2 p-2.5">
         <div className="flex items-start justify-between gap-1.5">

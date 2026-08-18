@@ -35,10 +35,10 @@ describe('Stage 201.104 — Search instant shell + popup close + scroll restore'
     assert.match(pending, /ListingsCatalogSkeleton/)
   })
 
-  it('map popup close control is a 44px brand chip', () => {
+  it('map popup close control is a compact brand chip', () => {
     const css = read('components/listing/map-listing-popup.css')
     assert.match(css, /leaflet-popup-close-button/)
-    assert.match(css, /width: 44px/)
+    assert.match(css, /width: 40px/)
     assert.match(css, /border-radius: 9999px/)
   })
 
@@ -46,6 +46,6 @@ describe('Stage 201.104 — Search instant shell + popup close + scroll restore'
     const host = read('components/navigation/RouteScrollMemoryHost.jsx')
     assert.match(host, /RESTORE_BUDGET_MS = 8000/)
     assert.match(host, /ResizeObserver/)
-    assert.match(host, /maxScroll >= activeEntry.y - 24/)
+    assert.match(host, /maxScroll >= Math\.max\(0, Number\(activeEntry\.y \|\| 0\) - 24\)/)
   })
 })

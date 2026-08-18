@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.210 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.104** instant Search shell; map popup close chip; scroll restore waits for layout.
+> **Version**: 13.2.211 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.106** map-rail jump debug (dev-only).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,9 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.106 — Map rail jump debug (dev-only)
+- `lib/maps/catalog-map-rail-debug.js` logs `[airento:map-rail]` only when the bottom card count jumps or one card vs several pins. Off in production unless `localStorage.airento:map-rail-debug = 1`.
 
 ### Stage 201.104 — Instant Search shell, popup close, scroll restore
 - Search tab: paint catalog skeleton on Home as soon as the dock is pending (`StorefrontPendingCatalogShell`). `/listings` metadata no longer awaits catalog search; the page streams the list behind `Suspense`.

@@ -141,7 +141,7 @@ export function RouteScrollMemoryHost() {
 
     const isAnchorStable = (entry) => {
       if (!entry?.anchorHref || !Number.isFinite(Number(entry.anchorTop))) return false
-      const el = findScrollAnchorElement(entry.anchorHref)
+      const el = findScrollAnchorElement(entry.anchorHref, entry.anchorTop)
       if (!el) return false
       return Math.abs(el.getBoundingClientRect().top - Number(entry.anchorTop)) <= ANCHOR_TOLERANCE_PX
     }
@@ -177,13 +177,21 @@ export function RouteScrollMemoryHost() {
         0,
         (document.documentElement?.scrollHeight || 0) - window.innerHeight,
       )
-      const layoutReady = !activeEntry.anchorHref
-        ? maxScroll >= activeEntry.y - 24
-        : Boolean(findScrollAnchorElement(activeEntry.anchorHref))
-      const stable = activeEntry.anchorHref ? isAnchorStable(activeEntry) : layoutReady
+      const layoutReady = maxScroll >= Math.max(0, Number(activeEntry.y || 0) - 24)
+      const anchorReady = activeEntry.anchorHref
+        ? Boolean(findScrollAnchorElement(activeEntry.anchorHref, activeEntry.anchorTop))
+        : true
+      const stable = activeEntry.anchorHref
+        ? anchorReady && isAnchorStable(activeEntry) && layoutReady
+        : layoutReady
       const budgetExceeded = Date.now() - startedAt >= RESTORE_BUDGET_MS
 
       if (!stable && !budgetExceeded) return false
+
+      if (!stable) {
+        finishMiss()
+        return true
+      }
 
       if (activeKey) consumeRouteScrollEntry(activeKey)
       lastYRef.current = Math.max(0, Math.round(window.scrollY || 0))

@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-gues
 import { getListingCardImageUrls } from '@/lib/media/image-delivery'
 import { CATALOG_MAP_MOBILE_RAIL_CARD_HEIGHT } from '@/lib/maps/catalog-map-ux-policy'
 import { formatListingLocationLineSync } from '@/lib/locations/geo-display-label'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
 
 /**
  * Lightweight map rail card — compact horizontal chip for docked mobile rail.
@@ -24,7 +25,11 @@ export function MapRailCard({
   className,
 }) {
   const imageUrls = useMemo(() => getListingCardImageUrls(listing), [listing])
-  const imageSrc = imageUrls[0] || '/placeholder.svg'
+  const preferredImageSrc = imageUrls[0] || '/placeholder.svg'
+  const [imageSrc, setImageSrc] = useState(preferredImageSrc)
+  useEffect(() => {
+    setImageSrc(preferredImageSrc)
+  }, [preferredImageSrc])
   const title = String(listing?.title || 'Untitled listing')
   const locationLabel = formatListingLocationLineSync(listing, language)
 
@@ -59,6 +64,8 @@ export function MapRailCard({
           fill
           sizes="76px"
           className="object-cover"
+          unoptimized={isRemoteHttpImageSrc(imageSrc)}
+          onError={() => setImageSrc('/placeholder.svg')}
         />
       </div>
 

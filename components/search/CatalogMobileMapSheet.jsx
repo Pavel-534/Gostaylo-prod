@@ -16,10 +16,15 @@ import { useMobileDockLock } from '@/hooks/use-mobile-dock-lock'
 import { MOBILE_CHROME_SAFE_PAD_BOTTOM } from '@/hooks/use-visual-viewport-frame'
 import { filterCatalogRailListingsForMapViewport } from '@/lib/maps/catalog-map-rail-filter'
 import {
+  logCatalogMapRailJump,
+  summarizeCatalogMapRailDebug,
+} from '@/lib/maps/catalog-map-rail-debug'
+import {
   rememberCatalogMapViewport,
 } from '@/lib/navigation/catalog-map-viewport-memory'
 
 const SWIPE_CLOSE_THRESHOLD_PX = 72
+const VIEWPORT_RAIL_UPDATE_DEBOUNCE_MS = 160
 
 export function CatalogMobileMapSheet({
   open,
@@ -30,6 +35,8 @@ export function CatalogMobileMapSheet({
 }) {
   const sheetRef = useRef(null)
   const touchStartYRef = useRef(null)
+  const viewportUpdateTimerRef = useRef(null)
+  const lastRailDebugRef = useRef(null)
   const [viewportMapData, setViewportMapData] = useState({
     pins: [],
     clusters: [],
@@ -70,13 +77,18 @@ export function CatalogMobileMapSheet({
 
   const handleViewportMapData = useCallback(
     (next) => {
-      setViewportMapData({
-        pins: next?.pins || [],
-        clusters: next?.clusters || [],
-        viewportBbox: next?.viewportBbox || null,
-        boundsReady: Boolean(next?.boundsReady),
-        mode: next?.mode || 'pins',
-      })
+      if (viewportUpdateTimerRef.current) {
+        clearTimeout(viewportUpdateTimerRef.current)
+      }
+      viewportUpdateTimerRef.current = setTimeout(() => {
+        setViewportMapData({
+          pins: next?.pins || [],
+          clusters: next?.clusters || [],
+          viewportBbox: next?.viewportBbox || null,
+          boundsReady: Boolean(next?.boundsReady),
+          mode: next?.mode || 'pins',
+        })
+      }, VIEWPORT_RAIL_UPDATE_DEBOUNCE_MS)
       const bbox = next?.viewportBbox
       if (open && bbox) {
         rememberCatalogMapViewport({
@@ -93,6 +105,13 @@ export function CatalogMobileMapSheet({
       }
     },
     [open, railProps.activeListingId, mapPanelProps.selectedListingId],
+  )
+
+  useEffect(
+    () => () => {
+      if (viewportUpdateTimerRef.current) clearTimeout(viewportUpdateTimerRef.current)
+    },
+    [],
   )
 
   const sourceListings = railProps.listings || mapPanelProps.listings || []
@@ -122,6 +141,30 @@ export function CatalogMobileMapSheet({
       }),
     [sourceListings, viewportMapData.pins, viewportMapData.viewportBbox, activeListingId],
   )
+
+  useEffect(() => {
+    if (!open) return
+    const next = summarizeCatalogMapRailDebug({
+      railCount: railListings.length,
+      pinCount: (viewportMapData.pins || []).length,
+      clusterCount: (viewportMapData.clusters || []).length,
+      sourceCount: sourceListings.length,
+      boundsReady: viewportMapData.boundsReady,
+      mode: viewportMapData.mode,
+      selectedListingId: activeListingId,
+    })
+    logCatalogMapRailJump(next, lastRailDebugRef.current)
+    lastRailDebugRef.current = next
+  }, [
+    open,
+    railListings,
+    viewportMapData.pins,
+    viewportMapData.clusters,
+    viewportMapData.boundsReady,
+    viewportMapData.mode,
+    sourceListings.length,
+    activeListingId,
+  ])
 
   if (!open) return null
 
