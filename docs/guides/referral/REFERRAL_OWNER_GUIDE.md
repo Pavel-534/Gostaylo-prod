@@ -1,6 +1,6 @@
 # Реферальная программа — руководство для владельца продукта
 
-**Версия:** 2026-06-01 · **SSOT кода:** `lib/services/marketing/referral-*.js`, `docs/BUSINESS_LOGIC_REFERRAL.md`, `docs/REFERRAL_FINANCIAL_FLOW.md`
+**Версия:** 2026-08-19 · **SSOT кода:** `lib/services/marketing/referral-*.js`, `docs/ADR/131A-ambassador-3-1-multi-level.md`, `docs/BUSINESS_LOGIC_REFERRAL.md`, `docs/REFERRAL_FINANCIAL_FLOW.md`
 
 Документ для **вас как владельца Airento**: что система делает, как ею управлять, где смотреть цифры и на что обратить внимание. Технические детали сведены к минимуму.
 
@@ -45,9 +45,9 @@ Hold (по умолчанию 14 дней) → кошелёк → split «на �
 ### 3.1 Брони приглашённых гостей (`guest_booking`)
 
 - Триггер: бронь приглашённого перешла в статус **COMPLETED**.
-- Платит **L1** (прямой пригласивший) + **L2** (наставник L1, **Live** — ADR-131) + **cashback** приглашённому гостю.
+- Платит **L1** (прямой пригласивший) + **L2** (наставник L1) + при live-флаге L3 — **L3** (дед в цепочке) + **cashback** приглашённому гостю.
 - Сумма **не фиксирована**: зависит от комиссий платформы по конкретной брони и **Marketing Reinvestment %** (доля **чистой маржи владельца / Net Platform Margin** после waterfall → в referral pool).
-- **L3+ не monetized** — «дед» в цепочке не получает процент с поездки правнука.
+- **L3** — не «всем дедам сразу»: только если `ambassador_guest_l3_enabled=true`, у бенефициара ≥10 прямых **PARTNER**, есть `referral_mlm_consent_at`, и есть hop в `ancestor_path`. Иначе доля L3 **не** перекладывается на L1/L2/гостя — withhold / shadow владельцу. **L4/L5 нет** до Stage 131.A2.
 
 ### 3.2 Активация приглашённого партнёра (`host_activation`)
 
@@ -68,16 +68,16 @@ Hold (по умолчанию 14 дней) → кошелёк → split «на �
 | Лимит приглашений | Дефолт **~30 новых** рефералов / календарный месяц на аккаунт (`referral_monthly_limit_per_user`) |
 | «Моя команда» в UI | Только **прямые** приглашённые (`referrer_id = я`), не весь downline |
 
-**Монетизация по глубине (Live, ADR-131 / Ambassador 3.0):**
+**Монетизация по глубине (ADR-131A / Ambassador 3.1; live до cutover = ADR-131):**
 
-| Событие | L1 (прямой) | L2 (наставник) | L3+ |
-|---------|-------------|----------------|-----|
-| Поездка гостя (`guest_booking`) | ~**45%** пула (bonus) | ~**12%** пула (**Live**; caps 500 THB/бронь, 50k/мес) | **0** |
-| Cashback приглашённому гостю | — | — | ~**43%** пула (referee) |
-| Первая бронь приглашённого хоста (`host_activation`) | ~70% от 500 THB | ~30% от 500 THB | **0** |
+| Событие | L1 (прямой) | L2 (наставник) | L3 (дед) | Referee |
+|---------|-------------|----------------|----------|---------|
+| Поездка гостя — **сейчас (flag off)** | **45%** пула | **12%** (caps 500 / 50k) | **0** (shadow withhold) | **43%** cashback |
+| Поездка гостя — **после cutover (flag on)** | **42%** | **10%** (caps 500 / 50k) | **5%** (caps 500 / 20k; gate+consent) | **43%** |
+| Первая бронь приглашённого хоста (`host_activation`) | ~70% от 500 THB | ~30% от 500 THB | **0** (без L3+) | — |
 
-**Пример:** вы → пригласили **Бориса** → Борис пригласил **Катю** → Катя ездит.  
-С поездок Кати: **Борис** ~45% пула (L1), **вы** ~12% как L2 Бориса, **Катя** ~43% cashback. **Дед** (кто пригласил вас) с поездок Кати — **0**.
+**Пример (цепочка вы → Борис → Катя едет):**  
+С поездок Кати: **Борис** = L1, **вы** = L2. **L3** = кто пригласил вас — **0**, пока флаг L3 выключен; после cutover — 5% пула, если у этого человека ≥10 прямых партнёров и есть consent. Host activation по-прежнему только L1/L2 70/30.
 
 ---
 
@@ -88,14 +88,38 @@ Hold (по умолчанию 14 дней) → кошелёк → split «на �
 | Параметр | Дефолт (launch) | Смысл |
 |----------|-----------------|--------|
 | **Marketing Reinvestment %** | **45%** | Доля *чистой маржи владельца (Net Platform Margin)* после waterfall → в реферальный пул |
-| **Guest pool split (L2 on)** | **45 / 12 / 43** | L1 / L2 / cashback referee от пула |
+| **Guest pool split (L2 on, L3 off — live сейчас)** | **45 / 12 / 43** | L1 / L2 / cashback referee от пула |
+| **Guest pool split (L3 on — после cutover)** | **42 / 10 / 5 / 43** | L1 / L2 / L3 / cashback; сумма = 100% |
 | **Legacy split ratio** | 0.5 | Fallback 50/50 L1↔referee, если L2 guest выключен флагом |
 | **Safety cap** | 95% gross | Пул не может превысить 95% gross-комиссии платформы по брони |
 
 **Пример (иллюстрация, не обещание суммы):**  
-Gross-комиссия = 1 000 THB → после waterfall чистая маржа = 800 THB → reinvestment **45%** → пул ≈ **360 THB** → при L2 on: L1 ~162 / L2 ~43 / referee ~155 THB.
+Gross-комиссия = 1 000 THB → после waterfall чистая маржа = 800 THB → reinvestment **45%** → пул ≈ **360 THB** → при live 45/12/43: L1 ~162 / L2 ~43 / referee ~155 THB. После cutover 42/10/5/43 те же ~360 делятся иначе (L3 ~18 THB при прошедшем gate).
 
 Реальная цифра всегда из **`pricing_snapshot`** конкретной брони. Сверьте прод: **`/admin/settings/finances`** (Ambassador) / marketing settings sync.
+
+### 4.1 L3 (Stage 131.A1+)
+
+Третий уровень upline получает **5%** от referral pool при условиях:
+
+- `ambassador_guest_l3_enabled = true` (operator-controlled)
+- ≥ 10 прямых **PARTNER-**реферри у бенефициара (anti-fraud gate, тот же SSOT что tier)
+- Явный consent пользователя (`profiles.referral_mlm_consent_at`)
+- Per-booking cap **500 THB** + monthly cap **20 000 THB** per beneficiary (UTC)
+- Неразмещённая доля → shadow в `bookings.metadata.fintech_snapshot.shadow_l3_thb` (не ledger, не program-cap spend)
+
+Cutover с **45/12/0/43** на **42/10/5/43** — атомарный UPDATE в `system_fintech_settings` (`l1=42`, `l2=10`, `l3=5`, `referee=43`, `l3_enabled=true`, при необходимости `referral_monthly_program_cap_thb=1000000`). Делать **только** после Legal review disclosure и owner sign-off.
+
+### Cutover checklist (Stage 131.A1 → live L3)
+
+1. [ ] Legal review `/legal/public-offer/` §6 MLM disclosure — **получено**
+2. [ ] На staging прогнаны тесты A1.1 + A1.2 + A1.3 (**17/17** pass; плюс cron-registry Stage 200 если трогали vercel.json)
+3. [ ] Manual smoke: COMPLETED бронь с цепочкой A→B→C → L3 пишется, L1/L2 не сломаны
+4. [ ] Owner sign-off зафиксирован
+5. [ ] Атомарный UPDATE: l1=42, l2=10, l3=5, referee=43, l3_enabled=true
+6. [ ] Мониторинг: 80% program cap alert в `/admin/settings/finances` — следить
+7. [ ] Через 1 неделю: проверить что нет runaway, gate работает
+8. [ ] Через 2 месяца: данные для решения о Stage 131.A2 (L4/L5)
 
 ---
 
@@ -214,7 +238,7 @@ Gross-комиссия = 1 000 THB → после waterfall чистая мар�
 
 ## 13. Ограничения и риски (честно)
 
-1. **Guest L2 — Live** (ADR-131): с поездок платит L1 + L2 (+ cashback); **L3+ нигде не monetized**. Host activation L1/L2 **70/30** — отдельный контур (promo tank).
+1. **Guest L3 — код готов, live выключен** (ADR-131A): с поездок платит L1 + L2 (+ cashback); L3 ledger только после cutover (`ambassador_guest_l3_enabled=true`) + gate + consent. Host activation L1/L2 **70/30** — без L3+. L4/L5 — Stage 131.A2 после gate §5.
 2. **Базовый guest pool не резервируется в tank** — это обязательство из маржи; при массовом выводе нужен cash-flow контроль.
 3. **Clawback** не на всех путях отмены брони (основной — cancel API).
 4. **OAuth:** невалидный ref-код при Google-регистрации **молча отбрасывается** (регистрация без реферала).
@@ -226,7 +250,7 @@ Gross-комиссия = 1 000 THB → после waterfall чистая мар�
 
 1. **Какие сейчас фактические значения** reinvestment %, welcome, hold и min payout **на airento.ru**? (В коде дефолты, на Vercel могут быть другие.)
 2. **Вывод на карту/счёт уже включён** для пользователей или только заявка + ручная обработка?
-3. **Нужен ли guest MLM L2+** (процент с броней «внуков»)? В плане 2.0 это explicitly out of scope без compliance review.
+3. **Guest MLM L3** — принято в ADR-131A; live после Legal + owner cutover. L4/L5 — не раньше Stage 131.A2.
 4. **Целевой CAC/LTV** — под них стоит ли подкрутить reinvestment или turbo, или оставить launch **45%** (ADR-131: выше 60% только при LTV/CAC ≥ 1.2)?
 5. **Публичная оферта рефералки** — есть ли отдельный юр. текст для пользователей, или опираемся на `/about/loyalty` + terms?
 
@@ -241,6 +265,7 @@ Gross-комиссия = 1 000 THB → после waterfall чистая мар�
 | `docs/REFERRAL_ACCOUNTING.md` | Бухгалтерские KPI |
 | `docs/REFERRAL_PROGRAM_2_0_PLAN.md` | Roadmap 2.0 |
 | `docs/ADR/131-ambassador-3-0.md` | **Accepted:** Ambassador 3.0 — L2 guest Live, waterfall, reinvestment **45%**, caps |
+| `docs/ADR/131A-ambassador-3-1-multi-level.md` | **Accepted:** Ambassador 3.1 — guest L3 42/10/5/43, cap 1M (после cutover); L4/L5 = A2 |
 | `docs/REFERRAL_CURRENT_AUDIT.md` | Техаудит as-is |
 
 ---

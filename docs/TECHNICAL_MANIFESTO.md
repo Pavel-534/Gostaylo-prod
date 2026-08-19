@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.217 | **Last Updated**: 2026-08-18 | **Tip of tree:** Stage **201.112** FX cron skip + no empty upsert.
+> **Version**: 13.2.218 | **Last Updated**: 2026-08-19 | **Tip of tree:** Stage **131.A1** Ambassador 3.1 docs + L3 code (live still ADR-131).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,16 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 131.A1 — Ambassador 3.1 (guest pool L3, dual-mode)
+
+Код L3 **есть**; **live начисления L3 выключены**. Policy: [`ADR/131A-ambassador-3-1-multi-level.md`](./ADR/131A-ambassador-3-1-multi-level.md).
+
+- **A1.1** фундамент: `referral_mlm_consent_at`, `referral_program_stats`, knobs L3. JS defaults **не** cutover: **45/12/0/43**, cap **250k**, `ambassador_guest_l3_enabled=false`. Validation: L3 off → L1+L2+referee=100 и l3=0; L3 on → 42/10/5/43=100.
+- **A1.2** ядро: dual-mode (flag off = ADR-131 45/12/43 + shadow L3 withhold; flag on = 42/10/5/43 + live `split_role=l3_upline`). Gate ≥10 прямых PARTNER + `referral_mlm_consent_at`. Caps L3: 500/бронь, 20k/мес UTC. Host 70/30 без L3. Тесты A1.2: **7**.
+- **A1.3** surface: `POST /api/v2/referral/consent`, модалка + disclaimer `/profile/referral`, alert 80% **program cap** (не 80% от 150k), calculator L3 toggle, оферта §6, cron `referral-program-stats-quarterly`. Тесты A1.3: **5** (A1.1+A1.2+A1.3 = **17**).
+- **A1.4** этот манифест / Constitution / History / owner+accounting guides.
+- **Cutover** — атомарный `UPDATE system_fintech_settings` (42/10/5/43 + `l3_enabled=true` + cap 1M) **после** Legal review §6 и owner sign-off. Не делать в этом Stage.
 
 ### Stage 201.112 — FX cron: skip fresh rows, keep DB on upstream failure
 - `GET|POST /api/cron/exchange-rates-refresh` still requires Bearer / `x-cron-secret` (`assertCronAuthorized`). Missing `CRON_SECRET` env → **503**; bad/missing token → **401**.

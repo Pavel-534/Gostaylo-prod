@@ -2,7 +2,8 @@
 
 **Stage 114.7** — launch readiness (approaching monthly spend, FinTech progress bar, payout queue UX).  
 **Stage 114.5** — единый бухгалтерский учёт реферальной программы для владельца и FinOps.  
-Операционный поток: `docs/REFERRAL_FINANCIAL_FLOW.md`. Экономика начислений **не меняется** этим документом.
+**Stage 131.A1** — guest pool L3 (dual-mode): live ledger только при флаге; иначе shadow. Экономика начислений до cutover = ADR-131.  
+Операционный поток: `docs/REFERRAL_FINANCIAL_FLOW.md`.
 
 ---
 
@@ -81,12 +82,12 @@ stateDiagram-v2
 |------|---------|---------|
 | `referral_admin_large_earn_alert_thb` | 10 000 | Одно earned ≥ порога |
 | `referral_admin_hourly_burst_alert_thb` | 25 000 | Σ earned referrer за 1ч |
-| `referral_admin_monthly_spend_alert_thb` | 150 000 | Σ earned за календарный месяц (1×/мес., `critical_signal_events` `REFERRAL_MONTHLY_SPEND_ALERT`) |
-| `referral_admin_monthly_spend_warn_percent` | 80 | **Approaching** (1×/мес. `REFERRAL_MONTHLY_SPEND_APPROACHING` + FinTech progress bar) |
+| `referral_admin_monthly_spend_alert_thb` | 150 000 | **Early warning · referral spend growing** (info, 1×/мес., `REFERRAL_MONTHLY_SPEND_ALERT`) |
+| 80% of `referral_monthly_program_cap_thb` | сейчас 80% × **250 000** = 200 000; после cutover 80% × **1 000 000** = 800 000 | **Approaching program cap** (warning, 1×/мес., `REFERRAL_PROGRAM_CAP_APPROACHING`) — независимо от 150k |
 
-Событие: `REFERRAL_ADMIN_ALERT` → `referral-events.handleReferralAdminAlert` → topic **FINANCE** (large / burst / monthly exceeded / **monthly approaching**).
+Событие: `REFERRAL_ADMIN_ALERT` → `referral-events.handleReferralAdminAlert` → topic **FINANCE** (large / burst / early warning 150k / approaching program cap). Оба spend-порога могут сработать в одном месяце.
 
-FinTech KPI (114.7): `monthlySpendPercent`, `monthlySpendApproaching`, `monthlySpendRemainingThb` в `accounting` снимка liability.
+FinTech KPI: `monthlySpendAlertTriggered` (150k), `approachingCapTriggered` (80% program cap) в `accounting` снимка; UI `/admin/settings/finances` (`ReferralMonthlySpendBar`).
 
 ---
 
@@ -97,6 +98,35 @@ FinTech KPI (114.7): `monthlySpendPercent`, `monthlySpendApproaching`, `monthlyS
 3. Перед массовым approve referral payouts: сверка очереди с `totalWithdrawn` + withdrawable.
 4. Не повышать `referral_reinvestment_percent` без ADR; tier ratio меняет только split кошелька.
 
+### 6.0 L3 ledger & shadow (Stage 131.A1+)
+
+**Live row (при `ambassador_guest_l3_enabled=true` + gate + consent):**
+
+- `referral_ledger` строка с `type=bonus`, `referral_type=guest_booking`, `metadata.split_role='l3_upline'`, `referrer_id=l3ReferrerId`.
+- Per-booking cap: **500 THB**.
+- Monthly cap: **20 000 THB** per beneficiary (UTC month).
+- Excess / skip → `bookings.metadata.fintech_snapshot.shadow_l3_thb`.
+
+**Shadow (при `l3_enabled=false` или gate/consent fail / нет hop L3):**
+
+- `bookings.metadata.fintech_snapshot.shadow_l3_thb` = unallocated L3 amount.
+- **Не** пишется в `referral_ledger`. **Не** включается в program cap spend.
+- При cutover существующие shadow строки остаются в metadata, **не** конвертируются retroactively.
+
+**Invariant:**
+
+- L1 + L2 + L3 + referee = 100% пула (sum при L3 enabled).
+- L1 + L2 + referee = 100% пула (sum при L3 disabled, l3=0).
+- Drift округления → в referee, как при L2 shadow. Неразмещённый L3 → withhold владельцу, не в referee.
+
+**Program cap:**
+
+- Колонка SSOT `referral_monthly_program_cap_thb` (не плодить `referral_program_cap_thb`).
+- **Runtime сейчас:** default **250 000** (A1.1/A1.2 cutover не делали).
+- **Цель после cutover:** **1 000 000** THB/мес (ADR-131A).
+- Только **фактически записанные** ledger rows учитываются.
+- Shadow (deferred L3) **не** учитывается.
+
 ### 6.1 Launch readiness — рекомендуемые лимиты (Stage 114.6)
 
 Настраиваются в **`system_settings.general`** (без смены формул начисления):
@@ -105,8 +135,8 @@ FinTech KPI (114.7): `monthlySpendPercent`, `monthlySpendApproaching`, `monthlyS
 |----------|------|---------|------------|
 | Крупное earned | `referral_admin_large_earn_alert_thb` | 10 000 | TG FINANCE на одно начисление |
 | Всплеск за час | `referral_admin_hourly_burst_alert_thb` | 25 000 | Подозрительная активность referrer |
-| Месячный spend (hard) | `referral_admin_monthly_spend_alert_thb` | 150 000 | 1×/мес. алерт по Σ earned |
-| Месячный spend (warn) | `referral_admin_monthly_spend_warn_percent` | 80 | FinTech жёлтая полоса + TG approaching 1×/мес. |
+| Месячный spend (early warning) | `referral_admin_monthly_spend_alert_thb` | 150 000 | 1×/мес. info · рост spend |
+| Approaching program cap | 80% × `referral_monthly_program_cap_thb` | 200 000 сейчас / 800 000 после cap 1M | 1×/мес. warning; независимо от 150k |
 | Мин. вывод | `wallet_min_payout_thb` | из pricing | Порог заявки withdrawable |
 | Reinvestment % | `referral_reinvestment_percent` | ADR | Не поднимать без ревью маржи |
 
@@ -138,6 +168,8 @@ FinTech KPI (114.7): `monthlySpendPercent`, `monthlySpendApproaching`, `monthlyS
 
 - `docs/REFERRAL_FINANCIAL_FLOW.md` — поток денег
 - `docs/FINANCIAL_FLOW_MAP.md` §8 — clawback, cancel
+- `docs/ADR/131-ambassador-3-0.md` — Ambassador 3.0
+- `docs/ADR/131A-ambassador-3-1-multi-level.md` — Ambassador 3.1 (L3 policy)
 - `ARCHITECTURAL_DECISIONS.md` — политика маржи / reinvestment
 
 При расхождении KPI с БД — правка кода и этого файла в одном PR (`AGENTS.md`).

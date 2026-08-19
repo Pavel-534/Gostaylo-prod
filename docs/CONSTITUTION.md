@@ -274,7 +274,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **Выплаты / Concierge** | `lib/services/payout-batch.service.js` (+ `payout-batch-settlement.js` fail-closed; SKIPPED re-queue), `lib/partner/partner-payout-fx.js`, ADR-097, ADR-300 (Phase 0 overlay) |
 | **Платежи** | `lib/services/payments-v3.service.js`, `lib/services/payment-adapters/*` |
 | **Чат** | `lib/chat/post-chat-message.server.js`, `post-chat-invoice.server.js`, `sync-booking-for-chat-invoice.server.js`, `conversation-api-client.js` |
-| **Referral / MLM** | `lib/services/marketing/referral-payout.service.js`, `referral-ledger.service.js`, `referral-distribute-atomic.service.js`, `system_fintech_settings` |
+| **Referral / MLM** | `lib/services/marketing/referral-payout.service.js`, `referral-ledger.service.js`, `referral-distribute-atomic.service.js`, `system_fintech_settings`; политика **ADR-131A** (`docs/ADR/131A-ambassador-3-1-multi-level.md`) |
 | **Пуши / FCM** | `lib/services/push.service.js`, `POST /api/v2/push`, `components/push-client-init.jsx`, `src/pwa/sw.template.js` |
 | **Уведомления** | `lib/services/notification.service.js`, `lib/services/notifications/notification-registry.js` |
 | **Категории / вертикали** | `categories.slug` + `wizard_profile`; `lib/config/category-behavior.js`, `lib/partner/listing-service-type.js` |
@@ -301,3 +301,5 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 - Новая таблица `public`: в одной миграции **GRANT → ENABLE RLS → POLICY**.
 - FK на `profiles` / `listings` / `bookings` в SQL — тип **TEXT** (прод), не слепой `uuid`.
 - User-facing бренд — только `getSiteDisplayName()` / `{brand}`.
+- **Guest pool monetization:** максимальная глубина на одну бронь = **L3** (Stage 131.A1.2, ADR-131A). Stage **131.A2** (L4/L5) — только после gate §5 ADR-131A. Host activation MLM остаётся **L1/L2 70/30**, без L3+.
+- До атомарного cutover live split **45 / 12 / 43**, `ambassador_guest_l3_enabled=false`, program cap **250 000** THB/мес (колонка `referral_monthly_program_cap_thb`). Цель cutover: **42 / 10 / 5 / 43** и cap **1 000 000** — только после Legal + owner sign-off. Не включать live L3 молча.
