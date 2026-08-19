@@ -8,7 +8,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 
 const linkClass = 'font-medium text-brand-hover hover:underline'
 
-export default function PublicOfferLegalContent() {
+export default function PublicOfferLegalContent({ avgEarnedFromStats = null }) {
   const brand = getSiteDisplayName()
   const publisher = getLegalPublisherDetails()
   const { isRu, showRussian } = useLegalDocLocale()
@@ -21,7 +21,7 @@ export default function PublicOfferLegalContent() {
         lead={`Настоящий документ является официальным предложением (публичной офертой) ${brand} (далее — «Платформа», «Оператор») заключить договор на условиях ниже. Оплачивая бронирование или подтверждая действия в интерфейсе с отметкой о согласии, Пользователь принимает условия настоящей оферты.`}
         publisher={publisher}
       >
-        <RuBody brand={brand} supportEmail={publisher.email} />
+        <RuBody brand={brand} supportEmail={publisher.email} avgEarnedFromStats={avgEarnedFromStats} />
       </LegalDocShell>
     )
   }
@@ -34,12 +34,12 @@ export default function PublicOfferLegalContent() {
       publisher={publisher}
       disclaimer={<LegalTranslationDisclaimer onShowRussian={showRussian} />}
     >
-      <EnBody brand={brand} supportEmail={publisher.email} />
+      <EnBody brand={brand} supportEmail={publisher.email} avgEarnedFromStats={avgEarnedFromStats} />
     </LegalDocShell>
   )
 }
 
-function RuBody({ brand, supportEmail }) {
+function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
   return (
     <>
       <h2>1. Роли сторон</h2>
@@ -134,7 +134,22 @@ function RuBody({ brand, supportEmail }) {
         </li>
       </ol>
 
-      <h2>6. Ответственность и претензии</h2>
+      <h2>6. Многоуровневая партнёрская программа</h2>
+      <p>
+        Платформа реализует многоуровневую партнёрскую программу (далее — «MLM»), в рамках которой участники могут
+        получать вознаграждение за привлечение и активность приглашённых ими пользователей.
+      </p>
+      <p>
+        <strong>Доход не гарантирован.</strong> Размер вознаграждения зависит от количества приглашённых, их активности
+        и условий конкретной акции. Средний доход активного участника программы за последний квартал:{' '}
+        <em>{avgEarnedFromStats ?? 'N/A, программа работает с 2026'}</em> (обновляется ежеквартально).
+      </p>
+      <p>
+        Подробные условия участия, ограничения и пороги выплат изложены в условиях для партнёров, в расчётных правилах
+        программы и в кабинете участника.
+      </p>
+
+      <h2>7. Ответственность и претензии</h2>
       <p>
         Ограничения ответственности Оператора, порядок рассмотрения претензий между Гостем и Партнёром, а также случаи
         возврата средств определяются политикой возвратов, правилами бронирования и применимым законодательством.
@@ -156,7 +171,7 @@ function RuBody({ brand, supportEmail }) {
         месту жительства или по месту нахождения Оператора в соответствии с законодательством Российской Федерации.
       </p>
 
-      <h2>7. Применимое право</h2>
+      <h2>8. Применимое право</h2>
       <p>
         На отношения между Гостем и Оператором, регулируемые настоящей офертой, распространяется действие
         законодательства Российской Федерации: Гражданский кодекс РФ, Федеральный закон от 07.02.1992 № 2300-1 «О защите
@@ -170,7 +185,7 @@ function RuBody({ brand, supportEmail }) {
         РФ.
       </p>
 
-      <h2>8. Персональные данные</h2>
+      <h2>9. Персональные данные</h2>
       <p>
         Обработка персональных данных регламентируется{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -179,7 +194,7 @@ function RuBody({ brand, supportEmail }) {
         .
       </p>
 
-      <h2>9. Изменение оферты</h2>
+      <h2>10. Изменение оферты</h2>
       <p>
         Оферта может обновляться; актуальная дата редакции указана в блоке «Оператор платформы». Существенные изменения
         доводятся до пользователей через аккаунт и/или e-mail. При следующей оплате бронирования Пользователь может
@@ -189,7 +204,7 @@ function RuBody({ brand, supportEmail }) {
   )
 }
 
-function EnBody({ brand, supportEmail }) {
+function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
   return (
     <>
       <h2>1. Roles of the parties</h2>
@@ -280,7 +295,22 @@ function EnBody({ brand, supportEmail }) {
         </li>
       </ol>
 
-      <h2>6. Liability and claims</h2>
+      <h2>6. Multi-level partner program</h2>
+      <p>
+        The Platform operates a multi-level partner program (“MLM”) under which participants may receive rewards for
+        referring users and for those invitees’ activity.
+      </p>
+      <p>
+        <strong>Income is not guaranteed.</strong> Reward size depends on the number of invitees, their activity, and
+        the terms of a given campaign. Average earnings of an active program participant for the last quarter:{' '}
+        <em>{avgEarnedFromStats ?? 'N/A, the program has been running since 2026'}</em> (updated quarterly).
+      </p>
+      <p>
+        Detailed participation terms, limits, and payout thresholds are set out in the partner terms, the program
+        calculation rules, and the participant cabinet.
+      </p>
+
+      <h2>7. Liability and claims</h2>
       <p>
         Limits of Operator liability, Guest–Partner claims, and refund cases follow the refund policy, booking rules,
         and applicable law. Payment-provider outages may affect settlement timing; the Operator assists within a
@@ -301,7 +331,7 @@ function EnBody({ brand, supportEmail }) {
         place of residence or at the Operator’s location in accordance with the laws of the Russian Federation.
       </p>
 
-      <h2>7. Applicable law</h2>
+      <h2>8. Applicable law</h2>
       <p>
         Relations between the Guest and the Operator under this offer are governed by the laws of the Russian Federation:
         the Civil Code of the RF, Federal Law No. 2300-1 of 07.02.1992 “On Protection of Consumer Rights” (ZoZPP),
@@ -313,7 +343,7 @@ function EnBody({ brand, supportEmail }) {
         Matters not covered by this offer are governed by the applicable laws of the Russian Federation.
       </p>
 
-      <h2>8. Personal data</h2>
+      <h2>9. Personal data</h2>
       <p>
         Personal data processing is governed by the{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -322,7 +352,7 @@ function EnBody({ brand, supportEmail }) {
         .
       </p>
 
-      <h2>9. Changes to the offer</h2>
+      <h2>10. Changes to the offer</h2>
       <p>
         The offer may be updated; the current revision date is in the “Platform operator” block. Material changes are
         communicated via account and/or email. On the next booking payment the User may be asked to re-confirm the new

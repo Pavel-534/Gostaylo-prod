@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/auth-context'
@@ -21,6 +21,7 @@ import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { ReferralMentorStrip } from '@/components/referral/ReferralMentorStrip'
 import { ReferralPartnerSupplyStrip } from '@/components/referral/ReferralPartnerSupplyStrip'
+import { MlmConsentModal } from '@/components/referral/MlmConsentModal'
 
 const TAB_ACTIVE =
   'rounded-lg shrink-0 snap-start scroll-mx-3 data-[state=active]:bg-brand data-[state=active]:text-white'
@@ -49,6 +50,8 @@ export function ReferralProfilePage() {
     teamLimit: 100,
   })
   const tabsListRef = useRef(null)
+  const [consentAt, setConsentAt] = useState(undefined)
+  const [consentModalOpen, setConsentModalOpen] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -79,6 +82,34 @@ export function ReferralProfilePage() {
   useEffect(() => {
     if (referralError) toast.error(t('referralStage726_loadErr'))
   }, [referralError, t])
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return undefined
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v2/referral/consent', { credentials: 'include', cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (cancelled) return
+        if (!res.ok || json.success === false) {
+          setConsentAt(null)
+          setConsentModalOpen(true)
+          return
+        }
+        const at = json.consentAt || null
+        setConsentAt(at)
+        setConsentModalOpen(!at)
+      } catch {
+        if (!cancelled) {
+          setConsentAt(null)
+          setConsentModalOpen(true)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, isAuthenticated])
 
   if (authLoading || referralLoading) {
     return <ReferralPageSkeleton />
@@ -113,6 +144,20 @@ export function ReferralProfilePage() {
         locale={locale}
         variant="compact"
         className="mt-2"
+      />
+
+      <p className="mt-4 text-xs text-slate-500" data-testid="referral-mlm-persistent-disclaimer">
+        {t('referral_mlm_persistent_disclaimer')}
+      </p>
+
+      <MlmConsentModal
+        open={consentAt === null && consentModalOpen}
+        language={language}
+        t={t}
+        onOpenChange={(next, meta) => {
+          setConsentModalOpen(next)
+          if (meta?.consented) setConsentAt(meta.consentAt || new Date().toISOString())
+        }}
       />
 
       <Tabs defaultValue="link" className="space-y-6 mt-6">

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Calculator, Gift, Users, UserPlus, Loader2, Info, CreditCard, Banknote } from 'lucide-react'
+import { Calculator, Gift, Users, UserPlus, Loader2, Info, CreditCard, Banknote, Network } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { useCurrency } from '@/contexts/currency-context'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
@@ -86,6 +88,7 @@ function PaymentModeToggle({ mode, onChange, disabled, language }) {
 export function ReferralCalculatorClient() {
   const { isAuthenticated } = useAuth()
   const { language } = useI18n()
+  const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const { currency } = useCurrency()
   const { formatThbAsDisplay, convertThbToDisplay, convertDisplayToThb } = useReferralLedgerDisplay()
   const [subtotalDisplay, setSubtotalDisplay] = useState('')
@@ -94,6 +97,7 @@ export function ReferralCalculatorClient() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [showL3, setShowL3] = useState(true)
 
   useEffect(() => {
     const defaultThb = 35000
@@ -239,7 +243,23 @@ export function ReferralCalculatorClient() {
       {error ? <p className="text-center text-sm text-rose-600">{error}</p> : null}
 
       {result ? (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2">
+          <Label htmlFor="referral-calc-l3-toggle" className="text-sm font-medium text-slate-700">
+            {t('referral_calc_l3_toggle')}
+          </Label>
+          <div className="flex min-h-[44px] min-w-[44px] items-center justify-end">
+            <Switch
+              id="referral-calc-l3-toggle"
+              checked={showL3}
+              onCheckedChange={(v) => setShowL3(v === true)}
+              className="data-[state=checked]:bg-brand"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className={cn('grid gap-4', showL3 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3')}>
           <ResultTile
             icon={UserPlus}
             label={language === 'en' ? 'You (L1)' : 'Вы (L1)'}
@@ -256,6 +276,28 @@ export function ReferralCalculatorClient() {
             tone="violet"
             formatAmount={formatThbAsDisplay}
           />
+          {showL3 ? (
+            <ResultTile
+              icon={Network}
+              label={t('referral_balance_l3_label')}
+              amountThb={
+                result.l3LiveEnabled === false ||
+                (Number(result.l3AmountThb || 0) === 0 && Number(result.l3WithheldThb || 0) === 0)
+                  ? null
+                  : result.l3AmountThb
+              }
+              hint={
+                result.l3LiveEnabled === false ||
+                (Number(result.l3AmountThb || 0) === 0 && Number(result.l3WithheldThb || 0) === 0)
+                  ? t('referral_calc_l3_disabled_hint')
+                  : `${result.splitPercents?.l3 ?? 5}% referral pool`
+              }
+              tone="slate"
+              formatAmount={(amount) =>
+                amount == null ? '—' : formatThbAsDisplay(amount)
+              }
+            />
+          ) : null}
           <ResultTile
             icon={Gift}
             label={language === 'en' ? 'Friend (cashback)' : 'Друг (cashback)'}
