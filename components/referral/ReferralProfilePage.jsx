@@ -25,7 +25,7 @@ import { MlmConsentModal } from '@/components/referral/MlmConsentModal'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
-import { Share2 } from 'lucide-react'
+import { Share2, Trophy } from 'lucide-react'
 
 const TAB_ACTIVE =
   'rounded-lg shrink-0 snap-start scroll-mx-3 data-[state=active]:bg-brand data-[state=active]:text-white'
@@ -215,6 +215,20 @@ export function ReferralProfilePage() {
     }
   }, [authLoading, isAuthenticated])
 
+  const [userRankData, setUserRankData] = useState(null)
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return undefined
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v2/referral/me/rank', { credentials: 'include', cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok) setUserRankData(json)
+      } catch { /* optional */ }
+    })()
+    return () => { cancelled = true }
+  }, [authLoading, isAuthenticated])
+
   if (authLoading || referralLoading || walletLoading) {
     return <ReferralPageSkeleton />
   }
@@ -265,6 +279,21 @@ export function ReferralProfilePage() {
               {' \u2192'}
             </Button>
           </div>
+
+          {userRankData?.rank != null && Number(userRankData.total_ambassadors) >= 5 ? (
+            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2 text-sm text-amber-950" data-testid="user-rank-badge">
+              <Trophy className="h-4 w-4 text-amber-600 shrink-0" aria-hidden />
+              <span>
+                {t('stage131a61_rankLine', {
+                  rank: String(userRankData.rank),
+                  total: String(userRankData.total_ambassadors),
+                })}
+              </span>
+              {userRankData.next_rank_bucket_hint ? (
+                <span className="ml-auto text-xs text-amber-700/80 shrink-0">{userRankData.next_rank_bucket_hint}</span>
+              ) : null}
+            </div>
+          ) : null}
 
           <p className="mt-3 text-sm text-slate-700 rounded-2xl border border-brand/10 bg-brand/5 px-4 py-2" role="status">
             {adaptiveState === 'new'
@@ -325,7 +354,7 @@ export function ReferralProfilePage() {
                       <p className="text-sm font-semibold tabular-nums text-slate-900">{avgBookingArr?.[0] ?? 35000}</p>
                     </div>
                     <Slider
-                      min={10000}
+                      min={1000}
                       max={500000}
                       step={1000}
                       value={avgBookingArr}
