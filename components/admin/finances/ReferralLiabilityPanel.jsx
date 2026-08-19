@@ -243,7 +243,7 @@ export function ReferralLiabilityPanel({ toast }) {
             <StatTile
               label="Net marketing cost"
               value={fmtThb(acc.netMarketingCostThb)}
-              hint={`Месяц earned: ${fmtThb(acc.monthlyEarnedThb)}`}
+              hint={`Зарезерв: ${fmtThb(acc.monthlyReservedSpendThb ?? acc.monthlyEarnedThb)} · Факт: ${fmtThb(acc.monthlyPaidActualThb ?? acc.monthlyEarnedThb)}`}
             />
           </div>
         ) : null}
@@ -358,7 +358,7 @@ export function ReferralLiabilityPanel({ toast }) {
           />
         </div>
 
-        {acc?.monthlyEarnedThb != null ? <ReferralMonthlySpendBar accounting={acc} /> : null}
+        {(acc?.monthlyReservedSpendThb != null || acc?.monthlyEarnedThb != null) ? <ReferralMonthlySpendBar accounting={acc} /> : null}
 
         {Array.isArray(acc?.heldRows) && acc.heldRows.length > 0 ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50/80 p-3 text-sm text-amber-950">

@@ -16,7 +16,7 @@ export function ReferralMonthlySpendBar({ accounting: acc }) {
 
   if (!acc?.monthlySpendAlertThb) return null
 
-  const earned = Number(acc.monthlyEarnedThb || 0)
+  const earned = Number(acc.monthlyReservedSpendThb ?? acc.monthlyEarnedThb ?? 0)
   const limit = Number(acc.monthlySpendAlertThb)
   const pct = Number(acc.monthlySpendPercent ?? 0)
   const early = Boolean(acc.monthlySpendAlertTriggered)
