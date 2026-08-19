@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { BookingService } from '@/lib/services/booking.service';
 import { CalendarService } from '@/lib/services/calendar.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
+import { maybeNotifyReferralFriendBooked } from '@/lib/services/marketing/referral-friend-notify-triggers.js';
 import { supabaseAdmin } from '@/lib/supabase';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { createBookingSchema } from '@/lib/validations/booking';
@@ -304,6 +305,13 @@ export async function POST(request) {
         },
       });
 
+      void maybeNotifyReferralFriendBooked({
+        bookingId: result.booking?.id,
+        renterId: sessionRenterId,
+        listingTitle: result.booking.listing?.title ?? null,
+        subtotalThb: result.booking?.price_thb,
+      });
+
       return NextResponse.json({
         success: true,
         inquiry: true,
@@ -396,6 +404,13 @@ export async function POST(request) {
         district: result.booking.listing?.district ?? null,
         category_slug: result.booking.listing?.category_slug ?? null,
       },
+    });
+
+    void maybeNotifyReferralFriendBooked({
+      bookingId: result.booking?.id,
+      renterId: sessionRenterId,
+      listingTitle: result.booking.listing?.title ?? null,
+      subtotalThb: result.booking?.price_thb,
     });
     
     console.log(`[BOOKING] New booking created: ${result.booking.id} for listing ${listingId}`);

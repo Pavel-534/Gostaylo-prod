@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Loader2, UserPlus, Coins, KeyRound, Home } from 'lucide-react'
+import { Activity, Loader2, UserPlus, Coins, KeyRound, Home, CalendarCheck, CreditCard, Plane } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/contexts/i18n-context'
@@ -51,6 +51,27 @@ function EventIcon({ type }) {
     return (
       <span className={wrap} aria-hidden>
         <Home className="h-4 w-4" />
+      </span>
+    )
+  }
+  if (type === 'friend_booked') {
+    return (
+      <span className={wrap} aria-hidden>
+        <CalendarCheck className="h-4 w-4" />
+      </span>
+    )
+  }
+  if (type === 'friend_paid') {
+    return (
+      <span className={wrap} aria-hidden>
+        <CreditCard className="h-4 w-4" />
+      </span>
+    )
+  }
+  if (type === 'friend_completed') {
+    return (
+      <span className={wrap} aria-hidden>
+        <Plane className="h-4 w-4" />
       </span>
     )
   }
@@ -165,6 +186,23 @@ export function ReferralActivityFeed() {
         text = t('referralFeed_bonusEarned')
           .replace('{amount}', formatThbAsDisplay(amount))
           .replace('{kind}', kind)
+      } else if (ev.type === 'friend_booked') {
+        text = t('referralFeed_friendBooked')
+          .replace('{name}', name)
+          .replace('{listing}', String(ev.meta?.listingTitle || '').trim() || '—')
+          .replace('{amount}', formatThbAsDisplay(Number(ev.meta?.estimatedL1Thb ?? 0)))
+      } else if (ev.type === 'friend_paid') {
+        text = t('referralFeed_friendPaid')
+          .replace('{name}', name)
+          .replace('{amount}', formatThbAsDisplay(Number(ev.meta?.paidAmountThb ?? 0)))
+      } else if (ev.type === 'friend_completed') {
+        text = t('referralFeed_friendCompleted')
+          .replace('{name}', name)
+          .replace('{listing}', String(ev.meta?.listingTitle || '').trim() || '—')
+          .replace(
+            '{amount}',
+            formatThbAsDisplay(Number(ev.meta?.estimatedTotalThb ?? ev.meta?.estimatedL1Thb ?? 0)),
+          )
       } else {
         text = name
       }
