@@ -253,7 +253,7 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
         code={welcomeCode}
         brandName={brand}
         displayName={displayName}
-        ambassadorBadge={data?.marketingCard?.ambassadorBadge || 'silver'}
+        ambassadorBadge={data?.marketingCard?.ambassadorBadge || 'pro'}
         directPartnersInvitedCount={directPartnersInvited}
         storiesTeamLockedHint={t('stage75_storiesTeamLocked')}
         marketingTitle={t('stage73_marketingKitTitle')}

@@ -26,7 +26,7 @@ describe('Stage 131.A5 — v2 cabinet', () => {
     const src = read('components/referral/ReferralProfilePage.jsx')
     assert.match(src, /stage131a5_heroWelcomeTitle/)
     assert.match(src, /stage131a5_calcFriendsLabel/)
-    assert.match(src, /sticky top-0/)
+    // UX: hero is not required to be sticky after Stage 131.A5 UX tweaks.
 
     assert.match(
       src,

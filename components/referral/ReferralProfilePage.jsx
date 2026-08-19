@@ -141,7 +141,9 @@ export function ReferralProfilePage() {
   const currentTierName = currentTier?.name ? localizeReferralTierName(currentTier.name, t) : null
   const nextTierName = nextTier?.name ? localizeReferralTierName(nextTier.name, t) : null
   const remainingToNext = nextTier ? Math.max(0, Number(nextTier.minPartnersInvited || 0) - directPartnersInvited) : null
-  const nextRewardPct = nextTier ? Math.max(0, Math.round(Number(nextTier.payoutRatio || 0) * 100)) : 0
+  // `payoutRatio` is stored as a percent already (60 / 75 / 85),
+  // so we must NOT multiply by 100 again.
+  const nextRewardPct = nextTier ? Math.max(0, Math.round(Number(nextTier.payoutRatio || 0))) : 0
 
   const diamondTier = Array.isArray(ambassador.tiers)
     ? ambassador.tiers.find((x) => String(x?.name || '').toLowerCase() === 'diamond') || null
@@ -241,7 +243,7 @@ export function ReferralProfilePage() {
       <ProfileHubNav t={t} />
 
       <div className="space-y-5">
-        <div className="sticky top-0 z-10 -mx-4 px-4 pt-3 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 md:static">
+        <div className="relative z-10 -mx-4 px-4 pt-3 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 break-words">
@@ -270,13 +272,13 @@ export function ReferralProfilePage() {
             <Button
               type="button"
               variant="brand"
-              className="min-h-[44px] whitespace-nowrap"
+              className="min-h-[44px] whitespace-nowrap px-3"
               onClick={() => setTabValue('link')}
               disabled={referralLoading}
             >
-              <Share2 className="h-4 w-4 mr-2" aria-hidden />
-              {t('stage131a5_heroShareCta')}
-              {' \u2192'}
+              <Share2 className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline ml-2">{t('stage131a5_heroShareCta')}</span>
+              <span className="hidden sm:inline ml-1">{' \u2192'}</span>
             </Button>
           </div>
 
@@ -299,11 +301,14 @@ export function ReferralProfilePage() {
             {adaptiveState === 'new'
               ? t('stage131a5_adaptive_new', {
                   remaining: remainingToNext ?? 5,
-                  nextTier: nextTierName ?? 'Silver',
+                  nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
                   rewardPct: nextRewardPct || 5,
                 })
               : adaptiveState === 'early'
-                ? t('stage131a5_adaptive_early', { remaining: remainingToNext ?? 5, nextTier: nextTierName ?? 'Silver' })
+                ? t('stage131a5_adaptive_early', {
+                    remaining: remainingToNext ?? 5,
+                    nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
+                  })
                 : adaptiveState === 'active'
                   ? t('stage131a5_adaptive_active', {
                       earned: formatThbAsDisplay(earnedThb),

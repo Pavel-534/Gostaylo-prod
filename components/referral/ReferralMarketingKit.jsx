@@ -72,7 +72,7 @@ export function ReferralMarketingKit({
   code = '',
   brandName = 'Platform',
   displayName = '',
-  ambassadorBadge = 'silver',
+  ambassadorBadge = 'pro',
   pdfButtonLabel = 'PDF',
   pdfCtaLine = '',
   marketingTitle,
@@ -104,7 +104,7 @@ export function ReferralMarketingKit({
   shareTgLabel,
   shareWaLabel,
   badgeGoldLabel = 'Gold Ambassador',
-  badgeSilverLabel = 'Silver Ambassador',
+  badgeSilverLabel = 'Pro Ambassador',
   pdfOfficialStatusLine = '',
   /** Подзаголовок бренда под логотипом PDF — из i18n с `{brand}`. */
   pdfBrandSubtitle = '',
