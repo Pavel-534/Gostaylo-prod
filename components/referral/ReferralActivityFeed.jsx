@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Loader2, UserPlus, Coins, KeyRound, Home, CalendarCheck, CreditCard, Plane } from 'lucide-react'
+import { Activity, Loader2, UserPlus, Coins, KeyRound, Home, CalendarCheck, CreditCard, Plane, XCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/contexts/i18n-context'
@@ -72,6 +72,13 @@ function EventIcon({ type }) {
     return (
       <span className={wrap} aria-hidden>
         <Plane className="h-4 w-4" />
+      </span>
+    )
+  }
+  if (type === 'friend_cancelled') {
+    return (
+      <span className={wrap} aria-hidden>
+        <XCircle className="h-4 w-4" />
       </span>
     )
   }
@@ -203,6 +210,10 @@ export function ReferralActivityFeed() {
             '{amount}',
             formatThbAsDisplay(Number(ev.meta?.estimatedTotalThb ?? ev.meta?.estimatedL1Thb ?? 0)),
           )
+      } else if (ev.type === 'friend_cancelled') {
+        text = t('referralFeed_friendCancelled')
+          .replace('{name}', name)
+          .replace('{listing}', String(ev.meta?.listingTitle || '').trim() || '—')
       } else {
         text = name
       }

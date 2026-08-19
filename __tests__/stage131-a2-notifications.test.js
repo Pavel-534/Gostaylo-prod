@@ -8,7 +8,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const {
   buildReferralFriendBookedCopy,
-  buildReferralFriendPaidCopy,
+  buildReferralFriendCancelledCopy,
   buildReferralFriendCompletedCopy,
   planReferralFriendNotifyChannels,
 } = require('../lib/services/notifications/referral-friend-notify-copy.js')
@@ -34,15 +34,6 @@ describe('Stage 131.A2 — friend notifications', () => {
     ])
   })
 
-  it('REFERRAL_FRIEND_PAID — same channel plan', () => {
-    assert.deepEqual(planReferralFriendNotifyChannels({ email: 'x@y.z', telegram_id: '1' }), [
-      'email',
-      'push',
-      'telegram',
-    ])
-    assert.deepEqual(planReferralFriendNotifyChannels({ email: 'x@y.z' }), ['email', 'push'])
-  })
-
   it('REFERRAL_FRIEND_COMPLETED — same channel plan', () => {
     assert.deepEqual(planReferralFriendNotifyChannels({ email: 'x@y.z', telegram_id: '42' }), [
       'email',
@@ -59,8 +50,8 @@ describe('Stage 131.A2 — friend notifications', () => {
     const registry = read('lib/services/notifications/notification-registry.js')
     const handlers = {
       REFERRAL_FRIEND_BOOKED: 'handleReferralFriendBooked',
-      REFERRAL_FRIEND_PAID: 'handleReferralFriendPaid',
       REFERRAL_FRIEND_COMPLETED: 'handleReferralFriendCompleted',
+      REFERRAL_FRIEND_CANCELLED: 'handleReferralFriendCancelled',
     }
     for (const [key, handler] of Object.entries(handlers)) {
       assert.match(registry, new RegExp(`${key}:\\s*\\{ handler: ReferralEvents\\.${handler}`))
@@ -84,11 +75,15 @@ describe('Stage 131.A2 — friend notifications', () => {
     }
   })
 
-  it('amounts in PAID copy for RU / EN / ZH / TH', () => {
+  it('cancelled copy for RU / EN / ZH / TH', () => {
     for (const lang of ['ru', 'en', 'zh', 'th']) {
-      const c = buildReferralFriendPaidCopy({ friendName: FRIEND, amountLabel: AMOUNT, lang })
-      assert.match(c.headline, /1,500 THB/, lang)
+      const c = buildReferralFriendCancelledCopy({
+        friendName: FRIEND,
+        listingTitle: LISTING,
+        lang,
+      })
       assert.match(c.headline, /Alex/, lang)
+      assert.match(c.headline, /Sea View Villa|Villa/, lang)
     }
   })
 
@@ -116,11 +111,11 @@ describe('Stage 131.A2 — friend notifications', () => {
     assert.match(src, /friend_booked/)
     assert.match(src, /friend_paid/)
     assert.match(src, /friend_completed/)
+    assert.match(src, /friend_cancelled/)
   })
 
-  it('triggers wired: bookings, escrow paid, distribute completed', () => {
+  it('triggers wired: bookings + distribute completed', () => {
     assert.match(read('app/api/v2/bookings/route.js'), /maybeNotifyReferralFriendBooked/)
-    assert.match(read('lib/services/escrow/move-to-escrow-side-effects.js'), /maybeNotifyReferralFriendPaid/)
     assert.match(read('lib/services/marketing/referral-payout.service.js'), /maybeNotifyReferralFriendCompleted/)
   })
 })

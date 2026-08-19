@@ -1,5 +1,6 @@
 /**
- * GET/POST /api/cron/referral-team-weekly-digest — weekly L1+L2 team earnings (Stage 135).
+ * GET/POST /api/cron/referral-team-weekly-digest — weekly L2/L3 network digest (Stage 131.A2.1).
+ * Recommended schedule: 0 18 * * 0 (Sunday 18:00 UTC).
  */
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
