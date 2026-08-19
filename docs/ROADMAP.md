@@ -46,6 +46,7 @@
 | Live L2 | Stub `createL2PendingLedgerRow` / `split_role=l2_mentor` при flag=true | После shadow validation + caps |
 | Pool split | `ambassador_guest_pool_*_percent` (45/12/43) при L2 on | Настройка в FinTech admin |
 | Supply Builder MLM | `mlm_level*_percent`, `partner_activation_bonus_thb` | Уже в settings; масштабирование — post-PMF |
+| **ADR-131A Ambassador 3.1** | **Accepted** (Pavel, 2026-08-19); runtime ещё ADR-131 | Stage **131.A1** код L3 + cap 1M; L4/L5 = Stage 131.A2. [`ADR/131A-ambassador-3-1-multi-level.md`](./ADR/131A-ambassador-3-1-multi-level.md) |
 
 См. `docs/ADR/131-ambassador-3-0.md`, referral financial docs.
 

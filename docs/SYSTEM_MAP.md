@@ -75,6 +75,7 @@
 | `profile_auth_identities` | Связка провайдеров auth |
 | `auth_phone_otp_challenges` | Phone OTP |
 | `referral_codes` / referral ledger tables | Реферальная программа |
+| `referral_program_stats` | Квартальный avg earned активного амбассадора (ADR-131A; cron A1.3) |
 | `leads_waiting_list` | Waitlist «coming soon» категорий |
 | `activity_log` / `audit_logs` | Операционный / staff audit |
 | `finance_bank_reconciliation_entries` | Bank reconciliation (FI) |
