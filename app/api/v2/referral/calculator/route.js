@@ -16,12 +16,16 @@ export async function GET(request) {
     const guestPaymentMode =
       searchParams.get('guestPaymentMode') ?? searchParams.get('paymentMode') ?? 'THB'
     const fxMarkupPct = searchParams.get('fxMarkupPct')
+    const l1BookingsCountRaw = searchParams.get('l1BookingsCount')
+    const l2ConversionRateRaw = searchParams.get('l2ConversionRate')
 
     const data = await computePublicReferralCalculatorEstimate({
       subtotalThb,
       guestServiceFeePercent,
       guestPaymentMode,
       fxMarkupPct: fxMarkupPct != null ? Number(fxMarkupPct) : undefined,
+      l1BookingsCount: l1BookingsCountRaw != null ? Number(l1BookingsCountRaw) : undefined,
+      l2ConversionRate: l2ConversionRateRaw != null ? Number(l2ConversionRateRaw) : undefined,
     })
 
     return NextResponse.json({ success: true, data })

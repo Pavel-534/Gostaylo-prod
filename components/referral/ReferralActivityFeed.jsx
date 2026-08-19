@@ -17,7 +17,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
 
-const PAGE_LIMIT = 15
+const DEFAULT_PAGE_LIMIT = 15
 
 function formatWhen(iso) {
   if (!iso) return ''
@@ -89,12 +89,18 @@ function EventIcon({ type }) {
   )
 }
 
-export function ReferralActivityFeed() {
+export function ReferralActivityFeed({
+  pageLimit = DEFAULT_PAGE_LIMIT,
+  hideLoadMore = false,
+  /**
+   * stack = legacy vertical list (A2)
+   * carousel = horizontal swipe cards (A5 hero)
+   */
+  layout = 'stack',
+} = {}) {
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const { formatThbAsDisplay } = useReferralLedgerDisplay()
-  const locale =
-    language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
 
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -104,9 +110,9 @@ export function ReferralActivityFeed() {
 
   const fetchPage = useCallback(
     async (cursor) => {
-      const qs = new URLSearchParams({ limit: String(PAGE_LIMIT) })
+      const qs = new URLSearchParams({ limit: String(pageLimit) })
       if (cursor) qs.set('cursor', cursor)
-      const { ok, data, json } = await fetchReferralActivity(qs)
+      const { ok, data } = await fetchReferralActivity(qs)
       if (!ok) return { ok: false, items: [], nextCursor: null, total: 0 }
       return {
         ok: true,
@@ -115,7 +121,7 @@ export function ReferralActivityFeed() {
         total: Number(data?.total) || 0,
       }
     },
-    [],
+    [pageLimit],
   )
 
   useEffect(() => {
@@ -233,7 +239,7 @@ export function ReferralActivityFeed() {
     })
   }, [items, t, formatThbAsDisplay])
 
-  const showLoadMore = Boolean(nextCursor)
+  const showLoadMore = !hideLoadMore && Boolean(nextCursor)
 
   return (
     <Card className={MOBILE_FLAT_CARD_CLASS}>
@@ -254,25 +260,53 @@ export function ReferralActivityFeed() {
           <p className="text-sm text-slate-600 py-2">{t('referralFeed_empty')}</p>
         ) : (
           <>
-            <ul className="space-y-3 max-h-96 overflow-y-auto pr-1">
-              {lines.map((row) => (
-                <li
-                  key={row.key}
-                  className="text-sm border-b border-slate-100 last:border-0 pb-2 last:pb-0 flex gap-3"
-                >
-                  <EventIcon type={row.type} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-slate-800">{row.text}</p>
-                    {row.partnerStatus ? (
-                      <span className="inline-flex mt-1 rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand-hover">
-                        {row.partnerStatus}
-                      </span>
-                    ) : null}
-                    {row.when ? <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{row.when}</p> : null}
+            {layout === 'carousel' ? (
+              <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] snap-x snap-proximity pb-1">
+                {lines.map((row) => (
+                  <div
+                    key={row.key}
+                    className="snap-start min-w-[86%] rounded-xl border border-slate-100 bg-white p-3"
+                  >
+                    <div className="flex gap-3">
+                      <EventIcon type={row.type} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-800">{row.text}</p>
+                        {row.partnerStatus ? (
+                          <span className="inline-flex mt-1 rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand-hover">
+                            {row.partnerStatus}
+                          </span>
+                        ) : null}
+                        {row.when ? (
+                          <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{row.when}</p>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            ) : (
+              <ul className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {lines.map((row) => (
+                  <li
+                    key={row.key}
+                    className="text-sm border-b border-slate-100 last:border-0 pb-2 last:pb-0 flex gap-3"
+                  >
+                    <EventIcon type={row.type} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-800">{row.text}</p>
+                      {row.partnerStatus ? (
+                        <span className="inline-flex mt-1 rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand-hover">
+                          {row.partnerStatus}
+                        </span>
+                      ) : null}
+                      {row.when ? (
+                        <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{row.when}</p>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
             {total > 0 ? (
               <p className="text-xs text-slate-500">
                 {t('referralFeed_shownOf').replace('{shown}', String(lines.length)).replace('{total}', String(total))}
