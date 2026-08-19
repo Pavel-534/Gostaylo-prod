@@ -123,6 +123,7 @@ export function ReferralProfilePage() {
   // Derived state for adaptive hero.
   const earnedThb = round2(Number(data?.stats?.earnedThb ?? 0))
   const withdrawableThb = round2(Number(walletData?.wallet?.withdrawable_balance_thb ?? 0))
+  const starterPreviewAmount = formatThbAsDisplay(2500)
   const heldReferralBalanceThb = round2(
     Number(
       walletData?.balances?.heldReferralBalanceThb ??
@@ -242,7 +243,7 @@ export function ReferralProfilePage() {
     <ProductPageShell>
       <ProfileHubNav t={t} />
 
-      <div className="space-y-5">
+      <div className="space-y-5 max-w-full overflow-x-hidden overscroll-x-none">
         <div className="relative z-10 -mx-4 px-4 pt-3 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -303,6 +304,7 @@ export function ReferralProfilePage() {
                   remaining: remainingToNext ?? 5,
                   nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
                   rewardPct: nextRewardPct || 5,
+                  sampleAmount: starterPreviewAmount,
                 })
               : adaptiveState === 'early'
                 ? t('stage131a5_adaptive_early', {
@@ -502,7 +504,7 @@ export function ReferralProfilePage() {
         }}
       />
 
-      <Tabs value={tabValue} onValueChange={setTabValue} className="space-y-6 mt-6">
+      <Tabs value={tabValue} onValueChange={setTabValue} className="mt-6 space-y-6 max-w-full overflow-x-hidden">
         <TabsList ref={tabsListRef} className={TABS_LIST_CLASS} data-testid="referral-profile-tabs">
           <TabsTrigger value="earnings" className={TAB_ACTIVE}>
             {t('stage1143_tabEarnings')}
