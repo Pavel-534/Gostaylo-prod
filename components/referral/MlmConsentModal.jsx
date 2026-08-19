@@ -54,7 +54,11 @@ export function MlmConsentModal({ open, onOpenChange, t, language = 'ru' }) {
         if (!next) onOpenChange(false, { consented: false })
       }}
     >
-      <DialogContent mobileAnchor="bottom" className="sm:max-w-md" showCloseButton={false}>
+      <DialogContent
+        mobileAnchor="top"
+        className="w-[calc(100vw-1rem)] max-w-[min(560px,calc(100vw-1rem))] sm:w-full sm:max-w-md !left-1/2 !right-auto !translate-x-[-50%] max-h-[min(90dvh,720px)] overflow-y-auto"
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle>{t('referral_mlm_consent_modal_title')}</DialogTitle>
           <DialogDescription className="text-left text-slate-600">
@@ -84,7 +88,7 @@ export function MlmConsentModal({ open, onOpenChange, t, language = 'ru' }) {
           </div>
           <label
             htmlFor="mlm-consent-checkbox"
-            className="cursor-pointer select-none py-2 text-sm leading-snug text-slate-600"
+            className="cursor-pointer select-none py-2 text-sm leading-snug text-slate-600 break-words"
           >
             {t('referral_mlm_consent_checkbox_label')}
           </label>
