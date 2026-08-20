@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 131.A5.B2 | 2026-08-20 | Calculator v2 Variant B: shared UI, activity→l2ConversionRate, L3 gate copy, additive API fields | Done |
 | 131.A1 | 2026-08-19 | ADR-131A Ambassador 3.1: L3 code A1.1–A1.3 + docs A1.4; live still 45/12/43 until Legal+owner cutover | Done |
 | 201.112 | 2026-08-18 | FX cron: skip if updated <4h; never upsert empty on 429/5xx | Done |
 | 201.111 | 2026-08-18 | Popular nearby stays on small catalogs; Back pins until Home height is stable | Done |

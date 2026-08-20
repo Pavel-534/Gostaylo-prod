@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
-import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,9 +21,12 @@ import { ReferralProfileTabTeam } from '@/components/referral/ReferralProfileTab
 import { ReferralProfileTabHistory } from '@/components/referral/ReferralProfileTabHistory'
 import { ReferralProfileTabSettings } from '@/components/referral/ReferralProfileTabSettings'
 import { MlmConsentModal } from '@/components/referral/MlmConsentModal'
+import { ReferralCalculatorV2 } from '@/components/referral/ReferralCalculatorV2'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
+import { formatAmbassadorShareLink } from '@/lib/referral/ambassador-utm-link'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { Share2, Trophy } from 'lucide-react'
 
 const TAB_ACTIVE =
@@ -61,64 +63,13 @@ export function ReferralProfilePage() {
     teamLimit: 100,
   })
   const tabsListRef = useRef(null)
+  const skipTabScrollTopOnceRef = useRef(false)
   const [tabValue, setTabValue] = useState('earnings')
   const [consentAt, setConsentAt] = useState(undefined)
   const [consentModalOpen, setConsentModalOpen] = useState(false)
+  const [shareBusy, setShareBusy] = useState(false)
 
-  const { formatThbAsDisplay, convertDisplayToThb, currency: displayCurrency } = useReferralLedgerDisplay()
-
-  // Hero inline calculator state (must be declared before early returns).
-  const [calcOpen, setCalcOpen] = useState(true)
-  const [l1BookingsArr, setL1BookingsArr] = useState([3])
-  const [avgBookingArr, setAvgBookingArr] = useState([35000])
-  const [calcLoading, setCalcLoading] = useState(false)
-  const [calcError, setCalcError] = useState(null)
-  const [calcResult, setCalcResult] = useState(null)
-
-  const runCalculator = useCallback(async () => {
-    const l1BookingsCount = Number(l1BookingsArr?.[0] ?? 3)
-    const avgBookingDisplay = Number(avgBookingArr?.[0] ?? 35000)
-    if (!Number.isFinite(l1BookingsCount) || !Number.isFinite(avgBookingDisplay)) return
-
-    const subtotalThb = Math.max(500, Math.round(convertDisplayToThb(avgBookingDisplay) || 35000))
-    const guestFeePercent = 15
-    const guestPaymentMode = displayCurrency === 'RUB' ? 'RUB_CROSS' : 'THB'
-
-    const qs = new URLSearchParams({
-      subtotalThb: String(subtotalThb),
-      guestFeePercent: String(guestFeePercent),
-      guestPaymentMode,
-      l1BookingsCount: String(l1BookingsCount),
-      l2ConversionRate: '0.33',
-    })
-
-    setCalcLoading(true)
-    setCalcError(null)
-    try {
-      const res = await fetch(`/api/v2/referral/calculator?${qs.toString()}`, { cache: 'no-store' })
-      const json = await res.json()
-      if (!res.ok || json.success !== true) {
-        setCalcError(json.message || json.error || 'CALCULATOR_FAILED')
-        setCalcResult(null)
-        return
-      }
-      setCalcResult(json.data)
-    } catch (e) {
-      setCalcError(e?.message || 'Network error')
-      setCalcResult(null)
-    } finally {
-      setCalcLoading(false)
-    }
-  }, [avgBookingArr, l1BookingsArr, convertDisplayToThb, displayCurrency])
-
-  useEffect(() => {
-    if (!calcOpen) return
-    if (authLoading || referralLoading) return
-    const id = setTimeout(() => {
-      void runCalculator()
-    }, 350)
-    return () => clearTimeout(id)
-  }, [calcOpen, l1BookingsArr, avgBookingArr, runCalculator, authLoading, referralLoading])
+  const { formatThbAsDisplay } = useReferralLedgerDisplay()
 
   // Derived state for adaptive hero.
   const earnedThb = round2(Number(data?.stats?.earnedThb ?? 0))
@@ -160,6 +111,61 @@ export function ReferralProfilePage() {
   const heroDisplayName = String(data?.marketingCard?.displayName || data?.displayName || '').trim() || 'Ambassador'
   const heroCode = String(data?.code || '').trim()
 
+  const inviteShareUrl = useMemo(() => {
+    const preferred = String(data?.vanityUrl || data?.referralLandingUrl || data?.referralLink || '').trim()
+    return formatAmbassadorShareLink(preferred) || preferred
+  }, [data?.vanityUrl, data?.referralLandingUrl, data?.referralLink])
+
+  const goToLinkTab = useCallback(() => {
+    skipTabScrollTopOnceRef.current = true
+    setTabValue('link')
+    // After TabsContent mounts, bring the link tools into view.
+    window.setTimeout(() => {
+      const el = tabsListRef.current
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }, [])
+
+  const handleHeroShare = useCallback(async () => {
+    if (shareBusy || referralLoading) return
+    const url = String(inviteShareUrl || '').trim()
+    if (!url) {
+      goToLinkTab()
+      return
+    }
+
+    setShareBusy(true)
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({
+            title: getUIText('stage131a5_heroShareCta', language),
+            text: getUIText('stage73_shareBodyDefault', language, {
+              brand: getSiteDisplayName(),
+              link: url,
+            }),
+            url,
+          })
+          return
+        } catch (err) {
+          // User cancelled share sheet — don't treat as error.
+          if (err?.name === 'AbortError') return
+        }
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+        toast.success(t('referralStage726_linkCopied'))
+      }
+      goToLinkTab()
+    } catch {
+      goToLinkTab()
+    } finally {
+      setShareBusy(false)
+    }
+  }, [shareBusy, referralLoading, inviteShareUrl, goToLinkTab, language, t])
+
   useEffect(() => {
     if (authLoading) return
     if (!isAuthenticated) router.replace('/profile?login=true')
@@ -173,7 +179,11 @@ export function ReferralProfilePage() {
   useEffect(() => {
     if (referralLoading) return
     if (typeof window !== 'undefined') {
-      window.scrollTo(0, 0)
+      if (skipTabScrollTopOnceRef.current) {
+        skipTabScrollTopOnceRef.current = false
+      } else {
+        window.scrollTo(0, 0)
+      }
     }
     const el = tabsListRef.current
     if (!el) return
@@ -261,7 +271,7 @@ export function ReferralProfilePage() {
             </span>
           </div>
 
-          <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs text-slate-500">{t('stage131a5_heroEarnedTotalLabel')}</p>
               <p className="text-3xl font-black text-brand mt-1 tabular-nums break-words">
@@ -273,13 +283,13 @@ export function ReferralProfilePage() {
             <Button
               type="button"
               variant="brand"
-              className="min-h-[44px] whitespace-nowrap px-3"
-              onClick={() => setTabValue('link')}
-              disabled={referralLoading}
+              className="min-h-[44px] w-full sm:w-auto sm:min-w-[11rem] px-4"
+              onClick={() => void handleHeroShare()}
+              disabled={referralLoading || shareBusy}
+              data-testid="referral-hero-share-cta"
             >
-              <Share2 className="h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline ml-2">{t('stage131a5_heroShareCta')}</span>
-              <span className="hidden sm:inline ml-1">{' \u2192'}</span>
+              <Share2 className="h-4 w-4 mr-2 shrink-0" aria-hidden />
+              <span className="truncate">{t('stage131a5_heroShareCta')}</span>
             </Button>
           </div>
 
@@ -326,109 +336,10 @@ export function ReferralProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <Card className="gsl-card">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{t('stage131a5_calcTitle')}</p>
-                  <p className="text-xs text-slate-500 mt-1">{t('stage131a5_calcSubtitle')}</p>
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCalcOpen((v) => !v)} className="min-h-[44px]">
-                  {calcOpen ? t('stage131a5_calcCollapse') : t('stage131a5_calcExpand')}
-                </Button>
-              </div>
-
-              {calcOpen ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-slate-800">{t('stage131a5_calcFriendsLabel')}</p>
-                      <p className="text-sm font-semibold tabular-nums text-slate-900">{l1BookingsArr?.[0] ?? 3}</p>
-                    </div>
-                    <Slider
-                      min={1}
-                      max={100}
-                      step={1}
-                      value={l1BookingsArr}
-                      onValueChange={setL1BookingsArr}
-                      className="py-1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-slate-800">{t('stage131a5_calcAvgBookingLabel', { currency: displayCurrency })}</p>
-                      <p className="text-sm font-semibold tabular-nums text-slate-900">{avgBookingArr?.[0] ?? 35000}</p>
-                    </div>
-                    <Slider
-                      min={1000}
-                      max={500000}
-                      step={1000}
-                      value={avgBookingArr}
-                      onValueChange={setAvgBookingArr}
-                      className="py-1"
-                    />
-                  </div>
-
-                  {calcLoading ? (
-                    <p className="text-sm text-slate-600">{t('stage131a5_calcLoading')}</p>
-                  ) : calcError ? (
-                    <p className="text-sm text-rose-600">{calcError}</p>
-                  ) : calcResult ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-slate-500">{t('stage131a5_calcLineL1', { pct: calcResult?.splitPercents?.l1 ?? 42 })}</p>
-                      <p className="text-lg font-semibold text-slate-900 tabular-nums">
-                        {formatThbAsDisplay(Number(calcResult?.l1TotalThb || 0))}
-                      </p>
-
-                      <p className="text-xs text-slate-500 mt-2">{t('stage131a5_calcLineL2', { pct: calcResult?.splitPercents?.l2 ?? 10 })}</p>
-                      <p className="text-lg font-semibold text-slate-900 tabular-nums">
-                        {formatThbAsDisplay(Number(calcResult?.l2TotalThb || 0))}
-                      </p>
-
-                      {Number(calcResult?.l3TotalThb || 0) > 0 ? (
-                        <>
-                          <p className="text-xs text-slate-500 mt-2">{t('stage131a5_calcLineL3', { pct: calcResult?.splitPercents?.l3 ?? 5 })}</p>
-                          <p className="text-lg font-semibold text-slate-900 tabular-nums">
-                            {formatThbAsDisplay(Number(calcResult?.l3TotalThb || 0))}
-                          </p>
-                        </>
-                      ) : null}
-
-                      <div className="pt-3 border-t border-slate-200">
-                        <p className="text-xs text-slate-500">{t('stage131a5_calcTotalLabel')}</p>
-                        <p className="text-2xl font-black text-brand tabular-nums">
-                          {formatThbAsDisplay(
-                            round2(
-                              Number(calcResult?.l1TotalThb || 0) +
-                                Number(calcResult?.l2TotalThb || 0) +
-                                Number(calcResult?.l3TotalThb || 0),
-                            ),
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 mt-2">
-                        <p className="text-sm text-slate-700">{t('stage131a5_calcGuestCashbackLabel')}</p>
-                        <p className="text-sm font-semibold tabular-nums text-slate-900">
-                          {formatThbAsDisplay(Number(calcResult?.guestCashbackTotalThb || 0))}
-                        </p>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="link"
-                        className="w-full justify-start p-0 h-auto min-h-0"
-                        onClick={() => router.push('/about/referral')}
-                      >
-                        {t('stage131a5_calcDetailsLink')}
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+          <ReferralCalculatorV2
+            compact
+            directPartnersInvited={directPartnersInvited}
+          />
 
           <div className="space-y-4">
             <Card className="gsl-card">

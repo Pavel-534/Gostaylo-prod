@@ -27,6 +27,12 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 131.A5.B2 — Referral calculator v2 (Variant B)
+- Shared UI: `ReferralCalculatorV2` in cabinet (`/profile/referral`) and `/about/referral`.
+- Simple mode = one total; detail funnel + guest cashback behind buttons; activity presets map to existing `l2ConversionRate` (alias `l1ActivityRate` on `GET /api/v2/referral/calculator`).
+- Additive API fields only (`referralPoolThb`, caps, `l3MinDirectPartners`, …) — **no** split/waterfall formula change.
+- L3 locked UI from `directPartnersInvited` in cabinet; public page uses generic gate copy.
+
 ### Stage 131.A1 — Ambassador 3.1 (guest pool L3, dual-mode)
 
 Код L3 **есть**; **live начисления L3 выключены**. Policy: [`ADR/131A-ambassador-3-1-multi-level.md`](./ADR/131A-ambassador-3-1-multi-level.md).

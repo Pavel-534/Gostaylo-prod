@@ -25,8 +25,11 @@ describe('Stage 131.A5 — v2 cabinet', () => {
   it('ReferralProfilePage: hero exists + tabs order is Earnings → Team → Link → History → Settings', () => {
     const src = read('components/referral/ReferralProfilePage.jsx')
     assert.match(src, /stage131a5_heroWelcomeTitle/)
-    assert.match(src, /stage131a5_calcFriendsLabel/)
-    // UX: hero is not required to be sticky after Stage 131.A5 UX tweaks.
+    assert.match(src, /ReferralCalculatorV2/)
+    assert.match(src, /directPartnersInvited/)
+    assert.match(src, /handleHeroShare/)
+    assert.match(src, /navigator\.share/)
+    assert.match(src, /stage131a5_heroShareCta/)
 
     assert.match(
       src,
@@ -42,10 +45,11 @@ describe('Stage 131.A5 — v2 cabinet', () => {
     assert.match(src, /limit: String\(pageLimit\)/)
   })
 
-  it('Calculator endpoint: passes L1 count and L2 conversion from query', () => {
+  it('Calculator endpoint: passes L1 count and L2 conversion from query (incl. activity alias)', () => {
     const src = read('app/api/v2/referral/calculator/route.js')
     assert.match(src, /l1BookingsCount/)
     assert.match(src, /l2ConversionRate/)
+    assert.match(src, /l1ActivityRate/)
     assert.match(src, /computePublicReferralCalculatorEstimate/)
   })
 
@@ -58,4 +62,3 @@ describe('Stage 131.A5 — v2 cabinet', () => {
     assert.match(src, /guestCashbackTotalThb/)
   })
 })
-

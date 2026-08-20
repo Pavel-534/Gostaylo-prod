@@ -17,7 +17,9 @@ export async function GET(request) {
       searchParams.get('guestPaymentMode') ?? searchParams.get('paymentMode') ?? 'THB'
     const fxMarkupPct = searchParams.get('fxMarkupPct')
     const l1BookingsCountRaw = searchParams.get('l1BookingsCount')
-    const l2ConversionRateRaw = searchParams.get('l2ConversionRate')
+    // Activity slider alias: l1ActivityRate → existing l2ConversionRate (network depth model).
+    const l2ConversionRateRaw =
+      searchParams.get('l2ConversionRate') ?? searchParams.get('l1ActivityRate')
 
     const data = await computePublicReferralCalculatorEstimate({
       subtotalThb,
