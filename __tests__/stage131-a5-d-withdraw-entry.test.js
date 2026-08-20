@@ -41,6 +41,21 @@ describe('Stage 131.A5.D — referral withdraw entry UX', () => {
     assert.match(src, /handleRuSetupClick/)
   })
 
+  it('progress ladder shows current withdraw % and all tiers', () => {
+    const src = read('components/referral/ReferralProfilePage.jsx')
+    assert.match(src, /stage131a5_progressCurrentWithPct/)
+    assert.match(src, /referral-tier-ladder/)
+    assert.match(src, /stage131a5_progressGoalHint/)
+    assert.match(src, /currentRewardPct/)
+  })
+
+  it('calculator resets demo avg per currency and explains FX', () => {
+    const src = read('components/referral/ReferralCalculatorV2.jsx')
+    assert.match(src, /DEMO_AVG_BY_CURRENCY/)
+    assert.match(src, /demoAvgForCurrency/)
+    assert.match(src, /stage131a5_calcCurrencyHint/)
+  })
+
   it('wallet hides partner payout CTA unless partner access', () => {
     const src = read('app/(storefront)/profile/wallet/page.js')
     assert.match(src, /showPartnerPayoutCta/)

@@ -96,7 +96,25 @@ export function ReferralProfilePage() {
   const remainingToNext = nextTier ? Math.max(0, Number(nextTier.minPartnersInvited || 0) - directPartnersInvited) : null
   // `payoutRatio` is stored as a percent already (60 / 75 / 85),
   // so we must NOT multiply by 100 again.
+  const currentRewardPct = Math.max(
+    0,
+    Math.round(Number(ambassador?.currentTier?.payoutRatio ?? currentTier?.payoutRatio ?? 60)),
+  )
   const nextRewardPct = nextTier ? Math.max(0, Math.round(Number(nextTier.payoutRatio || 0))) : 0
+  const tierLadder = Array.isArray(ambassador?.tiers)
+    ? ambassador.tiers
+    : Array.isArray(data?.ambassador?.tiers)
+      ? data.ambassador.tiers
+      : []
+  const topTier = tierLadder.length
+    ? tierLadder.reduce((best, row) => {
+        const pct = Number(row?.payoutRatio || 0)
+        const bestPct = Number(best?.payoutRatio || 0)
+        return pct >= bestPct ? row : best
+      }, tierLadder[0])
+    : null
+  const topTierName = topTier?.name ? localizeReferralTierName(topTier.name, t) : null
+  const topRewardPct = topTier ? Math.max(0, Math.round(Number(topTier.payoutRatio || 0))) : 85
 
   const diamondTier = Array.isArray(ambassador.tiers)
     ? ambassador.tiers.find((x) => String(x?.name || '').toLowerCase() === 'diamond') || null
@@ -338,24 +356,31 @@ export function ReferralProfilePage() {
                 ? t('stage131a5_adaptive_new', {
                     remaining: remainingToNext ?? 5,
                     nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
-                    rewardPct: nextRewardPct || 5,
+                    rewardPct: nextRewardPct || 75,
+                    currentPct: currentRewardPct || 60,
                     sampleAmount: starterPreviewAmount,
                   })
                 : adaptiveState === 'early'
                   ? t('stage131a5_adaptive_early', {
                       remaining: remainingToNext ?? 5,
                       nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
+                      rewardPct: nextRewardPct || 75,
+                      currentPct: currentRewardPct || 60,
                     })
                   : adaptiveState === 'active'
                     ? t('stage131a5_adaptive_active', {
                         earned: formatThbAsDisplay(earnedThb),
                         nextTier: nextTierName ?? 'Gold',
                         remaining: remainingToNext ?? 10,
+                        rewardPct: nextRewardPct || 75,
+                        currentPct: currentRewardPct || 60,
                       })
                     : t('stage131a5_adaptive_veteran', {
                         earned: formatThbAsDisplay(earnedThb),
                         remainingDiamond: remainingToDiamond ?? 0,
                         rankMonthly: leaderboardRankMonthly != null ? `#${leaderboardRankMonthly}` : '',
+                        topTier: topTierName ?? t('stage73_tierFallbackAmbassador'),
+                        topPct: topRewardPct || 85,
                       })}
             </p>
           </div>
@@ -398,9 +423,49 @@ export function ReferralProfilePage() {
                 <CardContent className="p-4 space-y-3">
                   <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressTitle')}</p>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t('stage131a5_progressCurrent', { tier: currentTierName || '—' })}
+                    <p className="text-sm font-medium text-slate-800" data-testid="referral-progress-current">
+                      {t('stage131a5_progressCurrentWithPct', {
+                        tier: currentTierName || '—',
+                        pct: currentRewardPct || 60,
+                      })}
                     </p>
+                    {typeof ambassador?.tierProgressPercent === 'number' ? (
+                      <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
+                    ) : null}
+
+                    {tierLadder.length ? (
+                      <ul className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3" data-testid="referral-tier-ladder">
+                        {tierLadder.map((row) => {
+                          const name = localizeReferralTierName(row?.name, t)
+                          const pct = Math.max(0, Math.round(Number(row?.payoutRatio || 0)))
+                          const minPartners = Math.max(0, Math.round(Number(row?.minPartnersInvited || 0)))
+                          const isCurrent =
+                            String(row?.id || '') === String(currentTier?.id || '') ||
+                            String(row?.name || '').toLowerCase() === String(currentTier?.name || '').toLowerCase()
+                          const unlocked = directPartnersInvited >= minPartners
+                          return (
+                            <li
+                              key={row?.id || row?.name || `${name}-${pct}`}
+                              className={
+                                isCurrent
+                                  ? 'text-sm font-semibold text-brand-hover'
+                                  : unlocked
+                                    ? 'text-sm text-slate-700'
+                                    : 'text-sm text-slate-500'
+                              }
+                            >
+                              {t('stage131a5_progressTierRow', {
+                                tier: name,
+                                partners: minPartners,
+                                pct,
+                              })}
+                              {isCurrent ? ` · ${t('stage1143_levelCurrent')}` : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    ) : null}
+
                     {nextTierName ? (
                       <p className="text-sm text-slate-700">
                         {t('stage131a5_progressNextReward', {
@@ -409,15 +474,23 @@ export function ReferralProfilePage() {
                         })}
                       </p>
                     ) : null}
-                    {typeof ambassador?.tierProgressPercent === 'number' ? (
-                      <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
-                    ) : null}
 
                     {nextTierName && remainingToNext != null ? (
-                      <p className="text-sm text-slate-600">{t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}</p>
+                      <p className="text-sm text-slate-600">
+                        {t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}
+                      </p>
                     ) : (
                       <p className="text-sm text-slate-600">{t('stage131a5_progressMax')}</p>
                     )}
+
+                    {topTierName && nextTierName && topTierName !== nextTierName ? (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {t('stage131a5_progressGoalHint', {
+                          tier: topTierName,
+                          pct: topRewardPct || 85,
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>

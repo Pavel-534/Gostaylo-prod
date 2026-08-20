@@ -46,7 +46,7 @@ export async function generateMetadata({ params }) {
   const title = titleRaw.replace('{name}', nameForTitle)
 
   const metadataBase = new URL(getPublicSiteUrl())
-  const ogImage = `/u/${encodeURIComponent(uid)}/opengraph-image`
+  const ogImage = `/u/${encodeURIComponent(uid)}/opengraph-image?v=20260820`
 
   return {
     metadataBase,

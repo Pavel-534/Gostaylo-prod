@@ -27,6 +27,10 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 131.A5.E — Referral link OG preview
+- `/u/[id]/opengraph-image`: center PWA splash mark (PNG) for WhatsApp square crop; no giant `Partner` fallback; cache-bust `?v=20260820`.
+- Messengers cannot use header SVG as `og:image` — raster only.
+
 ### Stage 131.A5.D — Guest ambassador withdraw entry UX
 - `/profile/wallet`: «Партнёрский вывод» только при `isPartner` / `canAccessPartner`; deep-link `?action=payout-setup` → scroll/focus `#ru-payout-profile`.
 - **Fix:** форма RU-реквизитов больше не скрывается при балансе 0 (раньше `ReferralWithdrawalWaterfall` делал `return null`).

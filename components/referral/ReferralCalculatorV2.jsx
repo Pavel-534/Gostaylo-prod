@@ -47,6 +47,23 @@ const ACTIVITY_PRESETS = [
   { value: 1, label: '100%' },
 ]
 
+/** Realistic mid-order demos per header currency (marketing calc only). */
+const DEMO_AVG_BY_CURRENCY = Object.freeze({
+  RUB: 35000,
+  THB: 15000,
+  USD: 1000,
+  USDT: 1000,
+  EUR: 900,
+  GBP: 800,
+  CNY: 7000,
+})
+
+function demoAvgForCurrency(currencyCode) {
+  const code = String(currencyCode || 'THB').toUpperCase()
+  const n = Number(DEMO_AVG_BY_CURRENCY[code])
+  return Number.isFinite(n) && n > 0 ? n : 1000
+}
+
 function nearestActivityPreset(rate) {
   const n = Number(rate)
   if (!Number.isFinite(n)) return 0.33
@@ -89,14 +106,18 @@ export function ReferralCalculatorV2({
     [displayCurrency, rateMap, language],
   )
 
-  // Realistic demo default: ~mid vacation/service order in display currency.
+  // Realistic demo default: mid vacation/service order in the header currency.
   const [ordersArr, setOrdersArr] = useState([5])
-  const [avgArr, setAvgArr] = useState([35000])
+  const [avgArr, setAvgArr] = useState([demoAvgForCurrency(displayCurrency)])
   const [activityRate, setActivityRate] = useState(0.33)
   const [mode, setMode] = useState('simple') // simple | detail | guest
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
+
+  useEffect(() => {
+    setAvgArr([demoAvgForCurrency(displayCurrency)])
+  }, [displayCurrency])
 
   const runCalc = useCallback(async () => {
     const orders = Math.max(1, Math.min(50, Number(ordersArr?.[0] ?? 5)))
@@ -159,6 +180,9 @@ export function ReferralCalculatorV2({
         <div className="space-y-1">
           <p className="text-sm font-semibold text-slate-900">{t('calc_simple_title')}</p>
           <p className="text-xs text-slate-500">{t('calc_simple_subtitle')}</p>
+          <p className="text-[11px] leading-relaxed text-slate-500" data-testid="calc-currency-hint">
+            {t('stage131a5_calcCurrencyHint')}
+          </p>
         </div>
 
         <div className="space-y-4">

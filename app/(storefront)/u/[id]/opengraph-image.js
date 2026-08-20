@@ -9,9 +9,17 @@ export const alt = 'Airento — invite'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
+/**
+ * Referral OG card (Stage 131.A5.E).
+ *
+ * WhatsApp/Telegram square-crop the *center* of 1200×630 — so the brand mark must
+ * sit in the middle (same splash chip as PWA / header), not a giant fallback name.
+ * SVG cannot be used as og:image; messengers need PNG. We embed the PWA splash PNG
+ * (white plate + mark) which matches `airento-mark-badge.svg` / home-screen icon.
+ */
 export default async function Image({ params }) {
   const id = params?.id != null ? String(params.id).trim() : ''
-  let displayName = 'Partner'
+  let displayName = ''
   const base = getPublicSiteUrl()
   const lang = await resolveOgLocale()
   const brand = getSiteDisplayName()
@@ -33,8 +41,14 @@ export default async function Image({ params }) {
     }
   }
 
-  const inviteResolved = getUIText('stage1322_ogInviteLine', lang).replace(/\{name\}/g, displayName)
-  const lockup = publicFileDataUri('brand/airento-lockup-onbg.png')
+  const inviteLine = displayName
+    ? getUIText('stage1322_ogInviteLine', lang).replace(/\{name\}/g, displayName)
+    : getUIText('stage1322_ogInviteGeneric', lang).replace(/\{brand\}/g, brand)
+
+  // Same visual family as header badge / home-screen icon (not the lockup wordmark).
+  const mark =
+    publicFileDataUri('icons/icon-splash-512x512.png') ||
+    publicFileDataUri('brand/airento-mark.png')
 
   return new ImageResponse(
     (
@@ -48,60 +62,82 @@ export default async function Image({ params }) {
           justifyContent: 'center',
           background: OG_BG,
           fontFamily: 'Noto, system-ui, sans-serif',
-          padding: '64px',
+          padding: '48px 64px',
+          position: 'relative',
         }}
       >
-        {/* soft brand glow */}
         <div
           style={{
             position: 'absolute',
-            top: 40,
-            width: 640,
-            height: 340,
-            background: 'radial-gradient(closest-side, rgba(13,148,136,0.42), rgba(13,148,136,0))',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(closest-side at 50% 42%, rgba(13,148,136,0.38), rgba(13,148,136,0))',
             display: 'flex',
           }}
         />
-        {lockup ? (
+        {mark ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={lockup} alt="" height={92} style={{ marginBottom: 40 }} />
+          <img
+            src={mark}
+            alt=""
+            width={280}
+            height={280}
+            style={{
+              borderRadius: 56,
+              boxShadow: '0 24px 48px rgba(0,0,0,0.35)',
+            }}
+          />
         ) : (
-          <div style={{ display: 'flex', fontSize: 40, fontWeight: 700, color: '#fff', marginBottom: 40 }}>
-            {brand}
+          <div
+            style={{
+              width: 280,
+              height: 280,
+              borderRadius: 56,
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0d9488',
+              fontSize: 120,
+              fontWeight: 700,
+            }}
+          >
+            A
           </div>
         )}
         <div
           style={{
             display: 'flex',
-            fontSize: 66,
+            marginTop: 28,
+            fontSize: 52,
             fontWeight: 700,
             color: '#ffffff',
-            textAlign: 'center',
-            lineHeight: 1.1,
-            padding: '0 40px',
+            letterSpacing: '-0.02em',
           }}
         >
-          {displayName}
+          {brand}
         </div>
         <div
           style={{
             display: 'flex',
-            fontSize: 30,
+            marginTop: 14,
+            fontSize: 28,
             color: '#5eead4',
-            marginTop: 22,
             fontWeight: 400,
             textAlign: 'center',
-            padding: '0 48px',
+            maxWidth: 920,
           }}
         >
-          {inviteResolved}
+          {inviteLine}
         </div>
         <div
           style={{
             display: 'flex',
+            marginTop: 10,
             fontSize: 22,
             color: '#94a3b8',
-            marginTop: 'auto',
             fontWeight: 400,
           }}
         >
