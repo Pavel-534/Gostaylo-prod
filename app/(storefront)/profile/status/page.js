@@ -29,6 +29,7 @@ import { ReferralActivityFeed } from '@/components/referral/ReferralActivityFeed
 import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
 import { ReferralBalanceBreakdown } from '@/components/referral/ReferralBalanceBreakdown'
+import { ReferralWithdrawEntryCta } from '@/components/referral/ReferralWithdrawEntryCta'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
@@ -124,6 +125,9 @@ export default function ProfileStatusPage() {
       <PageSectionHeader title={t('stage1143_tabNavStatus')} subtitle={t('stage1143_settingsSubtitle')} />
 
       <ReferralBalanceBreakdown walletData={walletData} referralData={data} locale={locale} variant="compact" />
+      <div className="max-w-md">
+        <ReferralWithdrawEntryCta walletData={walletData} />
+      </div>
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-8">

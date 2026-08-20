@@ -27,6 +27,15 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 131.A5.D — Guest ambassador withdraw entry UX
+- `/profile/wallet`: «Партнёрский вывод» только при `isPartner` / `canAccessPartner`; deep-link `?action=payout-setup` → scroll/focus `#ru-payout-profile`.
+- `/profile/referral` + `/profile/status`: `ReferralWithdrawEntryCta` (реквизиты / мин. порог из SSOT / запрос вывода) — без хардкода ₽2600.
+- Blocker copy: банковские реквизиты РФ (БИК, счёт, ИНН); href → `?action=payout-setup`.
+
+### Stage 131.A5.C — Link tab share declutter
+- `/profile/referral` → tab **Ссылка**: один QR, `navigator.share` + копирование короткой ссылки; UTM-каналы свёрнуты в «Разметка для аналитики».
+- Убраны дубль MarketingKit (второй QR, WA/TG/FB, Stories/PDF/посты) и блок «Зачем делиться?» с той же вкладки.
+
 ### Stage 131.A5.B2 — Referral calculator v2 (Variant B)
 - Shared UI: `ReferralCalculatorV2` in cabinet (`/profile/referral`) and `/about/referral`.
 - Simple mode = one total; detail funnel + guest cashback behind buttons; activity presets map to existing `l2ConversionRate` (alias `l1ActivityRate` on `GET /api/v2/referral/calculator`).

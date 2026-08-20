@@ -55,11 +55,21 @@ describe('Stage 200.133 — referral UX plain copy', () => {
     assert.equal(localizeReferralTierName('', t), 'Новичок')
   })
 
-  it('status card + levels + stories use localizeReferralTierName', () => {
+  it('status card + levels use localizeReferralTierName', () => {
     assert.match(read('components/referral/ReferralYourStatusCard.jsx'), /localizeReferralTierName/)
     assert.match(read('components/referral/ReferralAmbassadorLevels.jsx'), /localizeReferralTierName/)
-    assert.match(read('components/referral/ReferralProfileTabLink.jsx'), /localizeReferralTierName/)
-    assert.match(read('components/referral/ReferralProfileTabEarnings.jsx'), /localizeReferralTierName/)
+  })
+
+  it('Link tab is a single QR + native share surface (no MarketingKit duplicate)', () => {
+    const src = read('components/referral/ReferralProfileTabLink.jsx')
+    assert.match(src, /data-testid="referral-link-tab-v2"/)
+    assert.match(src, /data-testid="referral-link-share"/)
+    assert.match(src, /navigator\.share/)
+    assert.match(src, /data-testid="referral-utm-toggle"/)
+    assert.doesNotMatch(src, /ReferralMarketingKit/)
+    assert.doesNotMatch(src, /ReferralAmbassadorWaveGuide/)
+    assert.doesNotMatch(src, /stage91_whyShareTitle/)
+    assert.equal((src.match(/<QRCodeSVG\b/g) || []).length, 1)
   })
 
   it('referral i18n has no mid-market / rate lock / витринная / markup jargon for users', () => {

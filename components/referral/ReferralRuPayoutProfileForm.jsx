@@ -135,7 +135,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
     return (
       <div
         id="ru-payout-profile"
-        className={`rounded-xl border border-emerald-200/90 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950 flex gap-3 ${className}`}
+        className={`rounded-xl border border-emerald-200/90 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950 flex gap-3 scroll-mt-24 ${className}`}
       >
         <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
         <div>
@@ -149,7 +149,7 @@ export function ReferralRuPayoutProfileForm({ onReady, className = '' }) {
   }
 
   return (
-    <Card id="ru-payout-profile" className={`rounded-2xl border border-brand/20 shadow-sm ${className}`}>
+    <Card id="ru-payout-profile" className={`rounded-2xl border border-brand/20 shadow-sm scroll-mt-24 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Landmark className="h-5 w-5 text-brand" aria-hidden />

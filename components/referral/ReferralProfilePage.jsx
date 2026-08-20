@@ -22,6 +22,7 @@ import { ReferralProfileTabHistory } from '@/components/referral/ReferralProfile
 import { ReferralProfileTabSettings } from '@/components/referral/ReferralProfileTabSettings'
 import { MlmConsentModal } from '@/components/referral/MlmConsentModal'
 import { ReferralCalculatorV2 } from '@/components/referral/ReferralCalculatorV2'
+import { ReferralWithdrawEntryCta } from '@/components/referral/ReferralWithdrawEntryCta'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
@@ -362,6 +363,9 @@ export function ReferralProfilePage() {
                     <p className="mt-2 text-xl font-black text-slate-900 tabular-nums">{formatThbAsDisplay(earnedThb)}</p>
                     <p className="mt-1 text-[11px] text-slate-600">{t('stage131a5_balanceEarnedLifetimeHint')}</p>
                   </div>
+                </div>
+                <div className="pt-1">
+                  <ReferralWithdrawEntryCta walletData={walletData} />
                 </div>
               </CardContent>
             </Card>

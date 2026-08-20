@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Wallet, TrendingUp, Clock3 } from 'lucide-react'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
@@ -40,10 +40,13 @@ import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount
 
 export default function ProfileWalletPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const walletAction = String(searchParams?.get('action') || '').trim()
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const locale = language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { isAuthenticated, loading: authLoading, isPartner, canAccessPartner } = useAuth()
+  const showPartnerPayoutCta = isPartner === true || canAccessPartner === true
   const queryClient = useQueryClient()
   const { data: walletData, isLoading: walletLoading, refetch: refetchWallet } = useWalletMeQuery({
     enabled: !authLoading && isAuthenticated,
@@ -67,6 +70,31 @@ export default function ProfileWalletPage() {
       typeof window !== 'undefined' && localStorage.getItem('gostaylo_currency_explicit') === '1'
     if (saved && saved !== currency && !headerExplicit) setCurrency(saved)
   }, [authLoading, isAuthenticated, referralData, router, currency, setCurrency])
+
+  /** Stage 131.A5.D — deep-link: scroll to RU bank profile / withdraw waterfall. */
+  useEffect(() => {
+    if (authLoading || walletLoading || referralLoading) return
+    if (walletAction !== 'payout-setup' && walletAction !== 'withdraw') return
+    if (typeof document === 'undefined') return
+    const targetId = walletAction === 'payout-setup' ? 'ru-payout-profile' : 'referral-withdraw-waterfall'
+    const run = () => {
+      const el = document.getElementById(targetId) || document.getElementById('ru-payout-profile')
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (walletAction === 'payout-setup') {
+        const input = el.querySelector?.('input,button,[href]')
+        if (input && typeof input.focus === 'function') {
+          try {
+            input.focus({ preventScroll: true })
+          } catch {
+            input.focus()
+          }
+        }
+      }
+    }
+    const timer = window.setTimeout(run, 120)
+    return () => window.clearTimeout(timer)
+  }, [authLoading, walletLoading, referralLoading, walletAction, walletData])
 
   async function patchProfile(payload) {
     const res = await fetch('/api/v2/profile/me', {
@@ -253,11 +281,13 @@ export default function ProfileWalletPage() {
                 locale={locale}
                 className="w-full max-w-full overflow-hidden"
               />
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Button variant="outline" onClick={() => router.push('/partner/finances')}>
-                  {t('stage1321_walletPartnerPayoutCta')}
-                </Button>
-              </div>
+              {showPartnerPayoutCta ? (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button variant="outline" onClick={() => router.push('/partner/finances')}>
+                    {t('stage1321_walletPartnerPayoutCta')}
+                  </Button>
+                </div>
+              ) : null}
               {referralWithdrawRequested ? (
                 <p className="text-xs text-emerald-700">{t('stage1321_walletReferralQueued')}</p>
               ) : null}
