@@ -1,5 +1,5 @@
 /**
- * Stage 131.A5.E — referral OG uses PWA splash mark, not Partner hero text.
+ * Stage 131.A5.E — referral OG: mark1 + Airento word only.
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/stage131-a5-e-referral-og.test.js
  */
 
@@ -15,22 +15,18 @@ function read(rel) {
 }
 
 describe('Stage 131.A5.E — referral OG preview', () => {
-  it('centers PWA splash mark and avoids Partner hero fallback', () => {
+  it('uses airento-mark1 and only brand word under the mark', () => {
     const src = read('app/(storefront)/u/[id]/opengraph-image.js')
-    assert.match(src, /icon-splash-512x512\.png/)
-    assert.match(src, /stage1322_ogInviteGeneric/)
-    assert.doesNotMatch(src, /displayName = 'Partner'/)
-    assert.match(src, /WhatsApp|square-crop|center/i)
+    assert.match(src, /airento-mark1\.png/)
+    assert.match(src, /getSiteDisplayName/)
+    assert.doesNotMatch(src, /stage1322_ogInvite/)
+    assert.doesNotMatch(src, /stage1322_ogSubtitle/)
+    assert.doesNotMatch(src, /Partner/)
+    assert.ok(fs.existsSync(path.join(root, 'public/brand/airento-mark1.png')))
   })
 
   it('metadata cache-busts og image URL', () => {
-    assert.match(read('app/(storefront)/u/[id]/layout.js'), /opengraph-image\?v=/)
-    assert.match(read('app/(storefront)/go/[vanity]/layout.js'), /opengraph-image\?v=/)
-  })
-
-  it('i18n has generic invite line for OG', () => {
-    const i18n = read('lib/translations/slices/profile-app-referral.js')
-    assert.match(i18n, /stage1322_ogInviteGeneric/)
-    assert.match(i18n, /Присоединяйся к команде \{brand\}/)
+    assert.match(read('app/(storefront)/u/[id]/layout.js'), /opengraph-image\?v=20260821/)
+    assert.match(read('app/(storefront)/go/[vanity]/layout.js'), /opengraph-image\?v=20260821/)
   })
 })
