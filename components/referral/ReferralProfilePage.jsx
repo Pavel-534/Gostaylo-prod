@@ -65,7 +65,7 @@ export function ReferralProfilePage() {
   })
   const tabsListRef = useRef(null)
   const skipTabScrollTopOnceRef = useRef(false)
-  const [tabValue, setTabValue] = useState('earnings')
+  const [tabValue, setTabValue] = useState('overview')
   const [consentAt, setConsentAt] = useState(undefined)
   const [consentModalOpen, setConsentModalOpen] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
@@ -254,163 +254,204 @@ export function ReferralProfilePage() {
     <ProductPageShell>
       <ProfileHubNav t={t} />
 
-      <div className="space-y-5 max-w-full overflow-x-hidden overscroll-x-none">
-        <div className="relative z-10 -mx-4 px-4 pt-3 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold text-slate-900 break-words">
-                {t('stage131a5_heroWelcomeTitle', { name: heroDisplayName })}
-              </h1>
-              {heroCode ? (
-                <p className="mt-1 text-sm text-slate-600">
-                  {t('stage131a5_heroCodeLabel')}: <span className="font-semibold tracking-wide">{heroCode}</span>
-                </p>
-              ) : null}
-            </div>
-            <span className="inline-flex h-11 min-h-[44px] w-11 min-w-[44px] items-center justify-center rounded-2xl border border-brand/20 bg-brand/10 text-brand-hover font-bold">
-              A
-            </span>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs text-slate-500">{t('stage131a5_heroEarnedTotalLabel')}</p>
-              <p className="text-3xl font-black text-brand mt-1 tabular-nums break-words">
-                {formatThbAsDisplay(earnedThb)}
-              </p>
-              <p className="mt-1 text-xs text-slate-600">{t('stage131a5_heroWithdrawableSubLabel', { amount: formatThbAsDisplay(withdrawableThb) })}</p>
-            </div>
-
-            <Button
-              type="button"
-              variant="brand"
-              className="min-h-[44px] w-full sm:w-auto sm:min-w-[11rem] px-4"
-              onClick={() => void handleHeroShare()}
-              disabled={referralLoading || shareBusy}
-              data-testid="referral-hero-share-cta"
-            >
-              <Share2 className="h-4 w-4 mr-2 shrink-0" aria-hidden />
-              <span className="truncate">{t('stage131a5_heroShareCta')}</span>
-            </Button>
-          </div>
-
-          {userRankData?.rank != null && Number(userRankData.total_ambassadors) >= 5 ? (
-            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2 text-sm text-amber-950" data-testid="user-rank-badge">
-              <Trophy className="h-4 w-4 text-amber-600 shrink-0" aria-hidden />
-              <span>
-                {t('stage131a61_rankLine', {
-                  rank: String(userRankData.rank),
-                  total: String(userRankData.total_ambassadors),
-                })}
-              </span>
-              {userRankData.next_rank_bucket_hint ? (
-                <span className="ml-auto text-xs text-amber-700/80 shrink-0">{userRankData.next_rank_bucket_hint}</span>
-              ) : null}
-            </div>
-          ) : null}
-
-          <p className="mt-3 text-sm text-slate-700 rounded-2xl border border-brand/10 bg-brand/5 px-4 py-2" role="status">
-            {adaptiveState === 'new'
-              ? t('stage131a5_adaptive_new', {
-                  remaining: remainingToNext ?? 5,
-                  nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
-                  rewardPct: nextRewardPct || 5,
-                  sampleAmount: starterPreviewAmount,
-                })
-              : adaptiveState === 'early'
-                ? t('stage131a5_adaptive_early', {
-                    remaining: remainingToNext ?? 5,
-                    nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
-                  })
-                : adaptiveState === 'active'
-                  ? t('stage131a5_adaptive_active', {
-                      earned: formatThbAsDisplay(earnedThb),
-                      nextTier: nextTierName ?? 'Gold',
-                      remaining: remainingToNext ?? 10,
-                    })
-                  : t('stage131a5_adaptive_veteran', {
-                      earned: formatThbAsDisplay(earnedThb),
-                      remainingDiamond: remainingToDiamond ?? 0,
-                      rankMonthly: leaderboardRankMonthly != null ? `#${leaderboardRankMonthly}` : '',
-                    })}
-          </p>
+      <Tabs value={tabValue} onValueChange={setTabValue} className="mt-3 space-y-5 max-w-full overflow-x-hidden">
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-slate-100">
+          <TabsList ref={tabsListRef} className={TABS_LIST_CLASS} data-testid="referral-profile-tabs">
+            <TabsTrigger value="overview" className={TAB_ACTIVE}>
+              {t('stage131a5_tabOverview')}
+            </TabsTrigger>
+            <TabsTrigger value="link" className={TAB_ACTIVE}>
+              {t('stage1143_tabLink')}
+            </TabsTrigger>
+            <TabsTrigger value="earnings" className={TAB_ACTIVE}>
+              {t('stage1143_tabEarnings')}
+            </TabsTrigger>
+            <TabsTrigger value="team" className={TAB_ACTIVE}>
+              {t('stage1143_tabTeam')}
+            </TabsTrigger>
+            <TabsTrigger value="history" className={TAB_ACTIVE}>
+              {t('stage1143_tabHistory')}
+            </TabsTrigger>
+            <TabsTrigger value="settings" className={TAB_ACTIVE}>
+              {t('stage1143_tabSettings')}
+            </TabsTrigger>
+          </TabsList>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <ReferralCalculatorV2
-            compact
-            directPartnersInvited={directPartnersInvited}
-          />
-
-          <div className="space-y-4">
-            <Card className="gsl-card">
-              <CardContent className="p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/50 p-3">
-                    <p className="text-xs text-slate-600">{t('stage131a5_balanceAvailable')}</p>
-                    <p className="mt-2 text-xl font-black text-emerald-950 tabular-nums">{formatThbAsDisplay(withdrawableThb)}</p>
-                    <p className="mt-1 text-[11px] text-slate-600">{t('stage131a5_balanceAvailableHint')}</p>
-                  </div>
-                  <div className="rounded-xl border border-amber-200/90 bg-amber-50/60 p-3">
-                    <p className="text-xs text-slate-600">{t('stage131a5_balanceHeld')}</p>
-                    <p className="mt-2 text-xl font-black text-amber-950 tabular-nums">{formatThbAsDisplay(heldReferralBalanceThb)}</p>
-                    <p className="mt-1 text-[11px] text-slate-600">
-                      {unlockLabel ? t('stage131a5_balanceUnlockAtHint', { date: unlockLabel }) : t('stage131a5_balanceHeldHint')}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-                    <p className="text-xs text-slate-600">{t('stage131a5_balanceEarnedLifetime')}</p>
-                    <p className="mt-2 text-xl font-black text-slate-900 tabular-nums">{formatThbAsDisplay(earnedThb)}</p>
-                    <p className="mt-1 text-[11px] text-slate-600">{t('stage131a5_balanceEarnedLifetimeHint')}</p>
-                  </div>
-                </div>
-                <div className="pt-1">
-                  <ReferralWithdrawEntryCta walletData={walletData} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="gsl-card">
-              <CardContent className="p-4 space-y-3">
-                <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressTitle')}</p>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-slate-800">
-                    {t('stage131a5_progressCurrent', { tier: currentTierName || '—' })}
+        <TabsContent value="overview" className="mt-0 space-y-5 max-w-full overflow-x-hidden overscroll-x-none">
+          <div className="relative z-10 pt-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold text-slate-900 break-words">
+                  {t('stage131a5_heroWelcomeTitle', { name: heroDisplayName })}
+                </h1>
+                {heroCode ? (
+                  <p className="mt-1 text-sm text-slate-600">
+                    {t('stage131a5_heroCodeLabel')}: <span className="font-semibold tracking-wide">{heroCode}</span>
                   </p>
-                  {nextTierName ? (
-                    <p className="text-sm text-slate-700">
-                      {t('stage131a5_progressNextReward', {
-                        pct: nextRewardPct,
-                        tier: nextTierName,
-                      })}
-                    </p>
-                  ) : null}
-                  {typeof ambassador?.tierProgressPercent === 'number' ? (
-                    <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
-                  ) : null}
+                ) : null}
+              </div>
+              <span className="inline-flex h-11 min-h-[44px] w-11 min-w-[44px] items-center justify-center rounded-2xl border border-brand/20 bg-brand/10 text-brand-hover font-bold">
+                A
+              </span>
+            </div>
 
-                  {nextTierName && remainingToNext != null ? (
-                    <p className="text-sm text-slate-600">{t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}</p>
-                  ) : (
-                    <p className="text-sm text-slate-600">{t('stage131a5_progressMax')}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">{t('stage131a5_heroEarnedTotalLabel')}</p>
+                <p className="text-3xl font-black text-brand mt-1 tabular-nums break-words">
+                  {formatThbAsDisplay(earnedThb)}
+                </p>
+                <p className="mt-1 text-xs text-slate-600">{t('stage131a5_heroWithdrawableSubLabel', { amount: formatThbAsDisplay(withdrawableThb) })}</p>
+              </div>
 
-            <div className="space-y-3">
-              <ReferralActivityFeed pageLimit={5} hideLoadMore layout="carousel" />
-              <Button variant="outline" className="w-full min-h-[44px]" onClick={() => setTabValue('history')}>
-                {t('stage131a5_historyAll')}
+              <Button
+                type="button"
+                variant="brand"
+                className="min-h-[44px] w-full sm:w-auto sm:min-w-[11rem] px-4"
+                onClick={() => void handleHeroShare()}
+                disabled={referralLoading || shareBusy}
+                data-testid="referral-hero-share-cta"
+              >
+                <Share2 className="h-4 w-4 mr-2 shrink-0" aria-hidden />
+                <span className="truncate">{t('stage131a5_heroShareCta')}</span>
               </Button>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <p className="mt-4 text-xs text-slate-500" data-testid="referral-mlm-persistent-disclaimer">
-        {t('referral_mlm_persistent_disclaimer')}
-      </p>
+            {userRankData?.rank != null && Number(userRankData.total_ambassadors) >= 5 ? (
+              <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2 text-sm text-amber-950" data-testid="user-rank-badge">
+                <Trophy className="h-4 w-4 text-amber-600 shrink-0" aria-hidden />
+                <span>
+                  {t('stage131a61_rankLine', {
+                    rank: String(userRankData.rank),
+                    total: String(userRankData.total_ambassadors),
+                  })}
+                </span>
+                {userRankData.next_rank_bucket_hint ? (
+                  <span className="ml-auto text-xs text-amber-700/80 shrink-0">{userRankData.next_rank_bucket_hint}</span>
+                ) : null}
+              </div>
+            ) : null}
+
+            <p className="mt-3 text-sm text-slate-700 rounded-2xl border border-brand/10 bg-brand/5 px-4 py-2" role="status">
+              {adaptiveState === 'new'
+                ? t('stage131a5_adaptive_new', {
+                    remaining: remainingToNext ?? 5,
+                    nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
+                    rewardPct: nextRewardPct || 5,
+                    sampleAmount: starterPreviewAmount,
+                  })
+                : adaptiveState === 'early'
+                  ? t('stage131a5_adaptive_early', {
+                      remaining: remainingToNext ?? 5,
+                      nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
+                    })
+                  : adaptiveState === 'active'
+                    ? t('stage131a5_adaptive_active', {
+                        earned: formatThbAsDisplay(earnedThb),
+                        nextTier: nextTierName ?? 'Gold',
+                        remaining: remainingToNext ?? 10,
+                      })
+                    : t('stage131a5_adaptive_veteran', {
+                        earned: formatThbAsDisplay(earnedThb),
+                        remainingDiamond: remainingToDiamond ?? 0,
+                        rankMonthly: leaderboardRankMonthly != null ? `#${leaderboardRankMonthly}` : '',
+                      })}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <ReferralCalculatorV2
+              compact
+              directPartnersInvited={directPartnersInvited}
+            />
+
+            <div className="space-y-4">
+              <Card className="gsl-card">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/50 p-3">
+                      <p className="text-xs text-slate-600">{t('stage131a5_balanceAvailable')}</p>
+                      <p className="mt-2 text-xl font-black text-emerald-950 tabular-nums">{formatThbAsDisplay(withdrawableThb)}</p>
+                      <p className="mt-1 text-[11px] text-slate-600">{t('stage131a5_balanceAvailableHint')}</p>
+                    </div>
+                    <div className="rounded-xl border border-amber-200/90 bg-amber-50/60 p-3">
+                      <p className="text-xs text-slate-600">{t('stage131a5_balanceHeld')}</p>
+                      <p className="mt-2 text-xl font-black text-amber-950 tabular-nums">{formatThbAsDisplay(heldReferralBalanceThb)}</p>
+                      <p className="mt-1 text-[11px] text-slate-600">
+                        {unlockLabel ? t('stage131a5_balanceUnlockAtHint', { date: unlockLabel }) : t('stage131a5_balanceHeldHint')}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                      <p className="text-xs text-slate-600">{t('stage131a5_balanceEarnedLifetime')}</p>
+                      <p className="mt-2 text-xl font-black text-slate-900 tabular-nums">{formatThbAsDisplay(earnedThb)}</p>
+                      <p className="mt-1 text-[11px] text-slate-600">{t('stage131a5_balanceEarnedLifetimeHint')}</p>
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <ReferralWithdrawEntryCta walletData={walletData} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="gsl-card">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressTitle')}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-slate-800">
+                      {t('stage131a5_progressCurrent', { tier: currentTierName || '—' })}
+                    </p>
+                    {nextTierName ? (
+                      <p className="text-sm text-slate-700">
+                        {t('stage131a5_progressNextReward', {
+                          pct: nextRewardPct,
+                          tier: nextTierName,
+                        })}
+                      </p>
+                    ) : null}
+                    {typeof ambassador?.tierProgressPercent === 'number' ? (
+                      <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
+                    ) : null}
+
+                    {nextTierName && remainingToNext != null ? (
+                      <p className="text-sm text-slate-600">{t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}</p>
+                    ) : (
+                      <p className="text-sm text-slate-600">{t('stage131a5_progressMax')}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-3">
+                <ReferralActivityFeed pageLimit={5} hideLoadMore layout="carousel" />
+                <Button variant="outline" className="w-full min-h-[44px]" onClick={() => setTabValue('history')}>
+                  {t('stage131a5_historyAll')}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500" data-testid="referral-mlm-persistent-disclaimer">
+            {t('referral_mlm_persistent_disclaimer')}
+          </p>
+        </TabsContent>
+
+        <TabsContent value="link" className="mt-0">
+          <ReferralProfileTabLink data={data} walletData={walletData} t={t} locale={locale} welcomeBonusThb={welcomeBonusThb} />
+        </TabsContent>
+        <TabsContent value="earnings" className="mt-0">
+          <ReferralProfileTabEarnings data={data} walletData={walletData} t={t} locale={locale} />
+        </TabsContent>
+        <TabsContent value="team" className="mt-0">
+          <ReferralProfileTabTeam data={data} t={t} locale={locale} language={language} />
+        </TabsContent>
+        <TabsContent value="history" className="mt-0">
+          <ReferralProfileTabHistory data={data} walletData={walletData} t={t} locale={locale} />
+        </TabsContent>
+        <TabsContent value="settings" className="mt-0">
+          <ReferralProfileTabSettings data={data} t={t} />
+        </TabsContent>
+      </Tabs>
 
       <MlmConsentModal
         open={consentAt === null && consentModalOpen}
@@ -421,42 +462,6 @@ export function ReferralProfilePage() {
           if (meta?.consented) setConsentAt(meta.consentAt || new Date().toISOString())
         }}
       />
-
-      <Tabs value={tabValue} onValueChange={setTabValue} className="mt-6 space-y-6 max-w-full overflow-x-hidden">
-        <TabsList ref={tabsListRef} className={TABS_LIST_CLASS} data-testid="referral-profile-tabs">
-          <TabsTrigger value="earnings" className={TAB_ACTIVE}>
-            {t('stage1143_tabEarnings')}
-          </TabsTrigger>
-          <TabsTrigger value="team" className={TAB_ACTIVE}>
-            {t('stage1143_tabTeam')}
-          </TabsTrigger>
-          <TabsTrigger value="link" className={TAB_ACTIVE}>
-            {t('stage1143_tabLink')}
-          </TabsTrigger>
-          <TabsTrigger value="history" className={TAB_ACTIVE}>
-            {t('stage1143_tabHistory')}
-          </TabsTrigger>
-          <TabsTrigger value="settings" className={TAB_ACTIVE}>
-            {t('stage1143_tabSettings')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="link">
-          <ReferralProfileTabLink data={data} walletData={walletData} t={t} locale={locale} welcomeBonusThb={welcomeBonusThb} />
-        </TabsContent>
-        <TabsContent value="earnings">
-          <ReferralProfileTabEarnings data={data} walletData={walletData} t={t} locale={locale} />
-        </TabsContent>
-        <TabsContent value="team">
-          <ReferralProfileTabTeam data={data} t={t} locale={locale} language={language} />
-        </TabsContent>
-        <TabsContent value="history">
-          <ReferralProfileTabHistory data={data} walletData={walletData} t={t} locale={locale} />
-        </TabsContent>
-        <TabsContent value="settings">
-          <ReferralProfileTabSettings data={data} t={t} />
-        </TabsContent>
-      </Tabs>
     </ProductPageShell>
   )
 }

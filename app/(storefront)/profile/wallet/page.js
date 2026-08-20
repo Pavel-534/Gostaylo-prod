@@ -279,6 +279,12 @@ export default function ProfileWalletPage() {
                 onRequestWithdraw={requestReferralWithdrawal}
                 blockerDetails={blockerDetails}
                 locale={locale}
+                forceShowProfile={
+                  walletAction === 'payout-setup' ||
+                  blockerDetails.some((b) =>
+                    String(b?.code || '').startsWith('REFERRAL_RU_PAYOUT_PROFILE'),
+                  )
+                }
                 className="w-full max-w-full overflow-hidden"
               />
               {showPartnerPayoutCta ? (

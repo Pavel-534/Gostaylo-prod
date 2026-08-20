@@ -29,6 +29,8 @@
 
 ### Stage 131.A5.D — Guest ambassador withdraw entry UX
 - `/profile/wallet`: «Партнёрский вывод» только при `isPartner` / `canAccessPartner`; deep-link `?action=payout-setup` → scroll/focus `#ru-payout-profile`.
+- **Fix:** форма RU-реквизитов больше не скрывается при балансе 0 (раньше `ReferralWithdrawalWaterfall` делал `return null`).
+- `/profile/referral`: вкладки (Обзор / Ссылка / …) сразу под hub-nav, sticky; QR на вкладке «Ссылка» + Telegram/WhatsApp.
 - `/profile/referral` + `/profile/status`: `ReferralWithdrawEntryCta` (реквизиты / мин. порог из SSOT / запрос вывода) — без хардкода ₽2600.
 - Blocker copy: банковские реквизиты РФ (БИК, счёт, ИНН); href → `?action=payout-setup`.
 

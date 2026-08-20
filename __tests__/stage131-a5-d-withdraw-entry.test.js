@@ -15,6 +15,32 @@ function read(rel) {
 }
 
 describe('Stage 131.A5.D — referral withdraw entry UX', () => {
+  it('referral tabs sit under hub (sticky), with overview + link first', () => {
+    const src = read('components/referral/ReferralProfilePage.jsx')
+    assert.match(src, /ProfileHubNav/)
+    assert.match(src, /stage131a5_tabOverview/)
+    assert.match(src, /sticky top-0/)
+    // Tabs must appear before heavy overview content mount order: TabsList then overview content
+    const hubIdx = src.indexOf('<ProfileHubNav')
+    const tabsIdx = src.indexOf('data-testid="referral-profile-tabs"')
+    const overviewIdx = src.indexOf('value="overview"')
+    assert.ok(hubIdx >= 0 && tabsIdx > hubIdx)
+    assert.ok(overviewIdx > 0)
+  })
+
+  it('waterfall keeps RU form at zero balance when setup forced', () => {
+    const src = read('components/referral/ReferralWithdrawalWaterfall.jsx')
+    assert.match(src, /forceShowProfile/)
+    assert.match(src, /showProfileOnly/)
+    assert.match(src, /needsRuPayoutProfileSetup/)
+  })
+
+  it('payout blockers scroll to form on wallet instead of only reloading hash', () => {
+    const src = read('components/referral/ReferralPayoutBlockers.jsx')
+    assert.match(src, /focusRuPayoutProfile/)
+    assert.match(src, /handleRuSetupClick/)
+  })
+
   it('wallet hides partner payout CTA unless partner access', () => {
     const src = read('app/(storefront)/profile/wallet/page.js')
     assert.match(src, /showPartnerPayoutCta/)

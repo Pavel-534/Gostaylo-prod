@@ -187,6 +187,49 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
             </Button>
           </div>
 
+          <div className="grid grid-cols-2 gap-2" data-testid="referral-link-messengers">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={!cleanInviteLink}
+              onClick={() => {
+                const url = String(cleanInviteLink || '').trim()
+                if (!url) return
+                const text = String(t('stage73_shareBodyDefault') || '')
+                  .replace(/\{brand\}/g, brand)
+                  .replace(/\{link\}/g, url)
+                window.open(
+                  `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+                  '_blank',
+                  'noopener,noreferrer',
+                )
+              }}
+            >
+              {t('stage131a5_shareViaTelegram')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={!cleanInviteLink}
+              onClick={() => {
+                const url = String(cleanInviteLink || '').trim()
+                if (!url) return
+                const text = String(t('stage73_shareBodyDefault') || '')
+                  .replace(/\{brand\}/g, brand)
+                  .replace(/\{link\}/g, url)
+                window.open(
+                  `https://wa.me/?text=${encodeURIComponent(text)}`,
+                  '_blank',
+                  'noopener,noreferrer',
+                )
+              }}
+            >
+              {t('stage131a5_shareViaWhatsapp')}
+            </Button>
+          </div>
+
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3 space-y-2 text-sm text-slate-600">
             <p className="font-medium text-slate-800">{t('stage1143_howItWorks')}</p>
             <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed">

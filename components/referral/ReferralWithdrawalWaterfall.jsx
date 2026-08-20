@@ -98,6 +98,16 @@ function WaterfallStep({ label, amount, sublabel, tone = 'neutral', icon: Icon }
 
  */
 
+function needsRuPayoutProfileSetup(blockerDetails) {
+  return (Array.isArray(blockerDetails) ? blockerDetails : []).some((b) => {
+    const code = String(b?.code || '')
+    return (
+      code.startsWith('REFERRAL_RU_PAYOUT_PROFILE') ||
+      code === 'REFERRAL_RU_INN_CHECKSUM_INVALID'
+    )
+  })
+}
+
 export function ReferralWithdrawalWaterfall({
 
   maxWithdrawableThb = 0,
@@ -117,6 +127,9 @@ export function ReferralWithdrawalWaterfall({
   locale = 'ru-RU',
 
   className = '',
+
+  /** Stage 131.A5.D — keep RU bank form visible even at ₽0 (deep-link / setup CTA). */
+  forceShowProfile = false,
 
 }) {
 
@@ -290,9 +303,35 @@ export function ReferralWithdrawalWaterfall({
 
 
 
-  if (maxGrossThb <= 0 && !referralWithdrawRequested) return null
+  const showProfileOnly =
+    maxGrossThb <= 0 &&
+    !referralWithdrawRequested &&
+    (forceShowProfile || needsRuPayoutProfileSetup(blockerDetails))
 
+  if (maxGrossThb <= 0 && !referralWithdrawRequested && !showProfileOnly) return null
 
+  if (showProfileOnly) {
+    return (
+      <div
+        id="referral-withdraw-waterfall"
+        className={`rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/40 to-white p-5 sm:p-6 shadow-sm space-y-4 ${className}`}
+        data-testid="referral-withdraw-profile-only"
+      >
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-brand/10 p-2.5 shrink-0">
+            <ShieldCheck className="h-5 w-5 text-brand" aria-hidden />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 tracking-tight">
+              {t('stage1322_ruProfileTitle')}
+            </h3>
+            <p className="text-sm text-slate-600 mt-0.5">{t('stage131a5_withdrawSetupWhileZeroHint')}</p>
+          </div>
+        </div>
+        <ReferralRuPayoutProfileForm onReady={setRuProfileReady} />
+      </div>
+    )
+  }
 
   const feePercent = preview?.withdrawalFeePercent ?? 1.5
 

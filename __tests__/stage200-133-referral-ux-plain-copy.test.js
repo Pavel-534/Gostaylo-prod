@@ -66,6 +66,7 @@ describe('Stage 200.133 — referral UX plain copy', () => {
     assert.match(src, /data-testid="referral-link-share"/)
     assert.match(src, /navigator\.share/)
     assert.match(src, /data-testid="referral-utm-toggle"/)
+    assert.match(src, /data-testid="referral-link-messengers"/)
     assert.doesNotMatch(src, /ReferralMarketingKit/)
     assert.doesNotMatch(src, /ReferralAmbassadorWaveGuide/)
     assert.doesNotMatch(src, /stage91_whyShareTitle/)
