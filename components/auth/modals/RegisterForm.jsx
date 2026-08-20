@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { useState } from 'react'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy'
+import { hasPendingReferralClient } from '@/contexts/auth/auth-referral-handler'
 
 export function RegisterForm({
   language,
@@ -31,6 +33,10 @@ export function RegisterForm({
   setRegisterLegalConsent,
   onSubmit,
 }) {
+  const inviteFromLink = Boolean(String(promoCode || '').trim()) && hasPendingReferralClient()
+  const [manualReferralEdit, setManualReferralEdit] = useState(false)
+  const hideReferralField = inviteFromLink && !manualReferralEdit
+
   return (
     <form onSubmit={onSubmit} className='flex min-h-0 flex-col overflow-hidden'>
       <div className='max-h-[min(52vh,400px)] space-y-4 overflow-y-auto pb-2'>
@@ -55,51 +61,70 @@ export function RegisterForm({
           />
         </div>
 
-        <div className='space-y-1.5'>
-          <div className='flex items-center justify-between'>
-            <Label htmlFor='auth-referral-code' className='text-sm'>
-              {getUIText('auth_referral_label', language)}
-            </Label>
+        {hideReferralField ? (
+          <div
+            className='space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-3'
+            data-testid='auth-referral-from-link'
+          >
+            <p className='text-sm text-emerald-900'>{getUIText('auth_referral_fromLinkSaved', language)}</p>
             <button
               type='button'
-              className='inline-flex min-h-11 items-center px-1 py-2 text-sm text-brand hover:text-brand-hover hover:underline'
-              onClick={() => void validatePromoCode()}
-              disabled={!promoCode || promoStatus === 'checking'}
+              className='inline-flex min-h-11 items-center text-sm font-medium text-brand hover:underline'
+              onClick={() => setManualReferralEdit(true)}
             >
-              {getUIText('auth_referral_check', language)}
+              {getUIText('auth_referral_changeCode', language)}
             </button>
           </div>
-          <Input
-            id='auth-referral-code'
-            type='text'
-            placeholder={getUIText('auth_referral_placeholder', language)}
-            value={promoCode}
-            onChange={(e) => {
-              setPromoCode(String(e.target.value || '').toUpperCase())
-              setPromoStatus('idle')
-              setPromoMessage('')
-            }}
-            onBlur={() => void validatePromoCode()}
-            autoComplete='off'
-            autoCapitalize='characters'
-            autoCorrect='off'
-            spellCheck={false}
-            className='h-11 text-base uppercase'
-          />
-          {promoMessage ? (
-            <p
-              className={`text-xs ${
-                promoStatus === 'valid'
-                  ? 'text-emerald-600'
-                  : promoStatus === 'checking'
-                    ? 'text-slate-500'
-                    : 'text-red-500'
-              }`}
-            >
-              {promoMessage}
-            </p>
-          ) : null}
-        </div>
+        ) : (
+          <div className='space-y-1.5'>
+            <div className='flex items-center justify-between'>
+              <Label htmlFor='auth-referral-code' className='text-sm'>
+                {getUIText('auth_referral_label', language)}
+              </Label>
+              <button
+                type='button'
+                className='inline-flex min-h-11 items-center px-1 py-2 text-sm text-brand hover:text-brand-hover hover:underline'
+                onClick={() => void validatePromoCode()}
+                disabled={!promoCode || promoStatus === 'checking'}
+              >
+                {getUIText('auth_referral_check', language)}
+              </button>
+            </div>
+            <Input
+              id='auth-referral-code'
+              type='text'
+              placeholder={getUIText('auth_referral_placeholder', language)}
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(String(e.target.value || '').toUpperCase())
+                setPromoStatus('idle')
+                setPromoMessage('')
+              }}
+              onBlur={() => void validatePromoCode()}
+              autoComplete='off'
+              autoCapitalize='characters'
+              autoCorrect='off'
+              spellCheck={false}
+              className='h-11 text-base uppercase'
+              data-testid='auth-referral-input'
+            />
+            {promoMessage ? (
+              <p
+                className={`text-xs ${
+                  promoStatus === 'valid'
+                    ? 'text-emerald-600'
+                    : promoStatus === 'checking'
+                      ? 'text-slate-500'
+                      : 'text-red-500'
+                }`}
+              >
+                {promoMessage}
+              </p>
+            ) : !inviteFromLink ? (
+              <p className='text-xs text-slate-500'>{getUIText('auth_referral_hintOrganic', language)}</p>
+            ) : null}
+          </div>
+        )}
 
         <div className='space-y-1.5'>
           <Label htmlFor='auth-email' className='text-sm'>

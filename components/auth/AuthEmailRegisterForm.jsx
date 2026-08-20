@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -16,7 +16,19 @@ import {
   PENDING_REF_COOKIE,
   PENDING_REF_LS,
   readPendingRefFromCookie,
+  hasPendingReferralClient,
 } from '@/contexts/auth/auth-referral-handler'
+
+function readPendingReferralCode() {
+  try {
+    return (
+      readPendingRefFromCookie().trim().toUpperCase() ||
+      String(typeof localStorage !== 'undefined' ? localStorage.getItem(PENDING_REF_LS) || '' : '').trim().toUpperCase()
+    )
+  } catch {
+    return ''
+  }
+}
 
 export function AuthEmailRegisterForm({ legalConsent = false, onLegalRequired }) {
   const router = useRouter()
@@ -25,9 +37,19 @@ export function AuthEmailRegisterForm({ legalConsent = false, onLegalRequired })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [promoCode, setPromoCode] = useState('')
+  const [inviteFromLink, setInviteFromLink] = useState(false)
+  const [showReferralInput, setShowReferralInput] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const pending = readPendingReferralCode()
+    if (!pending) return
+    setPromoCode(pending)
+    setInviteFromLink(true)
+    setShowReferralInput(false)
+  }, [])
 
   const onSubmit = useCallback(
     async (e) => {
@@ -51,14 +73,7 @@ export function AuthEmailRegisterForm({ legalConsent = false, onLegalRequired })
 
       try {
         const typedRef = String(promoCode || '').trim().toUpperCase()
-        let fallbackRef = ''
-        try {
-          fallbackRef =
-            readPendingRefFromCookie().trim().toUpperCase() ||
-            String(localStorage.getItem(PENDING_REF_LS) || '').trim().toUpperCase()
-        } catch {
-          fallbackRef = ''
-        }
+        const fallbackRef = readPendingReferralCode()
         const effectiveRef = typedRef || fallbackRef || ''
         let referredByPayload = null
 
@@ -127,17 +142,39 @@ export function AuthEmailRegisterForm({ legalConsent = false, onLegalRequired })
           required
         />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="auth-referral">{getUIText('auth_referral_label', language)}</Label>
-        <Input
-          id="auth-referral"
-          value={promoCode}
-          onChange={(e) => setPromoCode(String(e.target.value || '').toUpperCase())}
-          placeholder={getUIText('auth_referral_placeholder', language)}
-          className="h-12 text-base uppercase"
-          autoComplete="off"
-        />
-      </div>
+
+      {inviteFromLink && !showReferralInput ? (
+        <div
+          className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-3 space-y-2"
+          data-testid="auth-referral-from-link"
+        >
+          <p className="text-sm text-emerald-900">{getUIText('auth_referral_fromLinkSaved', language)}</p>
+          <button
+            type="button"
+            className="min-h-[44px] text-sm font-medium text-brand underline-offset-2 hover:underline"
+            onClick={() => setShowReferralInput(true)}
+          >
+            {getUIText('auth_referral_changeCode', language)}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="auth-referral">{getUIText('auth_referral_label', language)}</Label>
+          <Input
+            id="auth-referral"
+            value={promoCode}
+            onChange={(e) => setPromoCode(String(e.target.value || '').toUpperCase())}
+            placeholder={getUIText('auth_referral_placeholder', language)}
+            className="h-12 text-base uppercase"
+            autoComplete="off"
+            data-testid="auth-referral-input"
+          />
+          {!inviteFromLink && !hasPendingReferralClient() ? (
+            <p className="text-xs text-slate-500">{getUIText('auth_referral_hintOrganic', language)}</p>
+          ) : null}
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label htmlFor="auth-email">{getUIText('email', language)}</Label>
         <Input

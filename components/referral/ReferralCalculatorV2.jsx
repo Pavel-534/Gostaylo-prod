@@ -12,8 +12,33 @@ import { Slider } from '@/components/ui/slider'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { convertAmountThbWithMap } from '@/lib/finance/currency-converter-shared'
+import { formatNativeAmountInCurrency } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+
+/**
+ * Marketing calculator amounts: whole units in display currency.
+ * Do NOT use ledger nearest-100 RUB snap — it turns small per-order shares into ₽0.
+ */
+function formatCalcAmountFromThb(thb, currencyCode, rateMap, language) {
+  const code = String(currencyCode || 'THB').toUpperCase()
+  const thbN = Number(thb)
+  if (!Number.isFinite(thbN) || thbN <= 0) return formatNativeAmountInCurrency(0, code, language)
+  if (code === 'THB') return formatNativeAmountInCurrency(Math.round(thbN), code, language)
+  const rates = rateMap && typeof rateMap === 'object' ? { THB: 1, ...rateMap } : { THB: 1 }
+  const raw = convertAmountThbWithMap(thbN, code, rates)
+  if (raw == null || !Number.isFinite(raw)) {
+    // FX not ready — avoid fake ₽0 for a real THB amount.
+    return formatNativeAmountInCurrency(Math.round(thbN), 'THB', language)
+  }
+  const rounded = Math.round(raw)
+  // Tiny positive amounts must not collapse to zero in the marketing example.
+  if (rounded === 0 && raw > 0) {
+    return formatNativeAmountInCurrency(1, code, language)
+  }
+  return formatNativeAmountInCurrency(rounded, code, language)
+}
 
 const ACTIVITY_PRESETS = [
   { value: 0, label: '0%' },
@@ -57,15 +82,16 @@ export function ReferralCalculatorV2({
 }) {
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const {
-    formatThbAsDisplay,
-    convertDisplayToThb,
-    currency: displayCurrency,
-    rateMap,
-  } = useReferralLedgerDisplay()
+  const { convertDisplayToThb, currency: displayCurrency, rateMap } = useReferralLedgerDisplay()
 
+  const formatMoney = useCallback(
+    (thb) => formatCalcAmountFromThb(thb, displayCurrency, rateMap, language),
+    [displayCurrency, rateMap, language],
+  )
+
+  // Realistic demo default: ~mid vacation/service order in display currency.
   const [ordersArr, setOrdersArr] = useState([5])
-  const [avgArr, setAvgArr] = useState([29000])
+  const [avgArr, setAvgArr] = useState([35000])
   const [activityRate, setActivityRate] = useState(0.33)
   const [mode, setMode] = useState('simple') // simple | detail | guest
   const [loading, setLoading] = useState(false)
@@ -74,7 +100,7 @@ export function ReferralCalculatorV2({
 
   const runCalc = useCallback(async () => {
     const orders = Math.max(1, Math.min(50, Number(ordersArr?.[0] ?? 5)))
-    const avgDisplay = Number(avgArr?.[0] ?? 29000)
+    const avgDisplay = Number(avgArr?.[0] ?? 35000)
     if (!Number.isFinite(avgDisplay)) return
 
     const subtotalThb = Math.max(500, Math.round(convertDisplayToThb(avgDisplay) || 35000))
@@ -126,20 +152,6 @@ export function ReferralCalculatorV2({
   const yourTotal = round2(l1Total + l2Total + l3Total)
 
   const split = result?.splitPercents || {}
-  const midRate =
-    displayCurrency && displayCurrency !== 'THB' && rateMap?.[displayCurrency]
-      ? Number(rateMap[displayCurrency])
-      : displayCurrency === 'THB'
-        ? 1
-        : null
-
-  const fxNote =
-    midRate != null && Number.isFinite(midRate)
-      ? t('calc_fx_note', {
-          currency: displayCurrency,
-          rate: String(Math.round(midRate * 10000) / 10000),
-        })
-      : null
 
   return (
     <Card className={cn('gsl-card', className)} data-testid="referral-calculator-v2">
@@ -171,7 +183,7 @@ export function ReferralCalculatorV2({
               <p className="text-sm font-medium text-slate-800">
                 {t('calc_slider2_label')} ({displayCurrency})
               </p>
-              <p className="text-sm font-semibold tabular-nums text-slate-900">{avgArr?.[0] ?? 29000}</p>
+              <p className="text-sm font-semibold tabular-nums text-slate-900">{avgArr?.[0] ?? 35000}</p>
             </div>
             <Slider
               min={1000}
@@ -225,14 +237,14 @@ export function ReferralCalculatorV2({
           >
             <p className="text-xs uppercase tracking-wide text-slate-600">{t('calc_result_title')}</p>
             <p className="text-3xl font-black tabular-nums text-brand break-words" data-testid="calc-total-amount">
-              {formatThbAsDisplay(yourTotal)}
+              {formatMoney(yourTotal)}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
               <span>
-                {t('calc_result_l1_label')}: {formatThbAsDisplay(l1Total)}
+                {t('calc_result_l1_label')}: {formatMoney(l1Total)}
               </span>
               <span>
-                {t('calc_result_network_label')}: {formatThbAsDisplay(l2Total)}
+                {t('calc_result_network_label')}: {formatMoney(l2Total)}
               </span>
             </div>
 
@@ -250,7 +262,7 @@ export function ReferralCalculatorV2({
               </div>
             ) : (
               <p className="text-xs text-violet-800">
-                {t('calc_result_l3_label')}: {formatThbAsDisplay(l3Total)}
+                {t('calc_result_l3_label')}: {formatMoney(l3Total)}
               </p>
             )}
           </div>
@@ -283,26 +295,18 @@ export function ReferralCalculatorV2({
             data-testid="calc-detail-panel"
           >
             <p className="font-semibold text-slate-900">{t('calc_detail_title')}</p>
-            <ol className="space-y-2 text-slate-700">
+            <ol className="space-y-3 text-slate-700">
               <li>
                 {t('calc_step1', {
-                  X: formatThbAsDisplay(result.guestPaysTotalThb ?? result.guestPaymentThb),
-                  currency: displayCurrency,
+                  X: formatMoney(result.guestPaysTotalThb ?? result.guestPaymentThb),
                 })}
-                <span className="block text-xs text-slate-500">{t('calc_step1_hint')}</span>
+                <span className="block text-xs text-slate-500 mt-0.5">{t('calc_step1_hint')}</span>
               </li>
               <li>
-                {t('calc_step2', {
-                  X: formatThbAsDisplay(result.platformGrossThb ?? result.guestServiceFeeThb),
-                  currency: displayCurrency,
+                {t('calc_step_pool', {
+                  X: formatMoney(result.referralPoolThb),
                 })}
-              </li>
-              <li>
-                {t('calc_step3', {
-                  X: formatThbAsDisplay(result.referralPoolThb),
-                  pct: String(result.referralReinvestmentPercent ?? 45),
-                  currency: displayCurrency,
-                })}
+                <span className="block text-xs text-slate-500 mt-0.5">{t('calc_step_pool_hint')}</span>
               </li>
               <li>
                 <p>{t('calc_step4')}</p>
@@ -310,17 +314,15 @@ export function ReferralCalculatorV2({
                   <li>
                     {t('calc_split_l1', {
                       pct: String(split.l1 ?? ''),
-                      X: formatThbAsDisplay(result.l1AmountThb),
-                      currency: displayCurrency,
+                      X: formatMoney(result.l1AmountThb),
                     })}
                   </li>
                   <li>
                     {t('calc_split_l2', {
                       pct: String(split.l2 ?? ''),
-                      X: formatThbAsDisplay(result.l2AmountThb),
-                      currency: displayCurrency,
-                      capBooking: String(result.l2CapPerBookingThb ?? 500),
-                      capMonth: String(result.l2CapPerMonthThb ?? 50000),
+                      X: formatMoney(result.l2AmountThb),
+                      capBooking: formatMoney(result.l2CapPerBookingThb ?? 500),
+                      capMonth: formatMoney(result.l2CapPerMonthThb ?? 50_000),
                     })}
                   </li>
                   <li>
@@ -333,15 +335,13 @@ export function ReferralCalculatorV2({
                         : t('calc_split_l3_locked_public', { pct: String(split.l3 ?? 5) })
                       : t('calc_split_l3', {
                           pct: String(split.l3 ?? ''),
-                          X: formatThbAsDisplay(result.l3AmountThb),
-                          currency: displayCurrency,
+                          X: formatMoney(result.l3AmountThb),
                         })}
                   </li>
                   <li>
                     {t('calc_split_referee', {
                       pct: String(split.referee ?? ''),
-                      X: formatThbAsDisplay(result.refereeAmountThb),
-                      currency: displayCurrency,
+                      X: formatMoney(result.refereeAmountThb),
                     })}
                   </li>
                 </ul>
@@ -352,16 +352,14 @@ export function ReferralCalculatorV2({
               <p>
                 {t('calc_total_l1', {
                   N: String(result.l1BookingsCount ?? ordersArr?.[0] ?? 5),
-                  X: formatThbAsDisplay(l1Total),
-                  currency: displayCurrency,
+                  X: formatMoney(l1Total),
                 })}
               </p>
               <p>
                 {t('calc_total_l2', {
                   N: String(result.l1BookingsCount ?? ordersArr?.[0] ?? 5),
                   activity: String(Math.round(activityRate * 100)),
-                  X: formatThbAsDisplay(l2Total),
-                  currency: displayCurrency,
+                  X: formatMoney(l2Total),
                 })}
               </p>
               {!l3Locked ? (
@@ -369,8 +367,7 @@ export function ReferralCalculatorV2({
                   {t('calc_total_l3', {
                     N: String(result.l1BookingsCount ?? ordersArr?.[0] ?? 5),
                     activity: String(Math.round(activityRate * 100)),
-                    X: formatThbAsDisplay(l3Total),
-                    currency: displayCurrency,
+                    X: formatMoney(l3Total),
                   })}
                 </p>
               ) : null}
@@ -378,11 +375,9 @@ export function ReferralCalculatorV2({
 
             <p className="text-base font-bold text-slate-900">
               {t('calc_total_title', {
-                X: formatThbAsDisplay(yourTotal),
-                currency: displayCurrency,
+                X: formatMoney(yourTotal),
               })}
             </p>
-            <p className="text-[11px] text-slate-500">{t('calc_total_note')}</p>
           </div>
         ) : null}
 
@@ -392,21 +387,30 @@ export function ReferralCalculatorV2({
             data-testid="calc-guest-panel"
           >
             <p className="font-semibold text-teal-950">{t('calc_guest_title')}</p>
-            <p className="text-xs leading-relaxed text-teal-900/90">
-              {t('calc_guest_body', { pct: String(split.referee ?? 43) })}
-            </p>
-            <p className="text-xs text-teal-900/80">
-              {t('calc_guest_example', {
-                X: formatThbAsDisplay(result.subtotalThb),
-                Y: formatThbAsDisplay(result.refereeAmountThb),
-                currency: displayCurrency,
-              })}
-            </p>
+            <p className="text-xs leading-relaxed text-teal-900/90">{t('calc_guest_body')}</p>
+            <div className="rounded-xl border border-teal-200/80 bg-white/70 px-3 py-2.5 space-y-1 text-xs text-teal-950">
+              <p>
+                {t('calc_guest_example_order', {
+                  X: formatMoney(result.subtotalThb ?? result.guestPaymentThb),
+                })}
+              </p>
+              <p>
+                {t('calc_guest_example_pool', {
+                  pool: formatMoney(result.referralPoolThb),
+                })}
+              </p>
+              <p className="font-semibold">
+                {t('calc_guest_example_wallet', {
+                  Y: formatMoney(result.refereeAmountThb),
+                  pct: String(split.referee ?? ''),
+                })}
+              </p>
+            </div>
+            <p className="text-[11px] leading-relaxed text-teal-900/70">{t('calc_guest_footnote')}</p>
           </div>
         ) : null}
 
         <p className="text-[11px] leading-relaxed text-slate-500">{t('calc_disclaimer')}</p>
-        {fxNote ? <p className="text-[11px] text-slate-400">{fxNote}</p> : null}
       </CardContent>
     </Card>
   )

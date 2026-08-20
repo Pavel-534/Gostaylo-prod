@@ -370,14 +370,17 @@ export function ReferralProfilePage() {
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressTitle')}</p>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t('stage131a5_progressCurrent', { tier: currentTierName || '—' })}
+                  <p className="text-sm font-medium text-slate-800">
+                    {t('stage131a5_progressCurrent', { tier: currentTierName || '—' })}
+                  </p>
+                  {nextTierName ? (
+                    <p className="text-sm text-slate-700">
+                      {t('stage131a5_progressNextReward', {
+                        pct: nextRewardPct,
+                        tier: nextTierName,
+                      })}
                     </p>
-                    {nextTierName ? (
-                      <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressNextReward', { pct: nextRewardPct })}</p>
-                    ) : null}
-                  </div>
+                  ) : null}
                   {typeof ambassador?.tierProgressPercent === 'number' ? (
                     <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
                   ) : null}

@@ -19,14 +19,14 @@ const CALC_KEYS = [
   'calc_l3_locked_public',
   'calc_btn_how',
   'calc_btn_guest',
-  'calc_fx_note',
+  'calc_step_pool',
   'calc_split_l2',
   'calc_guest_body',
   'calc_result_l3_label',
 ]
 
 describe('Stage 131.A5.B2 — calculator v2', () => {
-  it('shared component: simple result + detail/guest panels + activity presets', () => {
+  it('shared component: simple result + marketing detail without hold/FX noise', () => {
     const src = read('components/referral/ReferralCalculatorV2.jsx')
     assert.match(src, /data-testid="referral-calculator-v2"/)
     assert.match(src, /data-testid="calc-simple-result"/)
@@ -35,15 +35,16 @@ describe('Stage 131.A5.B2 — calculator v2', () => {
     assert.match(src, /data-testid="calc-guest-panel"/)
     assert.match(src, /data-testid="calc-l3-locked"/)
     assert.match(src, /data-testid="calc-activity-presets"/)
-    assert.match(src, /ACTIVITY_PRESETS/)
-    assert.match(src, /l2ConversionRate/)
-    assert.match(src, /directPartnersInvited/)
-    assert.match(src, /calc_fx_note/)
-    assert.match(src, /capBooking/)
-    // Percents come from API splitPercents, not hardcoded 42/10/5 in payout math.
-    assert.doesNotMatch(src, /splitPercents\?\.l1 \?\? 42/)
-    assert.doesNotMatch(src, /splitPercents\?\.l2 \?\? 10/)
-    // Housing-only terminology must not appear in new calculator UI copy keys usage.
+    assert.match(src, /calc_guest_example_wallet/)
+    assert.match(src, /calc_guest_example_pool/)
+    assert.match(src, /calc_guest_footnote/)
+    assert.doesNotMatch(src, /formatThbAsDisplay/)
+    assert.doesNotMatch(src, /calc_fx_note/)
+    assert.doesNotMatch(src, /calc_total_note/)
+    assert.doesNotMatch(src, /calc_step2/)
+    assert.doesNotMatch(src, /calc_step3/)
+    assert.doesNotMatch(src, /referralReinvestmentPercent/)
+    assert.doesNotMatch(src, /THB\/заказ|THB\/order/)
     assert.doesNotMatch(src, /поездка|бронь|жильё|путешественник|Apartment|traveler/i)
   })
 
@@ -51,6 +52,9 @@ describe('Stage 131.A5.B2 — calculator v2', () => {
     const cabinet = read('components/referral/ReferralProfilePage.jsx')
     assert.match(cabinet, /ReferralCalculatorV2/)
     assert.match(cabinet, /directPartnersInvited/)
+    assert.match(cabinet, /stage131a5_progressNextReward/)
+    assert.match(cabinet, /tier: nextTierName/)
+    assert.doesNotMatch(cabinet, /flex items-center justify-between gap-3[\s\S]{0,200}stage131a5_progressCurrent/)
     assert.doesNotMatch(cabinet, /stage131a5_calcFriendsLabel/)
     assert.doesNotMatch(cabinet, /setCalcOpen/)
 
@@ -76,20 +80,22 @@ describe('Stage 131.A5.B2 — calculator v2', () => {
     assert.match(src, /splitPoolForMarketing/)
   })
 
-  it('i18n calc_* keys exist for ru/en/zh/th with brand placeholder', () => {
+  it('i18n calc_* keys exist for ru/en/zh/th; splits say “of the pool”', () => {
     const src = read('lib/translations/slices/profile-app-referral.js')
-    for (const lang of ['ru:', 'en:', 'zh:', 'th:']) {
-      assert.match(src, new RegExp(`\\b${lang}`))
-    }
     for (const key of CALC_KEYS) {
-      const re = new RegExp(`${key}:`)
       const matches = src.match(new RegExp(`${key}:`, 'g')) || []
       assert.equal(matches.length, 4, `${key} should exist in 4 locales, got ${matches.length}`)
-      assert.match(src, re)
     }
     assert.match(src, /calc_guest_body:[\s\S]*?\{brand\}/)
-    assert.match(src, /calc_slider3_help:[\s\S]*?протекают|flow deeper|更深|ไหลลึก/)
-    // Activity help must not claim “% of invitees who book”.
-    assert.doesNotMatch(src, /calc_slider3_help:[\s\S]{0,200}процент приглашённых|percent of invitees/)
+    assert.match(src, /% пула|of the pool|池的|ของพูล/)
+    assert.match(src, /Примерная оценка|Approximate estimate|大致估算|ประมาณการตามกฎ/)
+    assert.doesNotMatch(src, /calc_disclaimer:[\s\S]{0,120}холда 14|Hold 14|14 天保留|รอ 14 วัน/)
+    assert.doesNotMatch(src, /calc_split_l2:[\s\S]{0,160}THB\/заказ|THB\/order|THB\/รายการ/)
+    // Calculator marketing copy must not expose guest service-fee %.
+    assert.doesNotMatch(src, /calc_step1_hint:\s*"[^"]*(?:сервисн|service fee|服务费|ค่าบริการ|15%)/)
+    assert.doesNotMatch(src, /calc_step_pool_hint:\s*"[^"]*(?:сервисн|service fee|15%)/)
+    assert.match(src, /calc_guest_example_wallet:[\s\S]*?% от пула|of the pool|池的|ของพูล/)
+    assert.doesNotMatch(src, /stage131a5_progressNextReward:[\s\S]{0,80}бонус к L1|L1 bonus|\+\{pct\}% L1/)
+    assert.match(src, /stage131a5_progressNextReward:[\s\S]*?вывести на карту|withdrawn to a card|提现到银行卡|ถอนเข้าบัตร/)
   })
 })
