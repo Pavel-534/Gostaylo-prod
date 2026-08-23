@@ -70,6 +70,10 @@ import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-a
 import { isStorefrontCatalogListPath } from '@/lib/navigation/storefront-search-keep-alive'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { isDiscoveryPolygonDrawClientEnabled } from '@/lib/search/discovery-pipeline-flag-client'
+import {
+  navigateWithListingHeroTransition,
+  prefetchListingPdp,
+} from '@/lib/navigation/listing-hero-transition'
 
 const ForYouRail = dynamic(
   () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),

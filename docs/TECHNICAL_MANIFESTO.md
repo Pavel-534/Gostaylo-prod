@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.232 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.117b** map constants + CV rollback.
+> **Version**: 13.2.233 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.117c** map popup Подробнее nav.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.117c — Map popup «Подробнее» navigation
+- Root cause: `listings-catalog-client` dropped `listing-hero-transition` import when polygon draw was wired → `handleMapListingOpen` threw → CTA no-op after `preventDefault`.
+- Restore `navigateWithListingHeroTransition` + `prefetchListingPdp`. Test: `__tests__/stage201-117c-map-popup-open-details.test.js`.
 
 ### Stage 201.117b — Hotfix: map crash + catalog scroll thrash
 - **Map «Ошибка загрузки»:** `InteractiveSearchMap` lost `catalog-map-ux-policy` imports when polygon chrome was added → `ReferenceError` on mobile map open → listings error boundary.
