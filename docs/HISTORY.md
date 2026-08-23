@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.113 | 2026-08-23 | FX cron: HTTP 200 on keptExisting + 12h 429 cooldown (cron-job.org no auto-disable) | Done |
 | 201.118 | 2026-08-23 | PDP below-fold: deferred reviews + rails (map already 171.23) | Done |
 | 201.117 | 2026-08-23 | Listing card grid `content-visibility: auto` + remembered intrinsic size | Done |
 | 201.116 | 2026-08-23 | Catalog compact/FilterBar → UnifiedSearchBarLazy SSOT + CLS skeletons | Done |

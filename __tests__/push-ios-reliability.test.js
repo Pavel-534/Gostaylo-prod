@@ -8,6 +8,7 @@ import {
   canRegisterWebPushOnThisDevice,
   getWebPushUnavailableReason,
   hasWebPushApiSupport,
+  isIosDevice,
   isIosWebPushTokenFromDeviceInfo,
 } from '@/lib/push/web-push-platform.js'
 import {
@@ -21,6 +22,10 @@ import {
 } from '@/lib/push/push-soft-prompt-storage.js'
 
 describe('push iOS reliability (189.38)', () => {
+  it('re-exports isIosDevice for PushClientInit (prod crash guard)', () => {
+    assert.equal(typeof isIosDevice, 'function')
+  })
+
   it('isIosWebPushTokenFromDeviceInfo detects iPhone UA', () => {
     assert.equal(
       isIosWebPushTokenFromDeviceInfo({

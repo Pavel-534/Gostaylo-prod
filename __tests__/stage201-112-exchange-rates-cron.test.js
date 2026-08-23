@@ -57,11 +57,13 @@ describe('Stage 201.112 — route + persist guards', () => {
     const route = read('app/api/cron/exchange-rates-refresh/route.js')
     assert.match(route, /assertCronAuthorized/)
     assert.match(route, /runExchangeRatesCronRefresh/)
+    assert.match(route, /httpStatusForExchangeRatesCronResult/)
     assert.doesNotMatch(route, /getDisplayRateMap/)
     const svc = read('lib/cron/exchange-rates-refresh.service.js')
     assert.match(svc, /Skipped, updated recently/)
     assert.match(svc, /keptExisting: true/)
     assert.match(svc, /upsertDisplayRatesInDb/)
+    assert.match(svc, /httpStatusForExchangeRatesCronResult/)
   })
 
   it('upsert skips non-positive / empty maps (no wipe)', () => {
@@ -71,5 +73,46 @@ describe('Stage 201.112 — route + persist guards', () => {
     assert.match(src, /if \(!rows\.length\) return/)
     assert.match(src, /if \(!res\.ok\)/)
     assert.match(src, /return \{ ok: false, map: null, httpStatus: res\.status/)
+    assert.match(src, /markFxUpstreamRateLimited/)
+  })
+})
+
+describe('Stage 201.113 — soft HTTP for keptExisting + 429 cooldown', () => {
+  it('httpStatusForExchangeRatesCronResult is 200 when rates kept', async () => {
+    const { httpStatusForExchangeRatesCronResult } = await import(
+      '@/lib/cron/exchange-rates-refresh.service.js'
+    )
+    assert.equal(
+      httpStatusForExchangeRatesCronResult({
+        success: true,
+        keptExisting: true,
+        httpStatus: 429,
+        error: 'HTTP_429',
+      }),
+      200,
+    )
+    assert.equal(
+      httpStatusForExchangeRatesCronResult({
+        success: false,
+        httpStatus: 503,
+        error: 'SERVICE_UNAVAILABLE',
+      }),
+      503,
+    )
+  })
+
+  it('fx upstream cooldown gates after mark', async () => {
+    const {
+      isFxUpstreamInCooldown,
+      markFxUpstreamRateLimited,
+      resetFxUpstreamCooldownForTests,
+      fxUpstreamCooldownRemainingMs,
+    } = await import('@/lib/services/fx-upstream-cooldown.js')
+    resetFxUpstreamCooldownForTests()
+    assert.equal(isFxUpstreamInCooldown(1_000), false)
+    markFxUpstreamRateLimited(1_000)
+    assert.equal(isFxUpstreamInCooldown(1_000 + 60_000), true)
+    assert.ok(fxUpstreamCooldownRemainingMs(1_000 + 60_000) > 0)
+    resetFxUpstreamCooldownForTests()
   })
 })

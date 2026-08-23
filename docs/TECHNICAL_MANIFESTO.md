@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.230 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.118** PDP below-fold lazy hydrate.
+> **Version**: 13.2.231 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.113** FX cron soft-fail (429) + **201.118** PDP lazy hydrate.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.113 — FX cron soft-fail for cron-job.org (no auto-disable on 429)
+- Root cause of week-long stale FX: ExchangeRate-API **HTTP 429** → our cron returned **429** → cron-job.org auto-disabled `exchange-rates-refresh`.
+- **Fix:** when existing `exchange_rates` rows are kept, cron always responds **HTTP 200** (`keptExisting: true`); Telegram still alerts on real upstream failure (not cooldown skips).
+- Shared **12h cooldown** after upstream 429 (`lib/services/fx-upstream-cooldown.js`) for cron + `getDisplayRateMap` hot-path — stops burning free-tier quota.
+- Ops: re-enable job on cron-job.org; prefer schedule **`0 */6 * * *`** (free API updates ~daily). Check ExchangeRate-API dashboard quota / upgrade if needed.
 
 ### Stage 201.118 — PDP below-the-fold lazy hydrate
 - Reviews: `dynamic(ReviewsSection)` + `PdpDeferredSection` (~300px; CLS skeleton). Map already deferred (171.23) — unchanged.
@@ -125,7 +131,7 @@
 ### Stage 201.112 — FX cron: skip fresh rows, keep DB on upstream failure
 - `GET|POST /api/cron/exchange-rates-refresh` still requires Bearer / `x-cron-secret` (`assertCronAuthorized`). Missing `CRON_SECRET` env → **503**; bad/missing token → **401**.
 - If all display codes in `exchange_rates` were updated within **4h**, response is **200** `{ success: true, message: "Skipped, updated recently" }` — no ExchangeRate-API call.
-- Upstream **429/5xx** or empty payload: **no upsert**; **429** or **502** with `keptExisting: true`. Guest TTL remains **2h** (`EXCHANGE_RATES_DB_TTL_MS`).
+- Upstream **429/5xx** or empty payload: **no upsert**; **HTTP 200** + `keptExisting: true` (**201.113**; was 429/502 in 201.112). Guest TTL remains **2h** (`EXCHANGE_RATES_DB_TTL_MS`).
 
 ### Stage 201.111 — Popular nearby stays; Back waits for a finished Home
 - «Популярно рядом» no longer disappears when the rail and Top share the same small catalog: unique first, then skip only the first 4 Top cards, then show overlap rather than hide.

@@ -44,7 +44,7 @@ These **must** use cron-job.org in production; Vercel daily alone is insufficien
 | `Airento: ical-sync` | `/api/cron/ical-sync` | `*/30 * * * *` (~30 min) | `0 0 * * *` (00:00 UTC) | `maxDuration` 60 s; `last_sync` only on ≥1 successful source. **Throttle SSOT (Stage 193.1):** admin `ical_sync_settings.frequency` (not per-listing `sync_interval_hours`). Heartbeat cannot be faster than this cron-job.org schedule. |
 | `Airento: notification-outbox` | `/api/cron/notification-outbox` | `*/5 * * * *` | `15 4 * * *` (04:15 UTC) | Requires `NOTIFICATION_OUTBOX=1`; batch 20/run |
 | `Airento: unpaid-checkout-nudge` | `/api/cron/unpaid-checkout-nudge` | `*/5 * * * *` | `30 1 * * *` (01:30 UTC) | Wave H1 soft FCM for `AWAITING_PAYMENT` (delay `UNPAID_CHECKOUT_NUDGE_DELAY_MINUTES`, default 10); also from `cleanup-drafts` |
-| `Airento: exchange-rates-refresh` | `/api/cron/exchange-rates-refresh` | `0 */3 * * *` or `0 */6 * * *` | `0 0 * * *` | FX step target ~3 h — external if more than daily |
+| `Airento: exchange-rates-refresh` | `/api/cron/exchange-rates-refresh` | `0 */6 * * *` (recommended; was `*/2` → 429 storms) | `0 0 * * *` | Free ExchangeRate-API ~daily; **HTTP 200** when rates kept (201.113 — do not auto-disable on upstream 429). Re-enable job if cron-job.org marked Inactive. |
 | `Airento: push-sweeper` | `/api/cron/push-sweeper` | `*/10 * * * *` (recommended) | *(not in vercel.json)* | Stale chat push batches |
 | `Airento: push-token-hygiene` | `/api/cron/push-token-hygiene` | `0 */6 * * *` (recommended) | *(not in vercel.json)* | FCM token cleanup |
 

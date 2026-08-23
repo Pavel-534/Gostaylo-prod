@@ -15,8 +15,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseAppSafe, getFirebaseVapidKey } from '@/lib/firebase-web'
 import { postPushAction } from '@/lib/api/push-client'
 import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
-import { canRegisterWebPushOnThisDevice, isIosDevice } from '@/lib/push/web-push-platform.js'
-import { isStandaloneDisplayMode } from '@/lib/pwa/pwa-platform.js'
+import { canRegisterWebPushOnThisDevice } from '@/lib/push/web-push-platform.js'
+import { isIosDevice, isStandaloneDisplayMode } from '@/lib/pwa/pwa-platform.js'
 import {
   PUSH_ENABLE_EVENT,
   PUSH_FCM_TOKEN_KEY,

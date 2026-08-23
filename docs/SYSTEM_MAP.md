@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.105 | **Last Updated**: 2026-08-18 | **201.112** FX cron skip/keep-existing; **201.111** Popular nearby + Back height stable.  
+> **Version**: 13.2.106 | **Last Updated**: 2026-08-23 | **201.113** FX cron soft 200 + 429 cooldown; **201.112** FX cron skip/keep-existing.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -199,7 +199,7 @@
 | `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d; **201.09** stale unpaid past check-out cancel |
 | `/api/cron/cleanup-test-data` — Stage **201.09**: E2E/smoke + `purge_test_ledger_rows(markers)` |
 | GitHub Actions **`.github/workflows/playwright.yml`** — Stage **201.11**: nightly keep-list `npm run test:e2e:nightly` (03:00 UTC), then cleanup |
-| `/api/cron/exchange-rates-refresh` | Bearer/`x-cron-secret`; skip if `exchange_rates` <4h; 429/502 keep existing (**201.112**) |
+| `/api/cron/exchange-rates-refresh` | Bearer/`x-cron-secret`; skip if `exchange_rates` <4h; upstream fail → **200** + `keptExisting` + 12h 429 cooldown (**201.113**) |
 | `/api/cron/referral-*` · financial health monitors |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |
 
