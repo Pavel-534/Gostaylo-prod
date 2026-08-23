@@ -181,4 +181,28 @@ const nextConfig = {
   },
 }
 
-module.exports = withBundleAnalyzer(nextConfig)
+/**
+ * Stage 202.0 — Sentry webpack/plugin wrap.
+ * Empty DSN / missing auth token → no-op upload; build must not fail (CI/Preview).
+ */
+const { withSentryConfig } = require('@sentry/nextjs')
+
+const sentryBuildOptions = {
+  org: process.env.SENTRY_ORG || undefined,
+  project: process.env.SENTRY_PROJECT || undefined,
+  authToken: process.env.SENTRY_AUTH_TOKEN || undefined,
+  silent: true,
+  telemetry: false,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  widenClientFileUpload: false,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    automaticVercelMonitors: false,
+  },
+}
+
+module.exports = withSentryConfig(withBundleAnalyzer(nextConfig), sentryBuildOptions)

@@ -112,7 +112,7 @@
 | `POST /api/v2/promo-codes/validate` |
 | `POST /api/v2/push` |
 | `POST /api/v2/upload` · `DELETE /api/v2/upload` |
-| `POST /api/v2/feedback` — product feedback (session required) → TG system alert + optional `getSupportInboxEmail()` (`SUPPORT_INBOX_EMAIL`); Stage **200.137** |
+| `POST /api/v2/feedback` — product feedback (session required) → TG `TELEGRAM_USER_FEEDBACK_TOPIC_ID` (fallback system-alerts) + optional `getSupportInboxEmail()`; Stage **200.137** + **202.0** (currency, Home/`/help` CTA) |
 
 ### 3.2 Chat
 
@@ -212,7 +212,9 @@
 | **YooKassa** (MIR_RU) | Гостевая оплата картой RUB/MIR | **READY** |
 | **Mandarin** (CARD_INTL) | Int’l card acquiring scaffold | **PARTIAL** |
 | **Tron / USDT TRC-20** | Crypto pay + `verifyTronTransaction` + crypto webhook | **PARTIAL** |
-| **Telegram** | Admin topics, partner DM, Login Widget (non-RU), notify deep-link | **READY** (ops-зависимо) |
+| **Telegram** | Admin topics (system-alerts, optional user-feedback), partner DM, Login Widget (non-RU), notify deep-link | **READY** (ops-зависимо) |
+| **Sentry** | Runtime errors (App Router); empty DSN = no-op; no Replay; TG `[SENTRY]` via server beforeSend | **READY** (Stage **202.0**, DSN opt-in) |
+| **PostHog** | Product analytics (`NEXT_PUBLIC_POSTHOG_KEY`); ADR-169 SSOT — no Clarity/Webvisor | **READY** (opt-in) |
 | **FCM / Firebase** | Web (и Cap) push; SW template → `public/sw.js` | **READY** |
 | **Resend** | Транзакционная почта (+ transport guard для smoke/E2E) | **READY** |
 | **Vercel Cron** | Daily schedules; hourly financial — часто **внешний** cron-job.org | Hybrid |

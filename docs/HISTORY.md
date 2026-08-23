@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.0 | 2026-08-23 | Closed-beta: Sentry + PII scrub + TG [SENTRY]; feedback CTA/currency/topic; PostHog SSOT verify | Done |
 | 201.117c | 2026-08-23 | Hotfix: restore listing-hero-transition import for map «Подробнее» | Done |
 | 201.117b | 2026-08-23 | Hotfix: restore map UX imports + remove listing-card content-visibility thrash | Done |
 | 201.113 | 2026-08-23 | FX cron: HTTP 200 on keptExisting + 12h 429 cooldown (cron-job.org no auto-disable) | Done |

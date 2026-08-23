@@ -26,14 +26,17 @@ import {
   PRODUCT_FEEDBACK_DETAILS_MAX,
 } from '@/lib/feedback/product-feedback-options'
 import { postProductFeedback } from '@/lib/api/product-feedback-client'
+import { useCurrency } from '@/contexts/currency-context'
 
 /**
  * Site / UX product feedback (not booking chat escalate).
+ * Stage 202.0 — includes UI currency in payload.
  */
 export function ProductFeedbackDialog({ open, onOpenChange, language = 'ru' }) {
   const [category, setCategory] = useState('')
   const [details, setDetails] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { currency } = useCurrency()
 
   const isRu = language !== 'en'
 
@@ -71,6 +74,7 @@ export function ProductFeedbackDialog({ open, onOpenChange, language = 'ru' }) {
         pageUrl,
         userAgent,
         language: isRu ? 'ru' : 'en',
+        currency: currency || undefined,
       })
       if (!ok) {
         if (status === 401) {

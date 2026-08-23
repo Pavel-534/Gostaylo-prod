@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { MOBILE_FLAT_CARD_CLASS } from '@/lib/ui/mobile-flat-canvas'
 import { LegalPublisherNote } from '@/components/legal/LegalPublisherNote'
 import { MarketingDocChrome } from '@/components/marketing/MarketingDocChrome'
+import { ProductFeedbackCta } from '@/components/product-feedback-cta'
 
 const ICONS = {
   guests: BadgeCheck,
@@ -104,7 +105,7 @@ const STR = {
     refundLink: 'Политика возвратов →',
     contactH2: 'Связаться с нами',
     contactSub:
-      'Не нашли ответ? Напишите на почту — живые люди из команды, в рабочие часы обычно в течение нескольких часов.',
+      'Не нашли ответ? Напишите на почту или сообщите о проблеме / идее — живые люди из команды, в рабочие часы обычно в течение нескольких часов.',
     backToSearch: 'Вернуться к поиску',
   },
   en: {
@@ -188,7 +189,7 @@ const STR = {
     refundLink: 'Refund policy →',
     contactH2: 'Contact us',
     contactSub:
-      'Didn’t find an answer? Email us — real people from the team, usually within a few hours during business hours.',
+      'Didn’t find an answer? Email us or report a problem / idea — real people from the team, usually within a few hours during business hours.',
     backToSearch: 'Back to search',
   },
 }
@@ -288,10 +289,11 @@ export default function HelpContent() {
           {s.contactH2}
         </h2>
         <p className="mx-auto mb-6 max-w-xl text-slate-600">{s.contactSub}</p>
-        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
           <Button asChild variant="brand" size="lg" className="px-7 text-sm font-semibold">
             <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
           </Button>
+          <ProductFeedbackCta language={language === 'en' ? 'en' : 'ru'} variant="button" />
           <Button asChild variant="outline" size="lg" className="px-7 text-sm font-semibold">
             <Link href="/listings">{s.backToSearch}</Link>
           </Button>

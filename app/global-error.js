@@ -3,14 +3,17 @@
 /**
  * Stage 200.75 — root layout failure catch-all (replaces root layout).
  * Self-contained: no providers / useI18n.
+ * Stage 202.0 — Sentry.captureException.
  */
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
     console.error('[Global Error]', error)
+    Sentry.captureException(error, { tags: { surface: 'global_error' } })
   }, [error])
 
   const brand = getSiteDisplayName()
@@ -28,7 +31,7 @@ export default function GlobalError({ error, reset }) {
         }
       : {
           title: 'Something went wrong',
-          body: 'The app could not load. Please try refreshing the page.',
+          body: 'The app could not load. Try refreshing the page.',
           retry: 'Try again',
           home: 'Home',
         }

@@ -1,10 +1,16 @@
 /**
- * Next.js instrumentation — runs once on Node server start (Stage 200.42 C3 / 200.75).
- * Fail-closed: never boot production with PAYMENT_ALLOW_CLIENT_CONFIRM=1
- * or without crypto receive wallet env.
+ * Next.js instrumentation — runs once on Node/Edge server start.
+ * Stage 200.42 / 200.75 — payment fail-closed guards.
+ * Stage 202.0 — Sentry server/edge register + onRequestError.
  */
 
 export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./sentry.server.config.js')
+  } else if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config.js')
+  }
+
   if (process.env.NEXT_RUNTIME === 'edge') return
 
   const allowClientConfirm = String(process.env.PAYMENT_ALLOW_CLIENT_CONFIRM || '').trim() === '1'
@@ -22,5 +28,16 @@ export async function register() {
       '@/lib/config/crypto-receive-wallet.js'
     )
     assertCryptoReceiveWalletConfigured()
+  }
+}
+
+export async function onRequestError(err, request, context) {
+  const Sentry = await import('@sentry/nextjs')
+  if (typeof Sentry.captureRequestError === 'function') {
+    Sentry.captureRequestError(err, request, context)
+    return
+  }
+  if (typeof Sentry.captureException === 'function') {
+    Sentry.captureException(err)
   }
 }

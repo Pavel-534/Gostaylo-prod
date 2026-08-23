@@ -25,6 +25,7 @@ import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
+import { ProductFeedbackCta } from '@/components/product-feedback-cta'
 import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner'
 import { ForYouRailSkeleton } from '@/components/recommendations/ForYouRailSkeleton'
 import { listingIdsForRailDedupe } from '@/lib/recommendations/for-you-rail-display'
@@ -428,6 +429,9 @@ export function PlatformHomeContent() {
                   <a href={`mailto:${supportEmail}`} className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
                   </a>
+                </li>
+                <li>
+                  <ProductFeedbackCta language={language} className="text-sm text-slate-400" />
                 </li>
                 <li>
                   <Link href="/terms/" className="hover:text-brand/80 transition-colors">

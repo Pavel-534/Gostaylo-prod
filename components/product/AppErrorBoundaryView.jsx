@@ -4,9 +4,11 @@
  * Stage 200.75 — shared client shell for root / checkout error boundaries.
  * Never render error.message or stack.
  * Stage 201.15 — chunk / soft-nav failures → hard reload on Retry.
+ * Stage 202.0 — Sentry.captureException (Telegram only via server beforeSend filters).
  */
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
@@ -36,7 +38,13 @@ export function AppErrorBoundaryView({
 
   useEffect(() => {
     console.error(logLabel, error)
-  }, [error, logLabel])
+    Sentry.captureException(error, {
+      tags: {
+        surface: 'app_error_boundary',
+        nav_failure: hardReloadOnRetry ? '1' : '0',
+      },
+    })
+  }, [error, logLabel, hardReloadOnRetry])
 
   const titleRaw = getUIText('rootError_title', language)
   const bodyRaw = getUIText(bodyKey, language)

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.233 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.117c** map popup Подробнее nav.
+> **Version**: 13.2.234 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **202.0** closed-beta observability & feedback.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.0 — Closed-beta observability & feedback surface
+- **A:** `@sentry/nextjs` (client/server/edge); empty `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` → no-op; no Replay/Profiling; edge-safe scrub; server `[SENTRY]` → `notifySystemAlert` with 5m fingerprint cooldown; ChunkLoad/nav noise → Sentry only (no TG).
+- **B:** Home footer + `/help` → `ProductFeedbackCta`; payload `currency`; optional `TELEGRAM_USER_FEEDBACK_TOPIC_ID` (fallback system-alerts). Auth unchanged (session required).
+- **C:** PostHog remains ADR-169 SSOT — no Clarity / Yandex Webvisor. Tests: `__tests__/stage202-0-observability-feedback.test.js`.
 
 ### Stage 201.117c — Map popup «Подробнее» navigation
 - Root cause: `listings-catalog-client` dropped `listing-hero-transition` import when polygon draw was wired → `handleMapListingOpen` threw → CTA no-op after `preventDefault`.
@@ -2214,7 +2219,9 @@ Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чат�
 | **`NEXT_PUBLIC_SITE_NAME`** (и **`SITE_DISPLAY_NAME`**) | Короткое имя для PDF, premium-email, плейсхолдера **`{siteName}`** в пушах (**`getSiteDisplayName()`** в **`lib/site-url.js`**). Если не задано — **`Platform`** (white-label SSOT). |
 | **`CALENDAR_STAY_LINK_SECRET`** | HMAC-секрет для подписи токенов ссылки **`GET /api/calendar/stay?t=…`** (кнопки «добавить в календарь» и вложение `.ics` в письмах). В **production** обязателен: без него модуль **`lib/calendar/calendar-stay-token.js`** бросает ошибку. В dev при отсутствии — предупреждение и fallback (только для локальной разработки). |
 | **`TELEGRAM_ADMIN_BAN_SECRET`** | Отдельный секрет для подписи одноразовых ссылок бана из Telegram (**`lib/auth/telegram-ban-link.js`** → **`GET /api/v2/admin/users/ban?t=…`**). Если не задан, используется fallback **`JWT_SECRET`** (менее изолированно). Рекомендуется выделенный секрет в проде. |
-| **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** | ID **топика** (forum thread) в админской Telegram-группе для **системных алертов** (**`NotificationService.sendSystemAlert`** / **`notifySystemAlert`**): FX stale, сбои брони/чата/платежей, cron, webhooks и т.д. При отсутствии или неверном значении — fallback **`sendToAdmin`** (личка / топик FINANCE). См. §1.6 и §5.3. |
+| **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** | ID **топика** (forum thread) в админской Telegram-группе для **системных алертов** (**`NotificationService.sendSystemAlert`** / **`notifySystemAlert`**): FX stale, сбои брони/чата/платежей, cron, webhooks, **`[SENTRY]`** (Stage 202.0) и т.д. При отсутствии или неверном значении — fallback **`sendToAdmin`** (личка / топик FINANCE). См. §1.6 и §5.3. |
+| **`TELEGRAM_USER_FEEDBACK_TOPIC_ID`** | Опциональный топик для product feedback (Stage **202.0**). Если не задан — fallback на **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`**. |
+| **`SENTRY_DSN`** / **`NEXT_PUBLIC_SENTRY_DSN`** | Opt-in Sentry (Stage **202.0**). Пусто → полный no-op (CI/Preview). Нет Session Replay / Profiling. |
 
 ---
 

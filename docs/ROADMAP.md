@@ -95,7 +95,8 @@
 | Partner cabinet mobile | Аудит `AUDIT_PARTNER_CABINET_MOBILE` — residual items |
 | Listing quality & conversion | Publish checklist, search ranking — post first live cohort |
 | Partner Insights (analytics) | **Отдельный этап после PMF:** funnel (показ→просмотр→запрос→бронь), период, по объектам; сейчас — Обзор (деньги/занятость/репутация) + views на карточке листинга |
-| Dispute / support loop | **Phase 1 done (200.137):** profile Help + product feedback → TG/email. Phase 2: DB queue + admin list; booking disputes stay in chat escalate |
+| Dispute / support loop | **Phase 1 done (200.137 + 202.0):** profile + Home footer + `/help` feedback → TG (`TELEGRAM_USER_FEEDBACK_TOPIC_ID` fallback system-alerts) / email. Phase 2: DB queue + admin list; booking disputes stay in chat escalate |
+| Closed-beta observability | **Done (202.0):** Sentry App Router + PII scrub + `[SENTRY]` TG; PostHog SSOT (no Clarity/Yandex Webvisor) |
 | Design system UI-1+ | Component hex cleanup, partner `teal-*`, FinTech inline styles |
 | Referral 2.0 «Phase E» | Digest Excel, side-by-side campaigns — **только по боли владельца** |
 | Mobile apps (store) | Web-first до PMF; Cap — shell над web |
