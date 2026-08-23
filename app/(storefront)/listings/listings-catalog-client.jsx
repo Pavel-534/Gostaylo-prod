@@ -7,6 +7,7 @@
  * Stage 201.96 — mobile-first mount: desktop FilterBar / compact search / Leaflet only after
  * `min-width` is confirmed; search + map sheets lazy-mount (CSS hide still hydrated them).
  * Stage 201.103 — catalog UI renders inside CatalogHydrationBoundary (no shell park).
+ * Stage 201.116 — compact search via UnifiedSearchBarLazy SSOT (ssr + CLS skeleton).
  * @see app/(storefront)/listings/page.js — server bootstrap + dehydrate
  */
 
@@ -17,6 +18,11 @@ import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, differenceInDays } from 'date-fns'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
+import { HomeSearchBarSkeleton } from '@/components/home/HomeSearchBarSkeleton'
+import {
+  UnifiedSearchBarCompactLazy,
+  prefetchUnifiedSearchBarChunk,
+} from '@/components/search/UnifiedSearchBarLazy'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { CatalogSearchSummaryBar } from '@/components/search/mobile/CatalogSearchSummaryBar'
 import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
@@ -36,6 +42,7 @@ import { getCatalogSearchHeadlines } from '@/lib/search/catalog-search-headlines
 import { isCatalogTransportIntervalMode } from '@/lib/search/catalog-transport-interval'
 import {
   parseBBoxFromParams,
+  parsePolygonParamFromParams,
   parseExtraFiltersFromParams,
   parseCatalogSortFromParams,
   buildPublicSearchParams,
@@ -62,7 +69,7 @@ import {
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { isStorefrontCatalogListPath } from '@/lib/navigation/storefront-search-keep-alive'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
-import { navigateWithListingHeroTransition, prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
+import { isDiscoveryPolygonDrawClientEnabled } from '@/lib/search/discovery-pipeline-flag-client'
 
 const ForYouRail = dynamic(
   () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
@@ -82,11 +89,7 @@ const SearchMapWrapper = dynamic(
 )
 const FilterBar = dynamic(
   () => import('@/components/search/FilterBar').then((m) => m.FilterBar),
-  { ssr: false, loading: () => null },
-)
-const UnifiedSearchBar = dynamic(
-  () => import('@/components/search/UnifiedSearchBar').then((m) => m.UnifiedSearchBar),
-  { ssr: false, loading: () => null },
+  { ssr: true, loading: () => <HomeSearchBarSkeleton variant="filter" /> },
 )
 
 const ITEMS_PER_PAGE = 12
@@ -119,6 +122,7 @@ function ListingsContent() {
   })
   const [userBookings, setUserBookings] = useState([])
   const [appliedBbox, setAppliedBbox] = useState(() => parseBBoxFromParams(searchParams))
+  const [appliedPolygon, setAppliedPolygon] = useState(() => parsePolygonParamFromParams(searchParams))
   const [extraFilters, setExtraFilters] = useState(() => parseExtraFiltersFromParams(searchParams))
   /** Stage 201.81 / 201.84 / 201.89 — soft-back map camera (peek; React lock holds after restore). */
   const [cameraRestoreBbox, setCameraRestoreBbox] = useState(() => {
@@ -163,8 +167,8 @@ function ListingsContent() {
   }, [catalogCategories])
 
   const urlCommitExtras = useMemo(
-    () => ({ extraFilters, appliedBbox, catalogSort }),
-    [extraFilters, appliedBbox, catalogSort],
+    () => ({ extraFilters, appliedBbox, appliedPolygon, catalogSort }),
+    [extraFilters, appliedBbox, appliedPolygon, catalogSort],
   )
 
   const {
@@ -247,7 +251,14 @@ function ListingsContent() {
 
   useEffect(() => {
     setAppliedBbox(null)
+    setAppliedPolygon(null)
   }, [mapFitResetKey])
+
+  useEffect(() => {
+    if (!isMdUp) return
+    prefetchUnifiedSearchBarChunk()
+    void import('@/components/search/FilterBar')
+  }, [isMdUp])
 
   useEffect(() => {
     const incoming = searchParams.toString()
@@ -257,6 +268,7 @@ function ListingsContent() {
       syncLastPushedQuery(incoming)
       setExtraFilters(parseExtraFiltersFromParams(searchParams))
       setAppliedBbox(parseBBoxFromParams(searchParams))
+      setAppliedPolygon(parsePolygonParamFromParams(searchParams))
       markUrlPushSkipped()
       return
     }
@@ -265,13 +277,15 @@ function ListingsContent() {
     syncLastPushedQuery(incoming)
     setExtraFilters(parseExtraFiltersFromParams(searchParams))
     setAppliedBbox(parseBBoxFromParams(searchParams))
+    setAppliedPolygon(parsePolygonParamFromParams(searchParams))
     setCatalogSort(parseCatalogSortFromParams(searchParams))
   }, [searchParamsKey, searchParams, syncLastPushedQuery, markUrlPushSkipped])
 
   const handleSearchThisArea = useCallback(
     (b) => {
+      setAppliedPolygon(null)
       setAppliedBbox(b)
-      commitToUrl({ appliedBbox: b, useDebounced: true })
+      commitToUrl({ appliedBbox: b, appliedPolygon: null, useDebounced: true })
     },
     [commitToUrl],
   )
@@ -280,6 +294,22 @@ function ListingsContent() {
     setAppliedBbox(null)
     commitToUrl({ appliedBbox: null, useDebounced: true })
   }, [commitToUrl])
+
+  const handlePolygonEncoded = useCallback(
+    (encoded) => {
+      setAppliedPolygon(encoded)
+      setAppliedBbox(null)
+      commitToUrl({ appliedPolygon: encoded, appliedBbox: null, useDebounced: true })
+    },
+    [commitToUrl],
+  )
+
+  const handlePolygonCleared = useCallback(() => {
+    setAppliedPolygon(null)
+    commitToUrl({ appliedPolygon: null, useDebounced: true })
+  }, [commitToUrl])
+
+  const polygonDrawEnabled = isDiscoveryPolygonDrawClientEnabled()
 
   const handleListingMarkerClick = useCallback(
     (id) => {
@@ -380,6 +410,7 @@ function ListingsContent() {
     checkInTime,
     checkOutTime,
     appliedMapBounds: appliedBbox,
+    appliedPolygon,
     extraFilters,
     debouncedTextQuery: debouncedSearchQuery,
     liveTextQuery: searchQuery,
@@ -690,7 +721,7 @@ function ListingsContent() {
       onListingOpen: handleMapListingOpen,
       onMapBackgroundClick: handleMapBackgroundClick,
       onSearchThisArea: handleSearchThisArea,
-      mapBoundsLocked: !!appliedBbox,
+      mapBoundsLocked: !!appliedBbox && !appliedPolygon,
       onClearMapBounds: handleClearMapBounds,
       appliedBboxKey,
       mapFitResetKey,
@@ -702,11 +733,16 @@ function ListingsContent() {
       cameraRestoreBbox,
       onCameraRestoreDone: handleCameraRestoreDone,
       holdSoftBackCamera,
+      enablePolygonDraw: false,
+      appliedPolygon,
+      onPolygonEncoded: handlePolygonEncoded,
+      onPolygonCleared: handlePolygonCleared,
     }),
     [
       allListings,
       searchKeyParams,
       appliedBbox,
+      appliedPolygon,
       userBookings,
       user?.id,
       language,
@@ -720,6 +756,8 @@ function ListingsContent() {
       handleMapBackgroundClick,
       handleSearchThisArea,
       handleClearMapBounds,
+      handlePolygonEncoded,
+      handlePolygonCleared,
       appliedBboxKey,
       mapFitResetKey,
       whereGeoView.center,
@@ -775,6 +813,7 @@ function ListingsContent() {
           transportIntervalMode: transportSearchMode,
           extraFilters: draftExtra,
           appliedBbox,
+          appliedPolygon,
           catalogSort,
         }),
       textQuery: searchQuery,
@@ -806,6 +845,7 @@ function ListingsContent() {
       semanticSiteEnabled,
       transportSearchMode,
       appliedBbox,
+      appliedPolygon,
       catalogSort,
       searchQuery,
       smartSearchOn,
@@ -857,7 +897,7 @@ function ListingsContent() {
         }
         compact={
           isMdUp ? (
-          <UnifiedSearchBar
+          <UnifiedSearchBarCompactLazy
             variant="compact"
             language={language}
             category={selectedCategory}
@@ -954,12 +994,16 @@ function ListingsContent() {
             onListingOpen={handleMapListingOpen}
             onMapBackgroundClick={handleMapBackgroundClick}
             onSearchThisArea={handleSearchThisArea}
-            mapBoundsLocked={!!appliedBbox}
+            mapBoundsLocked={!!appliedBbox && !appliedPolygon}
             onClearMapBounds={handleClearMapBounds}
             appliedBboxKey={appliedBboxKey}
             mapFitResetKey={mapFitResetKey}
             mapCenter={whereGeoView.center}
             mapZoom={whereGeoView.zoom}
+            enablePolygonDraw={polygonDrawEnabled}
+            appliedPolygon={appliedPolygon}
+            onPolygonEncoded={handlePolygonEncoded}
+            onPolygonCleared={handlePolygonCleared}
           />
           ) : null}
         </div>

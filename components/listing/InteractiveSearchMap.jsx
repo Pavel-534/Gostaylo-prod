@@ -27,13 +27,7 @@ import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { extractListingLatLng } from '@/lib/maps/map-provider-adapter'
 import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
-import {
-  CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS,
-  CATALOG_MAP_SELECT_FLY_DURATION_MS,
-  CATALOG_MAP_SELECT_MIN_ZOOM,
-  CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
-  CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
-} from '@/lib/maps/catalog-map-ux-policy'
+import { MapPolygonDrawChrome } from '@/components/search/MapPolygonDrawChrome'
 
 configureLeafletDefaultIcons(L)
 
@@ -536,6 +530,11 @@ export default function InteractiveSearchMap({
   onCameraRestoreDone = null,
   /** Stage 201.84 — keep skipListingFit after restore bbox cleared (parent React state). */
   holdSoftBackCamera = false,
+  /** Stage 177.5.1 — desktop lg+ only; never true on mobile sheet. */
+  enablePolygonDraw = false,
+  appliedPolygon = null,
+  onPolygonEncoded = null,
+  onPolygonCleared = null,
 }) {
   const [mounted, setMounted] = useState(false)
   const suppressBoundsUntilRef = useRef(0)
@@ -689,6 +688,13 @@ export default function InteractiveSearchMap({
           onSearchThisArea={onSearchThisArea}
           mapBoundsLocked={mapBoundsLocked}
           onClearMapBounds={onClearMapBounds}
+        />
+        <MapPolygonDrawChrome
+          language={language}
+          enablePolygonDraw={enablePolygonDraw}
+          appliedPolygon={appliedPolygon}
+          onPolygonEncoded={onPolygonEncoded}
+          onPolygonCleared={onPolygonCleared}
         />
         {cameraRestoreBbox ? (
           <CatalogMapCameraRestoreOnce

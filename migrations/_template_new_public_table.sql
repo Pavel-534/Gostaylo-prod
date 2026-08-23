@@ -45,31 +45,31 @@ ALTER TABLE public.your_table ENABLE ROW LEVEL SECURITY;
 
 -- C1) Backend-only — политики не нужны (deny anon/authenticated по умолчанию)
 
--- C2) User-scoped policies (пример)
+-- C2) User-scoped policies (пример) — Stage 178.0: wrap auth/helpers in (SELECT …) for InitPlan
 -- DROP POLICY IF EXISTS stageNNN_your_table_own ON public.your_table;
 -- CREATE POLICY stageNNN_your_table_own ON public.your_table
 --   FOR ALL TO public
 --   USING (
---     auth.role() = 'service_role'
---     OR public.is_admin()
---     OR user_id::text = public.current_profile_id()
+--     (SELECT auth.role()) = 'service_role'
+--     OR (SELECT public.is_admin())
+--     OR user_id::text = (SELECT public.current_profile_id())
 --   )
 --   WITH CHECK (
---     auth.role() = 'service_role'
---     OR public.is_admin()
---     OR user_id::text = public.current_profile_id()
+--     (SELECT auth.role()) = 'service_role'
+--     OR (SELECT public.is_admin())
+--     OR user_id::text = (SELECT public.current_profile_id())
 --   );
 
 -- C3) Listing owner via join (seasonal_prices / calendar_blocks pattern)
 -- CREATE POLICY stageNNN_your_table_listing_owner ON public.your_table
 --   FOR ALL TO public
 --   USING (
---     auth.role() = 'service_role'
---     OR public.is_admin()
+--     (SELECT auth.role()) = 'service_role'
+--     OR (SELECT public.is_admin())
 --     OR EXISTS (
 --       SELECT 1 FROM public.listings l
 --       WHERE l.id = your_table.listing_id
---         AND l.owner_id::text = public.current_profile_id()
+--         AND l.owner_id::text = (SELECT public.current_profile_id())
 --     )
 --   )
 --   WITH CHECK ( /* same */ );

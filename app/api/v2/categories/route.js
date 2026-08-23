@@ -7,6 +7,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionPayload } from '@/lib/services/session-service'
+import {
+  categoriesEdgeCacheControl,
+  edgeCacheResponseHeaders,
+} from '@/lib/api/public-edge-cache-control.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,10 +108,24 @@ export async function GET(request) {
     }
 
     return NextResponse.json(payload, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: edgeCacheResponseHeaders(
+        categoriesEdgeCacheControl({
+          isAdminRequest,
+          includeInactive,
+          status: 200,
+        }),
+      ),
     })
   } catch (error) {
     console.error('[CATEGORIES GET ERROR]', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: error.message },
+      {
+        status: 500,
+        headers: edgeCacheResponseHeaders(
+          categoriesEdgeCacheControl({ isAdminRequest: false, includeInactive: false, status: 500 }),
+        ),
+      },
+    )
   }
 }

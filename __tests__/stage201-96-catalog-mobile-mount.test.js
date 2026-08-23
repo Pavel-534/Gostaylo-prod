@@ -36,16 +36,18 @@ describe('Stage 201.96 — catalog mobile-first mount', () => {
     assert.doesNotMatch(src, /from ['"]@\/components\/search\/FilterBar['"]/)
     assert.doesNotMatch(src, /from ['"]@\/components\/search\/UnifiedSearchBar['"]/)
     assert.match(src, /dynamic\(\s*\(\) => import\(['"]@\/components\/search\/SearchMapWrapper['"]\)/)
+    assert.match(src, /UnifiedSearchBarCompactLazy/)
     assert.match(src, /isLgUp \? \(/)
     assert.match(src, /isMdUp \? <FilterBar/)
     assert.match(src, /searchSheetReady \? \(/)
     assert.match(src, /\{showMap \? \(/)
   })
 
-  it('home Search tab prefetches the catalog href with current filters, not only bare /listings', () => {
+  it('home Search navigates to catalog with current filters, not only bare /listings', () => {
     const src = read('lib/hooks/use-public-search-filters.js')
-    assert.match(src, /startTransition\(\(\) => \{/)
-    assert.match(src, /router\.prefetch\(href\)/)
-    assert.match(src, /buildCatalogHref\(debouncedFilterSnapshot\)/)
+    assert.match(src, /buildCatalogHref\(filterSnapshot\)/)
+    assert.match(src, /buildCatalogHref/)
+    assert.match(src, /router\.push\(href\)/)
+    assert.doesNotMatch(src, /router\.push\(['"]\/listings['"]\)/)
   })
 })

@@ -57,6 +57,7 @@ import { PartnerMobileBottomNav } from '@/components/partner/PartnerMobileBottom
 import { PwaInstallChrome } from '@/components/pwa/PwaInstallChrome'
 import { PwaInstallProvider } from '@/hooks/use-pwa-install'
 import { PushClientInit } from '@/components/push-client-init'
+import { PushSoftPromptBanner } from '@/components/push/PushSoftPromptBanner'
 import { prefetchPartnerWorkspace } from '@/hooks/use-partner-dashboard-nav'
 import {
   PARTNER_SIDEBAR_PREFETCH_PATHS,
@@ -268,6 +269,7 @@ export default function PartnerLayout({ children }) {
     <PwaInstallProvider>
     <PartnerNotificationProvider>
       <PushClientInit />
+      <PushSoftPromptBanner />
       <PartnerForegroundNotifications />
       <div className="min-h-screen bg-brand-surface flex flex-col">
       <AppHeader

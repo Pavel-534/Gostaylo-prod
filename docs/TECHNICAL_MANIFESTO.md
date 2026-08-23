@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.218 | **Last Updated**: 2026-08-19 | **Tip of tree:** Stage **131.A1** Ambassador 3.1 docs + L3 code (live still ADR-131).
+> **Version**: 13.2.230 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.118** PDP below-fold lazy hydrate.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,70 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.118 — PDP below-the-fold lazy hydrate
+- Reviews: `dynamic(ReviewsSection)` + `PdpDeferredSection` (~300px; CLS skeleton). Map already deferred (171.23) — unchanged.
+- Similar / Recently viewed rails: `dynamic` + viewport gate (fetch only near view). Hero / booking / description untouched.
+- SSOT: `components/listing/pdp/PdpDeferredSection.jsx`. Tests: `__tests__/stage201-118-pdp-below-fold-lazy.test.js`.
+
+### Stage 201.117 — Listing card `content-visibility`
+- Grid `ListingCard` (+ skeleton / deferred slot): `content-visibility: auto` + `contain-intrinsic-size: auto 400px` via `LISTING_CARD_CONTENT_VISIBILITY_CLASS`.
+- Complements **201.97** React deferral; skips solo/wizard preview. `auto` size reduces scroll jumps vs fixed-only.
+- Tests: `__tests__/stage201-117-listing-card-content-visibility.test.js`.
+
+### Stage 201.116 — Catalog search bar → UnifiedSearchBarLazy SSOT
+- Catalog compact chrome: `UnifiedSearchBarCompactLazy` (`ssr: true` + compact skeleton); drop ad-hoc `ssr: false` / `loading: null`.
+- Desktop `FilterBar` dynamic: `ssr: true` + `HomeSearchBarSkeleton variant="filter"`; prefetch USB + FilterBar on md+.
+- SSOT: `UnifiedSearchBarFilterLazy` + filter skeleton. Tests: `__tests__/stage201-116-catalog-search-lazy.test.js`.
+
+### Stage 178.0 — RLS InitPlan sweep
+- Live FannRent: wrap `auth.role()` / `auth.uid()` / `is_admin()` / `current_profile_id()` as `(SELECT …)` in hot RLS policies (advisor `auth_rls_initplan` → **0**).
+- Drop legacy favorites `auth.uid()` policies; invoices party checks → `current_profile_id()` (profiles.id SSOT).
+- Migration: `migrations/stage178_0_rls_initplan_sweep.sql`. Template policies updated. Catalog/search still `service_role` (unchanged UX for anon browse).
+
+### Stage 201.115 — Lazy SearchCalendar chunk
+- **`SearchCalendarLazy`:** idle trigger until mouseenter/focus/pointer/click; then `dynamic(search-calendar, { ssr: false })` + `defaultOpen` (one gesture).
+- **`wizardStep`:** mounts eagerly (sheet dates step). Prefetch: `prefetchSearchCalendarChunk`.
+- **`UnifiedSearchBar`:** no static `search-calendar` / `date-fns` (Intl short labels). Tests: `__tests__/stage201-115-search-calendar-lazy.test.js`.
+
+### Stage 179.1 — Catalog search conditional edge cache
+- **`run-listings-search-get.js`:** `public, s-maxage=60, stale-while-revalidate=120` only when **anonymous** + **simple** browse + **200** (ADR-163).
+- **Simple** (`isSimpleCatalogSearchForEdgeCache`): no dates, bbox/radius, `polygon`, facet metadata, `guests>1`, or `semantic`; category/where/price/sort/q OK.
+- Session / filtered / errors → `private, no-store`. SSOT: `listingsSearchEdgeCacheControl` in `lib/api/public-edge-cache-control.js`. Tests: `npm run test:edge-cache`.
+
+### Stage 201.114a — Home first-load JS (lazy search + rails)
+- **SSOT:** `components/search/UnifiedSearchBarLazy.jsx` — `UnifiedSearchBarHeroLazy` / `UnifiedSearchBarCompactLazy` (`ssr: true`, `HomeSearchBarSkeleton` CLS placeholders).
+- **Home:** `HomeHeroLuxe` + `PlatformHomeContent` — no static `UnifiedSearchBar`; `ForYouRail` + `ReferralVanityWelcomeHost` → `dynamic({ ssr: false })`.
+- **Prefetch:** `prefetchUnifiedSearchBarChunk()` on hero mount. Tests: `__tests__/stage201-114-home-bundle-lazy.test.js`.
+
+### Stage 179.0a / 179.2a / 171.22 — Zero-waste edge cache (conditional) + image TTL
+- **Map-pins** (`run-map-pins-get.js`): `public, s-maxage=15, stale-while-revalidate=60` only when **anonymous** + **200**; logged-in → `private, no-store` (ADR-163 coord reveal). Errors 4xx/5xx never CDN-cached.
+- **Categories** (`GET /api/v2/categories`): `s-maxage=300, SWR=600` only for public guest (not admin / `?all=true`); else `no-store`.
+- SSOT headers: `lib/api/public-edge-cache-control.js`; tests `npm run test:edge-cache`.
+- **Images:** `next.config.js` → `images.minimumCacheTTL: 86400`.
+
+### Stage 189.38 — iOS Web Push reliability
+- **Client:** `PushClientInit` re-registers on ping `Token not registered`; `shouldSyncPushOnResume` requires recent ping (5 min) + session sync; iOS Safari tab gated (`canRegisterWebPushOnThisDevice`).
+- **UX:** `PushSoftPromptBanner` one-tap enable (default permission); `PushEnableSettingsCard` iOS browser → Add to Home Screen first.
+- **Hygiene cron:** `push-token-hygiene` skips iOS tokens + recently pinged (`last_seen_at` < 48h); orders stale first.
+- **device_info.surface:** `ios_pwa` | `web`. Tests: `__tests__/push-ios-reliability.test.js`, `push-m11-client-state.test.js`.
+
+### Stage 177.5.2 — Location inventory SQL aggregation (suggest)
+- `getLocationInventoryIndex` (`lib/locations/location-inventory-cache.js`) uses RPC **`listings_location_inventory_counts_v1`** — no full ACTIVE card pull.
+- RPC returns `level/code/listing_count` (country|region|city|district) with Phuket rollup (`PHUKET_DISTRICTS_CANON` → `phuket-city` / `TH-PHK` / `TH`) and E2E exclusion (`[E2E_TEST_DATA]` in title/description/metadata tags).
+- Migration: `migrations/stage177_5_2_location_inventory_counts_rpc.sql`; `service_role` only; TTL **120s** unchanged. Tests: `npm run test:location-inventory`.
+
+### Stage 177.5.1 — Polygon draw UI (desktop lg+)
+- Pencil + chip on sticky desktop map only (`SearchMapWrapper` / `lg+`); **never** on `CatalogMobileMapSheet` / `#map`.
+- Geoman (`@geoman-io/leaflet-geoman-free`) + CSS loaded **on Pencil click** only (`MapPolygonDrawChrome`).
+- Browser encode: `discovery-geo-polygon-browser.js` (`CompressionStream`); pure validate: `discovery-geo-polygon-core.js`; Node decode stays in `discovery-geo-polygon.js`.
+- Client flag: **`NEXT_PUBLIC_DISCOVERY_POLYGON_SEARCH=1`** (+ `NEXT_PUBLIC_DISCOVERY_UNIFIED_PIPELINE=1`). Server still needs `DISCOVERY_POLYGON_SEARCH` + `DISCOVERY_UNIFIED_PIPELINE`.
+
+### Stage 177.5.0 — Polygon search backend (Wave E1)
+- Registry key **`geo.polygon`** + URL `polygon=` (gzip+base64url GeoJSON `[lng,lat]`); module `lib/search/discovery-geo-polygon.js`.
+- RPC **`listings_within_polygon_v1`** (`migrations/stage177_5_polygon_search_rpc.sql`): `&&` + `ST_Intersects` on true `listings.coordinates`; `ST_MakeValid` in SQL only.
+- Flags: **`DISCOVERY_POLYGON_SEARCH=1`** requires **`DISCOVERY_UNIFIED_PIPELINE=1`** (default off — zero prod load). Polygon precedence over bbox; catalog + map-pins share id-set via `discovery-spatial-rpc.js`.
+- No Leaflet draw UI yet (177.5.1). Docs: `docs/SEARCH_FILTERS_QUERY_MAP.md` §`polygon`.
 
 ### Stage 131.A5.E — Referral link OG preview
 - `/u/[id]/opengraph-image`: center `brand/airento-mark1.png` + word **Airento** only (no invite/subtitle keys); cache-bust `?v=20260821`.

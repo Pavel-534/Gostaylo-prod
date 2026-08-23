@@ -479,14 +479,25 @@ export function SearchCalendar({
   className,
   /** `wizardStep` — inline panel inside MobileSearchWizard (no nested Drawer/Popover). */
   presentation,
+  /** Stage 201.115 — open popover/drawer once after lazy mount (user already clicked idle trigger). */
+  defaultOpen = false,
 }) {
   const isMobile = useIsMobile()
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [popoverOpen, setPopoverOpen] = React.useState(false)
+  const defaultOpenAppliedRef = React.useRef(false)
 
   const isWizardStep = presentation === 'wizardStep'
   const useDrawerShell = !isWizardStep && (presentation === 'drawer' || (presentation == null && isMobile))
   const usePopoverShell = !isWizardStep && !useDrawerShell
+
+  React.useEffect(() => {
+    if (!defaultOpen || defaultOpenAppliedRef.current || isWizardStep) return
+    defaultOpenAppliedRef.current = true
+    const mobile = typeof window !== 'undefined' && window.innerWidth < 768
+    if (mobile) setDrawerOpen(true)
+    else setPopoverOpen(true)
+  }, [defaultOpen, isWizardStep])
   
   const dateRange = value || { from: null, to: null }
   const loc = locales[locale] || enUS

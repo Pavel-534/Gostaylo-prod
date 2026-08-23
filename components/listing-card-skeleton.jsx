@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import {
   LISTING_CARD_BODY_PAD,
   LISTING_CARD_CONTENT_MIN_H,
+  LISTING_CARD_CONTENT_VISIBILITY_CLASS,
   LISTING_CARD_MEDIA_ASPECT,
   LISTING_CARD_PRICE_ROW_MIN_H,
   LISTING_CARD_SPEC_ROW_MIN_H,
@@ -42,6 +43,7 @@ export function ListingCardSkeleton({ className, style }) {
       style={style}
       className={cn(
         "h-full flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm",
+        LISTING_CARD_CONTENT_VISIBILITY_CLASS,
         className,
       )}
       data-testid="listing-card-skeleton"

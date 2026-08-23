@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { cn } from '@/lib/utils'
 import { ListingHeroHeadline } from '@/components/listing/pdp/ListingHero'
 import { ListingDescription } from '@/components/listing/pdp/ListingDescription'
@@ -8,8 +9,7 @@ import { ListingMap } from '@/components/listing/pdp/ListingMap'
 import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
 import { ListingReviews } from '@/components/listing/pdp/ListingReviews'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
-import { SimilarListingsRail } from '@/components/recommendations/SimilarListingsRail'
-import { RecentlyViewedRail } from '@/components/recommendations/RecentlyViewedRail'
+import { PdpDeferredSection } from '@/components/listing/pdp/PdpDeferredSection'
 import {
   ListingPdpSection,
   ListingPdpSectionStack,
@@ -19,10 +19,27 @@ import {
   LISTING_PDP_SECTION_RULE_CLASS,
 } from '@/lib/listing/pdp-section-rhythm'
 
+const SimilarListingsRail = dynamic(
+  () =>
+    import('@/components/recommendations/SimilarListingsRail').then(
+      (m) => m.SimilarListingsRail,
+    ),
+  { ssr: false, loading: () => null },
+)
+
+const RecentlyViewedRail = dynamic(
+  () =>
+    import('@/components/recommendations/RecentlyViewedRail').then(
+      (m) => m.RecentlyViewedRail,
+    ),
+  { ssr: false, loading: () => null },
+)
+
 /**
  * PDP left column — isolated from booking date state to avoid calendar click re-renders (Stage 171.23).
  * Stage 201.83 — section order: story → trust (reviews) → place (map) → rails.
  * Stage 201.85 — SSOT section rhythm; mobile dates sit between stacks (not inside divide-y).
+ * Stage 201.118 — reviews + rails viewport-deferred; map already deferred in ListingMap (171.23).
  */
 function ListingPdpDetailsColumnInner({
   listing,
@@ -72,21 +89,23 @@ function ListingPdpDetailsColumnInner({
         </div>
       ) : null}
 
-      <SimilarListingsRail
-        listingId={listing.id}
-        language={language}
-        currency={currency}
-        exchangeRates={exchangeRates}
-        className={LISTING_PDP_RAIL_SECTION_CLASS}
-      />
-      <RecentlyViewedRail
-        currentListingId={listing.id}
-        userId={userId}
-        language={language}
-        currency={currency}
-        exchangeRates={exchangeRates}
-        className={LISTING_PDP_RAIL_SECTION_CLASS}
-      />
+      <PdpDeferredSection fallback={null} className={LISTING_PDP_RAIL_SECTION_CLASS}>
+        <SimilarListingsRail
+          listingId={listing.id}
+          language={language}
+          currency={currency}
+          exchangeRates={exchangeRates}
+        />
+      </PdpDeferredSection>
+      <PdpDeferredSection fallback={null} className={LISTING_PDP_RAIL_SECTION_CLASS}>
+        <RecentlyViewedRail
+          currentListingId={listing.id}
+          userId={userId}
+          language={language}
+          currency={currency}
+          exchangeRates={exchangeRates}
+        />
+      </PdpDeferredSection>
     </div>
   )
 }

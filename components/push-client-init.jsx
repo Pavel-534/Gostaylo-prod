@@ -1,12 +1,13 @@
 'use client'
 
 /**
- * Stage M1.1 / 189.37 — Web Push (FCM) bootstrap after login on any shell that mounts this.
+ * Stage M1.1 / 189.37 / 189.38 — Web Push (FCM) bootstrap after login on any shell that mounts this.
  * - Runs only when `user?.id` is present.
  * - `permission === granted` → getToken + register (idempotent across storefront/chat remounts).
- * - `default` → no auto `requestPermission` (gesture / Soft CTA via PUSH_ENABLE_EVENT).
+ * - `default` → Soft CTA / PushSoftPromptBanner (gesture); iOS Safari tab → skip (needs Home Screen).
  * - `denied` → silent no-op.
- * - App resume (focus / visible): if permission flipped to granted and session has no token → sync once (throttled).
+ * - Ping failure (token removed server-side) → re-register.
+ * - App resume: re-sync when permission granted but session/ping stale (throttled).
  */
 
 import { useEffect, useRef } from 'react'
@@ -14,17 +15,26 @@ import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseAppSafe, getFirebaseVapidKey } from '@/lib/firebase-web'
 import { postPushAction } from '@/lib/api/push-client'
 import { registerAppServiceWorker } from '@/lib/pwa/register-app-sw.js'
+import { canRegisterWebPushOnThisDevice, isIosDevice } from '@/lib/push/web-push-platform.js'
+import { isStandaloneDisplayMode } from '@/lib/pwa/pwa-platform.js'
 import {
   PUSH_ENABLE_EVENT,
   PUSH_FCM_TOKEN_KEY,
   PUSH_REGISTERED_UID_KEY,
+  clearPushPingSuccess,
+  clearSessionPushSync,
   getSessionPushSync,
+  markPushPingSuccess,
   setSessionPushSync,
   shouldSyncPushOnResume,
 } from '@/lib/push/web-push-client-state.js'
 
 /** Cross-mount in-flight guard (same uid). */
 let syncInFlightUid = null
+
+/** Throttle ping-triggered re-register storms. */
+let lastPingReregisterAt = 0
+const PING_REREGISTER_COOLDOWN_MS = 60_000
 
 export function PushClientInit() {
   const { user } = useAuth()
@@ -40,13 +50,15 @@ export function PushClientInit() {
     let unsubscribeOnMessage = null
     let swMessageHandler = null
     let pingInterval = null
+    let iosStandaloneWarned = false
 
     const deviceInfo = {
-      surface: 'web',
+      surface: isIosDevice() && isStandaloneDisplayMode() ? 'ios_pwa' : 'web',
       userAgent: navigator.userAgent || '',
       platform: navigator.platform || '',
       language: navigator.language || '',
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      standalone: isStandaloneDisplayMode(),
     }
 
     const clearMessagingSide = () => {
@@ -80,6 +92,7 @@ export function PushClientInit() {
           /* ignore */
         }
         setSessionPushSync(userId, token)
+        markPushPingSuccess()
         console.info('Push Debug: Token synchronized with database')
         return true
       }
@@ -93,6 +106,41 @@ export function PushClientInit() {
       return false
     }
 
+    const handlePingFailure = (token, userId, json) => {
+      clearPushPingSuccess()
+      const err = String(json?.error || '')
+      const needsReregister =
+        err.includes('Token not registered') ||
+        err.includes('Unauthorized') ||
+        json?.success === false
+      if (!needsReregister) return
+      clearSessionPushSync()
+      const now = Date.now()
+      if (now - lastPingReregisterAt < PING_REREGISTER_COOLDOWN_MS) return
+      lastPingReregisterAt = now
+      console.info('Push Debug: ping failed — re-registering token', err || 'unknown')
+      void run({ forceRefresh: true })
+    }
+
+    const startPingLoop = (token, userId) => {
+      clearMessagingSide()
+      pingInterval = setInterval(() => {
+        void postPushAction({ action: 'ping', token })
+          .then(({ ok, json }) => {
+            if (!aliveRef.current) return
+            if (ok) {
+              markPushPingSuccess()
+              return
+            }
+            handlePingFailure(token, userId, json)
+          })
+          .catch(() => {
+            if (!aliveRef.current) return
+            clearPushPingSuccess()
+          })
+      }, 30_000)
+    }
+
     const run = async ({ forceRefresh = false } = {}) => {
       if (busyRef.current) return
       const userId = user.id
@@ -101,6 +149,14 @@ export function PushClientInit() {
       if (Notification.permission === 'denied') return
       if (Notification.permission !== 'granted') {
         console.info('Push Debug: permission not granted — waiting for Soft CTA / gesture')
+        return
+      }
+
+      if (!canRegisterWebPushOnThisDevice()) {
+        if (isIosDevice() && !isStandaloneDisplayMode() && !iosStandaloneWarned) {
+          iosStandaloneWarned = true
+          console.info('Push Debug: iOS Safari tab — push requires Add to Home Screen (standalone PWA)')
+        }
         return
       }
 
@@ -165,16 +221,14 @@ export function PushClientInit() {
               'Push Debug: localStorage token ≠ Firebase getToken — register with update:true',
             )
           }
-          await syncTokenToServer(token, userId, storageMismatch)
-          if (!aliveRef.current) return
+          const registered = await syncTokenToServer(token, userId, storageMismatch || forceRefresh)
+          if (!aliveRef.current || !registered) return
         } else {
           console.info('Push Debug: skip duplicate register (same uid+token)')
+          markPushPingSuccess()
         }
 
-        clearMessagingSide()
-        pingInterval = setInterval(() => {
-          void postPushAction({ action: 'ping', token }).catch(() => {})
-        }, 30_000)
+        startPingLoop(token, userId)
 
         unsubscribeOnMessage = onMessage(messaging, (payload) => {
           const data = payload?.data || {}

@@ -6,6 +6,18 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 201.118 | 2026-08-23 | PDP below-fold: deferred reviews + rails (map already 171.23) | Done |
+| 201.117 | 2026-08-23 | Listing card grid `content-visibility: auto` + remembered intrinsic size | Done |
+| 201.116 | 2026-08-23 | Catalog compact/FilterBar → UnifiedSearchBarLazy SSOT + CLS skeletons | Done |
+| 178.0 | 2026-08-23 | RLS InitPlan sweep `(SELECT …)` + favorites/invoices SSOT cleanup | Done |
+| 201.115 | 2026-08-23 | Lazy SearchCalendar chunk (idle shell + defaultOpen; date-fns out of search bar) | Done |
+| 179.1 | 2026-08-23 | Catalog search conditional CDN cache (anonymous simple only; ADR-163) | Done |
+| 201.114a | 2026-08-22 | Home lazy UnifiedSearchBar (hero+compact) + ForYou/vanity rails; CLS skeletons | Done |
+| 179.0a / 179.2a / 171.22 | 2026-08-22 | Conditional CDN cache (map-pins + categories) + image minimumCacheTTL 24h | Done |
+| 189.38 | 2026-08-22 | iOS Web Push: ping re-register, soft prompt banner, hygiene cron iOS-safe | Done |
+| 177.5.2 | 2026-08-22 | Location inventory SQL GROUP BY RPC (suggest counts; Phuket/E2E parity) | Done |
+| 177.5.1 | 2026-08-22 | Polygon draw UI: desktop lg+ Pencil + Geoman lazy; browser gzip encode | Done |
+| 177.5.0 | 2026-08-22 | Polygon search backend: geo.polygon registry + listings_within_polygon_v1 (flag off) | Done |
 | 131.A5.D | 2026-08-20 | Guest withdraw entry UX: hide partner CTA, ReferralWithdrawEntryCta, payout-setup deep-link, RU bank copy | Done |
 | 131.A5.B2 | 2026-08-20 | Calculator v2 Variant B: shared UI, activity→l2ConversionRate, L3 gate copy, additive API fields | Done |
 | 131.A1 | 2026-08-19 | ADR-131A Ambassador 3.1: L3 code A1.1–A1.3 + docs A1.4; live still 45/12/43 until Legal+owner cutover | Done |

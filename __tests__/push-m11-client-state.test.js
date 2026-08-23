@@ -11,10 +11,12 @@ import {
   clearSessionPushSync,
   clearWebPushClientStorage,
   getSessionPushSync,
+  markPushPingSuccess,
   setSessionPushSync,
   shouldSyncPushOnResume,
   resetPushResumeThrottleForTests,
   PUSH_RESUME_THROTTLE_MS,
+  wasPushPingRecentOk,
 } from '@/lib/push/web-push-client-state.js'
 
 describe('M1.1 web-push-client-state', () => {
@@ -68,7 +70,7 @@ describe('M1.1 web-push-client-state', () => {
     assert.deepEqual(getSessionPushSync(), { uid: null, token: null })
   })
 
-  it('shouldSyncPushOnResume only when granted and not yet session-synced', () => {
+  it('shouldSyncPushOnResume only when granted and session/ping not both healthy', () => {
     assert.equal(shouldSyncPushOnResume('u1', { permission: 'denied', now: 1000 }), false)
     assert.equal(shouldSyncPushOnResume('u1', { permission: 'default', now: 1000 }), false)
     assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 1000 }), true)
@@ -83,6 +85,11 @@ describe('M1.1 web-push-client-state', () => {
     )
     setSessionPushSync('u1', 'tok')
     resetPushResumeThrottleForTests()
+    // session synced but no recent ping → still sync
+    assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 50_000 }), true)
+    markPushPingSuccess(50_000)
+    resetPushResumeThrottleForTests()
+    assert.equal(wasPushPingRecentOk(undefined, 50_000), true)
     assert.equal(shouldSyncPushOnResume('u1', { permission: 'granted', now: 50_000 }), false)
   })
 })

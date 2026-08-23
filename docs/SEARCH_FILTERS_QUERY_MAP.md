@@ -231,6 +231,18 @@
 | JS пост | **Legacy:** доп. `pointInBounds`. **Unified:** JS bbox skip когда GiST ids применены (`discoveryPlanUsedGistBbox`) |
 | **Цена на пине** | `mapPinRowToPayload` → `getGuestDisplayPerNight` с `guestServiceFeePercent` (как каталог) + `_pricing`; в UI сайдбар-пин берёт цену из объекта listing (`InteractiveSearchMap`) |
 
+### `polygon` (Stage 177.5.0)
+
+| Этап | Детали |
+|------|--------|
+| Клиент → URL | Desktop Pencil (`MapPolygonDrawChrome`) → `validateAndEncodePolygonForSearchUrl` → `polygon=`; encode — `discovery-geo-polygon-browser.js` |
+| Feature flags | UI: **`NEXT_PUBLIC_DISCOVERY_POLYGON_SEARCH=1`** + **`NEXT_PUBLIC_DISCOVERY_UNIFIED_PIPELINE=1`**. Server: **`DISCOVERY_UNIFIED_PIPELINE=1`** + **`DISCOVERY_POLYGON_SEARCH=1`** (default off) |
+| Сервер: парсинг | `filter-registry` → `geo.polygon` (`decodePolygonSearchParam`); **precedence:** polygon ignores `south/north/west/east` |
+| Validation | Pure core ≤500 vertices / area / closed ring; Node decode uses zlib; browser encode uses `CompressionStream` |
+| SQL | Unified RPC **`listings_within_polygon_v1`** (`&&` + `ST_Intersects` on true `listings.coordinates`); `ST_MakeValid` in SQL only |
+| Map-pins | Same id-set; polygon-only allowed; Geoman never on mobile `#map` sheet |
+| Privacy | ADR-163 — RPC uses true coords; serialize stays fuzzed |
+
 ### `transmission`, `fuel_type` / `fuelType`
 
 | Этап | Детали |

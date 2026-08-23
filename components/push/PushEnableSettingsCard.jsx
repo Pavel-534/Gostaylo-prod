@@ -25,6 +25,8 @@ import {
   detectNotificationSettingsPlatform,
   openNotificationPermissionSettings,
 } from '@/lib/push/open-notification-settings.js'
+import { getWebPushUnavailableReason } from '@/lib/push/web-push-platform.js'
+import { usePwaInstall } from '@/hooks/use-pwa-install'
 
 function readPermission() {
   if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'
@@ -40,15 +42,18 @@ function deniedGuideKey(platform) {
 export function PushEnableSettingsCard({ className }) {
   const { language } = useI18n()
   const { user } = useAuth()
+  const { install, isStandalone } = usePwaInstall()
   const [permission, setPermission] = useState('unsupported')
   const [busy, setBusy] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [settingsPlatform, setSettingsPlatform] = useState('other')
+  const [unavailableReason, setUnavailableReason] = useState(null)
 
   useEffect(() => {
     setPermission(readPermission())
     setSettingsPlatform(detectNotificationSettingsPlatform())
-  }, [])
+    setUnavailableReason(getWebPushUnavailableReason())
+  }, [isStandalone])
 
   useEffect(() => {
     const refresh = () => {
@@ -71,6 +76,7 @@ export function PushEnableSettingsCard({ className }) {
 
   const enable = useCallback(async () => {
     if (!user?.id || typeof window === 'undefined' || !('Notification' in window)) return
+    if (getWebPushUnavailableReason() === 'ios_browser_tab') return
     setBusy(true)
     try {
       const next = await Notification.requestPermission()
@@ -97,6 +103,31 @@ export function PushEnableSettingsCard({ className }) {
 
   if (!user?.id) return null
   if (permission === 'unsupported') return null
+
+  if (unavailableReason === 'ios_browser_tab') {
+    return (
+      <Card className={cn(MOBILE_FLAT_CARD_CLASS, className)} data-testid="push-enable-ios-install">
+        <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4 text-slate-400" aria-hidden />
+            {getUIText('pushEnable_iosInstallTitle', language)}
+          </CardTitle>
+          <CardDescription>{getUIText('pushEnable_iosInstallBody', language)}</CardDescription>
+        </CardHeader>
+        <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+          <Button
+            type="button"
+            variant="brand"
+            className="w-full min-h-[44px] rounded-2xl"
+            onClick={() => void install({ direct: true })}
+            data-testid="push-enable-ios-install-cta"
+          >
+            {getUIText('pushEnable_iosInstallCta', language)}
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (permission === 'granted') {
     return (

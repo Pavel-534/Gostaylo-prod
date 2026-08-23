@@ -102,6 +102,8 @@ const nextConfig = {
     `build-${Date.now()}`,
 
   images: {
+    // Stage 171.22 — reduce repeat Vercel Image Optimization work for stable listing URLs.
+    minimumCacheTTL: 86400,
     // Оптимизация Vercel / Next Image: WebP/AVIF, resize
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

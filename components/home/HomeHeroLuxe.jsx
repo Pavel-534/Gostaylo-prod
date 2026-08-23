@@ -1,12 +1,15 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { CategoryQuickChips } from '@/components/search/mobile/CategoryQuickChips'
-import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
+import {
+  UnifiedSearchBarHeroLazy,
+  prefetchUnifiedSearchBarChunk,
+} from '@/components/search/UnifiedSearchBarLazy'
 import { buildCatalogSearchSummaryLabels } from '@/lib/search/catalog-search-summary-labels'
 
 /**
@@ -55,6 +58,10 @@ export function HomeHeroLuxe({
 
   const cleanTitle = typeof heroTitle === 'string' ? heroTitle.trim() : ''
   const showTitle = cleanTitle.length > 0
+
+  useEffect(() => {
+    prefetchUnifiedSearchBarChunk()
+  }, [])
 
   const mobilePillLine = useMemo(() => {
     const { segments } = buildCatalogSearchSummaryLabels({
@@ -160,7 +167,7 @@ export function HomeHeroLuxe({
             className="mb-3 sm:mb-4"
           />
 
-          <UnifiedSearchBar
+          <UnifiedSearchBarHeroLazy
             variant="hero"
             language={language}
             category={category}

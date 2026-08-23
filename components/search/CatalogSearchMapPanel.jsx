@@ -62,6 +62,11 @@ function CatalogSearchMapPanelComponent({
   onCameraRestoreDone = null,
   /** Stage 201.84 — parent lock so remount does not world-fit. */
   holdSoftBackCamera = false,
+  /** Stage 177.5.1 — false on CatalogMobileMapSheet. */
+  enablePolygonDraw = false,
+  appliedPolygon = null,
+  onPolygonEncoded = null,
+  onPolygonCleared = null,
 }) {
   const [viewportBbox, setViewportBbox] = useState(null)
   /** Live center/zoom for soft-back (not quantized away). */
@@ -72,19 +77,29 @@ function CatalogSearchMapPanelComponent({
     [appliedBbox],
   )
 
+  const hasPolygon = Boolean(appliedPolygon || searchKeyParams?.polygon)
   const mapQueryBounds = quantizedAppliedBbox ?? viewportBbox
-  const boundsReady = boundsParamsReady(mapQueryBounds)
+  const boundsReady = hasPolygon || boundsParamsReady(mapQueryBounds)
 
   const mapPinsKeyParams = useMemo(() => {
-    if (!searchKeyParams || !boundsReady || !mapQueryBounds) return null
+    if (!searchKeyParams) return null
+    if (hasPolygon) {
+      return {
+        ...searchKeyParams,
+        polygon: appliedPolygon || searchKeyParams.polygon,
+        bounds: null,
+        limit: '500',
+      }
+    }
+    if (!boundsParamsReady(mapQueryBounds)) return null
     return { ...searchKeyParams, bounds: mapQueryBounds, limit: '500' }
-  }, [searchKeyParams, mapQueryBounds, boundsReady])
+  }, [searchKeyParams, mapQueryBounds, hasPolygon, appliedPolygon])
 
   const { mode, pins, clusters } = useMapPinsFetch(mapPinsKeyParams, {
     enabled: mapActive && boundsReady,
   })
 
-  /** Bbox ready → merge API pins with catalog listings (sidebar SSOT); no flip on isLoading. */
+  /** Bbox/polygon ready → merge API pins with catalog listings (sidebar SSOT); no flip on isLoading. */
   const mapPinsUseApi = boundsReady
 
   const viewportForParent = useMemo(() => {
@@ -117,7 +132,7 @@ function CatalogSearchMapPanelComponent({
           zoom: Number.isFinite(Number(bbox.zoom)) ? Number(bbox.zoom) : null,
         })
       }
-      if (appliedBbox) return
+      if (appliedBbox || hasPolygon) return
       const quantized = quantizeMapBbox(bbox)
       if (!quantized) return
       setViewportBbox((prev) => {
@@ -133,7 +148,7 @@ function CatalogSearchMapPanelComponent({
         return quantized
       })
     },
-    [appliedBbox],
+    [appliedBbox, hasPolygon],
   )
 
   return (
@@ -176,6 +191,10 @@ function CatalogSearchMapPanelComponent({
           cameraRestoreBbox={cameraRestoreBbox}
           onCameraRestoreDone={onCameraRestoreDone}
           holdSoftBackCamera={holdSoftBackCamera}
+          enablePolygonDraw={enablePolygonDraw}
+          appliedPolygon={appliedPolygon || searchKeyParams?.polygon || null}
+          onPolygonEncoded={onPolygonEncoded}
+          onPolygonCleared={onPolygonCleared}
         />
       </div>
     </div>

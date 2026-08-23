@@ -734,9 +734,11 @@ AND (
 | **177.0** | Design | Этот blueprint; review ADR-177 |
 | **177.1** | Unified parse + GiST bbox + registry skeleton | `discovery-filter-contract.js`, `filter-registry.js`, thin handlers, SQL amenities GIN |
 | **177.2** | Metadata generated columns + pagination cursor | Migration facets; remove JS metadata filter |
-| **177.3** | Polygon RPC + draw UI | `listings_within_polygon_v1`, Leaflet draw |
-| **177.4** | Facet counts API + polygon clusters | `GET /api/v2/search/facets` |
-| **177.5** | Docs sync | `SEARCH_FILTERS_QUERY_MAP.md`, passport §Discovery |
+| **177.3** | ~~Polygon RPC + draw UI~~ → **consumed by transport/yacht facets** | see manifesto Stage 177.3 |
+| **177.4** | Service facets + ~~polygon clusters~~ | service metadata SQL |
+| **177.5.0** | Polygon RPC + registry (no UI) | `listings_within_polygon_v1`, `geo.polygon`, `DISCOVERY_POLYGON_SEARCH` |
+| **177.5.1** | Draw UI (Leaflet) | map-mode pencil; dynamic import only |
+| **177.5.2** | Suggest inventory SQL | `listings_location_inventory_counts_v1` + Phuket/E2E parity |
 
 **Feature flags:**
 

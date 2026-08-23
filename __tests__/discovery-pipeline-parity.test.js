@@ -53,6 +53,7 @@ describe('discovery pipeline parity (Stage 177.1)', () => {
     assert.deepEqual(ORDERED_FILTER_KEYS, [
       'category',
       'geo.bbox',
+      'geo.polygon',
       'stay.dates',
       'price.range',
       'housing.bedrooms',

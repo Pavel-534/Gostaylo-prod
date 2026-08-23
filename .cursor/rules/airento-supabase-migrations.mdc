@@ -30,7 +30,8 @@ alwaysApply: true
 
 - FK на `profiles` / `listings` / `bookings` — **TEXT** в проде (`docs/TECHNICAL_MANIFESTO.md` §0).
 - Серверные API — `supabaseAdmin`; anon key в браузере не должен читать `payouts`, `ledger_*`, токены.
-- После RLS-изменений — Security Advisor в дашборде; референс sweep: `migrations/stage121_0_rls_security_sweep.sql`.
+- **InitPlan (Stage 178.0):** в политиках оборачивайте `(SELECT auth.role())`, `(SELECT public.is_admin())`, `(SELECT public.current_profile_id())` — не голые вызовы (Supabase advisor `auth_rls_initplan`).
+- После RLS-изменений — Security Advisor в дашборде; референс sweep: `migrations/stage121_0_rls_security_sweep.sql`, InitPlan: `migrations/stage178_0_rls_initplan_sweep.sql`.
 
 ## Доки в PR
 

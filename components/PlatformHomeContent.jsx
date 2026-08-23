@@ -5,6 +5,7 @@
  * Stage 171.27 — TanStack hydrate from RSC bootstrap (`HomeHydrationBoundary`).
  * Stage 201.18 — scroll memory via root RouteScrollMemoryHost (not page-local).
  * Stage 201.103 — home UI renders inside HomeHydrationBoundary (no shell park).
+ * Stage 201.114a — lazy search chrome + below-fold rails (CLS-safe skeletons).
  */
 
 import { useMemo, useEffect } from 'react'
@@ -15,7 +16,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 import { usePlatformHomePage } from '@/hooks/home/use-platform-home-page'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { PublicSearchChrome } from '@/components/search/PublicSearchChrome'
-import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
+import { UnifiedSearchBarCompactLazy } from '@/components/search/UnifiedSearchBarLazy'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { TrustBar } from '@/components/home/TrustBar'
@@ -24,9 +25,8 @@ import { MobileSearchFAB } from '@/components/search/mobile/MobileSearchFAB'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
-import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { MobileSmartInstallBanner } from '@/components/pwa/MobileSmartInstallBanner'
-import { ForYouRail } from '@/components/recommendations/ForYouRail'
+import { ForYouRailSkeleton } from '@/components/recommendations/ForYouRailSkeleton'
 import { listingIdsForRailDedupe } from '@/lib/recommendations/for-you-rail-display'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,19 @@ import { Button } from '@/components/ui/button'
 
 const CatalogMobileSearchSheet = dynamic(
   () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
+  { ssr: false, loading: () => null },
+)
+
+const ForYouRail = dynamic(
+  () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
+  { ssr: false, loading: () => <ForYouRailSkeleton /> },
+)
+
+const ReferralVanityWelcomeHost = dynamic(
+  () =>
+    import('@/components/referral/ReferralVanityWelcomeBanner').then(
+      (m) => m.ReferralVanityWelcomeHost,
+    ),
   { ssr: false, loading: () => null },
 )
 
@@ -284,7 +297,7 @@ export function PlatformHomeContent() {
         surface="home"
         compactTestId="sticky-search-bar"
         compact={
-          <UnifiedSearchBar
+          <UnifiedSearchBarCompactLazy
             variant="compact"
             language={language}
             category={selectedCategory}

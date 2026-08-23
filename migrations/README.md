@@ -18,9 +18,11 @@
 | Профиль | GRANT | RLS |
 |---------|-------|-----|
 | **Backend-only** (`payouts`, `ledger_*`, outbox) | только `service_role` | включён, без политик для anon |
-| **User-scoped** (`user_push_tokens`, `favorites`) | `authenticated` + `service_role` | `user_id = current_profile_id()` |
+| **User-scoped** (`user_push_tokens`, `favorites`) | `authenticated` + `service_role` | `user_id = (SELECT current_profile_id())` |
 | **Public catalog** (`categories`) | `SELECT` для anon + staff write через `is_admin()` | активные строки / staff |
 | **Listing owner** (`seasonal_prices`, `calendar_blocks`) | обычно только API (`service_role`) | join на `listings.owner_id` |
+
+**InitPlan (Stage 178.0):** в RLS не вызывайте `auth.uid()` / `auth.role()` / `is_admin()` / `current_profile_id()` «голыми» — оборачивайте в `(SELECT …)`, иначе PostgreSQL пересчитывает функцию на каждую строку. См. шаблон `_template_new_public_table.sql`.
 
 Приложение в основном ходит через **`supabaseAdmin`** (service role) в `app/api/**` — RLS обходит, но **anon key в браузере** всё равно должен быть закрыт политиками.
 

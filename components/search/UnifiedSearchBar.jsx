@@ -7,6 +7,7 @@
  * - hero: premium 60px row (HomeHeroLuxe capsule — no outer shell)
  * - filter: catalog expanded grid; keyword row when `isCatalogKeywordSearchUiEnabled()`
  * - compact: fixed chrome single row + summary chips (home + catalog scroll)
+ * Stage 201.115 — SearchCalendarLazy (on-demand chunk; no date-fns in this module).
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
@@ -20,13 +21,11 @@ import {
   X,
   SlidersHorizontal,
 } from 'lucide-react'
-import { format, isSameDay } from 'date-fns'
-import { ru as ruLocale } from 'date-fns/locale'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { SearchCalendar } from '@/components/search-calendar'
+import { SearchCalendarLazy } from '@/components/search/SearchCalendarLazy'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { GuestsPopover, formatGuestsSummaryText } from '@/components/search/GuestsPopover'
 import { TimeSelect } from '@/components/ui/time-select'
@@ -62,19 +61,28 @@ function resolveWhereLabel(whereValue, options) {
     .join(' ')
 }
 
+/** Stage 201.115 — short labels via Intl (no date-fns in search-bar chunk). */
 function formatDateRangeShort(dateRange, language) {
   if (!dateRange?.from) return null
-  const locale = language === 'ru' ? ruLocale : undefined
-  if (!dateRange.to || isSameDay(dateRange.from, dateRange.to)) {
-    return format(dateRange.from, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
+  const loc = language === 'ru' ? 'ru-RU' : 'en-US'
+  const fmt = (d) => d.toLocaleDateString(loc, { day: 'numeric', month: 'short' })
+  const from = dateRange.from
+  const to = dateRange.to
+  if (
+    !to ||
+    (from.getFullYear() === to.getFullYear() &&
+      from.getMonth() === to.getMonth() &&
+      from.getDate() === to.getDate())
+  ) {
+    return fmt(from)
   }
-  const sameMonth = dateRange.from.getMonth() === dateRange.to.getMonth()
+  const sameMonth =
+    from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
   if (sameMonth) {
-    const m = format(dateRange.from, language === 'ru' ? 'MMM' : 'MMM', { locale })
-    return `${format(dateRange.from, 'd')}–${format(dateRange.to, 'd')} ${m}`
+    const m = from.toLocaleDateString(loc, { month: 'short' })
+    return `${from.getDate()}–${to.getDate()} ${m}`
   }
-  const mk = (d) => format(d, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
-  return `${mk(dateRange.from)} – ${mk(dateRange.to)}`
+  return `${fmt(from)} – ${fmt(to)}`
 }
 
 function CompactSummaryChip({ icon: Icon, children, onClick, onClear, testid, clearAriaLabel }) {
@@ -408,7 +416,7 @@ export function UnifiedSearchBar({
                     {language === 'ru' ? 'Свернуть' : 'Done'}
                   </button>
                 </div>
-                <SearchCalendar
+                <SearchCalendarLazy
                   value={dateRange}
                   onChange={setDateRange}
                   locale={language}
@@ -545,7 +553,7 @@ export function UnifiedSearchBar({
           </div>
 
           <div data-search-section="dates" className="min-w-0 space-y-1">
-            <SearchCalendar
+            <SearchCalendarLazy
               value={dateRange}
               onChange={setDateRange}
               locale={language}
@@ -599,7 +607,7 @@ export function UnifiedSearchBar({
           </div>
 
           <div ref={datesRef} className="min-w-[170px] flex-1 border-r border-slate-100 px-2 xl:min-w-[220px]">
-            <SearchCalendar
+            <SearchCalendarLazy
               value={dateRange}
               onChange={setDateRange}
               locale={language}
@@ -768,7 +776,7 @@ export function UnifiedSearchBar({
           className={cn(UNIFIED_SEARCH_HERO_FIELD_CLASS, 'px-0')}
         />
 
-        <SearchCalendar
+        <SearchCalendarLazy
           value={dateRange}
           onChange={setDateRange}
           locale={language}

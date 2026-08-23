@@ -19,7 +19,7 @@ describe('Stage 200.136 — wizard preview ListingCard solo layout', () => {
     const src = read('components/listing-card.jsx')
     assert.match(src, /layout = 'grid'/)
     assert.match(src, /isSolo = layout === 'solo'/)
-    assert.match(src, /isSolo \? 'h-auto' : 'h-full'/)
+    assert.match(src, /isSolo \? 'h-auto' : cn\('h-full', LISTING_CARD_CONTENT_VISIBILITY_CLASS\)/)
     assert.match(src, /isSolo \? 'mt-3' : 'mt-auto'/)
     assert.match(src, /data-listing-card-layout/)
   })
