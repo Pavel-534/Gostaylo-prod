@@ -27,6 +27,13 @@ import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 import { formatSameCurrencyGuestDisplay } from '@/lib/pricing/same-currency-guest-display'
 import { extractListingLatLng } from '@/lib/maps/map-provider-adapter'
 import { configureLeafletDefaultIcons } from '@/lib/maps/leaflet-default-icon'
+import {
+  CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS,
+  CATALOG_MAP_SELECT_FLY_DURATION_MS,
+  CATALOG_MAP_SELECT_MIN_ZOOM,
+  CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY,
+  CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
+} from '@/lib/maps/catalog-map-ux-policy'
 import { MapPolygonDrawChrome } from '@/components/search/MapPolygonDrawChrome'
 
 configureLeafletDefaultIcons(L)
@@ -689,13 +696,15 @@ export default function InteractiveSearchMap({
           mapBoundsLocked={mapBoundsLocked}
           onClearMapBounds={onClearMapBounds}
         />
-        <MapPolygonDrawChrome
-          language={language}
-          enablePolygonDraw={enablePolygonDraw}
-          appliedPolygon={appliedPolygon}
-          onPolygonEncoded={onPolygonEncoded}
-          onPolygonCleared={onPolygonCleared}
-        />
+        {enablePolygonDraw || appliedPolygon ? (
+          <MapPolygonDrawChrome
+            language={language}
+            enablePolygonDraw={enablePolygonDraw}
+            appliedPolygon={appliedPolygon}
+            onPolygonEncoded={onPolygonEncoded}
+            onPolygonCleared={onPolygonCleared}
+          />
+        ) : null}
         {cameraRestoreBbox ? (
           <CatalogMapCameraRestoreOnce
             bbox={cameraRestoreBbox}

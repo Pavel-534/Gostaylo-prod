@@ -1,5 +1,6 @@
 /**
- * Stage 201.117 — listing card grid content-visibility (off-screen layout skip).
+ * Stage 201.117b — content-visibility rolled back on live listing cards (mobile scroll thrash).
+ * Map UX constants must stay imported in InteractiveSearchMap (polygon draw regression).
  * Run: node --import ./scripts/node-test-alias-register.mjs --test __tests__/stage201-117-listing-card-content-visibility.test.js
  */
 
@@ -15,22 +16,19 @@ function read(rel) {
   return readFileSync(join(root, rel), 'utf8')
 }
 
-describe('Stage 201.117 — listing card content-visibility', () => {
-  it('SSOT class uses content-visibility auto + remembered intrinsic size', () => {
-    assert.match(LISTING_CARD_CONTENT_VISIBILITY_CLASS, /content-visibility:auto/)
-    assert.match(LISTING_CARD_CONTENT_VISIBILITY_CLASS, /contain-intrinsic-size:auto_/)
-  })
-
-  it('ListingCard applies CV only for grid layout (not solo)', () => {
+describe('Stage 201.117b — listing card content-visibility rollback + map constants', () => {
+  it('live ListingCard does not apply content-visibility class', () => {
+    assert.equal(LISTING_CARD_CONTENT_VISIBILITY_CLASS, '')
     const src = read('components/listing-card.jsx')
-    assert.match(src, /LISTING_CARD_CONTENT_VISIBILITY_CLASS/)
-    assert.match(src, /isSolo \? 'h-auto' : cn\('h-full', LISTING_CARD_CONTENT_VISIBILITY_CLASS\)/)
+    assert.doesNotMatch(src, /LISTING_CARD_CONTENT_VISIBILITY_CLASS/)
+    assert.match(src, /isSolo \? 'h-auto' : 'h-full'/)
   })
 
-  it('deferred slot + skeleton share the same CV class', () => {
-    const slot = read('components/search/CatalogDeferredCardSlot.jsx')
-    const sk = read('components/listing-card-skeleton.jsx')
-    assert.match(slot, /LISTING_CARD_CONTENT_VISIBILITY_CLASS/)
-    assert.match(sk, /LISTING_CARD_CONTENT_VISIBILITY_CLASS/)
+  it('InteractiveSearchMap keeps catalog-map-ux-policy imports (map open crash fix)', () => {
+    const src = read('components/listing/InteractiveSearchMap.jsx')
+    assert.match(src, /from ['"]@\/lib\/maps\/catalog-map-ux-policy['"]/)
+    assert.match(src, /CATALOG_MAP_BBOX_EMIT_DEBOUNCE_MS/)
+    assert.match(src, /CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY/)
+    assert.match(src, /MapPolygonDrawChrome/)
   })
 })

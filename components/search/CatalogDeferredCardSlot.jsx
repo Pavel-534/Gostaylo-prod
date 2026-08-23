@@ -2,13 +2,10 @@
 
 /**
  * Stage 201.97 — below-fold catalog cards mount on approach (IntersectionObserver).
- * Stage 201.117 — skeleton placeholder also uses content-visibility size reserve.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { ListingCardSkeleton } from '@/components/listing-card-skeleton'
-import { LISTING_CARD_CONTENT_VISIBILITY_CLASS } from '@/lib/listing/listing-card-layout'
-import { cn } from '@/lib/utils'
 
 export function CatalogDeferredCardSlot({
   forceMount = false,
@@ -44,11 +41,7 @@ export function CatalogDeferredCardSlot({
   if (mounted) return children
 
   return (
-    <div
-      ref={ref}
-      className={cn('h-full', LISTING_CARD_CONTENT_VISIBILITY_CLASS)}
-      data-testid="catalog-deferred-card-slot"
-    >
+    <div ref={ref} data-testid="catalog-deferred-card-slot">
       <ListingCardSkeleton />
     </div>
   )

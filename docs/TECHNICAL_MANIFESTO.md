@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.231 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.113** FX cron soft-fail (429) + **201.118** PDP lazy hydrate.
+> **Version**: 13.2.232 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **201.117b** map constants + CV rollback.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 201.117b — Hotfix: map crash + catalog scroll thrash
+- **Map «Ошибка загрузки»:** `InteractiveSearchMap` lost `catalog-map-ux-policy` imports when polygon chrome was added → `ReferenceError` on mobile map open → listings error boundary.
+- **Scroll jitter:** roll back live-card `content-visibility` (201.117); keep React deferral via `CatalogDeferredCardSlot` (201.97).
 
 ### Stage 201.113 — FX cron soft-fail for cron-job.org (no auto-disable on 429)
 - Root cause of week-long stale FX: ExchangeRate-API **HTTP 429** → our cron returned **429** → cron-job.org auto-disabled `exchange-rates-refresh`.

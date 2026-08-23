@@ -3,7 +3,7 @@
 /**
  * ListingCard — карточка листинга в сетках и сайдбаре.
  * Phase 7.6 Final + Stage 200.15 optimistic PDP entry.
- * Stage 201.117 — grid cards: content-visibility auto (off-screen layout skip).
+ * Stage 201.117b — no content-visibility on live cards (mobile scroll thrash).
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
@@ -30,7 +30,6 @@ import { prefetchListingPdp } from '@/lib/navigation/listing-hero-transition'
 import {
   LISTING_CARD_BODY_PAD,
   LISTING_CARD_CONTENT_MIN_H,
-  LISTING_CARD_CONTENT_VISIBILITY_CLASS,
   LISTING_CARD_PRICE_ROW_MIN_H,
   LISTING_CARD_SPEC_ROW_MIN_H,
   LISTING_CARD_TITLE_ROW_MIN_H,
@@ -183,7 +182,7 @@ export function ListingCard({
       className={cn(
         // Base
         'group flex min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
-        isSolo ? 'h-auto' : cn('h-full', LISTING_CARD_CONTENT_VISIBILITY_CLASS),
+        isSolo ? 'h-auto' : 'h-full',
         // Premium hover: lift + deepen shadow + teal border accent
         'transition-all duration-300 ease-out touch-manipulation',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
