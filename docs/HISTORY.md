@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.2 | 2026-08-24 | Hotfix: Sentry edge init must not import Telegram/Node crypto (Vercel crypto resolve) | Done |
 | 202.1 | 2026-08-23 | FX: guest/hot path DB-only; ExchangeRate-API only via cron (stop 429 spam) | Done |
 | 202.0 | 2026-08-23 | Closed-beta: Sentry + PII scrub + TG [SENTRY]; feedback CTA/currency/topic; PostHog SSOT verify | Done |
 | 201.117c | 2026-08-23 | Hotfix: restore listing-hero-transition import for map «Подробнее» | Done |

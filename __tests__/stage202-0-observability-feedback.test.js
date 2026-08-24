@@ -115,6 +115,13 @@ describe('Stage 202.0 — Sentry scrub + TG bridge', () => {
     const instr = read('instrumentation.js')
     assert.match(instr, /sentry\.server\.config/)
     assert.match(instr, /onRequestError/)
+    const serverCfg = read('sentry.server.config.js')
+    assert.match(serverCfg, /maybeNotifySentryTelegram/)
+    const edgeCfg = read('sentry.edge.config.js')
+    const shared = read('lib/observability/sentry-init-options.js')
+    assert.doesNotMatch(edgeCfg, /sentry-telegram-bridge/)
+    assert.doesNotMatch(shared, /sentry-telegram-bridge/)
+    assert.doesNotMatch(shared, /system-alert-notify/)
   })
 })
 

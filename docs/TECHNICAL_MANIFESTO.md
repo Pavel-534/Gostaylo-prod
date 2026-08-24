@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.235 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **202.1** FX hot path = DB only.
+> **Version**: 13.2.236 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.2** Sentry edge no Node crypto.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.2 — Sentry Edge: no Telegram / Node `crypto`
+- Vercel build failed: `sentry.edge.config` → shared `beforeSend` dynamic-imported `sentry-telegram-bridge` → `notifySystemAlert` → `crypto`.
+- Shared init is Edge-safe; `[SENTRY]` TG wired only in `sentry.server.config.js`.
 
 ### Stage 202.1 — FX guest path: DB-only (stop burning ExchangeRate-API quota)
 - Root cause: `getDisplayRateMap` called ExchangeRate-API whenever DB rows were older than **2h** — every catalog/home refresh / serverless isolate → 429 + TG spam; cron stayed green (`200` + `keptExisting`).
