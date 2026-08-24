@@ -191,6 +191,8 @@
 | `POST /api/v2/payments/verify-tron` — Stage 200.69: `getExpectedUsdtForBooking` + same settle SSOT |
 | `POST /api/v2/payments/submit-txid` |
 | `/api/cron/escrow-thaw` |
+| `/api/cron/reconcile-confirmed-payments` |
+| `/api/cron/reconcile-yookassa-pending` — Stage **202.7**: poll INITIATED MIR_RU via YooKassa GET (~10m external) |
 | `/api/cron/promote-ready-for-payout` |
 | `/api/cron/payout-batch-pools` |
 | `/api/cron/ical-sync` |

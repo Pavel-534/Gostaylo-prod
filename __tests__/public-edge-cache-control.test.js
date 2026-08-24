@@ -176,4 +176,17 @@ describe('public edge cache control (Stage 179.0a / 179.2a / 179.1)', () => {
       )
     })
   })
+
+  describe('edgeCacheResponseHeaders (Stage 202.6)', () => {
+    it('mirrors public Cache-Control to Vercel-CDN-Cache-Control', async () => {
+      const { edgeCacheResponseHeaders } = await import('../lib/api/public-edge-cache-control.js')
+      assert.deepEqual(edgeCacheResponseHeaders('public, s-maxage=1, stale-while-revalidate=2'), {
+        'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=2',
+        'Vercel-CDN-Cache-Control': 'public, s-maxage=1, stale-while-revalidate=2',
+      })
+      assert.deepEqual(edgeCacheResponseHeaders('private, no-store'), {
+        'Cache-Control': 'private, no-store',
+      })
+    })
+  })
 })

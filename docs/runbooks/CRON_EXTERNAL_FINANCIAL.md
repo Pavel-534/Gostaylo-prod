@@ -17,6 +17,7 @@ Partner **auto bank payouts remain Concierge/manual** until ops are proven; `pay
 |-------|--------|----------------------------|------------------------|
 | `/api/cron/escrow-thaw` | POST | Daily 00:00 UTC (fallback) | **Every hour** |
 | `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (fallback) | **Every hour** (AUDIT_03 C3.4 + intents/crypto heal) |
+| `/api/cron/reconcile-yookassa-pending` | POST | Daily 02:00 UTC (fallback) | **Every 10 min** `*/10 * * * *` (Stage 202.7 — INITIATED MIR poll) |
 | `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
 | `/api/cron/financial-health-monitor` | POST | Daily 06:30 UTC | Daily 06:30 UTC (optional duplicate) |
@@ -68,6 +69,7 @@ Do **not** disable the Vercel daily fallback solely to avoid duplicates — pref
 |-----|-----------------|-------|
 | escrow-thaw | `0 * * * *` | Every hour at :00 — SLO ≤59m |
 | reconcile-confirmed-payments | `0 * * * *` | Every hour — heal CONFIRMED∧¬escrow + PAID intents / CRYPTO+txid (≥5m) |
+| reconcile-yookassa-pending | `*/10 * * * *` | Every 10 min — INITIATED MIR_RU ↔ YooKassa GET (webhook lag) |
 | promote-ready-for-payout | `0 * * * *` | Every hour at :00 |
 | payout-batch-pools | `0 7 * * 1,4` | Mon & Thu 07:00 UTC — draft only |
 | financial-health-monitor | `30 6 * * *` | Daily 06:30 UTC |
@@ -95,6 +97,7 @@ FinTech UI: cron freshness from `ops_job_runs` (`lib/admin/financial-cron-health
 | `escrow-thaw` | hourly | **2h** |
 | `promote-ready-for-payout` | hourly | **2h** |
 | `reconcile-confirmed-payments` | hourly | **2h** |
+| `reconcile-yookassa-pending` | ~10 min | **45m** |
 | `ledger_shadow_reconcile` | daily | **26h** |
 
 Alert: TG **`[STALE_CRON] {jobName}`** + `critical_signal_events` (`STALE_CRON`). Invoked from `financial-health-monitor` and after hourly `escrow-thaw` / `reconcile-confirmed-payments` (does not change money mutations).

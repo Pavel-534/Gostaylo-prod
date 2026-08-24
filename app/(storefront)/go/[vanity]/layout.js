@@ -3,6 +3,7 @@ import { getUIText } from '@/lib/translations'
 import { resolveOgLocale } from '@/lib/referral/resolve-og-locale.js'
 import { resolveReferrerByVanityCode } from '@/lib/services/marketing/referral-vanity.service.js'
 import { formatAmbassadorAmountForOgLangAsync } from '@/lib/pricing/ambassador-og-amount.js'
+import { getCachedPublicLandingMeta } from '@/lib/referral/get-cached-public-landing-meta.js'
 
 export async function generateMetadata({ params }) {
   const vanity = String((await params)?.vanity || '').trim()
@@ -21,23 +22,17 @@ export async function generateMetadata({ params }) {
     getUIText('stage74_4_uMetaNameFallback', lang),
   )
   try {
-    const base = getPublicSiteUrl()
-    const res = await fetch(`${base}/api/v2/referral/landing-meta/${encodeURIComponent(uid)}`, {
-      cache: 'no-store',
-    })
-    if (res.ok) {
-      const j = await res.json().catch(() => ({}))
-      if (j?.success && j?.data) {
-        if (j.data.displayName) displayName = String(j.data.displayName).trim()
-        const earned = Number(j.data.totalEarnedThb)
-        if (Number.isFinite(earned) && earned > 0) {
-          const earnedAmount = await formatAmbassadorAmountForOgLangAsync(earned, lang)
-          description = getUIText('stage1143_uMetaDescriptionEarned', lang)
-            .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
-            .replace('{earnedAmount}', earnedAmount)
-        } else if (displayName) {
-          description = getUIText('stage1322_uMetaDescription', lang).replace('{name}', displayName)
-        }
+    const data = await getCachedPublicLandingMeta(uid)
+    if (data) {
+      if (data.displayName) displayName = String(data.displayName).trim()
+      const earned = Number(data.totalEarnedThb)
+      if (Number.isFinite(earned) && earned > 0) {
+        const earnedAmount = await formatAmbassadorAmountForOgLangAsync(earned, lang)
+        description = getUIText('stage1143_uMetaDescriptionEarned', lang)
+          .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
+          .replace('{earnedAmount}', earnedAmount)
+      } else if (displayName) {
+        description = getUIText('stage1322_uMetaDescription', lang).replace('{name}', displayName)
       }
     }
   } catch {

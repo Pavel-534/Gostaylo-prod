@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.239 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.5** desktop map soft-back camera.
+> **Version**: 13.2.241 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.7** YooKassa pending reconcile + metadata user_id.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,17 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.7 — YooKassa battle readiness (capture:true kept)
+- Metadata: `buildMetadata` / `createPayment` pass guest `user_id` (`bookings.renter_id`) alongside booking/intent ids.
+- Cron: `POST /api/cron/reconcile-yookassa-pending` polls INITIATED `MIR_RU` intents via `GET /v3/payments/{id}` (min age 2m); settle → markPaid + escrow heal; canceled → markTerminalFailure. No `capture:false`.
+- Ops: cron-job.org `*/10`; Vercel daily fallback; STALE watchlist 45m.
+
+### Stage 202.6 — Vercel serverless invocation burn (audit + minimal fixes)
+- Middleware: no geo `Set-Cookie` on `/api/*` (was voiding CDN); matcher excludes sitemap/robots/static/images.
+- RSC: `/u/[id]` + `/go/[vanity]` metadata call `getCachedPublicLandingMeta` (no HTTP self-fetch).
+- CDN: `edgeCacheResponseHeaders` adds `Vercel-CDN-Cache-Control` for public; retail FX `s-maxage=60`; `/api/health` `s-maxage=5`.
+- Test: `__tests__/stage202-6-vercel-invocation-audit.test.js`.
 
 ### Stage 202.5 — Desktop map soft-back camera (PWA parity, no PWA regression)
 - Bug: PC map → popup «Подробнее» → PDP soft-back landed on world fit; PWA `#map` sheet already persisted camera via `rememberCatalogMapViewport`.

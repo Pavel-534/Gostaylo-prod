@@ -176,7 +176,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const nonce = btoa(crypto.randomUUID()).replace(/=+$/, '');
 
-  /** Stage 56.0 — propagate correlation id into API route handlers (Node ALS picks it up at boundary). */
+  /** Stage 56.0 — correlation id into API handlers.
+   * Stage 202.6 — do NOT Set-Cookie geo on `/api/*` (Set-Cookie voids Vercel CDN for public GETs).
+   */
   if (pathname.startsWith('/api/')) {
     const existing = request.headers.get('x-correlation-id');
     const id =
@@ -186,9 +188,9 @@ export async function middleware(request: NextRequest) {
     const reqHeaders = new Headers(request.headers);
     reqHeaders.set('x-correlation-id', id);
     reqHeaders.set('x-nonce', nonce);
-    const res = nextWithGeo(request, { request: { headers: reqHeaders } }, nonce);
+    const res = NextResponse.next({ request: { headers: reqHeaders } });
     res.headers.set('x-correlation-id', id);
-    return res;
+    return applySecurityHeaders(res, { nonce });
   }
 
   const legacy = legacyMessagesRedirect(request);
@@ -258,8 +260,9 @@ export const config = {
     '/renter/:path*',
     /*
      * Публичные страницы — geo cookie для скрытия Google OAuth у пользователей из RU.
+     * Stage 202.6 — явно исключаем static / SEO / PWA assets (не гонять Edge на каждый чих).
      * /messages — не в matcher: здесь не ставим guard; редиректы только с /partner|/renter.
      */
-    '/((?!_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|eot)$).*)',
+    '/((?!_next/static|_next/image|_next/data|favicon\\.ico|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|sw\\.js|firebase-messaging-sw\\.js|icons/|images/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|eot|css|js|map|txt|xml|webmanifest)$).*)',
   ],
 };

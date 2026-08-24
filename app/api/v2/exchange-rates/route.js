@@ -21,6 +21,10 @@ import {
   validateExchangeRateSemantics,
   logExchangeRateValidationFailure,
 } from '@/lib/finance/exchange-rates-write-guard.js'
+import {
+  edgeCacheResponseHeaders,
+  retailFxEdgeCacheControl,
+} from '@/lib/api/public-edge-cache-control.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +36,15 @@ const CURRENCY_SYMBOLS = {
   EUR: '€',
   GBP: '£',
   CNY: '¥',
+}
+
+function fxJson(body, applyRetailMarkup, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: edgeCacheResponseHeaders(
+      retailFxEdgeCacheControl({ applyRetailMarkup, status }),
+    ),
+  })
 }
 
 export async function GET(request) {
@@ -56,16 +69,19 @@ export async function GET(request) {
           rateToThb,
           symbol: CURRENCY_SYMBOLS[code] || code,
         }))
-      return NextResponse.json({
-        success: true,
-        data: transformed,
-        rateMap,
+      return fxJson(
+        {
+          success: true,
+          data: transformed,
+          rateMap,
+          applyRetailMarkup,
+          retail: applyRetailMarkup,
+          retailMode,
+          retailMarkupMultiplier,
+          ratesUpdatedAt,
+        },
         applyRetailMarkup,
-        retail: applyRetailMarkup,
-        retailMode,
-        retailMarkupMultiplier,
-        ratesUpdatedAt,
-      })
+      )
     }
 
     const transformed = rates.map((r) => ({
@@ -80,19 +96,28 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: transformed,
-      rateMap,
+    return fxJson(
+      {
+        success: true,
+        data: transformed,
+        rateMap,
+        applyRetailMarkup,
+        retail: applyRetailMarkup,
+        retailMode,
+        retailMarkupMultiplier,
+        ratesUpdatedAt,
+      },
       applyRetailMarkup,
-      retail: applyRetailMarkup,
-      retailMode,
-      retailMarkupMultiplier,
-      ratesUpdatedAt,
-    })
+    )
   } catch (error) {
     console.error('[EXCHANGE RATES ERROR]', error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: error.message },
+      {
+        status: 500,
+        headers: edgeCacheResponseHeaders(retailFxEdgeCacheControl({ status: 500 })),
+      },
+    )
   }
 }
 

@@ -36,6 +36,10 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/reconcile-yookassa-pending",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/cron/financial-health-monitor",
       "schedule": "30 6 * * *"
     },
