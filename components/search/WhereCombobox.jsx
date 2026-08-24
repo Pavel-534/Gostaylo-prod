@@ -17,6 +17,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { splitLabelHighlight } from '@/lib/locations/location-text-match'
 import {
+  isLikelyRawWhereSlugLabel,
+  resolveGuestWhereInputLabel,
   resolveWhereDisplayLabelOrFallback,
 } from '@/lib/locations/resolve-where-display-label'
 import { POPULAR_DESTINATIONS_FLAT } from '@/lib/locations/popular-destinations'
@@ -174,15 +176,23 @@ export function WhereCombobox({
   // перезаписывал бы наш override на slug.
   const overrideLabelRef = useRef({})
 
-  // Синхронизация подписи с выбранным каноническим значением
+  // Синхронизация подписи с выбранным каноническим значением (Stage 202.4 — never show raw geo codes).
   useEffect(() => {
     if (value === 'all' || !value) {
       setInputValue('')
       return
     }
     const override = overrideLabelRef.current?.[value]
+    const fromOpts = getOptionLabel(options, value)
+    const optOk =
+      fromOpts &&
+      fromOpts !== value &&
+      !isLikelyRawWhereSlugLabel(fromOpts, value)
     const label =
-      override || getOptionLabel(options, value) || resolveWhereDisplayLabelOrFallback(value, language)
+      override ||
+      (optOk ? fromOpts : '') ||
+      resolveGuestWhereInputLabel(value, options, language) ||
+      resolveWhereDisplayLabelOrFallback(value, language)
     setInputValue(label)
   }, [value, options, language])
 

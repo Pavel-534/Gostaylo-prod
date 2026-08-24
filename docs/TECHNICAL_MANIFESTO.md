@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.237 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.3** FX: no guest upstream + no FX_STALE spam.
+> **Version**: 13.2.238 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.4** sticky «Куда?» keeps localized labels.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.4 — Sticky «Куда?»: keep «Пхукет» / «Чита» (not TH-PHK)
+- On Home scroll, compact `UnifiedSearchBar` title-cased the geo code (`TH-PHK` → «Th Phk»); `WhereCombobox` sync preferred raw `value` when options empty.
+- Fix: `resolveGuestWhereInputLabel` SSOT + `getOptionLabel` never returns raw codes; detect title-cased slug labels.
+- Test: `__tests__/stage202-4-where-sticky-label.test.js`.
 
 ### Stage 202.3 — FX: kill remaining guest upstream + FX_STALE page-load spam
 - `resolveThbPerUsdt` still called ExchangeRate-API when USDT row >2h (crypto/booking hot paths) → quota burn even after 202.1.

@@ -38,6 +38,7 @@ import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from 
 import { fetchCategories } from '@/lib/client-data'
 import { fetchLocationSuggest } from '@/lib/api/catalog-public-client'
 import { isCatalogKeywordSearchUiEnabled } from '@/lib/search/catalog-keyword-search-ui'
+import { resolveGuestWhereInputLabel } from '@/lib/locations/resolve-where-display-label'
 
 /** Premium hero field — 60px, rounded-2xl, brand focus ring (Stage 79.2+) */
 export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
@@ -46,20 +47,6 @@ export const UNIFIED_SEARCH_HERO_FIELD_CLASS =
 /** Compact chrome inner row */
 const COMPACT_INNER_ROW_CLASS =
   'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm'
-
-function resolveWhereLabel(whereValue, options) {
-  if (!whereValue || whereValue === 'all') return null
-  const v = String(whereValue).toLowerCase()
-  const match = (options || []).find((o) => String(o.value).toLowerCase() === v)
-  if (match?.label) return match.label
-  return String(whereValue)
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
-    .join(' ')
-}
 
 /** Stage 201.115 — short labels via Intl (no date-fns in search-bar chunk). */
 function formatDateRangeShort(dateRange, language) {
@@ -203,8 +190,8 @@ export function UnifiedSearchBar({
   )
 
   const compactWhereLabel = useMemo(
-    () => resolveWhereLabel(where, whereOptionsFull),
-    [where, whereOptionsFull],
+    () => resolveGuestWhereInputLabel(where, whereOptionsFull, language),
+    [where, whereOptionsFull, language],
   )
   const compactDatesLabel = useMemo(
     () => formatDateRangeShort(dateRange, language),
@@ -311,7 +298,8 @@ export function UnifiedSearchBar({
 
   if (variant === 'filter') {
     const whereLabel =
-      resolveWhereLabel(where, whereOptionsFull) || getUIText('whereShort', language)
+      resolveGuestWhereInputLabel(where, whereOptionsFull, language) ||
+      getUIText('whereShort', language)
     const datesLabel =
       formatDateRangeShort(dateRange, language) || getUIText('dates', language)
     const guestsLabel =
