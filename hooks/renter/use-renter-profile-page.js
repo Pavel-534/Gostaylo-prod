@@ -21,6 +21,7 @@ import {
 /**
  * Stage 111.0 — логика страницы профиля арендатора.
  * Stage 200.132 — no auth-change → refresh loop (apply event.detail only).
+ * Stage 202.8 — `?becomePartner=1` opens application modal (home PartnerCTA).
  */
 export function useRenterProfilePage() {
   const router = useRouter()
@@ -37,6 +38,7 @@ export function useRenterProfilePage() {
   const [pendingKycUrl, setPendingKycUrl] = useState(null)
   const [savingPendingKyc, setSavingPendingKyc] = useState(false)
   const softRefreshDoneForUserId = useRef(null)
+  const becomePartnerOpenedRef = useRef(false)
 
   const dateLocale = { ru, en: enUS, zh: zhCN, th: thLocale }[language] || enUS
 
@@ -123,6 +125,23 @@ export function useRenterProfilePage() {
     const silent = partnerAppHydratedForUserId.current === uid
     void loadPartnerApplicationStatus(uid, { silent })
   }, [user?.id, user?.role, loadPartnerApplicationStatus])
+
+  // Stage 202.8 — home PartnerCTA lands with ?becomePartner=1
+  useEffect(() => {
+    if (becomePartnerOpenedRef.current) return
+    if (typeof window === 'undefined') return
+    const want =
+      new URLSearchParams(window.location.search).get('becomePartner') === '1'
+    if (!want) return
+    if (loading || !user?.id) return
+    if (String(user.role || '').toUpperCase() === 'PARTNER') {
+      router.replace('/partner/dashboard')
+      return
+    }
+    becomePartnerOpenedRef.current = true
+    setShowApplicationModal(true)
+    router.replace('/renter/profile', { scroll: false })
+  }, [loading, user?.id, user?.role, router])
 
   const handleApplicationSubmit = useCallback(
     async (formData) => {

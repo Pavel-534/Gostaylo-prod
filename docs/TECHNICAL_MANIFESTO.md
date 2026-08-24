@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.241 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.7** YooKassa pending reconcile + metadata user_id.
+> **Version**: 13.2.242 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.8** PartnerCTA → onboarding (not guarded dashboard).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.8 — Home «Стать партнёром» → заявка, не кабинет
+- Bug: PartnerCTA linked to `/partner/dashboard`; guest/RENTER hit middleware (login bounce or redirect `/`) — «кнопка не работает».
+- Fix: CTA → `/renter/profile?becomePartner=1` (+ login redirect); partners still hard-nav to cabinet; query opens application modal.
+- Test: `__tests__/stage202-8-partner-cta-onboarding.test.js`.
 
 ### Stage 202.7 — YooKassa battle readiness (capture:true kept)
 - Metadata: `buildMetadata` / `createPayment` pass guest `user_id` (`bookings.renter_id`) alongside booking/intent ids.
