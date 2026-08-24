@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.234 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **202.0** closed-beta observability & feedback.
+> **Version**: 13.2.235 | **Last Updated**: 2026-08-23 | **Tip of tree:** Stage **202.1** FX hot path = DB only.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.1 — FX guest path: DB-only (stop burning ExchangeRate-API quota)
+- Root cause: `getDisplayRateMap` called ExchangeRate-API whenever DB rows were older than **2h** — every catalog/home refresh / serverless isolate → 429 + TG spam; cron stayed green (`200` + `keptExisting`).
+- Fix: hot path reads `exchange_rates` only; upstream refresh stays on cron (`allowUpstreamRefresh` opt-in only). Stale TG tagged `[FX_STALE]` for hourly FX guard.
+- Test: `__tests__/stage202-1-fx-hotpath-no-upstream.test.js`.
 
 ### Stage 202.0 — Closed-beta observability & feedback surface
 - **A:** `@sentry/nextjs` (client/server/edge); empty `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` → no-op; no Replay/Profiling; edge-safe scrub; server `[SENTRY]` → `notifySystemAlert` with 5m fingerprint cooldown; ChunkLoad/nav noise → Sentry only (no TG).

@@ -199,7 +199,8 @@
 | `/api/cron/cleanup-drafts` — Stage 200.22: empty drafts 7d / contentful 30d; **201.09** stale unpaid past check-out cancel |
 | `/api/cron/cleanup-test-data` — Stage **201.09**: E2E/smoke + `purge_test_ledger_rows(markers)` |
 | GitHub Actions **`.github/workflows/playwright.yml`** — Stage **201.11**: nightly keep-list `npm run test:e2e:nightly` (03:00 UTC), then cleanup |
-| `/api/cron/exchange-rates-refresh` | Bearer/`x-cron-secret`; skip if `exchange_rates` <4h; upstream fail → **200** + `keptExisting` + 12h 429 cooldown (**201.113**) |
+| `/api/cron/exchange-rates-refresh` | **Only writer** to ExchangeRate-API → upsert `exchange_rates` (Stage **202.1**); Bearer/`x-cron-secret`; skip if rows <4h; upstream fail → **200** + `keptExisting` + 12h 429 cooldown (**201.113**) |
+| `GET /api/v2/exchange-rates` | Reads DB via `getDisplayRateMap` — **no** upstream call (202.1) |
 | `/api/cron/referral-*` · financial health monitors |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1 status↔ledger shadow |
 
