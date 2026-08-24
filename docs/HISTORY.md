@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.5 | 2026-08-24 | Desktop catalog map soft-back restores camera (same session SSOT as PWA `#map`) | Done |
 | 202.4 | 2026-08-24 | Sticky/compact «Куда?»: show Пхукет/Чита via display-label SSOT (not TH-PHK / Th Phk) | Done |
 | 202.3 | 2026-08-24 | FX: resolveThbPerUsdt DB-only; FX_STALE TG only from cron (stop page-load spam + quota burn) | Done |
 | 202.2 | 2026-08-24 | Hotfix: Sentry edge init must not import Telegram/Node crypto (Vercel crypto resolve) | Done |

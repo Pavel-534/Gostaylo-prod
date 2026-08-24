@@ -4,6 +4,7 @@
  * Stage 169.3 — mobile inline map removed; use CatalogMobileMapSheet + CatalogSearchMapPanel.
  * Stage 201.96 — do not mount Leaflet below lg (CSS hide still initialized the map).
  * Stage 177.5.1 — optional polygon draw (desktop lg+ only).
+ * Stage 202.5 — pass soft-back camera restore (same SSOT as mobile `#map` sheet).
  */
 
 'use client'
@@ -42,6 +43,10 @@ function SearchMapWrapperComponent({
   appliedPolygon = null,
   onPolygonEncoded = null,
   onPolygonCleared = null,
+  /** Stage 202.5 — soft-back camera (parity with CatalogMobileMapSheet). */
+  cameraRestoreBbox = null,
+  onCameraRestoreDone = null,
+  holdSoftBackCamera = false,
 }) {
   const isDesktopMap = useMinWidthConfirmed(VIEWPORT_LG_MIN_PX)
   if (!isDesktopMap) return null
@@ -83,6 +88,9 @@ function SearchMapWrapperComponent({
         appliedPolygon={appliedPolygon}
         onPolygonEncoded={onPolygonEncoded}
         onPolygonCleared={onPolygonCleared}
+        cameraRestoreBbox={cameraRestoreBbox}
+        onCameraRestoreDone={onCameraRestoreDone}
+        holdSoftBackCamera={holdSoftBackCamera}
       />
     </div>
   )

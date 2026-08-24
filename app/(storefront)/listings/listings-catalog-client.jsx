@@ -67,7 +67,7 @@ import {
   CATALOG_MAP_SELECTION_PAN_IF_OUT_OF_VIEW,
 } from '@/lib/maps/catalog-map-ux-policy'
 import { subscribeMobileSearchTabAction } from '@/lib/search/mobile-search-tab-action'
-import { isStorefrontCatalogListPath } from '@/lib/navigation/storefront-search-keep-alive'
+import { isStorefrontCatalogListPath, isStorefrontListingPdpPath } from '@/lib/navigation/storefront-search-keep-alive'
 import { commitRecentSearchLocation } from '@/lib/search/commit-recent-search-location'
 import { isDiscoveryPolygonDrawClientEnabled } from '@/lib/search/discovery-pipeline-flag-client'
 import {
@@ -531,7 +531,13 @@ function ListingsContent() {
     setMobileSearchOpen(false)
     setShowMap(false)
     writeCatalogMobileMapHash(false)
-    clearCatalogMapViewport()
+    // Stage 202.5 — keep session camera when leaving to listing PDP (soft-back).
+    // Clear only when leaving the listing flow (Home / profile / etc.).
+    const path =
+      typeof window !== 'undefined' ? String(window.location.pathname || '') : ''
+    if (!isStorefrontListingPdpPath(path)) {
+      clearCatalogMapViewport()
+    }
     setHoldSoftBackCamera(false)
     setCameraRestoreBbox(null)
     setSoftBackMapView(null)
@@ -1002,12 +1008,15 @@ function ListingsContent() {
             onClearMapBounds={handleClearMapBounds}
             appliedBboxKey={appliedBboxKey}
             mapFitResetKey={mapFitResetKey}
-            mapCenter={whereGeoView.center}
-            mapZoom={whereGeoView.zoom}
+            mapCenter={softBackMapCenter || whereGeoView.center}
+            mapZoom={softBackMapZoom ?? whereGeoView.zoom}
             enablePolygonDraw={polygonDrawEnabled}
             appliedPolygon={appliedPolygon}
             onPolygonEncoded={handlePolygonEncoded}
             onPolygonCleared={handlePolygonCleared}
+            cameraRestoreBbox={cameraRestoreBbox}
+            onCameraRestoreDone={handleCameraRestoreDone}
+            holdSoftBackCamera={holdSoftBackCamera}
           />
           ) : null}
         </div>

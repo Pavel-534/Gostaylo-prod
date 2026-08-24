@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { boundsParamsReady } from '@/lib/catalog/build-catalog-search-params'
 import { quantizeMapBbox } from '@/lib/geo/quantize-map-bbox'
 import { useMapPinsFetch } from '@/lib/hooks/useMapPinsFetch'
+import { rememberCatalogMapViewport } from '@/lib/navigation/catalog-map-viewport-memory'
 
 const InteractiveSearchMap = dynamic(
   () => import('@/components/listing/InteractiveSearchMap'),
@@ -122,6 +123,24 @@ function CatalogSearchMapPanelComponent({
       boundsReady,
     })
   }, [onViewportMapData, mode, pins, clusters, viewportForParent, boundsReady])
+
+  /**
+   * Stage 202.5 — persist camera for desktop + mobile soft-back (session SSOT).
+   * Mobile sheet also remembers; duplicate writes are identical and safe for PWA.
+   */
+  useEffect(() => {
+    if (!mapActive || !viewportForParent || !boundsReady) return
+    rememberCatalogMapViewport({
+      south: viewportForParent.south,
+      north: viewportForParent.north,
+      west: viewportForParent.west,
+      east: viewportForParent.east,
+      centerLat: viewportForParent.centerLat,
+      centerLng: viewportForParent.centerLng,
+      zoom: viewportForParent.zoom,
+      selectedListingId: selectedListingId || null,
+    })
+  }, [mapActive, boundsReady, viewportForParent, selectedListingId])
 
   const handleViewportBbox = useCallback(
     (bbox) => {

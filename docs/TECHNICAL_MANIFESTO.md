@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.238 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.4** sticky «Куда?» keeps localized labels.
+> **Version**: 13.2.239 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.5** desktop map soft-back camera.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.5 — Desktop map soft-back camera (PWA parity, no PWA regression)
+- Bug: PC map → popup «Подробнее» → PDP soft-back landed on world fit; PWA `#map` sheet already persisted camera via `rememberCatalogMapViewport`.
+- Root: desktop `SearchMapWrapper` never wrote session camera and never received `cameraRestoreBbox` / `holdSoftBackCamera`.
+- Fix: persist viewport in `CatalogSearchMapPanel` (shared); wire restore props on desktop; keep session camera when leaving to listing PDP.
+- Test: `__tests__/stage202-5-desktop-map-softback.test.js`.
 
 ### Stage 202.4 — Sticky «Куда?»: keep «Пхукет» / «Чита» (not TH-PHK)
 - On Home scroll, compact `UnifiedSearchBar` title-cased the geo code (`TH-PHK` → «Th Phk»); `WhereCombobox` sync preferred raw `value` when options empty.
