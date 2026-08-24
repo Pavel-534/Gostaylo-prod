@@ -28,9 +28,9 @@
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
 ### Stage 202.9 — Legacy domain 301 (GSC Change of Address)
-- `gostaylo.com` / `www.gostaylo.com` → `https://airento.ru/:path*` (**`statusCode: 301`**, host `has` only).
-- Note: `permanent: true` in Next = **308**; GSC Change of Address fails without real **301**.
-- Does not touch `airento.ru` or Vercel preview hosts. Path + query preserved.
+- `gostaylo.com` / `www.gostaylo.com` → `https://airento.ru/:path*` (**`statusCode: 301`** in `next.config.js` + `vercel.json` + middleware).
+- Note: `permanent: true` in Next = **308**; GSC requires real **301**.
+- Live pitfall: Vercel domain UI **www → apex (307)** to `gostaylo.com` fails GSC («редирект на неверный сайт»). In Vercel → Domains: disable www→gostaylo redirect so www hits the app / edge 301 to airento.
 - Test: `__tests__/stage202-9-legacy-domain-301.test.js`.
 
 ### Stage 202.8 — Home «Стать партнёром» → заявка, не кабинет

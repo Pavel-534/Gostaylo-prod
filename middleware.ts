@@ -176,6 +176,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const nonce = btoa(crypto.randomUUID()).replace(/=+$/, '');
 
+  /**
+   * Stage 202.9b — GSC Change of Address: force HTTP 301 to airento.ru when Host is legacy.
+   * Complements next.config / vercel.json; helps if www requests reach the app (not only Vercel www→apex 307).
+   */
+  const host = (request.headers.get('host') || '').split(':')[0].toLowerCase();
+  if (host === 'gostaylo.com' || host === 'www.gostaylo.com') {
+    const dest = new URL(
+      `${pathname}${request.nextUrl.search || ''}`,
+      'https://airento.ru',
+    );
+    return NextResponse.redirect(dest, 301);
+  }
+
   /** Stage 56.0 — correlation id into API handlers.
    * Stage 202.6 — do NOT Set-Cookie geo on `/api/*` (Set-Cookie voids Vercel CDN for public GETs).
    */

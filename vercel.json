@@ -3,6 +3,20 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "gostaylo.com" }],
+      "destination": "https://airento.ru/:path*",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.gostaylo.com" }],
+      "destination": "https://airento.ru/:path*",
+      "statusCode": 301
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/assetlinks.json",

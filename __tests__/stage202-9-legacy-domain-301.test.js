@@ -24,12 +24,16 @@ describe('Stage 202.9 — legacy gostaylo.com 301', () => {
     assert.match(redirectsBlock, /statusCode:\s*301/)
     assert.doesNotMatch(redirectsBlock, /permanent:\s*true/)
     assert.match(redirectsBlock, /type:\s*['"]host['"]/)
+    assert.doesNotMatch(redirectsBlock, /value:\s*['"]airento\.ru['"]/)
   })
 
-  it('does not hardcode redirect for airento.ru host', () => {
-    const cfg = read('next.config.js')
-    const redirectsBlock = cfg.slice(cfg.indexOf('async redirects()'), cfg.indexOf('async rewrites()'))
-    assert.doesNotMatch(redirectsBlock, /value:\s*['"]airento\.ru['"]/)
-    assert.doesNotMatch(redirectsBlock, /value:\s*['"]www\.airento\.ru['"]/)
+  it('vercel.json and middleware also force 301 for legacy hosts', () => {
+    const v = read('vercel.json')
+    assert.match(v, /"statusCode":\s*301/)
+    assert.match(v, /gostaylo\.com/)
+    assert.match(v, /www\.gostaylo\.com/)
+    const mw = read('middleware.ts')
+    assert.match(mw, /www\.gostaylo\.com/)
+    assert.match(mw, /NextResponse\.redirect\(dest,\s*301\)/)
   })
 })
