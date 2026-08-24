@@ -163,6 +163,21 @@ const nextConfig = {
     return []
   },
 
+  /**
+   * Stage 202.9 — permanent host glue for Google «Change of Address».
+   * Only when Host is legacy gostaylo.com / www — never redirects airento.ru or *.vercel.app.
+   * Path + query preserved (`/:path*` + Next default query forward).
+   */
+  async redirects() {
+    const legacyHosts = ['gostaylo.com', 'www.gostaylo.com']
+    return legacyHosts.map((host) => ({
+      source: '/:path*',
+      has: [{ type: 'host', value: host }],
+      destination: 'https://airento.ru/:path*',
+      permanent: true,
+    }))
+  },
+
   async rewrites() {
     if (!supabaseServerUrl) return []
     const base = supabaseServerUrl.replace(/\/$/, '')

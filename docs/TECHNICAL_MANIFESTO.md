@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.242 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.8** PartnerCTA → onboarding (not guarded dashboard).
+> **Version**: 13.2.243 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.9** gostaylo.com → airento.ru 301 (host-only).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.9 — Legacy domain 301 (GSC Change of Address)
+- `gostaylo.com` / `www.gostaylo.com` → `https://airento.ru/:path*` (`permanent: true`, host `has` only).
+- Does not touch `airento.ru` or Vercel preview hosts. Path + query preserved.
+- Test: `__tests__/stage202-9-legacy-domain-301.test.js`.
 
 ### Stage 202.8 — Home «Стать партнёром» → заявка, не кабинет
 - Bug: PartnerCTA linked to `/partner/dashboard`; guest/RENTER hit middleware (login bounce or redirect `/`) — «кнопка не работает».
