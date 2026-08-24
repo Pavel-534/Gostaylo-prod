@@ -15,16 +15,15 @@ function read(rel) {
 }
 
 describe('Stage 202.9 — legacy gostaylo.com 301', () => {
-  it('next.config redirects only legacy hosts to airento.ru permanently', () => {
+  it('next.config redirects only legacy hosts to airento.ru with HTTP 301', () => {
     const cfg = read('next.config.js')
-    assert.match(cfg, /async redirects\(\)/)
-    assert.match(cfg, /gostaylo\.com/)
-    assert.match(cfg, /www\.gostaylo\.com/)
-    assert.match(cfg, /https:\/\/airento\.ru\/:path\*/)
-    assert.match(cfg, /permanent:\s*true/)
-    assert.match(cfg, /type:\s*['"]host['"]/)
-    // Must not blanket-redirect without host condition
-    assert.match(cfg, /has:\s*\[\s*\{\s*type:\s*['"]host['"]/)
+    const redirectsBlock = cfg.slice(cfg.indexOf('async redirects()'), cfg.indexOf('async rewrites()'))
+    assert.match(redirectsBlock, /gostaylo\.com/)
+    assert.match(redirectsBlock, /www\.gostaylo\.com/)
+    assert.match(redirectsBlock, /https:\/\/airento\.ru\/:path\*/)
+    assert.match(redirectsBlock, /statusCode:\s*301/)
+    assert.doesNotMatch(redirectsBlock, /permanent:\s*true/)
+    assert.match(redirectsBlock, /type:\s*['"]host['"]/)
   })
 
   it('does not hardcode redirect for airento.ru host', () => {

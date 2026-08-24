@@ -164,9 +164,10 @@ const nextConfig = {
   },
 
   /**
-   * Stage 202.9 — permanent host glue for Google «Change of Address».
+   * Stage 202.9 / 202.9a — permanent host glue for Google «Change of Address».
    * Only when Host is legacy gostaylo.com / www — never redirects airento.ru or *.vercel.app.
-   * Path + query preserved (`/:path*` + Next default query forward).
+   * Use statusCode: 301 (not permanent:true → 308): GSC Change of Address requires HTTP 301.
+   * Path + query preserved (`/:path*`).
    */
   async redirects() {
     const legacyHosts = ['gostaylo.com', 'www.gostaylo.com']
@@ -174,7 +175,7 @@ const nextConfig = {
       source: '/:path*',
       has: [{ type: 'host', value: host }],
       destination: 'https://airento.ru/:path*',
-      permanent: true,
+      statusCode: 301,
     }))
   },
 

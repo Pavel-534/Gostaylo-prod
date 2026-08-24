@@ -6,7 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
-| 202.9 | 2026-08-24 | Host-only 301 gostaylo.com/www → airento.ru (GSC Change of Address) | Done |
+| 202.9 | 2026-08-24 | Host-only **301** gostaylo.com/www → airento.ru (GSC; not Next 308) | Done |
 | 202.8 | 2026-08-24 | Home PartnerCTA → renter onboarding (`?becomePartner=1`), not guarded `/partner/dashboard` | Done |
 | 202.7 | 2026-08-24 | YooKassa battle: metadata `user_id` + cron poll INITIATED MIR (no two-stage) | Done |
 | 202.6 | 2026-08-24 | Vercel SF burn: middleware CDN-safe /api, landing-meta no self-HTTP, FX/health CDN headers | Done |
