@@ -17,6 +17,10 @@ import {
 } from '@/lib/cron/exchange-rates-refresh.service.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
+import {
+  getDisplayFxStaleHealthFromDb,
+  maybeAlertStaleDisplayRatesFromHealth,
+} from '@/lib/services/currency.service.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -55,6 +59,12 @@ async function handle(request, method) {
       void notifySystemAlert(
         `⏰ <b>Cron: exchange-rates-refresh</b> (${escapeSystemAlertHtml(method)}) — ${escapeSystemAlertHtml(result?.message || result?.error || 'FX refresh failed')}\n<code>${escapeSystemAlertHtml(result?.error || 'unknown')}</code>`,
       )
+    }
+    // Stage 202.3 — stale FX TG only from cron (max ~every 6h), not from page loads.
+    if (!result?.refreshed) {
+      void getDisplayFxStaleHealthFromDb()
+        .then((health) => maybeAlertStaleDisplayRatesFromHealth(health))
+        .catch(() => {})
     }
     return NextResponse.json({ ...result, method, httpStatus }, { status: httpStatus })
   } catch (e) {

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.236 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.2** Sentry edge no Node crypto.
+> **Version**: 13.2.237 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.3** FX: no guest upstream + no FX_STALE spam.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.3 — FX: kill remaining guest upstream + FX_STALE page-load spam
+- `resolveThbPerUsdt` still called ExchangeRate-API when USDT row >2h (crypto/booking hot paths) → quota burn even after 202.1.
+- `[FX_STALE]` fired from `getDisplayRateMap` per serverless isolate → TG spam on every refresh.
+- Fix: USDT from DB/env only; stale TG only from `exchange-rates-refresh` cron.
 
 ### Stage 202.2 — Sentry Edge: no Telegram / Node `crypto`
 - Vercel build failed: `sentry.edge.config` → shared `beforeSend` dynamic-imported `sentry-telegram-bridge` → `notifySystemAlert` → `crypto`.
