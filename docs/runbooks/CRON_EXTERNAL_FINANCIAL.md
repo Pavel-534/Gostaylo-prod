@@ -20,8 +20,8 @@ Partner **auto bank payouts remain Concierge/manual** until ops are proven; `pay
 | `/api/cron/reconcile-yookassa-pending` | POST | Daily 02:00 UTC (fallback) | **Every 10 min** `*/10 * * * *` (Stage 202.7 — INITIATED MIR poll) |
 | `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
-| `/api/cron/financial-health-monitor` | POST | Daily 06:30 UTC | Daily 06:30 UTC (optional duplicate) |
-| `/api/cron/ledger-shadow-reconcile` | POST | Daily 06:45 UTC | Daily 06:45 UTC (ADR-203 Phase 1 shadow) |
+| `/api/cron/financial-health-monitor` | GET or POST | Daily 06:30 UTC (Vercel GET runs scan — Stage **202.10**) | Daily optional POST duplicate |
+| `/api/cron/ledger-shadow-reconcile` | GET or POST | Daily 06:45 UTC (Vercel GET runs job — **202.10**) | Daily 06:45 UTC optional POST backup (ADR-203 Phase 1) |
 | `/api/cron/cleanup-critical-signals` | GET/POST | Daily 05:00 UTC | Optional duplicate (AUDIT_03 M3.6) |
 | `/api/cron/ical-sync` | POST | Daily fallback | **~30 min** recommended |
 

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.10 | 2026-08-27 | Ops TG: ledger-shadow + financial-health GET=run (Vercel); fix false GATEWAY_LEDGER_DRIFT (NaN tolerance) | Done |
 | 202.9 | 2026-08-24 | Host-only **301** gostaylo.com/www → airento.ru (GSC; not Next 308) | Done |
 | 202.8 | 2026-08-24 | Home PartnerCTA → renter onboarding (`?becomePartner=1`), not guarded `/partner/dashboard` | Done |
 | 202.7 | 2026-08-24 | YooKassa battle: metadata `user_id` + cron poll INITIATED MIR (no two-stage) | Done |

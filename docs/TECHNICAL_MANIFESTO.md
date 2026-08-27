@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.243 | **Last Updated**: 2026-08-24 | **Tip of tree:** Stage **202.9** gostaylo.com → airento.ru 301 (host-only).
+> **Version**: 13.2.244 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.10** ops cron alerts (GET=run + GATEWAY NaN).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.10 — Ops Telegram: false GATEWAY + STALE_CRON never
+- Root: `Number(undefined) ?? 0.01` → **NaN** → zero-window still fired `[GATEWAY_LEDGER_DRIFT]`; Vercel Cron **GET** on `ledger-shadow-reconcile` / `financial-health-monitor` was a no-op → `ops_job_runs` never success → hourly `[STALE_CRON] last_success=never`.
+- Fix: `resolveGatewayDriftToleranceThb`; both routes **GET = POST** (same run + `ops_job_runs`).
+- Test: `__tests__/stage202-10-ops-cron-alerts.test.js`.
 
 ### Stage 202.9 — Legacy domain 301 (GSC Change of Address)
 - `gostaylo.com` / `www.gostaylo.com` → `https://airento.ru/:path*` (**`statusCode: 301`** in `next.config.js` + `vercel.json` + middleware).

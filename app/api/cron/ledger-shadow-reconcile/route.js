@@ -1,7 +1,10 @@
 /**
- * POST /api/cron/ledger-shadow-reconcile
+ * GET | POST /api/cron/ledger-shadow-reconcile
  * ADR-203 Phase 1 — daily status vs ledger shadow; alert [LEDGER_DRIFT]; ops_job_runs.
  * Does not flip getPartnerBalance / payout SoT.
+ *
+ * Stage 202.10 — GET runs the same job as POST (Vercel Cron is GET-only).
+ * Previous GET was a no-op → ops never got success → hourly [STALE_CRON] last_success=never.
  */
 
 export const dynamic = 'force-dynamic'
@@ -18,17 +21,19 @@ import {
   countConsecutiveZeroDriftDays,
 } from '@/lib/ops/ledger-shadow-reconcile.js'
 
-export async function POST(request) {
+async function runLedgerShadowCron(request) {
   const denied = assertCronAuthorized(request)
   if (denied) return denied
 
   const run = await startOpsJobRun(LEDGER_SHADOW_JOB_NAME)
   try {
     let body = {}
-    try {
-      body = await request.json()
-    } catch {
-      body = {}
+    if (request.method !== 'GET') {
+      try {
+        body = await request.json()
+      } catch {
+        body = {}
+      }
     }
     const result = await runLedgerShadowReconcile({
       limitPartners: body?.limitPartners,
@@ -67,16 +72,10 @@ export async function POST(request) {
   }
 }
 
+export async function POST(request) {
+  return runLedgerShadowCron(request)
+}
+
 export async function GET(request) {
-  const denied = assertCronAuthorized(request)
-  if (denied) return denied
-  const proofStreakDays = await countConsecutiveZeroDriftDays()
-  return NextResponse.json({
-    success: true,
-    message:
-      'ADR-203 Phase 1 shadow: compare getPartnerBalance vs getPartnerBalanceFromLedger; POST to run',
-    proofStreakDays,
-    proofReady: proofStreakDays >= PROOF_ZERO_DRIFT_DAYS,
-    proofRequiredDays: PROOF_ZERO_DRIFT_DAYS,
-  })
+  return runLedgerShadowCron(request)
 }
