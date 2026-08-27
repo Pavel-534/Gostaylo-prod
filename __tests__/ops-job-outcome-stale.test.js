@@ -5,7 +5,7 @@ import {
   resolvePayoutBatchPoolsOps,
   resolveLedgerShadowOps,
 } from '../lib/ops/ops-job-outcome.js'
-import { isOpsSuccessStale } from '../lib/ops/stale-cron-monitor.js'
+import { isOpsSuccessStale, pickLatestSuccessAtByJob } from '../lib/ops/stale-cron-monitor.js'
 
 test('escrow-thaw: zero processed is success', () => {
   const ops = resolveEscrowThawOps({ success: true, processed: 0 })
@@ -88,4 +88,27 @@ test('stale: hourly >2h and daily >26h', () => {
   assert.equal(isOpsSuccessStale(new Date(now - 25 * hour).toISOString(), now, 26 * hour), false)
   assert.equal(isOpsSuccessStale(new Date(now - 27 * hour).toISOString(), now, 26 * hour), true)
   assert.equal(isOpsSuccessStale(null, now, 2 * hour), true)
+})
+
+test('Stage 202.11: pickLatest keeps daily job even when hourly flood is newer', () => {
+  const jobs = ['reconcile-yookassa-pending', 'ledger_shadow_reconcile']
+  const rows = []
+  for (let i = 0; i < 100; i++) {
+    rows.push({
+      job_name: 'reconcile-yookassa-pending',
+      started_at: `2026-08-27T1${String(i % 10).padStart(1, '0')}:00:00.000Z`,
+      finished_at: `2026-08-27T1${String(i % 10).padStart(1, '0')}:00:01.000Z`,
+    })
+  }
+  // Shared limit(80) would never see this older daily success — per-job query does.
+  rows.push({
+    job_name: 'ledger_shadow_reconcile',
+    started_at: '2026-08-27T00:45:00.000Z',
+    finished_at: '2026-08-27T00:45:05.000Z',
+  })
+  const capped = pickLatestSuccessAtByJob(rows.slice(0, 80), jobs)
+  assert.equal(capped.get('ledger_shadow_reconcile'), null)
+
+  const full = pickLatestSuccessAtByJob(rows, jobs)
+  assert.equal(full.get('ledger_shadow_reconcile'), '2026-08-27T00:45:05.000Z')
 })

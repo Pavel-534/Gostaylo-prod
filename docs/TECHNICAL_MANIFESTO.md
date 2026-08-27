@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.244 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.10** ops cron alerts (GET=run + GATEWAY NaN).
+> **Version**: 13.2.245 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.11** STALE_CRON 10m spam fix.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.11 — STALE_CRON every 10m (ledger_shadow false «never»)
+- Trigger: `reconcile-yookassa-pending` (*/10) calls `runStaleCronMonitor`.
+- Bug A: shared `ops_job_runs` `.limit(80)` newest-first drowned daily `ledger_shadow_reconcile` → false `last_success=never`.
+- Bug B: TG de-dupe was in-memory only → every serverless isolate re-alerted.
+- Fix: per-job `limit(1)` last success; durable `tgNotified` in `critical_signal_events`.
 
 ### Stage 202.10 — Ops Telegram: false GATEWAY + STALE_CRON never
 - Root: `Number(undefined) ?? 0.01` → **NaN** → zero-window still fired `[GATEWAY_LEDGER_DRIFT]`; Vercel Cron **GET** on `ledger-shadow-reconcile` / `financial-health-monitor` was a no-op → `ops_job_runs` never success → hourly `[STALE_CRON] last_success=never`.
