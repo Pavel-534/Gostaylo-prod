@@ -7,6 +7,7 @@
 
 import { SwRegister } from '@/components/sw-register'
 import { ChunkLoadResilience } from '@/components/pwa/ChunkLoadResilience'
+import { CookieConsent } from '@/components/CookieConsent'
 import { Toaster } from 'sonner'
 
 export function DeferredRootChrome() {
@@ -14,6 +15,7 @@ export function DeferredRootChrome() {
     <>
       <SwRegister />
       <ChunkLoadResilience />
+      <CookieConsent />
       <Toaster
         position="top-center"
         richColors

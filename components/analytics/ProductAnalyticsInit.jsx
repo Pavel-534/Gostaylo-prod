@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { COOKIE_CONSENT_EVENT } from '@/lib/consent/cookie-consent-config.js'
 import {
   initProductAnalytics,
   trackProductEvent,
@@ -18,6 +19,24 @@ export function ProductAnalyticsInit() {
   useEffect(() => {
     void initProductAnalytics()
   }, [])
+
+  useEffect(() => {
+    const onConsentGranted = () => {
+      void (async () => {
+        const { hasAnalyticsConsent } = await import('@/lib/consent/cookie-consent-state.js')
+        if (!hasAnalyticsConsent()) return
+        await initProductAnalytics()
+        if (!pathname) return
+        const qs = searchParams?.toString()
+        void trackProductEvent(ProductAnalyticsEvents.PAGE_VIEW, {
+          path: pathname,
+          search: qs || undefined,
+        })
+      })()
+    }
+    window.addEventListener(COOKIE_CONSENT_EVENT, onConsentGranted)
+    return () => window.removeEventListener(COOKIE_CONSENT_EVENT, onConsentGranted)
+  }, [pathname, searchParams])
 
   useEffect(() => {
     if (!pathname) return

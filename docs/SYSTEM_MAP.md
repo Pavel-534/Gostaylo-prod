@@ -224,7 +224,7 @@
 | **Tron / USDT TRC-20** | Crypto pay + `verifyTronTransaction` + crypto webhook | **PARTIAL** |
 | **Telegram** | Admin topics (system-alerts, optional user-feedback), partner DM, Login Widget (non-RU), notify deep-link | **READY** (ops-зависимо) |
 | **Sentry** | Runtime errors (App Router); empty DSN = no-op; no Replay; TG `[SENTRY]` via server beforeSend | **READY** (Stage **202.0**, DSN opt-in) |
-| **PostHog** | Product analytics (`NEXT_PUBLIC_POSTHOG_KEY`); ADR-169 SSOT — no Clarity/Webvisor | **READY** (opt-in) |
+| **PostHog** | Product analytics (`NEXT_PUBLIC_POSTHOG_KEY`); gated by cookie consent (`lib/consent/cookie-consent-state.js`); ADR-169 SSOT — no Clarity/Webvisor | **READY** (opt-in) |
 | **FCM / Firebase** | Web (и Cap) push; SW template → `public/sw.js` | **READY** |
 | **Resend** | Транзакционная почта (+ transport guard для smoke/E2E) | **READY** |
 | **Vercel Cron** | Daily schedules; hourly financial — часто **внешний** cron-job.org | Hybrid |

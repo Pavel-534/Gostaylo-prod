@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.251 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.17** escrow alerting polish.
+> **Version**: 13.2.252 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.18** cookie consent.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.18 — Cookie consent (GDPR / 152-ФЗ)
+- `components/CookieConsent.jsx` + `lib/consent/cookie-consent-state.js` — `airento_cookie_consent` localStorage, policy version re-prompt.
+- PostHog init gated in `lib/analytics/product-analytics.js` until `hasAnalyticsConsent()`; `COOKIE_CONSENT_EVENT` re-inits analytics on opt-in.
+- i18n: `lib/translations/slices/cookie-consent.js` (RU/EN/ZH/TH); functional HTTP-only cookies unchanged.
+- Test: `__tests__/stage202-18-cookie-consent.test.js`.
 
 ### Stage 202.17 — Escrow alerting polish
 - Crypto webhook `crypto/confirm`: TG alert on `httpStatus >= 500` (covers `ESCROW_FAILED` 502).
