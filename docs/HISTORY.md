@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.17 | 2026-08-28 | Escrow alerting: crypto 502 TG + ESCROW_RPC_FAILED critical signal | Done |
 | 202.16 | 2026-08-28 | Guest cancel grace period (15m/24h) + my-bookings paid cancel UX | Done |
 | 202.15 | 2026-08-28 | DB guardrails: profiles_email_lower_idx + paid booking money immutability trigger | Done |
 | 202.14 | 2026-08-27 | Date-change quote API (old/new/delta; extension invoice prefill) | Done |

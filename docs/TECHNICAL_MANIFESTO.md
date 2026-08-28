@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.250 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.16** guest cancel grace period.
+> **Version**: 13.2.251 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.17** escrow alerting polish.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.17 — Escrow alerting polish
+- Crypto webhook `crypto/confirm`: TG alert on `httpStatus >= 500` (covers `ESCROW_FAILED` 502).
+- `EscrowService.moveToEscrow` → `recordCriticalSignal('ESCROW_RPC_FAILED')` on RPC/catch failures; admin health key.
+- Test: `__tests__/stage202-17-escrow-alerting.test.js`.
 
 ### Stage 202.16 — Guest cancel grace period + paid cancel UX
 - `lib/cancellation-refund-rules.js`: ≤`GUEST_CANCEL_GRACE_MINUTES` (15) after `payment_intents.confirmed_at` / `paid_event.at` + ≥`GUEST_CANCEL_GRACE_MIN_HOURS_BEFORE_CHECKIN` (24) before check-in → 100% refund (`grace_period`).

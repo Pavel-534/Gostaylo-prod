@@ -332,7 +332,7 @@ export async function POST(request) {
       void notifySystemAlert(
         `🔌 <b>Webhook: crypto/confirm</b> — нет PENDING payment и нет active intent\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>`,
       )
-    } else if (!settled.success && settled.httpStatus === 500) {
+    } else if (!settled.success && Number(settled.httpStatus) >= 500) {
       void notifySystemAlert(
         `🔌 <b>Webhook: crypto/confirm</b> — Tron OK, settle упал\n` +
           `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
