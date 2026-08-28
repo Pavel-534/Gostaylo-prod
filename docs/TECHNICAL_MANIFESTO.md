@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.246 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.12** payment/calendar harden.
+> **Version**: 13.2.247 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.13** auth/KYC soft split.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.13 — Auth resend + email≠KYC + review draft
+- `POST /api/v2/auth/resend-verification` restored; shared `lib/auth/email-verification-send.js`.
+- Email verify sets `is_verified` + `email_verified_at` only — **not** `verification_status: VERIFIED`.
+- Payout KYC + catalog trust badge: `verification_status === VERIFIED`; admin REJECT no longer clears login `is_verified`.
+- Review modal: sessionStorage draft (ratings/comment) via `lib/reviews/review-form-draft.js`.
+- Test: `__tests__/stage202-13-auth-review-kyc-split.test.js`.
 
 ### Stage 202.12 — Payment + calendar harden (audit P0/P1)
 - YooKassa: deterministic UUID Idempotence-Key from intent id; persist fail-closed; `initiate` reuses INITIATED + `checkout_url`.

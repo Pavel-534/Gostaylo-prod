@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -21,6 +21,11 @@ import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.servic
 import { getUIText } from '@/lib/translations'
 import { getReviewCriteriaRows } from '@/lib/config/review-criteria-labels'
 import { cn } from '@/lib/utils'
+import {
+  clearReviewFormDraft,
+  loadReviewFormDraft,
+  saveReviewFormDraft,
+} from '@/lib/reviews/review-form-draft.js'
 
 function StarRating({ value, onChange, label }) {
   return (
@@ -78,8 +83,29 @@ export function ReviewModal({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitPendingModeration, setSubmitPendingModeration] = useState(false)
   const photoInputRef = useRef(null)
+  const draftHydratedRef = useRef(false)
 
   const listingForCat = booking?.listing || booking?.listings || {}
+  const bookingId = booking?.id ? String(booking.id) : ''
+
+  useEffect(() => {
+    if (!isOpen || !bookingId) {
+      draftHydratedRef.current = false
+      return
+    }
+    const draft = loadReviewFormDraft(bookingId)
+    if (draft) {
+      setRatings(draft.ratings)
+      setComment(draft.comment)
+    }
+    draftHydratedRef.current = true
+  }, [isOpen, bookingId])
+
+  useEffect(() => {
+    if (!isOpen || !bookingId || !draftHydratedRef.current || submitSuccess) return
+    saveReviewFormDraft(bookingId, { ratings, comment })
+  }, [isOpen, bookingId, ratings, comment, submitSuccess])
+
   const categorySlug =
     categorySlugProp ?? category_slug ?? listingForCat.category_slug ?? listingForCat.categorySlug ?? null
 
@@ -116,6 +142,7 @@ export function ReviewModal({
       const result = await onSubmit({ ratings, comment, photos })
       setSubmitPendingModeration(result?.moderationPending === true)
       setSubmitSuccess(true)
+      clearReviewFormDraft(bookingId)
       setTimeout(() => {
         onClose()
         setSubmitSuccess(false)

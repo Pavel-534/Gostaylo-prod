@@ -17,6 +17,7 @@ import {
   signJwtForProfile,
 } from '@/lib/auth/app-session-issue';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { profileHasEmailVerified } from '@/lib/auth/profile-verification-flags.js';
 import { safeInternalPath } from '@/lib/security/safe-internal-path';
 
 export const dynamic = 'force-dynamic';
@@ -107,10 +108,11 @@ export async function POST(request) {
 
   // ADR-210: claimed Concierge partners keep is_verified=false until payout KYC,
   // but must be able to re-login after magic claim (shadow_claimed_at set).
+  // Stage 202.13 — email gate accepts is_verified or email_verified_at (not verification_status).
   const claimedConciergePartner =
     role === 'PARTNER' && Boolean(user.shadow_claimed_at) && user.is_shadow !== true;
 
-  if (!user.is_verified && !staffRole && !claimedConciergePartner) {
+  if (!profileHasEmailVerified(user) && !staffRole && !claimedConciergePartner) {
     return NextResponse.json(
       {
         success: false,

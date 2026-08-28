@@ -97,7 +97,11 @@ export function usePartnerFinances() {
       try {
         const me = await fetchAuthMe()
         if (me.ok && me.user) {
-          const verified = me.user?.is_verified === true || me.user?.isVerified === true
+          const u = me.user
+          const verified =
+            String(u.verification_status || u.verificationStatus || '')
+              .trim()
+              .toUpperCase() === 'VERIFIED'
           if (isMounted) setPartnerProfileVerified(verified)
         } else if (isMounted) {
           setPartnerProfileVerified(false)

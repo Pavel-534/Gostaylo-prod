@@ -253,6 +253,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 
 - Cookie приложения: `gostaylo_session` (legacy internal id; TTL **7 дней**, SSOT `lib/auth/app-session-issue.js`).
 - Опционально Supabase Auth (OAuth). Identity registry: `profile_auth_identities`.
+- **Email vs KYC (Stage 202.13):** login gate — `is_verified` / `email_verified_at` (`profileHasEmailVerified`); admin KYC / payouts / trust badge — `verification_status === VERIFIED` (`profileHasAdminKycVerified`, `lib/partner/partner-payout-kyc.js`). Email verify link must **not** set `verification_status: VERIFIED`.
 
 ---
 
@@ -286,6 +287,7 @@ Cron: **не** cookie-session — только `CRON_SECRET`.
 | **List scroll restore (Back)** | `lib/navigation/route-scroll-memory.js` + root `RouteScrollMemoryHost`. Allowlist: `routeScrollKeyFromLocation` / `isScrollMemoryRouteKey` (home, `/listings`, my-bookings). Persist: `persistLiveRouteScroll` (Link click capture **or** before `router.push`). Back: `useSoftBack` → `markPendingRouteScrollRestore`. Restore pins the clicked anchor while layout grows, then commits when document height is stable (**201.111**; was Y-on-first-tall **201.109**). Не плодить page-local `useRouteScrollMemory`. |
 | **Storefront Home / catalog** | Home: `PlatformHomeContent` inside `HomeHydrationBoundary` on `/`. Catalog: `ListingsCatalogClient` inside `CatalogHydrationBoundary` on `/listings` (**201.103** — do not park either tree in the storefront shell). Search tab does not open the filter sheet (**201.98**). Pending catalog skeleton on Home only for Home→Search (**201.110** — PDP Back from Top / Popular nearby must not arm it). Home discovery rail: `ForYouRail` («Популярно рядом») always shows when the API returned ≥2 cards — unique vs Top, else skip first 4 featured, else overlap (**201.111** / **201.108**); `RecentlyViewedRail` is PDP (`recent_pdp`) (**201.107**). Home rails: `HOME_WIDGET_QUERY_OPTIONS` 10 min stale, no mount/focus refetch (**201.99**). Catalog card → PDP: native `<Link>` (**201.100**); instant chrome is page-slot `Suspense` fallback (**201.101**). PDP Back: `router.back()` when catalog return + history (**201.101**). |
 | **Post-auth redirect** | `lib/auth/auth-redirect.js` (`finishAuthNavigation`: `airento:nav-pending` + `replace`; apply login payload, do not block on `/me` or `router.refresh()` on the auth page). |
+| **Email vs KYC flags** | `lib/auth/profile-verification-flags.js`; resend `POST /api/v2/auth/resend-verification` + `lib/auth/email-verification-send.js` |
 | **Бренд / site name** | `lib/site-url.js` → `getSiteDisplayName()` |
 | **Resend transport guard** | `lib/email/resend-transport-guard.js` |
 | **Критичная телеметрия** | `lib/critical-telemetry.js` |

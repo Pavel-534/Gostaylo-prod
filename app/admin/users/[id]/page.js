@@ -248,14 +248,15 @@ export default function UserDetailPage() {
     }
   };
 
-  /** SSOT: `profiles.verification_status` enum **PENDING | VERIFIED | REJECTED** (не путать с **partner_applications.status** APPROVED). */
+  /** SSOT: `profiles.verification_status` enum **PENDING | VERIFIED | REJECTED** (не путать с **partner_applications.status** APPROVED).
+   * Stage 202.13 — REJECT/VERIFY KYC must not clear email login flag (`is_verified`). */
   const handleProfileVerificationDecision = async (decision) => {
     setVerifying(true);
     try {
       const updates =
         decision === 'VERIFIED'
           ? { is_verified: true, verification_status: 'VERIFIED' }
-          : { is_verified: false, verification_status: 'REJECTED' }
+          : { verification_status: 'REJECTED' }
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -269,7 +270,7 @@ export default function UserDetailPage() {
         toast.success(decision === 'VERIFIED' ? 'Верификация подтверждена (профиль VERIFIED)' : 'Статус обновлён')
         setUser((prev) => ({
           ...prev,
-          isVerified: decision === 'VERIFIED',
+          isVerified: decision === 'VERIFIED' ? true : prev.isVerified,
           verificationStatus: decision,
         }))
       } else {

@@ -176,6 +176,8 @@
 | Path |
 |------|
 | `POST /api/v2/auth/login` · logout / me — client applies `result.user` immediately; `finishAuthNavigation` (pending + replace). Destination still hydrates via `GET /me` |
+| `POST /api/v2/auth/resend-verification` — Stage **202.13**; shared email send helper |
+| Email vs KYC: login/`is_verified`+`email_verified_at`; payouts/trust badge → `verification_status=VERIFIED` (**202.13**) |
 | `POST /api/v2/partner/concierge-welcome/ack` — ADR-210 clear welcome-pending flag |
 | `POST /api/v2/auth/phone/send` · `verify` |
 | `POST /api/v2/auth/telegram` |

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.13 | 2026-08-27 | Auth/KYC soft split + resend-verification + review draft | Done |
 | 202.12 | 2026-08-27 | Payment/calendar harden: YooKassa deterministic Idempotence-Key; checkout success after escrow; max stay | Done |
 | 202.11 | 2026-08-27 | STALE_CRON: per-job ops last-success + durable TG de-dupe (stop 10m ledger spam) | Done |
 | 202.10 | 2026-08-27 | Ops TG: ledger-shadow + financial-health GET=run (Vercel); fix false GATEWAY_LEDGER_DRIFT (NaN tolerance) | Done |

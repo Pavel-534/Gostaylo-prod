@@ -8,10 +8,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
-import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { PricingService } from '@/lib/services/pricing.service';
 import { LegalVersionsService } from '@/lib/services/legal-versions.service.js';
 import ReferralGuardService, {
@@ -22,13 +20,14 @@ import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
 import ReferralAttributionService from '@/lib/referral/attribution.service.js';
 import { notifyTeammateJoined } from '@/lib/services/marketing/referral-notification.service.js';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
-import { hashPiiForLog } from '@/lib/logging/pii-scrub.js';
 import {
   AUTH_PASSWORD_MIN_LENGTH,
   AUTH_PASSWORD_COMPLEXITY_RE,
 } from '@/lib/auth/password-policy';
-import { EmailService } from '@/lib/services/email.service.js';
-import { buildSimplePremiumEmailTemplate } from '@/lib/email/simple-transactional-email.js';
+import {
+  generateEmailVerificationToken,
+  sendEmailVerificationMessage,
+} from '@/lib/auth/email-verification-send.js';
 import { NotificationService } from '@/lib/services/notification.service.js';
 
 export const dynamic = 'force-dynamic';
@@ -43,44 +42,6 @@ function makeReferralCode(profileId) {
     .slice(-6)
     .toUpperCase();
   return `AIR-${clean || Math.floor(100000 + Math.random() * 900000)}`;
-}
-
-function generateVerificationToken(userId, email, jwtSecret) {
-  return jwt.sign(
-    { userId, email, type: 'email_verification' },
-    jwtSecret,
-    { expiresIn: '24h', algorithm: 'HS256' },
-  );
-}
-
-/** Stage 200.72 / 201.69 — verification mail via EmailService + premium chrome. */
-async function sendVerificationEmail(user, token) {
-  const verifyUrl = `${getPublicSiteUrl()}/api/v2/auth/verify?token=${token}`;
-  const siteName = getSiteDisplayName();
-  const first = user.first_name ? String(user.first_name).trim() : '';
-  const subject = `Подтвердите ваш email - ${siteName}`;
-  const template = buildSimplePremiumEmailTemplate({
-    subject,
-    preheader: 'Ссылка действует 24 часа',
-    title: 'Подтвердите ваш email',
-    paragraphs: [
-      `Привет${first ? `, ${first}` : ''}! Для завершения регистрации нажмите кнопку ниже.`,
-      `Ссылка действительна 24 часа. Если вы не регистрировались на ${siteName}, просто проигнорируйте это письмо.`,
-    ],
-    cta: { href: verifyUrl, label: 'Подтвердить email' },
-  });
-
-  console.log('[EMAIL] Sending verification to:', hashPiiForLog(user.email));
-  const result = await EmailService.sendEmail(user.email, template);
-  if (result?.success) {
-    return { success: true, mock: Boolean(result.mock) };
-  }
-  if (result?.error === 'API key not configured') {
-    console.error('[EMAIL] RESEND_API_KEY not configured');
-    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED };
-  }
-  console.error('[EMAIL] send failed:', result?.error || 'unknown');
-  return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
 }
 
 // Send Telegram notification
@@ -286,10 +247,10 @@ export async function POST(request) {
   console.log('[REGISTER] User created:', user.id);
   
   // Generate verification token
-  const verificationToken = generateVerificationToken(user.id, user.email, jwtSecret);
+  const verificationToken = generateEmailVerificationToken(user.id, user.email, jwtSecret);
   
   // Send verification email
-  const emailResult = await sendVerificationEmail(user, verificationToken);
+  const emailResult = await sendEmailVerificationMessage(user, verificationToken);
 
   // Stage 200.74 — welcome via registry (outbox-aware); non-blocking
   void NotificationService.dispatch('USER_WELCOME', {

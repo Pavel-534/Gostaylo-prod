@@ -64,12 +64,11 @@ export async function GET(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Update user verification status
+  // Stage 202.13 — email confirm ≠ admin KYC (`verification_status` stays for admin / payouts).
   const { data: user, error } = await supabase
     .from('profiles')
     .update({
       is_verified: true,
-      verification_status: 'VERIFIED',
       email_verified_at: new Date().toISOString()
     })
     .eq('id', userId)
