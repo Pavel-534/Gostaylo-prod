@@ -303,6 +303,39 @@ export function SendInvoiceDialog({
     }))
   }, [open, storefrontPrefill.amount, storefrontPrefill.currency])
 
+  // Stage 202.14 — extension amount from server date-change quote (old/new/delta).
+  useEffect(() => {
+    if (!open || !booking?.id || !invoiceData.extensionIntent || !invoiceData.newCheckOut) {
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const dt = new Date(invoiceData.newCheckOut)
+        const checkOutIso = Number.isFinite(dt.getTime())
+          ? dt.toISOString()
+          : String(invoiceData.newCheckOut)
+        const qs = new URLSearchParams({ checkOut: checkOutIso })
+        const res = await fetch(
+          `/api/v2/bookings/${encodeURIComponent(String(booking.id))}/date-change-quote?${qs}`,
+          { credentials: 'include' },
+        )
+        const json = await res.json().catch(() => null)
+        if (cancelled || !json?.success || !json?.data) return
+        const suggested = Math.round(Number(json.data.suggestedChargeThb) || 0)
+        if (!userEditedAmountRef.current && suggested > 0) {
+          setInvoiceData((prev) => ({ ...prev, amount: String(suggested) }))
+        }
+      } catch {
+        // keep manual amount
+      }
+    }, 420)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [open, booking?.id, invoiceData.extensionIntent, invoiceData.newCheckOut])
+
   const handleSend = async () => {
     if (!invoiceData.amount) return
     if (invoiceData.extensionIntent && !invoiceData.newCheckOut) return

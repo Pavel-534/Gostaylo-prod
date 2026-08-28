@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.247 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.13** auth/KYC soft split.
+> **Version**: 13.2.248 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.14** date-change quote.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.14 — Date-change quote (read-only)
+- `GET /api/v2/bookings/[id]/date-change-quote` — old/new/delta via `computeListingBookingQuote` + locked booking total; `applySupported: false`.
+- Chat extension invoice prefills amount from `suggestedChargeThb` (partner can still edit).
+- Test: `__tests__/stage202-14-date-change-quote.test.js`.
+- Deferred: apply mutation / ledger delta / guest reschedule UI.
 
 ### Stage 202.13 — Auth resend + email≠KYC + review draft
 - `POST /api/v2/auth/resend-verification` restored; shared `lib/auth/email-verification-send.js`.

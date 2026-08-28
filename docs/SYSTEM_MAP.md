@@ -109,6 +109,8 @@
 | `GET|PATCH /api/v2/bookings/[id]/emergency-contact` · `emergency-context` · `emergency-support-ticket` — Stage 200.72: SMS via `dispatchSms` or ops_fallback |
 | `POST /api/v2/bookings/[id]/check-in/confirm` — Stage 200.72: `fundsReleased: false` / `escrowHeld: true` |
 | `POST /api/v2/bookings/[id]/cancel` |
+| `GET /api/v2/bookings/[id]/cancel-preview` |
+| `GET /api/v2/bookings/[id]/date-change-quote` — Stage **202.14** read-only old/new/delta (no apply) |
 | `POST /api/v2/promo-codes/validate` |
 | `POST /api/v2/push` |
 | `POST /api/v2/upload` · `DELETE /api/v2/upload` |
