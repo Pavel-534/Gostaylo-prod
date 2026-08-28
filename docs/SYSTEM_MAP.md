@@ -49,10 +49,10 @@
 
 | Таблица | Назначение |
 |---------|------------|
-| `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral; ADR-210: `is_shadow`, `shadow_claimed_at` |
+| `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral; ADR-210: `is_shadow`, `shadow_claimed_at`; **202.15** `profiles_email_lower_idx` |
 | `listings` | Объявления; `base_price_thb` THB-канон (L1 asset→THB mid); wizard form `basePriceThb` = asset in `baseCurrency` (preview: mid→THB→guest fee→retail header FX, Stage 200.49); `metadata` JSONB; статус модерации; ADR-210: optional `concierge_batch_id` |
 | `categories` | Вертикали: `slug`, `wizard_profile`, i18n, visibility flags |
-| `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки |
+| `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки; **202.15** `trg_bookings_guard_paid_money_columns` |
 | `conversations` | Чаты; deal SSOT через `booking_id` |
 | `messages` | Сообщения треда |
 | `calendar_blocks` | Блокировки: manual / iCal URL / invoice_hold; **201.47** expired holds purged |

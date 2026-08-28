@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.248 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.14** date-change quote.
+> **Version**: 13.2.249 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.15** DB guardrails migration.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,6 +27,11 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 202.15 — DB guardrails (migration file; ops apply)
+- `migrations/stage202_15_db_guardrails.sql`: `profiles_email_lower_idx` + `airento_guard_booking_paid_money_columns` trigger (break-glass `airento.allow_paid_price_fix=on`).
+- Test: `__tests__/stage202-15-db-guardrails.test.js`.
+- Calendar hold on `payment_intents.INITIATED` skipped — `AWAITING_PAYMENT` + `create_booking_atomic_v1` already cover race.
+
 ### Stage 202.14 — Date-change quote (read-only)
 - `GET /api/v2/bookings/[id]/date-change-quote` — old/new/delta via `computeListingBookingQuote` + locked booking total; `applySupported: false`.
 - Chat extension invoice prefills amount from `suggestedChargeThb` (partner can still edit).
@@ -45,6 +50,7 @@
 - Checkout return: celebrate only after escrow pipeline (`PAID_ESCROW`+); intent `PAID` alone keeps polling (timeout with capture → success).
 - Booking create: `MAX_STAY_VIOLATION` vs `max_booking_days`; `PlatformCalendar` honors `minStay`.
 - Test: `__tests__/stage202-12-payment-calendar-hardening.test.js`.
+- Soft KYC split shipped in **202.13**.
 
 ### Stage 202.11 — STALE_CRON every 10m (ledger_shadow false «never»)
 - Trigger: `reconcile-yookassa-pending` (*/10) calls `runStaleCronMonitor`.

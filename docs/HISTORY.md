@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.15 | 2026-08-28 | DB guardrails: profiles_email_lower_idx + paid booking money immutability trigger | Done |
 | 202.14 | 2026-08-27 | Date-change quote API (old/new/delta; extension invoice prefill) | Done |
 | 202.13 | 2026-08-27 | Auth/KYC soft split + resend-verification + review draft | Done |
 | 202.12 | 2026-08-27 | Payment/calendar harden: YooKassa deterministic Idempotence-Key; checkout success after escrow; max stay | Done |
