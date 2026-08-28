@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { LegalDefinitionsSection } from '@/components/legal/LegalDefinitionsSection'
 import { LegalDocShell, LegalTranslationDisclaimer } from '@/components/legal/legal-doc-shell'
 import { useLegalDocLocale } from '@/components/legal/use-legal-doc-locale'
 import { getLegalPublisherDetails } from '@/lib/config/legal-details'
@@ -42,7 +43,9 @@ export default function PublicOfferLegalContent({ avgEarnedFromStats = null }) {
 function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
   return (
     <>
-      <h2>1. Роли сторон</h2>
+      <LegalDefinitionsSection variant="public-offer" locale="ru" />
+
+      <h2>2. Роли сторон</h2>
       <p>
         <strong>Платформа {brand}</strong> выступает в качестве <strong>посредника (агента)</strong> между{' '}
         <strong>Гостем</strong> (лицом, оформляющим бронирование) и <strong>Партнёром</strong> — владельцем или
@@ -64,7 +67,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         договорами с Оператором.
       </p>
 
-      <h2>2. Предмет оферты</h2>
+      <h2>3. Предмет оферты</h2>
       <p>Предметом настоящей оферты является совокупность услуг Оператора по:</p>
       <ul>
         <li>представлению на Платформе предложений Партнёров и приёму заявок (бронирований) от Гостей;</li>
@@ -76,7 +79,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ul>
 
-      <h2>3. Платёж Гостя и обеспечение бронирования</h2>
+      <h2>4. Платёж Гостя и обеспечение бронирования</h2>
       <p>
         Платформа {brand} выступает в качестве посредника (агента) между Гостем и Партнёром — владельцем объекта.
       </p>
@@ -102,7 +105,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         возвратов Платформы.
       </p>
 
-      <h2>4. Вознаграждение Платформы</h2>
+      <h2>5. Вознаграждение Платформы</h2>
       <p>
         <strong>Вознаграждение Платформы</strong> за информационно-технологические услуги, организацию процесса и
         сопровождение сделки <strong>включается в итоговую стоимость бронирования</strong> (либо отражается в разбивке
@@ -114,7 +117,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         посредников. Оператор не принимает оплату «наличными на руки» через Платформу.
       </p>
 
-      <h2>5. Приоритет документов</h2>
+      <h2>6. Приоритет документов</h2>
       <p>При расхождении формулировок применяется следующий порядок (от большего приоритета к меньшему):</p>
       <ol>
         <li>условия и правила в <strong>карточке конкретного предложения</strong> (в том числе политика отмены);</li>
@@ -134,7 +137,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ol>
 
-      <h2>6. Многоуровневая партнёрская программа</h2>
+      <h2>7. Многоуровневая партнёрская программа</h2>
       <p>
         Платформа реализует многоуровневую партнёрскую программу (далее — «MLM»), в рамках которой участники могут
         получать вознаграждение за привлечение и активность приглашённых ими пользователей.
@@ -149,7 +152,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         программы и в кабинете участника.
       </p>
 
-      <h2>7. Ответственность и претензии</h2>
+      <h2>8. Ответственность и претензии</h2>
       <p>
         Ограничения ответственности Оператора, порядок рассмотрения претензий между Гостем и Партнёром, а также случаи
         возврата средств определяются политикой возвратов, правилами бронирования и применимым законодательством.
@@ -171,7 +174,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         месту жительства или по месту нахождения Оператора в соответствии с законодательством Российской Федерации.
       </p>
 
-      <h2>8. Применимое право</h2>
+      <h2>9. Применимое право</h2>
       <p>
         На отношения между Гостем и Оператором, регулируемые настоящей офертой, распространяется действие
         законодательства Российской Федерации: Гражданский кодекс РФ, Федеральный закон от 07.02.1992 № 2300-1 «О защите
@@ -185,7 +188,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         РФ.
       </p>
 
-      <h2>9. Персональные данные</h2>
+      <h2>10. Персональные данные</h2>
       <p>
         Обработка персональных данных регламентируется{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -194,7 +197,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         .
       </p>
 
-      <h2>10. Изменение оферты</h2>
+      <h2>11. Изменение оферты</h2>
       <p>
         Оферта может обновляться; актуальная дата редакции указана в блоке «Оператор платформы». Существенные изменения
         доводятся до пользователей через аккаунт и/или e-mail. При следующей оплате бронирования Пользователь может
@@ -207,7 +210,9 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
 function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
   return (
     <>
-      <h2>1. Roles of the parties</h2>
+      <LegalDefinitionsSection variant="public-offer" locale="en" />
+
+      <h2>2. Roles of the parties</h2>
       <p>
         <strong>Platform {brand}</strong> acts as an <strong>intermediary (agent)</strong> between the{' '}
         <strong>Guest</strong> (the person making a booking) and the <strong>Partner</strong> — the owner or authorised
@@ -228,7 +233,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         licensed payment providers under their rules and agreements with the Operator.
       </p>
 
-      <h2>2. Subject of the offer</h2>
+      <h2>3. Subject of the offer</h2>
       <p>This offer covers the Operator’s services to:</p>
       <ul>
         <li>present Partner offers on the Platform and accept booking requests from Guests;</li>
@@ -239,7 +244,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ul>
 
-      <h2>3. Guest payment and booking security</h2>
+      <h2>4. Guest payment and booking security</h2>
       <p>
         Platform {brand} acts as intermediary (agent) between the Guest and the Partner — the listing provider.
       </p>
@@ -263,7 +268,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         guarantee Partner-side attributes except duties expressly set in this offer and the Platform refund policy.
       </p>
 
-      <h2>4. Platform remuneration</h2>
+      <h2>5. Platform remuneration</h2>
       <p>
         <strong>Platform remuneration</strong> for IT services, process organisation, and deal support is{' '}
         <strong>included in the booking total</strong> (or shown in the payment breakdown) and{' '}
@@ -275,7 +280,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         “in hand” via the Platform.
       </p>
 
-      <h2>5. Document priority</h2>
+      <h2>6. Document priority</h2>
       <p>If wording conflicts, the following order applies (highest first):</p>
       <ol>
         <li>terms on the <strong>specific listing card</strong> (including cancellation policy);</li>
@@ -295,7 +300,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ol>
 
-      <h2>6. Multi-level partner program</h2>
+      <h2>7. Multi-level partner program</h2>
       <p>
         The Platform operates a multi-level partner program (“MLM”) under which participants may receive rewards for
         referring users and for those invitees’ activity.
@@ -310,7 +315,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         calculation rules, and the participant cabinet.
       </p>
 
-      <h2>7. Liability and claims</h2>
+      <h2>8. Liability and claims</h2>
       <p>
         Limits of Operator liability, Guest–Partner claims, and refund cases follow the refund policy, booking rules,
         and applicable law. Payment-provider outages may affect settlement timing; the Operator assists within a
@@ -331,7 +336,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         place of residence or at the Operator’s location in accordance with the laws of the Russian Federation.
       </p>
 
-      <h2>8. Applicable law</h2>
+      <h2>9. Applicable law</h2>
       <p>
         Relations between the Guest and the Operator under this offer are governed by the laws of the Russian Federation:
         the Civil Code of the RF, Federal Law No. 2300-1 of 07.02.1992 “On Protection of Consumer Rights” (ZoZPP),
@@ -343,7 +348,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         Matters not covered by this offer are governed by the applicable laws of the Russian Federation.
       </p>
 
-      <h2>9. Personal data</h2>
+      <h2>10. Personal data</h2>
       <p>
         Personal data processing is governed by the{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -352,7 +357,7 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         .
       </p>
 
-      <h2>10. Changes to the offer</h2>
+      <h2>11. Changes to the offer</h2>
       <p>
         The offer may be updated; the current revision date is in the “Platform operator” block. Material changes are
         communicated via account and/or email. On the next booking payment the User may be asked to re-confirm the new

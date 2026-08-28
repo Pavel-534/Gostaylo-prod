@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.19 | 2026-08-28 | Legal §1 «Термины и определения» (public offer + partner terms; YooKassa) | Done |
 | 202.18 | 2026-08-28 | Cookie consent banner + PostHog analytics gate (GDPR / 152-ФЗ) | Done |
 | 202.17 | 2026-08-28 | Escrow alerting: crypto 502 TG + ESCROW_RPC_FAILED critical signal | Done |
 | 202.16 | 2026-08-28 | Guest cancel grace period (15m/24h) + my-bookings paid cancel UX | Done |

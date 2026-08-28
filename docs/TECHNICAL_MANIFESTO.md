@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.252 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.18** cookie consent.
+> **Version**: 13.2.253 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.19** legal glossary.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.19 — Legal glossary §1 (YooKassa)
+
+- **`components/legal/LegalDefinitionsSection.jsx`** — SSOT §1 «Термины и определения» (RU binding + EN mirror): Платформа, Партнёр, Гость, Агентский договор/Оферта, Бронирование, Агентское вознаграждение, Платёжный партнёр.
+- Wired into **`/legal/public-offer/`** and **`/legal/partner-terms/`**; downstream sections renumbered (§2–§11).
+- Version bump: `CURRENT_LEGAL_TERMS_VERSION` / `CURRENT_PARTNER_TERMS_VERSION` → **`2026-08-28-v1`**; `LEGAL_PUBLISHER_STATIC.lastUpdated` → 28 августа 2026. Publish via admin if prod uses DB `legal_versions`.
+- Tests: `__tests__/stage202-19-legal-glossary.test.js`.
 
 ### Stage 202.18 — Cookie consent (GDPR / 152-ФЗ)
 - `components/CookieConsent.jsx` + `lib/consent/cookie-consent-state.js` — `airento_cookie_consent` localStorage, policy version re-prompt.

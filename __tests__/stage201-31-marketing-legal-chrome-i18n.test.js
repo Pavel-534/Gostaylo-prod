@@ -74,6 +74,6 @@ describe('Stage 201.31 — marketing/legal chrome + i18n', () => {
     assert.match(offer, /supportEmail/)
 
     const ver = read('lib/config/legal-terms-version.js')
-    assert.match(ver, /2026-08-14-v1/)
+    assert.match(ver, /2026-08-28-v1/)
   })
 })

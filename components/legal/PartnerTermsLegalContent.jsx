@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { LegalDefinitionsSection } from '@/components/legal/LegalDefinitionsSection'
 import { LegalDocShell, LegalTranslationDisclaimer } from '@/components/legal/legal-doc-shell'
 import { useLegalDocLocale } from '@/components/legal/use-legal-doc-locale'
 import { getLegalPublisherDetails } from '@/lib/config/legal-details'
@@ -54,7 +55,9 @@ export default function PartnerTermsLegalContent() {
 function RuBody() {
   return (
     <>
-      <h2>1. Статус Партнёра</h2>
+      <LegalDefinitionsSection variant="partner-terms" locale="ru" />
+
+      <h2>2. Статус Партнёра</h2>
       <p>
         Партнёр является <strong>самостоятельным поставщиком услуги</strong> (проживание, аренда транспорта и т.п.).
         Платформа оказывает информационно-технологические и посреднические услуги: размещение предложений, приём
@@ -69,7 +72,7 @@ function RuBody() {
         ; при расхождении в части обязанностей хоста приоритет имеют настоящие условия.
       </p>
 
-      <h2>2. Регистрация, заявка и верификация (KYC)</h2>
+      <h2>3. Регистрация, заявка и верификация (KYC)</h2>
       <ul>
         <li>Партнёр предоставляет достоверные контактные данные и сведения об опыте размещения объектов.</li>
         <li>
@@ -82,7 +85,7 @@ function RuBody() {
         </li>
       </ul>
 
-      <h2>3. Объявления и содержание</h2>
+      <h2>4. Объявления и содержание</h2>
       <p>Партнёр обязуется:</p>
       <ul>
         <li>размещать только те объекты и услуги, на которые он имеет законное право;</li>
@@ -98,7 +101,7 @@ function RuBody() {
         предварительного согласования, если это необходимо для безопасности сервиса и соблюдения закона.
       </p>
 
-      <h2>4. Бронирования и взаимодействие с гостями</h2>
+      <h2>5. Бронирования и взаимодействие с гостями</h2>
       <p>
         Партнёр своевременно рассматривает запросы на бронирование, подтверждает или отклоняет их в интерфейсе,
         обеспечивает заселение (check-in) в согласованные сроки и ведёт переписку в чате бронирования добросовестно.
@@ -111,7 +114,7 @@ function RuBody() {
         . Партнёр соглашается соблюдать эти правила при обработке отмен и спорных ситуаций.
       </p>
 
-      <h2>5. Расчёты и выплаты</h2>
+      <h2>6. Расчёты и выплаты</h2>
       <p>
         <strong>Прозрачные условия:</strong> вознаграждение Платформы и иные удержания, применимые к бронированию,
         отображаются Партнёру в интерфейсе (в том числе при предпросмотре выплаты) <strong>до</strong> завершения сделки.
@@ -129,7 +132,7 @@ function RuBody() {
         разумных мер содействия.
       </p>
 
-      <h2>6. Ответственность Партнёра за объект и услугу</h2>
+      <h2>7. Ответственность Партнёра за объект и услугу</h2>
       <p>
         Партнёр несёт полную ответственность за фактическое соответствие объекта описанию, безопасность, соблюдение
         местных норм (включая регистрацию гостей, если требуется законом), устранение неисправностей и претензий гостей по
@@ -140,14 +143,14 @@ function RuBody() {
         заменяет страхование или иные меры защиты, которые Партнёр обязан обеспечить самостоятельно при необходимости.
       </p>
 
-      <h2>7. Запрещённые действия</h2>
+      <h2>8. Запрещённые действия</h2>
       <ul>
         <li>обход расчётов через Платформу («увод» гостя на оплату вне сервиса);</li>
         <li>фиктивные бронирования, накрутка отзывов, дискриминация гостей;</li>
         <li>использование сервиса для отмывания средств, мошенничества или иных противоправных целей.</li>
       </ul>
 
-      <h2>8. Персональные данные</h2>
+      <h2>9. Персональные данные</h2>
       <p>
         Обработка данных Партнёра и гостей регулируется{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -157,7 +160,7 @@ function RuBody() {
         применимого закона.
       </p>
 
-      <h2>9. Приоритет документов (для Партнёра)</h2>
+      <h2>10. Приоритет документов (для Партнёра)</h2>
       <ol>
         <li>настоящие условия для партнёров;</li>
         <li>правила конкретного объявления и бронирования;</li>
@@ -182,7 +185,7 @@ function RuBody() {
         </li>
       </ol>
 
-      <h2>10. Изменение условий</h2>
+      <h2>11. Изменение условий</h2>
       <p>
         Платформа может обновлять настоящий документ; дата редакции указана в блоке «Оператор платформы». Существенные
         изменения доводятся через кабинет партнёра и/или e-mail. Продолжение использования сервиса после вступления
@@ -195,7 +198,9 @@ function RuBody() {
 function EnBody() {
   return (
     <>
-      <h2>1. Partner status</h2>
+      <LegalDefinitionsSection variant="partner-terms" locale="en" />
+
+      <h2>2. Partner status</h2>
       <p>
         The Partner is an <strong>independent service provider</strong> (stay, vehicle rental, etc.). The Platform
         provides IT and intermediary services: listing offers, accepting guest requests, passing booking data, and
@@ -210,7 +215,7 @@ function EnBody() {
         ; on conflict regarding host duties, these terms prevail.
       </p>
 
-      <h2>2. Registration, application, and verification (KYC)</h2>
+      <h2>3. Registration, application, and verification (KYC)</h2>
       <ul>
         <li>The Partner provides accurate contact details and listing experience information.</li>
         <li>
@@ -223,7 +228,7 @@ function EnBody() {
         </li>
       </ul>
 
-      <h2>3. Listings and content</h2>
+      <h2>4. Listings and content</h2>
       <p>The Partner must:</p>
       <ul>
         <li>list only objects and services they have a lawful right to offer;</li>
@@ -238,7 +243,7 @@ function EnBody() {
         service safety and legal compliance.
       </p>
 
-      <h2>4. Bookings and guest interaction</h2>
+      <h2>5. Bookings and guest interaction</h2>
       <p>
         The Partner promptly reviews booking requests, confirms or declines in the UI, provides check-in on agreed terms,
         and communicates in good faith in the booking chat.
@@ -251,7 +256,7 @@ function EnBody() {
         . The Partner agrees to follow those rules for cancellations and disputes.
       </p>
 
-      <h2>5. Settlements and payouts</h2>
+      <h2>6. Settlements and payouts</h2>
       <p>
         <strong>Transparent terms:</strong> Platform remuneration and other booking deductions are shown to the Partner
         in the UI (including payout preview) <strong>before</strong> the deal completes. Hidden Platform deductions not
@@ -267,7 +272,7 @@ function EnBody() {
         are not Platform non-performance beyond reasonable assistance.
       </p>
 
-      <h2>6. Partner liability for object and service</h2>
+      <h2>7. Partner liability for object and service</h2>
       <p>
         The Partner is fully responsible for match to description, safety, local rules (including guest registration if
         required), fixing issues, and guest claims about service quality.
@@ -277,14 +282,14 @@ function EnBody() {
         insurance or other protections the Partner must arrange when needed.
       </p>
 
-      <h2>7. Prohibited actions</h2>
+      <h2>8. Prohibited actions</h2>
       <ul>
         <li>bypassing Platform settlements (taking the guest off-platform for payment);</li>
         <li>fake bookings, review manipulation, guest discrimination;</li>
         <li>using the service for money laundering, fraud, or other unlawful purposes.</li>
       </ul>
 
-      <h2>8. Personal data</h2>
+      <h2>9. Personal data</h2>
       <p>
         Processing of Partner and guest data is governed by the{' '}
         <Link href="/legal/privacy/" className={linkClass}>
@@ -293,7 +298,7 @@ function EnBody() {
         . The Partner may use guest personal data only to perform the booking and within applicable law.
       </p>
 
-      <h2>9. Document priority (for Partners)</h2>
+      <h2>10. Document priority (for Partners)</h2>
       <ol>
         <li>these partner terms;</li>
         <li>specific listing and booking rules;</li>
@@ -318,7 +323,7 @@ function EnBody() {
         </li>
       </ol>
 
-      <h2>10. Changes to the terms</h2>
+      <h2>11. Changes to the terms</h2>
       <p>
         The Platform may update this document; the revision date is in the “Platform operator” block. Material changes
         are communicated via the partner cabinet and/or email. Continued use after changes take effect means acceptance of

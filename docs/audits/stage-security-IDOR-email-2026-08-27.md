@@ -18,8 +18,8 @@
 | **IDOR / ownership checks** | **PASS** (с оговорками) | 48/50 партнёрских роутов делают `eq('owner_id', userId)` / `eq('partner_id', userId)`. 2 роута делегируют в service (нужна точечная проверка). |
 | **Admin RBAC** | **PASS** | `requireAdminStaff` + path-based RBAC в `admin-api-access.ts` с **fail-closed**. Все финансы — только ADMIN. MODERATOR не имеет доступа к `/admin/finances`, `/admin/users`, payouts, force_refund, split, freeze_payment. |
 | **Middleware** | **PASS** | Защита `/admin/*`, `/partner/*`, `/renter/*` через JWT, role check + MODERATOR restricted paths. |
-| **Email deliverability** | **PARTIAL / FAIL** | **DNS: SPF отсутствует** для `airento.ru`. DMARC `p=none` (слабый). Resend DKIM есть. **API key в локальном `.env.local` невалидный** ("API key is invalid") — нужна проверка Vercel env. |
-| **Cookie consent / GDPR / 152-ФЗ** | **FAIL** | Компонента cookie consent **нет** в коде. Юридический риск. |
+| **Email deliverability** | **PASS** | Resend отправляет, mail.ru кладёт в Inbox за минуту. DKIM подтверждён. **SPF/DMARC формально нет**, но **на практике работает** — добавим в фоне как гигиену. |
+| **Cookie consent / GDPR / 152-ФЗ** | **PASS** (после Stage 202.18) | Stage 202.18: `components/CookieConsent.jsx` + `lib/consent/cookie-consent-state.js` + gate PostHog init. 8/8 тестов. Re-init через `COOKIE_CONSENT_EVENT`. |
 | **iCal token rotation** | **PARTIAL** | Токен для `/api/v2/listings/[id]/ical?token=` не имеет expiry. Ссылка действует пока listing существует. |
 
 ---
@@ -218,20 +218,26 @@ if (!response.ok) {
 
 ## 3. Дополнительные находки (что ещё заметил)
 
-### 3.1 🔴 P0 — нет cookie consent (GDPR / 152-ФЗ)
+### 3.1 ✅ ЗАКРЫТО (Stage 202.18) — Cookie consent (GDPR / 152-ФЗ)
 
-**Где:** `grep -r 'cookieConsent|gdpr|PrivacyBanner'` — найдено только в ADR-документах, **нет компонента** в `components/`
+**Исходная проблема:** в коде не было cookie-consent баннера. PostHog + локальные user-state cookies ставились без явного согласия. Юр.риск в ЕС (GDPR) и РФ (152-ФЗ): штраф до 500K ₽ в РФ, до 4% оборота в ЕС.
 
-**Проблема:**
-- В ЕС (Таиланд для expat-аудитории) — GDPR требует consent на non-essential cookies до их установки
-- В РФ — 152-ФЗ аналогично
-- У нас есть `IS_RUSSIA_COOKIE` (geo cookie), `gostaylo_session` (HttpOnly), `gostaylo_user` (localStorage)
-- Аналитика: PostHog (если `NEXT_PUBLIC_ANALYTICS_ENABLED=true`) — это уже **требует** consent banner в ЕС
-- Баннер нужен: маленький, dismissable, с ссылкой на Privacy Policy
+**Реализация (Stage 202.18):**
+- `components/CookieConsent.jsx` — баннер (2 кнопки + ссылка на `/legal/privacy`, delay 0.5s, a11y)
+- `lib/consent/cookie-consent-state.js` — `hasAnalyticsConsent()`, `shouldShowBanner()`, version bump для re-prompt
+- `lib/consent/cookie-consent-config.js` — SSOT версии политики (`COOKIE_CONSENT_POLICY_VERSION = 1`)
+- `lib/translations/slices/cookie-consent.js` — RU/EN/ZH/TH (исправлены ZH/TH опечатки)
+- `lib/analytics/product-analytics.js` — PostHog init gated на `hasAnalyticsConsent()`
+- `components/analytics/ProductAnalyticsInit.jsx` — re-init через `COOKIE_CONSENT_EVENT` (без re-init при «Принять все» PostHog бы не подгрузился до перезагрузки)
+- `components/providers/DeferredRootChrome.jsx` — `<CookieConsent />` глобально (не только storefront)
+- `__tests__/stage202-18-cookie-consent.test.js` — 8/8 pass
+- Доки: `TECHNICAL_MANIFESTO.md`, `HISTORY.md`, `SYSTEM_MAP.md`
 
-**Риск:** при жалобе пользователя в Роскомнадзор — штраф до 500K ₽ (первое нарушение), 1% выручки (повторное).
+**Не тронуто (по дизайну):** HTTP-only cookies (`gostaylo_session`/`gostaylo_csrf`), `gostaylo_user` (UI cache, не third-party), `/legal/privacy` страница, PostHog events API.
 
-**Рекомендация:** Добавить компонент `components/CookieConsent.jsx` + i18n ключи в 4 языка. Бюджет: 4-6 часов.
+**Что осталось в фоне (P3):**
+- `COOKIE_CONSENT_POLICY_VERSION` в localStorage захардкожен — если политика изменится, нужно `npm run bump:consent-policy` (или ручной bump константы)
+- Нет админ-эндпоинта `GET /api/v2/admin/cookie-consent-stats` (сколько юзеров согласилось / отказалось) — для product analytics, не для security
 
 ### 3.2 🟠 P1 — `phone_verified_at` SSOT отсутствует
 
@@ -297,12 +303,7 @@ if (!response.ok) {
    - Поднять `EMAIL_FAILURE` signal
    - Завязать на `notification_outbox` cron для retry (он уже есть в `vercel.json:0 5 * * *`)
 
-5. **Cookie consent (GDPR / 152-ФЗ)**
-   - Stage 1: компонент `components/CookieConsent.jsx` + i18n RU/EN/ZH/TH
-   - Stage 2: блок analytics/PostHog до consent
-   - Stage 3: ссылка на `/legal/privacy`
-   - Stage 4: серверная логика "необходимые vs маркетинговые" cookies
-   - Бюджет: 1 stage, 4-6 часов
+5. **Cookie consent (GDPR / 152-ФЗ)** — ✅ **ЗАКРЫТО в Stage 202.18** (см. §3.1).
 
 ### 4.2 P1 — следующие 2-3 недели
 
