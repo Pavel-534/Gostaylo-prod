@@ -48,7 +48,14 @@ export function useCheckoutConfirmFlow({
       try {
         const result = await loadPaymentStatus()
         const st = String(result?.booking?.status || '').toUpperCase()
-        if (st === 'PAID_ESCROW' || st === 'PAID' || st === 'COMPLETED') {
+        if (
+          st === 'PAID_ESCROW' ||
+          st === 'CHECKED_IN' ||
+          st === 'THAWED' ||
+          st === 'READY_FOR_PAYOUT' ||
+          st === 'COMPLETED' ||
+          st === 'PAID'
+        ) {
           setTxidSettlePolling(false)
           void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
             booking_id: bookingId,

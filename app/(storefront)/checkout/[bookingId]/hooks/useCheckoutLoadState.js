@@ -131,7 +131,14 @@ export function useCheckoutLoadState({
         setInvoice(null)
       }
 
-      if (b.status === 'PAID' || b.status === 'PAID_ESCROW' || b.status === 'COMPLETED') {
+      if (
+        b.status === 'PAID' ||
+        b.status === 'PAID_ESCROW' ||
+        b.status === 'CHECKED_IN' ||
+        b.status === 'THAWED' ||
+        b.status === 'READY_FOR_PAYOUT' ||
+        b.status === 'COMPLETED'
+      ) {
         setPaymentSuccess(true)
       }
 

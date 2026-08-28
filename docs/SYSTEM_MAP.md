@@ -203,6 +203,8 @@
 | GitHub Actions **`.github/workflows/playwright.yml`** — Stage **201.11**: nightly keep-list `npm run test:e2e:nightly` (03:00 UTC), then cleanup |
 | `/api/cron/exchange-rates-refresh` | **Only writer** to ExchangeRate-API → upsert `exchange_rates` (Stage **202.1**); Bearer/`x-cron-secret`; skip if rows <4h; upstream fail → **200** + `keptExisting` + 12h 429 cooldown (**201.113**) |
 | `GET /api/v2/exchange-rates` | Reads DB via `getDisplayRateMap` — **no** upstream call (202.1) |
+| `POST /api/v2/bookings` | Create booking; **MIN_STAY** + **MAX_STAY** (`max_booking_days`, Stage **202.12**) |
+| Payment initiate | YooKassa deterministic Idempotence-Key + INITIATED session reuse (**202.12**); checkout UI success after escrow pipeline |
 | `/api/cron/referral-*` |
 | `/api/cron/ledger-shadow-reconcile` — ADR-203 Phase 1; **GET\|POST** run (Stage **202.10**; Vercel Cron GET) |
 | `/api/cron/financial-health-monitor` — PENDING_FISCAL / gateway / STALE_CRON; **GET\|POST** run (**202.10**) |

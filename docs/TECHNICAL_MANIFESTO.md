@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.245 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.11** STALE_CRON 10m spam fix.
+> **Version**: 13.2.246 | **Last Updated**: 2026-08-27 | **Tip of tree:** Stage **202.12** payment/calendar harden.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.12 — Payment + calendar harden (audit P0/P1)
+- YooKassa: deterministic UUID Idempotence-Key from intent id; persist fail-closed; `initiate` reuses INITIATED + `checkout_url`.
+- Checkout return: celebrate only after escrow pipeline (`PAID_ESCROW`+); intent `PAID` alone keeps polling (timeout with capture → success).
+- Booking create: `MAX_STAY_VIOLATION` vs `max_booking_days`; `PlatformCalendar` honors `minStay`.
+- Test: `__tests__/stage202-12-payment-calendar-hardening.test.js`.
 
 ### Stage 202.11 — STALE_CRON every 10m (ledger_shadow false «never»)
 - Trigger: `reconcile-yookassa-pending` (*/10) calls `runStaleCronMonitor`.

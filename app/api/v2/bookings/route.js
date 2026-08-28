@@ -199,6 +199,22 @@ export async function POST(request) {
           selectedNights: nights,
         }, { status: 400 });
       }
+
+      // Stage 202.12 — enforce listing max_booking_days when set
+      const maxStayRaw = listingData?.max_booking_days
+      const maxStay = maxStayRaw != null && maxStayRaw !== '' ? Number(maxStayRaw) : null
+      if (Number.isFinite(maxStay) && maxStay > 0 && nights > maxStay) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Maximum stay for this property is ${maxStay} night${maxStay > 1 ? 's' : ''}. You selected ${nights} night${nights > 1 ? 's' : ''}.`,
+            code: 'MAX_STAY_VIOLATION',
+            maxStay,
+            selectedNights: nights,
+          },
+          { status: 400 },
+        )
+      }
     }
 
     const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {

@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { resolveGuestPayReturnFailureCopy } from '@/lib/checkout/guest-pay-error-messages.js'
 import {
+  isCheckoutBookingPaymentCapturedPendingEscrow,
+  isCheckoutBookingPaymentSettled,
   isCheckoutIntentPaymentFailed,
   isCheckoutIntentPaymentPaid,
 } from './checkout-payment-intent-status.js'
@@ -104,9 +106,10 @@ export function useCheckoutPaymentReturn({
       if (cancelled) return
       polls += 1
       const result = await loadPaymentStatus()
+      let bookingSt = ''
       if (result?.booking) {
-        const st = String(result.booking.status || '').toUpperCase()
-        if (st === 'PAID_ESCROW' || st === 'PAID' || st === 'COMPLETED') {
+        bookingSt = String(result.booking.status || '').toUpperCase()
+        if (isCheckoutBookingPaymentSettled(bookingSt)) {
           finishSuccess()
           return
         }
@@ -117,16 +120,21 @@ export function useCheckoutPaymentReturn({
       }
 
       const intentStatus = await resolveIntentStatus(result?.resolvedInvoice)
-      if (isCheckoutIntentPaymentPaid(intentStatus)) {
-        finishSuccess()
-        return
-      }
+      // Stage 202.12 — intent PAID alone keeps polling until escrow (or timeout with capture).
       if (isCheckoutIntentPaymentFailed(intentStatus)) {
         finishFailed(intentStatus)
         return
       }
 
       if (polls >= MAX_POLLS) {
+        if (
+          isCheckoutIntentPaymentPaid(intentStatus) ||
+          isCheckoutBookingPaymentCapturedPendingEscrow(bookingSt)
+        ) {
+          // Gateway confirmed; escrow heal cron may lag — do not mark as payment failure.
+          finishSuccess()
+          return
+        }
         finishFailed(intentStatus, { timedOut: true })
         return
       }

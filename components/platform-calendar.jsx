@@ -259,6 +259,8 @@ export function PlatformCalendar({
   guestsRefetchDebounceMs = 420,
   /** 'night' — жильё; 'day' — транспорт (сутки) */
   rentalPeriodMode = "night",
+  /** Stage 202.12 — listing.min_booking_days (nights between check-in and check-out). */
+  minStay = 1,
 }) {
   const [currentMonth, setCurrentMonth] = React.useState(() => {
     if (value?.from) {
@@ -360,6 +362,13 @@ export function PlatformCalendar({
         }
         current = addDays(current, 1)
       }
+
+      // Stage 202.12 — enforce listing min_booking_days (nights = checkOut - checkIn)
+      const minNights = Math.max(1, Math.floor(Number(minStay) || 1))
+      const nights = differenceInDays(date, value.from)
+      if (Number.isFinite(nights) && nights < minNights) {
+        return
+      }
       
       // Valid range - set check-out
       onChange({ from: value.from, to: date })
@@ -370,7 +379,7 @@ export function PlatformCalendar({
       // Already have both dates - start new selection
       onChange({ from: date, to: null })
     }
-  }, [value, onChange, calendarData, isSelectingCheckout, isMobile])
+  }, [value, onChange, calendarData, isSelectingCheckout, isMobile, minStay])
   
   // Generate months to display
   const months = React.useMemo(() => {

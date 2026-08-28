@@ -143,7 +143,14 @@ function CheckoutPageInner({ params: paramsProp }) {
       }
     : undefined
   const bookingStatus = String(p.booking?.status || '').toUpperCase()
-  const bookingAlreadyPaid = ['PAID', 'PAID_ESCROW', 'COMPLETED'].includes(bookingStatus)
+  const bookingAlreadyPaid = [
+    'PAID',
+    'PAID_ESCROW',
+    'CHECKED_IN',
+    'THAWED',
+    'READY_FOR_PAYOUT',
+    'COMPLETED',
+  ].includes(bookingStatus)
   const checkoutChatHref = p.chatConversationId
     ? `/messages/${encodeURIComponent(p.chatConversationId)}`
     : null
