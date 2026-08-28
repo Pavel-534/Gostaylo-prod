@@ -15,6 +15,9 @@ const E2E_HEADERS =
     ? { 'x-e2e-test-mode': '1' }
     : undefined
 
+/** Stage 202.18 — seeded in tests/global-setup.ts for projects without role storageState. */
+const COOKIE_CONSENT_AUTH = 'playwright/.auth/cookie-consent.json'
+
 const PRODUCTION_SMOKE_URL =
   process.env.PRODUCTION_SMOKE_URL || 'https://airento.ru'
 
@@ -200,6 +203,7 @@ export default defineConfig({
       timeout: 180_000,
       use: {
         ...devices['Desktop Chrome'],
+        storageState: COOKIE_CONSENT_AUTH,
       },
     },
     {
@@ -210,6 +214,7 @@ export default defineConfig({
       timeout: 180_000,
       use: {
         ...devices['Desktop Chrome'],
+        storageState: COOKIE_CONSENT_AUTH,
       },
     },
     {
@@ -231,6 +236,7 @@ export default defineConfig({
       timeout: 300_000,
       use: {
         ...devices['Desktop Chrome'],
+        storageState: COOKIE_CONSENT_AUTH,
       },
     },
     {
@@ -269,7 +275,7 @@ export default defineConfig({
       testMatch: '**/security-bot.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: { cookies: [], origins: [] },
+        storageState: COOKIE_CONSENT_AUTH,
       },
     },
     {
@@ -289,7 +295,10 @@ export default defineConfig({
       name: 'accountant-bot',
       testDir: './tests/e2e',
       testMatch: '**/bots/accountant-math.spec.ts',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: COOKIE_CONSENT_AUTH,
+      },
     },
     {
       name: 'polyglot-bot',

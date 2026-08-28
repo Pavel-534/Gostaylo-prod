@@ -9,6 +9,7 @@ import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { E2E_EMAILS, E2E_PASSWORD, E2E_ROUTES } from './e2e/constants'
+import { mergeCookieConsentIntoStorageState } from './e2e/helpers/cookie-consent-e2e'
 
 const AUTH_DIR = path.join(process.cwd(), 'playwright', '.auth')
 
@@ -68,6 +69,7 @@ async function loginViaApi(
   const user = meJson?.user
   expect(user?.id, `auth/me user.id for ${email}`).toBeTruthy()
   mergeGostayloUserIntoStorageState(outFile, appOrigin, user!)
+  mergeCookieConsentIntoStorageState(outFile, appOrigin)
 }
 
 setup('authenticate admin', async ({ request, baseURL }) => {
