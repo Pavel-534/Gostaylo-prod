@@ -27,6 +27,12 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 202.20 — AUDIT_02 CI + `bookings.payout_at`
+- `migrations/stage202_20_bookings_payout_at.sql` — `payout_at TIMESTAMPTZ` (batch settle COMPLETED catch-up).
+- `payout-batch-settlement.js` — zero/negative `amount_thb` → `ledger_errors` (not silent skip).
+- `node-test-alias-loader` — `next/server` + extensionless relative imports for Node smoke scripts.
+- AUDIT_02 smoke: isolate batch to fixtures; break settle via `amount_thb=0`.
+
 ### Stage 202.19 — Legal glossary §1 (YooKassa)
 
 - **`components/legal/LegalDefinitionsSection.jsx`** — SSOT §1 «Термины и определения» (RU binding + EN mirror): Платформа, Партнёр, Гость, Агентский договор/Оферта, Бронирование, Агентское вознаграждение, Платёжный партнёр.

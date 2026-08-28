@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.20 | 2026-08-28 | AUDIT_02 CI smoke loader + `bookings.payout_at` + batch zero-amount ledger guard | Done |
 | 202.19 | 2026-08-28 | Legal §1 «Термины и определения» (public offer + partner terms; YooKassa) | Done |
 | 202.18 | 2026-08-28 | Cookie consent banner + PostHog analytics gate (GDPR / 152-ФЗ) | Done |
 | 202.17 | 2026-08-28 | Escrow alerting: crypto 502 TG + ESCROW_RPC_FAILED critical signal | Done |
