@@ -101,6 +101,8 @@ export async function GET(request, context) {
         refundGuestAmount: refundGuest?.amount ?? null,
         refundGuestDisplayAmount: refundGuest?.displayAmount || null,
         refundGuestSource: refundGuest?.source || null,
+        refundReason: estimate.refundReason || null,
+        gracePeriodActive: estimate.gracePeriodActive === true,
       },
     });
   } catch (error) {

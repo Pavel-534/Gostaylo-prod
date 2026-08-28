@@ -124,6 +124,14 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
 
         {step === 'confirm' && preview && (
           <div className="space-y-3 text-sm">
+            {preview.gracePeriodActive && (
+              <div
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900"
+                data-testid="cancel-grace-period-banner"
+              >
+                <p className="font-medium">{t('renterCancel_gracePeriodLine')}</p>
+              </div>
+            )}
             {preview.ledgerRefund && refundPrimary && (
               <div
                 className="rounded-lg border border-brand/20 bg-brand/10 px-4 py-3"

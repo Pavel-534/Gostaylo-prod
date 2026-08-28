@@ -143,6 +143,7 @@ export async function POST(request, context) {
                 cancel_refund_guest_thb: estimate.refundGuestThb,
                 cancel_refund_percent: estimate.percent,
                 cancel_policy: estimate.policy,
+                ...(estimate.refundReason ? { cancel_refund_reason: estimate.refundReason } : {}),
               }
             : {}),
         },
