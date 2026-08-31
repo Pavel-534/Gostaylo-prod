@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { CircleHelp, Megaphone, Percent, Users, Fuel, Rocket, Wallet2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -23,6 +23,7 @@ import {
   MOBILE_FLAT_CARD_HEADER_CLASS,
   MOBILE_FLAT_INSET_CLASS,
 } from '@/lib/ui/mobile-flat-canvas'
+import { FINTECH_CONFIG_DEFAULTS } from '@/lib/config/fintech-config-defaults.js'
 
 function FieldHint({ children }) {
   return (
@@ -62,10 +63,6 @@ export function SystemSettingsMarketing() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settingsSnapshot, setSettingsSnapshot] = useState(null)
-  const [reinvestmentPercent, setReinvestmentPercent] = useState(45)
-  const [referrerSharePercent, setReferrerSharePercent] = useState(50)
-  const [acquiringFeePercent, setAcquiringFeePercent] = useState(0)
-  const [operationalReservePercent, setOperationalReservePercent] = useState(0)
   const [organicToPromoPotPercent, setOrganicToPromoPotPercent] = useState(0)
   const [promoBoostPerBooking, setPromoBoostPerBooking] = useState(0)
   const [promoTurboModeEnabled, setPromoTurboModeEnabled] = useState(false)
@@ -76,9 +73,6 @@ export function SystemSettingsMarketing() {
   const [welcomeBonusAmount, setWelcomeBonusAmount] = useState(0)
   const [walletMaxDiscountPercent, setWalletMaxDiscountPercent] = useState(30)
   const [walletMinPayoutThb, setWalletMinPayoutThb] = useState(1000)
-  const [partnerActivationBonus, setPartnerActivationBonus] = useState(500)
-  const [mlmLevel1Percent, setMlmLevel1Percent] = useState(70)
-  const [mlmLevel2Percent, setMlmLevel2Percent] = useState(30)
   const [payoutToInternalRatio, setPayoutToInternalRatio] = useState(70)
   const [referralMonthlyGoalThb, setReferralMonthlyGoalThb] = useState(10000)
 
@@ -96,18 +90,6 @@ export function SystemSettingsMarketing() {
         if (settingsResult.ok && settingsResult.data) {
           const s = settingsResult.data
           setSettingsSnapshot(s)
-          const rp = clamp(s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 45, 0, 95)
-          const splitRatio = clamp(s.referralSplitRatio ?? s.referral_split_ratio ?? 0.5, 0, 1)
-          const acquiring = clamp(s.acquiringFeePercent ?? s.acquiring_fee_percent ?? 0, 0, 100)
-          const operational = clamp(
-            s.operationalReservePercent ?? s.operational_reserve_percent ?? 0,
-            0,
-            100,
-          )
-          setReinvestmentPercent(rp)
-          setReferrerSharePercent(Math.round(splitRatio * 10000) / 100)
-          setAcquiringFeePercent(acquiring)
-          setOperationalReservePercent(operational)
           setOrganicToPromoPotPercent(clamp(s.organicToPromoPotPercent ?? s.organic_to_promo_pot_percent ?? 0, 0, 100))
           setPromoBoostPerBooking(clamp(s.promoBoostPerBooking ?? s.promo_boost_per_booking ?? 0, 0, 1000000))
           setPromoTurboModeEnabled(
@@ -121,11 +103,6 @@ export function SystemSettingsMarketing() {
             clamp(s.walletMaxDiscountPercent ?? s.wallet_max_discount_percent ?? 30, 0, 100),
           )
           setWalletMinPayoutThb(clamp(s.walletMinPayoutThb ?? s.wallet_min_payout_thb ?? 1000, 0, 1000000))
-          setPartnerActivationBonus(
-            clamp(s.partnerActivationBonus ?? s.partner_activation_bonus ?? 500, 0, 1000000000),
-          )
-          setMlmLevel1Percent(clamp(s.mlmLevel1Percent ?? s.mlm_level1_percent ?? 70, 0, 100))
-          setMlmLevel2Percent(clamp(s.mlmLevel2Percent ?? s.mlm_level2_percent ?? 30, 0, 100))
           setPayoutToInternalRatio(
             clamp(s.payoutToInternalRatio ?? s.payout_to_internal_ratio ?? 70, 0, 100),
           )
@@ -154,22 +131,40 @@ export function SystemSettingsMarketing() {
     }
   }, [])
 
-  const refereeSharePercent = useMemo(
-    () => Math.max(0, Math.round((100 - referrerSharePercent) * 100) / 100),
-    [referrerSharePercent],
-  )
+  const fintechDisplay = useMemo(() => {
+    const s = settingsSnapshot || {}
+    const d = FINTECH_CONFIG_DEFAULTS
+    const splitRatio = clamp(s.referralSplitRatio ?? s.referral_split_ratio ?? d.referral_split_ratio, 0, 1)
+    return {
+      reinvestment: clamp(
+        s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? d.referral_reinvestment_percent,
+        0,
+        95,
+      ),
+      referrerShare: Math.round(splitRatio * 10000) / 100,
+      refereeShare: Math.max(0, Math.round((100 - splitRatio * 100) * 100) / 100),
+      acquiring: clamp(s.acquiringFeePercent ?? s.acquiring_fee_percent ?? d.acquiring_fee_percent, 0, 100),
+      operational: clamp(
+        s.operationalReservePercent ?? s.operational_reserve_percent ?? d.operational_reserve_percent,
+        0,
+        100,
+      ),
+      partnerActivation: clamp(
+        s.partnerActivationBonus ?? s.partner_activation_bonus ?? d.partner_activation_bonus_thb,
+        0,
+        1000000000,
+      ),
+      mlm1: clamp(s.mlmLevel1Percent ?? s.mlm_level1_percent ?? d.mlm_level1_percent, 0, 100),
+      mlm2: clamp(s.mlmLevel2Percent ?? s.mlm_level2_percent ?? d.mlm_level2_percent, 0, 100),
+    }
+  }, [settingsSnapshot])
 
   async function handleSave() {
     if (!settingsSnapshot) return
     setSaving(true)
     try {
-      const referralSplitRatio = clamp(referrerSharePercent / 100, 0, 1)
       const payload = {
         ...settingsSnapshot,
-        referralReinvestmentPercent: clamp(reinvestmentPercent, 0, 95),
-        referralSplitRatio,
-        acquiringFeePercent: clamp(acquiringFeePercent, 0, 100),
-        operationalReservePercent: clamp(operationalReservePercent, 0, 100),
         organicToPromoPotPercent: clamp(organicToPromoPotPercent, 0, 100),
         promoBoostPerBooking: clamp(promoBoostPerBooking, 0, 1000000),
         promoTurboModeEnabled: promoTurboModeEnabled === true,
@@ -181,15 +176,8 @@ export function SystemSettingsMarketing() {
             : 'split_50_50',
         welcomeBonusAmount: clamp(welcomeBonusAmount, 0, 1000000),
         walletMaxDiscountPercent: clamp(walletMaxDiscountPercent, 0, 100),
-        partnerActivationBonus: clamp(partnerActivationBonus, 0, 1000000000),
-        mlmLevel1Percent: clamp(mlmLevel1Percent, 0, 100),
-        mlmLevel2Percent: clamp(mlmLevel2Percent, 0, 100),
         payoutToInternalRatio: clamp(payoutToInternalRatio, 0, 100),
         marketingPromoPot: clamp(monitor?.marketingPromoPotThb ?? settingsSnapshot?.marketingPromoPot ?? 0, 0, 1000000000),
-        referral_reinvestment_percent: clamp(reinvestmentPercent, 0, 95),
-        referral_split_ratio: referralSplitRatio,
-        acquiring_fee_percent: clamp(acquiringFeePercent, 0, 100),
-        operational_reserve_percent: clamp(operationalReservePercent, 0, 100),
         organic_to_promo_pot_percent: clamp(organicToPromoPotPercent, 0, 100),
         promo_boost_per_booking: clamp(promoBoostPerBooking, 0, 1000000),
         promo_turbo_mode_enabled: promoTurboModeEnabled === true,
@@ -201,9 +189,6 @@ export function SystemSettingsMarketing() {
             : 'split_50_50',
         welcome_bonus_amount: clamp(welcomeBonusAmount, 0, 1000000),
         wallet_max_discount_percent: clamp(walletMaxDiscountPercent, 0, 100),
-        partner_activation_bonus: clamp(partnerActivationBonus, 0, 1000000000),
-        mlm_level1_percent: clamp(mlmLevel1Percent, 0, 100),
-        mlm_level2_percent: clamp(mlmLevel2Percent, 0, 100),
         payout_to_internal_ratio: clamp(payoutToInternalRatio, 0, 100),
         walletMinPayoutThb: clamp(walletMinPayoutThb, 0, 1000000),
         wallet_min_payout_thb: clamp(walletMinPayoutThb, 0, 1000000),
@@ -273,80 +258,42 @@ export function SystemSettingsMarketing() {
           </div>
         </CardHeader>
         <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-6')}>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm font-medium">Marketing Reinvestment %</Label>
-                <FieldHint>
-                  Ограничивает долю чистой маржи заказа, идущую в реферальный пул. Ниже процент — меньше давление на маржу;
-                  движок дополнительно обрезает выплаты по safety-lock к валовой марже платформы.
-                </FieldHint>
-              </div>
-              <span className="text-sm font-semibold text-fuchsia-700">{reinvestmentPercent.toFixed(1)}%</span>
-            </div>
-            <Slider
-              min={0}
-              max={95}
-              step={0.5}
-              value={[reinvestmentPercent]}
-              onValueChange={(v) => setReinvestmentPercent(clamp(v?.[0], 0, 95))}
-            />
-            <p className="text-xs text-slate-600">
-              Safety lock в движке гарантирует: общая реферальная выплата не превышает 95% Platform Gross.
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-950">
+            <p className="font-medium">FinTech SSOT (только чтение)</p>
+            <p className="mt-1 text-xs text-indigo-900/90">
+              Эквайринг, reinvestment, split и host activation настраиваются только в{' '}
+              <Link href="/admin/settings/finances" className="font-semibold underline hover:text-brand">
+                FinTech panel → Ambassador 3.0
+              </Link>
+              . Сохранение на этой странице их не меняет.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="referrerShare" className="text-sm font-medium">
-                Referral Split: Referrer %
-              </Label>
-              <Input
-                id="referrerShare"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={referrerSharePercent}
-                onChange={(e) => setReferrerSharePercent(clamp(e.target.value, 0, 100))}
-              />
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-slate-600">Marketing Reinvestment %</Label>
+              <Input value={fintechDisplay.reinvestment.toFixed(1)} readOnly className="bg-slate-50" />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Referral Split: Referee %</Label>
-              <Input value={refereeSharePercent} readOnly />
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-slate-600">Acquiring fee %</Label>
+              <Input value={fintechDisplay.acquiring.toFixed(1)} readOnly className="bg-slate-50" />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="acquiringFeePercent" className="text-sm font-medium">
-                Acquiring fee %
-              </Label>
-              <Input
-                id="acquiringFeePercent"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={acquiringFeePercent}
-                onChange={(e) => setAcquiringFeePercent(clamp(e.target.value, 0, 100))}
-              />
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-slate-600">Referral Split: Referrer %</Label>
+              <Input value={fintechDisplay.referrerShare} readOnly className="bg-slate-50" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="operationalReservePercent" className="text-sm font-medium">
-                Operational reserve %
-              </Label>
-              <Input
-                id="operationalReservePercent"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={operationalReservePercent}
-                onChange={(e) => setOperationalReservePercent(clamp(e.target.value, 0, 100))}
-              />
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-slate-600">Referral Split: Referee %</Label>
+              <Input value={fintechDisplay.refereeShare} readOnly className="bg-slate-50" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-slate-600">Operational reserve %</Label>
+              <Input value={fintechDisplay.operational.toFixed(1)} readOnly className="bg-slate-50" />
             </div>
           </div>
+          <p className="text-xs text-slate-600">
+            Safety lock в движке гарантирует: общая реферальная выплата не превышает 95% Platform Gross.
+          </p>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
@@ -576,51 +523,20 @@ export function SystemSettingsMarketing() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="partnerActivationBonus" className="text-sm font-medium">
-                Partner activation bonus (THB)
-              </Label>
-              <Input
-                id="partnerActivationBonus"
-                type="number"
-                min={0}
-                step={1}
-                value={partnerActivationBonus}
-                onChange={(e) => setPartnerActivationBonus(clamp(e.target.value, 0, 1000000000))}
-              />
+              <Label className="text-sm font-medium text-slate-600">Partner activation bonus (THB)</Label>
+              <Input value={fintechDisplay.partnerActivation} readOnly className="bg-slate-50" />
               <p className="text-xs text-slate-500">
-                Fixed debit from marketing promo pot on first COMPLETED booking of invited host.
+                Fixed debit from marketing promo pot on first COMPLETED booking of invited host. Редактируется в FinTech.
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mlmLevel1Percent" className="text-sm font-medium">
-                Direct Referral Bonus %
-              </Label>
-              <Input
-                id="mlmLevel1Percent"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={mlmLevel1Percent}
-                onChange={(e) => setMlmLevel1Percent(clamp(e.target.value, 0, 100))}
-              />
+              <Label className="text-sm font-medium text-slate-600">Direct Referral Bonus %</Label>
+              <Input value={fintechDisplay.mlm1} readOnly className="bg-slate-50" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mlmLevel2Percent" className="text-sm font-medium">
-                Sub-Referral Bonus %
-              </Label>
-              <Input
-                id="mlmLevel2Percent"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={mlmLevel2Percent}
-                onChange={(e) => setMlmLevel2Percent(clamp(e.target.value, 0, 100))}
-              />
-              <p className="text-xs text-slate-500">
-                Контроль суммы: Direct + Sub не больше 100%.
-              </p>
+              <Label className="text-sm font-medium text-slate-600">Sub-Referral Bonus %</Label>
+              <Input value={fintechDisplay.mlm2} readOnly className="bg-slate-50" />
+              <p className="text-xs text-slate-500">Host activation split — FinTech SSOT.</p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">

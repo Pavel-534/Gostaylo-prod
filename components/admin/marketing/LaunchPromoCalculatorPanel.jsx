@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Calculator, Loader2, AlertTriangle, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,14 +14,11 @@ import { fmtThb } from '@/lib/admin/fintech-console-shared'
 import { fetchFintechSettings } from '@/lib/admin/admin-fintech-api-client'
 import { fetchAdminSettings } from '@/lib/admin/admin-settings-api-client'
 import {
-  computeLaunchPromoPlan,
-  fintechSettingsToPolicy,
   LAUNCH_PLANNER_REINVESTMENT_MAX,
   LAUNCH_PLANNER_REINVESTMENT_MIN,
   LAUNCH_PLANNER_SUBTOTAL_MAX,
   LAUNCH_PLANNER_SUBTOTAL_MIN,
-  normalizePlannerInputs,
-} from '@/lib/admin/launch-promo-planner.js'
+} from '@/lib/admin/launch-promo-planner-constants.js'
 import { cn } from '@/lib/utils'
 
 const PRESET_CHECKS = [1_000, 3_000, 10_000, 35_000]
@@ -57,6 +54,8 @@ export function LaunchPromoCalculatorPanel() {
   const [turboBoostThbPerBooking, setTurboBoostThbPerBooking] = useState(0)
   const [promoTankThb, setPromoTankThb] = useState(0)
   const [hostActivationsPerMonth, setHostActivationsPerMonth] = useState(0)
+  const [plan, setPlan] = useState(null)
+  const [planLoading, setPlanLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -83,21 +82,39 @@ export function LaunchPromoCalculatorPanel() {
     void load()
   }, [load])
 
-  const plan = useMemo(() => {
-    if (!fintechApi) return null
-    const referralBookingsPerMonth = Math.round((totalBookingsPerMonth * referralSharePercent) / 100)
-    const inputs = normalizePlannerInputs({
-      subtotalThb,
-      guestServiceFeePercent,
-      referralReinvestmentPercent,
-      totalBookingsPerMonth,
-      referralBookingsPerMonth,
-      turboBoostThbPerBooking,
-      promoTankThb,
-      hostActivationsPerMonth,
-    })
-    const basePolicy = fintechSettingsToPolicy(fintechApi)
-    return computeLaunchPromoPlan(basePolicy, inputs)
+  useEffect(() => {
+    if (!fintechApi) return
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setPlanLoading(true)
+      try {
+        const res = await fetch('/api/admin/marketing/launch-planner', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subtotalThb,
+            guestServiceFeePercent,
+            referralReinvestmentPercent,
+            totalBookingsPerMonth,
+            referralSharePercent,
+            turboBoostThbPerBooking,
+            promoTankThb,
+            hostActivationsPerMonth,
+          }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok && json.success && json.data) {
+          setPlan(json.data)
+        }
+      } finally {
+        if (!cancelled) setPlanLoading(false)
+      }
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [
     fintechApi,
     subtotalThb,

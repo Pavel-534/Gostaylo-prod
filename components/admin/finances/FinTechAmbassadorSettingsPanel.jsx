@@ -4,7 +4,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Loader2, Save, Settings2 } from 'lucide-react'
+import { AlertTriangle, Info, Loader2, Save, Settings2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import {
 } from '@/lib/admin/admin-fintech-api-client'
 import { AmbassadorOwnerWaterfallBar } from '@/components/admin/finances/FinTechMarginBar'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
+import { compareFintechLiveToOwnerCanon } from '@/lib/admin/fintech-owner-canon.js'
 
 const DEFAULT_SCENARIO = { subtotalThb: 35_000, guestServiceFeePercent: 15, hostCommissionPercent: 0 }
 
@@ -43,6 +44,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
   const [saving, setSaving] = useState(false)
   const [draft, setDraft] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [liveApi, setLiveApi] = useState(null)
   const [version, setVersion] = useState(null)
   const [scenario, setScenario] = useState(DEFAULT_SCENARIO)
 
@@ -55,6 +57,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
       return
     }
     setDraft({ ...res.data.settings })
+    setLiveApi({ ...res.data.settings })
     setPreview(res.data.preview)
     setVersion(res.data.version)
     setLoading(false)
@@ -145,10 +148,41 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
     }
   }, [draft, preview, scenario])
 
-  async function save() {
-    if (!draft || ownerMode) return
+  const canonDiff = useMemo(() => compareFintechLiveToOwnerCanon(liveApi), [liveApi])
+
+  async function save(ackOverrides = {}) {
+    if (!draft) return
+    if (ownerMode) {
+      toast?.({
+        variant: 'destructive',
+        title: 'Owner mode включён',
+        description: 'Выключите Owner mode в панели FinTech выше, чтобы редактировать и сохранить.',
+      })
+      return
+    }
+
+    const acquiring = numInput(draft.acquiring_fee_percent, 4.3)
+    const reinvestment = numInput(draft.referral_reinvestment_percent, 45)
+    const waterfallOn = draft.ambassador_3_waterfall_enabled !== false
+    const ack = { ...ackOverrides }
+
+    if (acquiring === 0 && waterfallOn && !ack.acknowledgeDangerousAcquiringZero) {
+      const ok = window.confirm(
+        'Эквайринг 0% при включённом Ambassador waterfall завышает adjusted net (pool/referral math). Это только для теста? Продолжить?',
+      )
+      if (!ok) return
+      ack.acknowledgeDangerousAcquiringZero = true
+    }
+    if (reinvestment > 90 && !ack.acknowledgeHighReinvestment) {
+      const ok = window.confirm(
+        `Reinvestment ${reinvestment}% оставит платформе менее 10% net. Продолжить сохранение?`,
+      )
+      if (!ok) return
+      ack.acknowledgeHighReinvestment = true
+    }
+
     setSaving(true)
-    const res = await putFintechSettings(draft)
+    const res = await putFintechSettings({ ...draft, ...ack })
     setSaving(false)
     if (!res.ok) {
       toast?.({
@@ -208,6 +242,36 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {ownerMode ? (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 flex gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <span>
+              <strong>Owner mode ON</strong> — поля только для просмотра. Выключите Owner mode в правом верхнем углу
+              панели FinTech, затем «Сохранить».
+            </span>
+          </div>
+        ) : null}
+
+        {canonDiff.differs ? (
+          <div className="rounded-lg border border-sky-200 bg-sky-50/90 px-3 py-2 text-sm text-sky-950 flex gap-2">
+            <Info className="h-4 w-4 shrink-0 mt-0.5 text-sky-600" />
+            <div>
+              <p className="font-medium">Live ≠ owner canon (ожидаемые значения после cutover)</p>
+              <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
+                {Object.entries(canonDiff.diff).map(([key, { live, expected }]) => (
+                  <li key={key}>
+                    <code className="text-[11px]">{key}</code>: live = {String(live)}, canon = {String(expected)}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-[11px] text-sky-800">
+                Если расхождение намеренное — оставьте live; иначе синхронизируйте через эту панель или обновите owner
+                canon в коде.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-sm text-amber-950 flex gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
           <span>

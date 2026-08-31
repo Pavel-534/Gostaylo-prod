@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.253 | **Last Updated**: 2026-08-28 | **Tip of tree:** Stage **202.19** legal glossary.
+> **Version**: 13.2.254 | **Last Updated**: 2026-08-31 | **Tip of tree:** Stage **202.21** FinTech write-path.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.21 — FinTech defaults & write-path (Phase B)
+- Marketing admin **не пишет** в `system_fintech_settings` — только FinTech panel (`/admin/settings/finances`).
+- `buildMarketingSettingsPatch` — promo/UX knobs; safety gate читает live FinTech policy.
+- `fintech-config-defaults.js` — owner canon bootstrap: cap **1M**, L3 on, split **42/10/5/43**.
+- Server guard: `acquiring_fee_percent=0` при waterfall → `DANGEROUS_ACQUIRING_ZERO` без `acknowledgeDangerousAcquiringZero`.
+- Hygiene: `migrations/stage202_21_strip_fintech_keys_from_general.sql`.
 
 ### Stage 202.20 — AUDIT_02 CI + `bookings.payout_at`
 - `migrations/stage202_20_bookings_payout_at.sql` — `payout_at TIMESTAMPTZ` (batch settle COMPLETED catch-up).

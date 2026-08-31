@@ -20,8 +20,8 @@ import { SystemConfigService } from '@/lib/services/finance/system-config.servic
 import {
   overlayFintechOnAdminSettings,
   stripFintechKeysFromGeneralValue,
-  syncMarketingPatchToFintech,
 } from '@/lib/services/finance/referral-fintech-admin-sync.js'
+import { FINTECH_CONFIG_DEFAULTS } from '@/lib/config/fintech-config-defaults.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,8 +41,8 @@ let mockSettings = {
   insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
   referralReinvestmentPercent: 45,
   referralSplitRatio: 0.5,
-  acquiringFeePercent: 0,
-  operationalReservePercent: 0,
+  acquiringFeePercent: FINTECH_CONFIG_DEFAULTS.acquiring_fee_percent,
+  operationalReservePercent: FINTECH_CONFIG_DEFAULTS.operational_reserve_percent,
   marketingPromoPot: 0,
   promoBoostPerBooking: 0,
   promoTurboModeEnabled: false,
@@ -299,11 +299,13 @@ export async function PUT(request) {
           return { ok: true, patch: buildFinanceSettingsPatch(body, prev) }
         case 'marketing': {
           const finance = buildFinanceSettingsPatch(body, prev)
+          const fintechPolicy = await SystemConfigService.getFintechConfig()
           return buildMarketingSettingsPatch(body, prev, {
             guestServiceFeePercent: finance.guestServiceFeePercent,
             hostCommissionPercent: finance.hostCommissionPercent,
             insuranceFundPercent: finance.insuranceFundPercent,
             taxRatePercent: finance.taxRatePercent,
+            fintechPolicy,
           })
         }
         case 'chat_safety':
@@ -313,18 +315,20 @@ export async function PUT(request) {
         default: {
           const generalPatch = await buildGeneralSettingsPatch(body, prev)
           const financePatch = buildFinanceSettingsPatch(body, prev)
+          const fintechPolicy = await SystemConfigService.getFintechConfig()
           const marketingPatch = buildMarketingSettingsPatch(body, prev, {
             guestServiceFeePercent: financePatch.guestServiceFeePercent,
             hostCommissionPercent: financePatch.hostCommissionPercent,
             insuranceFundPercent: financePatch.insuranceFundPercent,
             taxRatePercent: financePatch.taxRatePercent,
+            fintechPolicy,
           })
           if (!marketingPatch.ok) return marketingPatch
           const chatPatch = buildChatSafetySettingsPatch(body, prev)
           return {
             ok: true,
             patch: { ...generalPatch, ...financePatch, ...marketingPatch.patch, ...chatPatch },
-            fintechPatch: marketingPatch.fintechPatch,
+            ignoredFintechKeys: marketingPatch.ignoredFintechKeys,
           }
         }
       }
@@ -338,25 +342,11 @@ export async function PUT(request) {
       )
     }
 
-    const staffId = gate.profile?.id || null
-    const touchesMarketing =
-      section === 'marketing' ||
-      section === 'all' ||
-      result.fintechPatch != null
-
-    if (touchesMarketing && result.fintechPatch) {
-      const fintechSync = await syncMarketingPatchToFintech(result.fintechPatch, staffId)
-      if (!fintechSync.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: fintechSync.error || 'FINTECH_SYNC_FAILED',
-            message: fintechSync.message || 'Failed to sync fintech settings',
-            details: fintechSync.details || null,
-          },
-          { status: 400 },
-        )
-      }
+    const ignoredFintechKeys = result.ignoredFintechKeys || []
+    if (ignoredFintechKeys.length) {
+      console.warn(
+        `[marketing-settings] Ignored fintech SSOT keys (edit via FinTech panel): ${ignoredFintechKeys.join(', ')}`,
+      )
     }
 
     const generalPatch = stripFintechKeysFromGeneralValue(result.patch)
