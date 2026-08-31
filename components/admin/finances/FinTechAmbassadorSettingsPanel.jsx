@@ -188,8 +188,15 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
               Ambassador 3.0 — FinTech SSOT
             </CardTitle>
             <CardDescription className="mt-1">
-              `system_fintech_settings` · v{version ?? '—'}. Снапшот фиксируется при переходе в AWAITING_PAYMENT.
-              {ownerMode ? ' Режим owner: только просмотр.' : ''}
+              Единый источник цифр для рефералки и водопада маржи · v{version ?? '—'}. Снапшот фиксируется при
+              переходе брони в AWAITING_PAYMENT.
+              {ownerMode ? (
+                <>
+                  {' '}
+                  Сейчас только просмотр — выключите переключатель «Owner mode» в панели инструментов FinTech выше,
+                  затем «Сохранить».
+                </>
+              ) : null}
             </CardDescription>
           </div>
           {!ownerMode && (
@@ -210,7 +217,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Field label="Эквайринг %" hint="0–10 · от guest payment">
+          <Field label="Эквайринг %" hint="Комиссия платёжки · % от суммы, которую платит гость">
             <Input
               type="number"
               step="0.1"
@@ -221,7 +228,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
               onChange={(e) => setDraft((d) => ({ ...d, acquiring_fee_percent: e.target.value }))}
             />
           </Field>
-          <Field label="Reinvestment в pool %" hint="0–90 · ≤ safety lock">
+          <Field label="Доля маржи в рефералку %" hint="Сколько % чистой маржи платформы уходит в referral pool (канон: 45)">
             <Input
               type="number"
               step="0.1"
@@ -232,7 +239,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
               onChange={(e) => setDraft((d) => ({ ...d, referral_reinvestment_percent: e.target.value }))}
             />
           </Field>
-          <Field label="Safety lock (доля gross)" hint="0.5–1.0">
+          <Field label="Защитный потолок pool" hint="Pool не может превысить эту долю от gross-комиссии (0.95 = 95%)">
             <Input
               type="number"
               step="0.01"
@@ -270,7 +277,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
               onChange={(e) => setDraft((d) => ({ ...d, reserve_bank_percent: e.target.value }))}
             />
           </Field>
-          <Field label="Program cap THB / мес">
+          <Field label="Потолок программы THB / мес" hint="Максимум начислений guest_booking за календарный месяц (UTC) на всю программу">
             <Input
               type="number"
               step="1000"
