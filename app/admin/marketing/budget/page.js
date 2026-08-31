@@ -12,6 +12,12 @@ import { cn } from '@/lib/utils';
 
 const HUB_ITEMS = [
   {
+    href: '/admin/marketing/budget/launch-planner',
+    title: 'Планировщик запуска',
+    description: 'What-if: чек, reinvestment 30–80%, cap 1M, turbo и promo tank.',
+    icon: Layers,
+  },
+  {
     href: '/admin/marketing/settings',
     title: 'Бюджет и бонусы',
     description: 'Promo tank, hold, доли, welcome bonus, safety gates.',

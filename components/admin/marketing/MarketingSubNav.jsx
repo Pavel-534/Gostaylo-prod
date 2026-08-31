@@ -26,6 +26,7 @@ export const MARKETING_SUB_NAV = [
 
 const BUDGET_HUB_PREFIXES = [
   '/admin/marketing/budget',
+  '/admin/marketing/budget/launch-planner',
   '/admin/marketing/wallet-audit',
   '/admin/marketing/audit',
   '/admin/marketing/referral-payouts',

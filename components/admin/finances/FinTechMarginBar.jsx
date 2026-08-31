@@ -153,6 +153,9 @@ export function AmbassadorOwnerWaterfallBar({
           {(Number(split.l2AmountThb) || 0) > 0 ? (
             <StepBox label="L2" amount={split.l2AmountThb} tone="in" className="max-w-[140px]" />
           ) : null}
+          {(Number(split.l3AmountThb) || 0) > 0 ? (
+            <StepBox label="L3" amount={split.l3AmountThb} tone="in" className="max-w-[140px]" />
+          ) : null}
           <StepBox label="Guest cashback" amount={split.refereeAmountThb} tone="in" className="max-w-[160px]" />
         </div>
       ) : null}
