@@ -132,7 +132,7 @@ export function LaunchPromoCalculatorPanel() {
       <Card>
         <CardContent className="py-16 flex items-center justify-center gap-2 text-slate-500">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Загрузка SSOT FinTech…
+          Загрузка FinTech-настроек…
         </CardContent>
       </Card>
     )
@@ -157,17 +157,17 @@ export function LaunchPromoCalculatorPanel() {
             Планировщик запуска
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            What-if калькулятор: эквайринг, налоги, резервы и referral pool — те же формулы, что при COMPLETED
-            брони. Не меняет настройки в БД.
+            Калькулятор сценариев: эквайринг, налоги, резервы и реферальный pool — те же формулы, что при
+            завершённой (COMPLETED) брони. Не меняет настройки в БД.
           </p>
         </div>
         <Button type="button" variant="outline" className="min-h-[44px]" onClick={() => void load()}>
-          Обновить SSOT
+          Обновить из FinTech
         </Button>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,380px)_1fr]">
-        <Card className="border-slate-200 h-fit xl:sticky xl:top-24">
+        <Card className="border-slate-200 h-fit xl:sticky xl:top-14">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Сценарий</CardTitle>
             <CardDescription>Подставьте ожидания по броням и акции.</CardDescription>
@@ -214,14 +214,14 @@ export function LaunchPromoCalculatorPanel() {
                 onValueChange={([v]) => setReferralReinvestmentPercent(v)}
               />
               <p className="text-[11px] text-slate-500">
-                Диапазон {LAUNCH_PLANNER_REINVESTMENT_MIN}–{LAUNCH_PLANNER_REINVESTMENT_MAX}%. Live SSOT сейчас:{' '}
+                Диапазон {LAUNCH_PLANNER_REINVESTMENT_MIN}–{LAUNCH_PLANNER_REINVESTMENT_MAX}%. В FinTech сейчас:{' '}
                 {fintechApi?.referral_reinvestment_percent ?? '—'}%.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label>Guest fee %</Label>
+                <Label>Сервисный сбор гостя, %</Label>
                 <Input
                   type="number"
                   min={0}
@@ -262,7 +262,7 @@ export function LaunchPromoCalculatorPanel() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label>Turbo +THB / реф-бронь</Label>
+                <Label>Turbo, +฿ / реф-бронь</Label>
                 <Input
                   type="number"
                   min={0}
@@ -272,7 +272,7 @@ export function LaunchPromoCalculatorPanel() {
                 />
               </div>
               <div className="space-y-1">
-                <Label>Promo tank, THB</Label>
+                <Label>Promo tank, ฿</Label>
                 <Input
                   type="number"
                   min={0}
@@ -284,7 +284,7 @@ export function LaunchPromoCalculatorPanel() {
             </div>
 
             <div className="space-y-1">
-              <Label>Host activation / мес (новые партнёры)</Label>
+              <Label>Активации партнёров / мес</Label>
               <Input
                 type="number"
                 min={0}
@@ -293,7 +293,7 @@ export function LaunchPromoCalculatorPanel() {
                 onChange={(e) => setHostActivationsPerMonth(Number(e.target.value))}
               />
               <p className="text-[11px] text-slate-500">
-                {fmtThb(fintechApi?.partner_activation_bonus_thb ?? 500)} из promo tank за активацию (L1/L2).
+                {fmtThb(fintechApi?.partner_activation_bonus_thb ?? 500)} из promo tank за активацию (уровни L1/L2).
               </p>
             </div>
           </CardContent>
@@ -315,8 +315,8 @@ export function LaunchPromoCalculatorPanel() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Одна реферальная бронь</CardTitle>
               <CardDescription>
-                Gross {pb?.platformGrossThb ? fmtThb(pb.platformGrossThb) : '—'} → вычеты → net → pool{' '}
-                {referralReinvestmentPercent}% → платформе остаётся.
+                Gross {pb?.platformGrossThb ? fmtThb(pb.platformGrossThb) : '—'} → вычеты → чистая маржа → pool{' '}
+                {referralReinvestmentPercent}% → остаток платформе.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -338,7 +338,7 @@ export function LaunchPromoCalculatorPanel() {
                   {pb.split.l3AmountThb > 0 ? (
                     <p className="text-xs text-slate-500 flex items-center gap-1">
                       <Info className="h-3.5 w-3.5" />
-                      L3 {fmtThb(pb.split.l3AmountThb)} — в ledger только при gate (≥10 партнёров + consent).
+                      L3 {fmtThb(pb.split.l3AmountThb)} — в ledger только при выполнении gate (≥10 партнёров + consent).
                     </p>
                   ) : null}
                 </>
@@ -348,7 +348,7 @@ export function LaunchPromoCalculatorPanel() {
                 <MetricRow
                   label="Эквайринг"
                   value={fmtThb(pb?.deductions.acquiringFeeThb)}
-                  hint={`SSOT ${fintechApi?.acquiring_fee_percent ?? '—'}% от оплаты гостя`}
+                  hint={`FinTech: ${fintechApi?.acquiring_fee_percent ?? '—'}% от оплаты гостя`}
                 />
                 <MetricRow label="УСН + НДС + резервы" value={fmtThb(
                   (pb?.deductions.usnProvisionThb ?? 0) +
@@ -356,16 +356,16 @@ export function LaunchPromoCalculatorPanel() {
                     (pb?.deductions.reserveBankThb ?? 0) +
                     (pb?.deductions.insuranceReserveThb ?? 0),
                 )} />
-                <MetricRow label="Чистая маржа (adjusted net)" value={fmtThb(pb?.adjustedNetThb)} tone="good" />
+                <MetricRow label="Чистая маржа" value={fmtThb(pb?.adjustedNetThb)} tone="good" />
                 <MetricRow
-                  label="Referral pool"
+                  label="Реферальный pool"
                   value={fmtThb(pb?.referralPoolThb)}
-                  hint={`${referralReinvestmentPercent}% от net`}
+                  hint={`${referralReinvestmentPercent}% от чистой маржи`}
                 />
                 <MetricRow
                   label="Платформе после рефералки"
                   value={fmtThb(pb?.ownerRetainedThb)}
-                  hint={`${roundPct(pb?.ownerRetainedThb, pb?.adjustedNetThb)}% от net · ${roundPct(pb?.ownerRetainedThb, pb?.platformGrossThb)}% от gross`}
+                  hint={`${roundPct(pb?.ownerRetainedThb, pb?.adjustedNetThb)}% от чистой маржи · ${roundPct(pb?.ownerRetainedThb, pb?.platformGrossThb)}% от gross`}
                   tone="good"
                 />
                 <MetricRow label="L1 / L2 / L3 / cashback" value={`${fmtThb(pb?.split.l1AmountThb)} / ${fmtThb(pb?.split.l2AmountThb)} / ${fmtThb(pb?.split.l3AmountThb)} / ${fmtThb(pb?.split.refereeAmountThb)}`} />
@@ -377,15 +377,15 @@ export function LaunchPromoCalculatorPanel() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Прогноз на месяц</CardTitle>
               <CardDescription>
-                Pool идёт в program cap ({fmtThb(mo?.programCapThb)}). Turbo и host activation — из promo tank.
+                Pool учитывается в program cap ({fmtThb(mo?.programCapThb)}). Turbo и активации — из promo tank.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl border border-slate-200 px-4 py-2">
-                <MetricRow label="Gross комиссия (все брони)" value={fmtThb(mo?.grossCommissionThb)} />
-                <MetricRow label="Referral pool (в cap)" value={fmtThb(mo?.poolSpendThb)} tone={mo?.capExceeded ? 'warn' : 'neutral'} />
+                <MetricRow label="Gross-комиссия (все брони)" value={fmtThb(mo?.grossCommissionThb)} />
+                <MetricRow label="Реферальный pool (в cap)" value={fmtThb(mo?.poolSpendThb)} tone={mo?.capExceeded ? 'warn' : 'neutral'} />
                 <MetricRow label="Turbo из tank" value={fmtThb(mo?.turboSpendThb)} />
-                <MetricRow label="Host activation из tank" value={fmtThb(mo?.hostActivationSpendThb)} />
+                <MetricRow label="Активации из tank" value={fmtThb(mo?.hostActivationSpendThb)} />
                 <MetricRow
                   label="Итого promo tank"
                   value={fmtThb(mo?.promoTankUsedThb)}
@@ -400,7 +400,7 @@ export function LaunchPromoCalculatorPanel() {
 
               <div className="space-y-2">
                 <div className="flex flex-wrap justify-between gap-2 text-sm">
-                  <span className="font-medium text-slate-800">Program cap (UTC месяц)</span>
+                  <span className="font-medium text-slate-800">Program cap (месяц UTC)</span>
                   <span className="tabular-nums font-semibold">
                     {fmtThb(mo?.poolSpendThb)} / {fmtThb(mo?.programCapThb)} ({mo?.capUtilizationPct}%)
                   </span>
@@ -421,9 +421,9 @@ export function LaunchPromoCalculatorPanel() {
           <p className="text-xs text-slate-500">
             Эквайринг, УСН, НДС и split L1/L2/L3 подтягиваются из{' '}
             <Link href="/admin/settings/finances" className="text-brand hover:underline">
-              FinTech SSOT
+              FinTech-пульта
             </Link>
-            . Смена % в калькуляторе — только симуляция; сохранение политики — там же (Owner mode off).
+            . Смена % здесь — только симуляция; сохранение политики — там же (выключите Owner mode).
           </p>
         </div>
       </div>

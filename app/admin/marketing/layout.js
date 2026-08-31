@@ -1,12 +1,23 @@
 'use client';
 
 import { MarketingSubNav } from '@/components/admin/marketing/MarketingSubNav';
+import {
+  WORKSPACE_SCROLL_STICKY_BLEED_CLASS,
+  WORKSPACE_SCROLL_STICKY_CLASS,
+} from '@/lib/layout/workspace-shell';
+import { cn } from '@/lib/utils';
 
 /** Stage 124.2 — общая оболочка раздела маркетинга. */
 export default function MarketingLayout({ children }) {
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 max-sm:overflow-x-hidden">
-      <div className="sticky app-sticky-below-header z-20 -mx-1 border-b border-slate-200/60 bg-brand-surface/95 pb-3 pt-0 backdrop-blur-md max-sm:border-slate-100">
+      <div
+        className={cn(
+          WORKSPACE_SCROLL_STICKY_CLASS,
+          WORKSPACE_SCROLL_STICKY_BLEED_CLASS,
+          'mb-1 border-slate-200/90 bg-brand-surface/98 pb-3 pt-2 backdrop-blur-md',
+        )}
+      >
         <MarketingSubNav />
       </div>
       {children}
