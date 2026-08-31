@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { ProxiedImage } from '@/components/proxied-image';
 import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url';
+import { LocalLeaderRegionCard } from '@/components/admin/team/LocalLeaderRegionCard';
 import { cn } from '@/lib/utils';
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -113,6 +114,7 @@ export default function UserDetailPage() {
           verificationDocUrl: profile.verification_doc_url,
           verificationDocType: profile.verification_doc_type,
           verificationSubmittedAt: profile.verification_submitted_at,
+          metadata: profile.metadata && typeof profile.metadata === 'object' ? profile.metadata : {},
         });
         setCustomCommission(profile.custom_commission_rate?.toString() || '');
       }
@@ -337,6 +339,7 @@ export default function UserDetailPage() {
 
   const effectiveCommission =
     user.customCommissionRate != null ? user.customCommissionRate : systemCommission;
+  const currentLocalLeaderRegionId = String(user?.metadata?.local_leader_region_id || '').trim() || null;
 
   return (
     <div className="space-y-6">
@@ -517,6 +520,20 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
           ) : null}
+
+          <LocalLeaderRegionCard
+            userId={user.id}
+            regionId={currentLocalLeaderRegionId}
+            onUpdated={(nextRegionId) => {
+              setUser((prev) => {
+                const prevMeta = prev?.metadata && typeof prev.metadata === 'object' ? prev.metadata : {}
+                const nextMeta = { ...prevMeta }
+                if (nextRegionId) nextMeta.local_leader_region_id = nextRegionId
+                else delete nextMeta.local_leader_region_id
+                return { ...prev, metadata: nextMeta }
+              })
+            }}
+          />
 
           {/* Stage 90.0 — KYC / Verification: профиль (**VERIFIED**) + документы (заявка / профиль) */}
           <Card

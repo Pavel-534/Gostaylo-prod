@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.23 | 2026-09-01 | Admin write-path for `local_leader_region_id` (assign/clear + audit + RBAC + user-card UI) | Done |
+| 202.22 | 2026-08-31 | Local Leader tier + quests + roadmap UX on `/profile/referral` (read-only; no pool/split changes) | Done |
 | 202.21 | 2026-08-31 | FinTech write-path hardening: Marketing ≠ FinTech SSOT, defaults/canon sync, server guard acquiring=0 | Done |
 | 202.20 | 2026-08-28 | AUDIT_02 CI smoke loader + `bookings.payout_at` + batch zero-amount ledger guard | Done |
 | 202.19 | 2026-08-28 | Legal §1 «Термины и определения» (public offer + partner terms; YooKassa) | Done |

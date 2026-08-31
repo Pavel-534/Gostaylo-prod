@@ -22,6 +22,7 @@ import { ReferralProfileTabHistory } from '@/components/referral/ReferralProfile
 import { ReferralProfileTabSettings } from '@/components/referral/ReferralProfileTabSettings'
 import { MlmConsentModal } from '@/components/referral/MlmConsentModal'
 import { ReferralCalculatorV2 } from '@/components/referral/ReferralCalculatorV2'
+import { ReferralLeaderEngagementSection } from '@/components/referral/ReferralLeaderEngagementSection'
 import { ReferralWithdrawEntryCta } from '@/components/referral/ReferralWithdrawEntryCta'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
@@ -503,6 +504,11 @@ export function ReferralProfilePage() {
               </div>
             </div>
           </div>
+
+          <ReferralLeaderEngagementSection
+            enabled={!authLoading && isAuthenticated}
+            className="mt-5"
+          />
 
           <p className="text-xs text-slate-500" data-testid="referral-mlm-persistent-disclaimer">
             {t('referral_mlm_persistent_disclaimer')}

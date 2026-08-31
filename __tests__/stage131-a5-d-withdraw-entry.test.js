@@ -49,10 +49,11 @@ describe('Stage 131.A5.D — referral withdraw entry UX', () => {
     assert.match(src, /currentRewardPct/)
   })
 
-  it('calculator resets demo avg per currency and explains FX', () => {
+  it('calculator resets demo avg per currency with display-currency floor', () => {
     const src = read('components/referral/ReferralCalculatorV2.jsx')
     assert.match(src, /DEMO_AVG_BY_CURRENCY/)
     assert.match(src, /demoAvgForCurrency/)
+    assert.match(src, /CALC_AVG_MIN/)
     assert.match(src, /stage131a5_calcCurrencyHint/)
   })
 

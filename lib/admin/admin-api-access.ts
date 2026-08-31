@@ -19,6 +19,8 @@ export type AdminApiAccessRule = {
 
 /** API-only префиксы без прямого пункта меню (`/api/admin`). */
 const ADMIN_API_EXTRA_RULES: AdminApiAccessRule[] = [
+  /** Stage 202.23 — Local Leader regional assignment (community metadata). */
+  { prefix: '/api/v2/admin/local-leader', allowedRoles: ['ADMIN', 'MODERATOR'] },
   /** ADR-203 Phase 1 — read-only shadow compare (ops visibility). */
   { prefix: '/api/v2/admin/partner-ledger-shadow', allowedRoles: ['ADMIN', 'MODERATOR'] },
   /** ADR-210 Concierge Supply — shadow provision + ingest (ADMIN only). */

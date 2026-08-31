@@ -47,6 +47,9 @@ const ACTIVITY_PRESETS = [
   { value: 1, label: '100%' },
 ]
 
+/** Floor for average-order slider (display currency from header). */
+const CALC_AVG_MIN = 3500
+
 /** Realistic mid-order demos per header currency (marketing calc only). */
 const DEMO_AVG_BY_CURRENCY = Object.freeze({
   RUB: 35000,
@@ -61,7 +64,8 @@ const DEMO_AVG_BY_CURRENCY = Object.freeze({
 function demoAvgForCurrency(currencyCode) {
   const code = String(currencyCode || 'THB').toUpperCase()
   const n = Number(DEMO_AVG_BY_CURRENCY[code])
-  return Number.isFinite(n) && n > 0 ? n : 1000
+  const demo = Number.isFinite(n) && n > 0 ? n : CALC_AVG_MIN
+  return Math.max(demo, CALC_AVG_MIN)
 }
 
 function nearestActivityPreset(rate) {
@@ -210,11 +214,14 @@ export function ReferralCalculatorV2({
               <p className="text-sm font-semibold tabular-nums text-slate-900">{avgArr?.[0] ?? 35000}</p>
             </div>
             <Slider
-              min={1000}
+              min={CALC_AVG_MIN}
               max={500000}
-              step={1000}
+              step={500}
               value={avgArr}
-              onValueChange={setAvgArr}
+              onValueChange={(next) => {
+                const raw = Number(next?.[0] ?? CALC_AVG_MIN)
+                setAvgArr([Math.max(CALC_AVG_MIN, Number.isFinite(raw) ? raw : CALC_AVG_MIN)])
+              }}
               className="py-1"
               data-testid="calc-slider-avg"
             />

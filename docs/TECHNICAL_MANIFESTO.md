@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.254 | **Last Updated**: 2026-08-31 | **Tip of tree:** Stage **202.21** FinTech write-path.
+> **Version**: 13.2.256 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.23** Local Leader admin assignment.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,19 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.22 — Local Leader engagement (UX only)
+- **`GET /api/v2/referral/me/engagement`** — read-only bundle: community tier (5 steps), quests progress, locked roadmap.
+- SSOT thresholds: `lib/config/leader-tier-thresholds.js`; qualified host: `lib/referral/qualified-host-metrics.js` (≠ fraud-gate, ≠ `countDirectPartnersInvited`).
+- Regional leader gate: `profiles.metadata.local_leader_region_id` (manual admin; no auto region).
+- UI: `ReferralLeaderEngagementSection` on `/profile/referral` overview — **does not** change withdraw tiers, L1/L2/L3 split, or pool.
+
+### Stage 202.23 — Local Leader admin assignment (safe write-path)
+- Admin-only endpoints: `POST /api/v2/admin/local-leader/assignment` (assign/clear by `regionId|null`) and `GET /api/v2/admin/local-leader/regions`.
+- Write scope: only `profiles.metadata.local_leader_region_id`; no referral finance mutations.
+- Audit: `recordAdminAudit` actions `local_leader_region_assign` / `local_leader_region_clear` with before/after payload.
+- RBAC: `requireAdminStaff` + explicit API access rule for `/api/v2/admin/local-leader`.
+- Admin UX: region assignment card embedded into `/admin/users/[id]`.
 
 ### Stage 202.21 — FinTech defaults & write-path (Phase B)
 - Marketing admin **не пишет** в `system_fintech_settings` — только FinTech panel (`/admin/settings/finances`).

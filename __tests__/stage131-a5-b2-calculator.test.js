@@ -45,6 +45,8 @@ describe('Stage 131.A5.B2 — calculator v2', () => {
     assert.doesNotMatch(src, /calc_step3/)
     assert.doesNotMatch(src, /referralReinvestmentPercent/)
     assert.doesNotMatch(src, /THB\/заказ|THB\/order/)
+    assert.match(src, /CALC_AVG_MIN/)
+    assert.match(src, /min=\{CALC_AVG_MIN\}/)
     assert.doesNotMatch(src, /поездка|бронь|жильё|путешественник|Apartment|traveler/i)
   })
 
