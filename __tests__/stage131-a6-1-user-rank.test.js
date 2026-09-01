@@ -25,8 +25,8 @@ describe('Stage 131.A6.1 — user rank in cabinet hero', () => {
   })
 
   it('Endpoint returns null rank when user has 0 earned', () => {
-    const src = read('app/api/v2/referral/me/rank/route.js')
-    assert.match(src, /if \(myEarned <= 0\) return/)
+    const src = read('lib/referral/compute-user-monthly-rank.js')
+    assert.match(src, /if \(myEarned <= 0\)/)
     assert.match(src, /rank: null/)
   })
 
@@ -38,10 +38,11 @@ describe('Stage 131.A6.1 — user rank in cabinet hero', () => {
   })
 
   it('Endpoint computes next_rank_bucket_hint at bucket level', () => {
-    const src = read('app/api/v2/referral/me/rank/route.js')
-    assert.match(src, /bucketLabelFromThb/)
-    assert.match(src, /next_rank_bucket_hint/)
-    assert.doesNotMatch(src, /exact|precise|точн/i)
+    const rankLib = read('lib/referral/compute-user-monthly-rank.js')
+    assert.match(rankLib, /bucketLabelFromThb/)
+    assert.match(rankLib, /buildNextRankBucketHint/)
+    assert.match(read('app/api/v2/referral/me/rank/route.js'), /next_rank_bucket_hint/)
+    assert.doesNotMatch(rankLib, /exact|precise|точн/i)
   })
 
   it('UI shows rank badge only when rank != null AND total >= 5', () => {

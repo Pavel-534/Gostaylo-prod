@@ -7,6 +7,7 @@
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
 | 202.28 | 2026-09-01 | Listing country-change geo reset + Ulan-Ude in launch seed | Done |
+| 202.30 | 2026-09-01 | me/rank perf: referral_user_rank_for_period RPC + legacy fallback | Done |
 | 202.29b | 2026-09-01 | Community i18n: quests disclaimer without THB literal + campaign settings i18n | Done |
 | 202.27b | 2026-09-01 | Hot spots perf: qualified_host_first_completed_booking + referral_program_monthly_guest_spend_thb RPCs | Done |
 | 202.27 | 2026-09-01 | Engagement perf: referral_earned_thb_total RPC + /engagement cache (60s) | Done |

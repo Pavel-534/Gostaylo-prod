@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.262 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.29b** community i18n currency polish.
+> **Version**: 13.2.263 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.30** me/rank perf.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -31,6 +31,10 @@
 - `resolveListingGeoWriteCascadeInput` — при смене `country_code` сбрасываются stale `region_code`/`city_code` (TH→RU fix).
 - `launch-markets-seed-data` + migration `stage202_28_geo-ulan-ude.sql` — **Улан-Удэ** (`ulan-ude`, `RU-BU`).
 - Provisional city path (`/api/v2/partner/geo/provisional`) — для городов вне seed; после 202.28 не конфликтует со старым регионом.
+
+### Stage 202.30 — me/rank perf (read-only)
+- `referral_user_rank_for_period(user, start, end)` RPC — mirrors `referral_ledger_leaderboard_for_period` (`earned`, `earned_at` half-open interval); `ROW_NUMBER()` rank + legacy Node scan fallback.
+- `lib/referral/compute-user-monthly-rank.js` — SSOT for rank compute; route keeps `unstable_cache` 600s and unchanged JSON contract.
 
 ### Stage 202.29b — Community i18n currency polish (copy-only)
 - `leader-quests.js` EN/ZH/TH disclaimer aligned with RU — no hardcoded `100 THB`; rewards stay via `ReferralLedgerAmount`.
