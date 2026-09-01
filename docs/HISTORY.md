@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.25 | 2026-09-01 | Snapshot inventory/freeze (pre-cutover) + insurance % in FinTech SSOT + fail-closed resolve | Done |
 | 202.26 | 2026-09-01 | Partner metrics glossary + UI tooltips (4 axes: link sign-ups / withdraw % / L1-L2-L3 earnings / community qualified) | Done |
 | 202.24 | 2026-09-01 | Admin money write audit + idempotency on payouts / payout-profile verify / wallet payout PATCH (P0 from health audit) | Done |
 | 202.23 | 2026-09-01 | Admin write-path for `local_leader_region_id` (assign/clear + audit + RBAC + user-card UI) | Done |

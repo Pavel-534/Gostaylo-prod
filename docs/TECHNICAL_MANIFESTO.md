@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.258 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.26** partner metrics glossary.
+> **Version**: 13.2.259 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.25** snapshot coverage + insurance SSOT.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.25 — Snapshot coverage + insurance SSOT
+- `resolveFintechPolicyForBooking`: snapshot → frozen snapshot → pre-cutover frozen canon → post-cutover **fail-closed** (`FinSnapshotMissingError`); no booking → live FinTech config (stats/promo).
+- Pre-cutover backfill: `lib/services/finance/fintech-snapshot-freeze.service.js` + ops script `scripts/inventory-bookings-without-snapshot.mjs` (shape `{ v:1, frozen, config }`).
+- Insurance % SSOT: `system_fintech_settings.insurance_fund_percent` (migration `stage202_25_insurance_fund_percent.sql`); waterfall + FinTech panel read policy; booking fee policy prefers FinTech over legacy `general.insuranceFundPercent`.
 
 ### Stage 202.26 — Partner metrics glossary + UI disambiguation (copy-only)
 - Four metric axes documented in `lib/referral/partner-metrics-glossary.js` + `lib/translations/slices/referral-glossary.js` (RU/EN/ZH/TH): link sign-ups, withdraw % partners, L1/L2/L3 earnings depth, community qualified hosts.

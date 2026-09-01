@@ -18,6 +18,7 @@ import {
 import { AmbassadorOwnerWaterfallBar } from '@/components/admin/finances/FinTechMarginBar'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
 import { compareFintechLiveToOwnerCanon } from '@/lib/admin/fintech-owner-canon.js'
+import { computeInsuranceReserveThb } from '@/lib/services/finance/fintech-insurance.service.js'
 
 const DEFAULT_SCENARIO = { subtotalThb: 35_000, guestServiceFeePercent: 15, hostCommissionPercent: 0 }
 
@@ -75,6 +76,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
       vatProvisionPercent: numInput(draft.vat_provision_percent, 5),
       reserveBankPercent: numInput(draft.reserve_bank_percent, 0.5),
       operationalReservePercent: numInput(draft.operational_reserve_percent, 0),
+      insuranceFundPercent: numInput(draft.insurance_fund_percent, 0.5),
       safetyLockMaxShare: numInput(draft.safety_lock_max_share, 0.95),
       referralReinvestmentPercent: numInput(draft.referral_reinvestment_percent, 45),
       referralSplitRatio: numInput(draft.referral_split_ratio, 0.5),
@@ -90,7 +92,7 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
     const guestPaymentThb = subtotalThb + guestServiceFeeThb
     const platformGross = guestServiceFeeThb
     const ownerRevenueThb = platformGross
-    const insuranceReserveThb = Math.round(platformGross * 0.005 * 100) / 100
+    const insuranceReserveThb = computeInsuranceReserveThb(platformGross, policy)
 
     const acquiringFeeThb =
       Math.round(guestPaymentThb * (policy.acquiringFeePercent / 100) * 100) / 100
@@ -339,6 +341,20 @@ export function FinTechAmbassadorSettingsPanel({ toast, ownerMode = false }) {
               disabled={ownerMode}
               value={draft.reserve_bank_percent ?? ''}
               onChange={(e) => setDraft((d) => ({ ...d, reserve_bank_percent: e.target.value }))}
+            />
+          </Field>
+          <Field
+            label="Страховой резерв %"
+            hint="% от валовой маржи платформы (guest fee + host commission), не от субтотала"
+          >
+            <Input
+              type="number"
+              step="0.1"
+              min={0}
+              max={10}
+              disabled={ownerMode}
+              value={draft.insurance_fund_percent ?? ''}
+              onChange={(e) => setDraft((d) => ({ ...d, insurance_fund_percent: e.target.value }))}
             />
           </Field>
           <Field label="Потолок программы THB / мес" hint="Максимум начислений guest_booking за календарный месяц (UTC) на всю программу">

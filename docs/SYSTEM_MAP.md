@@ -67,7 +67,7 @@
 | `payouts` / `payout_batches` / `payout_batch_items` | Заявки и Concierge-пулы |
 | `pricing_profiles` | Pricing engine v2 / jurisdiction split |
 | `system_settings` | General fee/FX/settlement keys |
-| `system_fintech_settings` | FinTech singleton (acquiring, referral waterfall, L2 flags) |
+| `system_fintech_settings` | FinTech singleton (acquiring, referral waterfall, L2/L3 flags, **insurance_fund_percent** Stage 202.25) |
 | `user_push_tokens` | FCM multi-device |
 | `chat_push_delivery_batch` | Отложенный chat push (anti-spam) |
 | `ops_job_runs` | Журнал cron/background jobs |
