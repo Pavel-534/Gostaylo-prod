@@ -46,7 +46,7 @@ async function getAuthUserId(
 }
 
 test.describe('Partner (кабинет партнёра)', () => {
-  test('видит Объекты, Календарь, Финансы; открывает Honda PCX', { tag: '@partner' }, async ({
+  test('видит Объявления, Календарь, Финансы; открывает Honda PCX', { tag: '@partner' }, async ({
     page,
     baseURL,
     request,
@@ -54,7 +54,9 @@ test.describe('Partner (кабинет партнёра)', () => {
     test.skip(!baseURL, 'baseURL')
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto(`${baseURL}/partner/dashboard`)
-    await expect(page.getByRole('link', { name: 'Объекты' })).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByRole('link', { name: /Объявления|Listings/i })).toBeVisible({
+      timeout: 30_000,
+    })
     await expect(page.getByRole('link', { name: 'Календарь' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Финансы' })).toBeVisible()
 

@@ -15,6 +15,71 @@ const root = path.join(__dirname, '..')
 const reportPath =
   process.env.PLAYWRIGHT_JSON_REPORT || path.join(root, 'playwright-report', 'results.json')
 
+const SITE_BRAND =
+  process.env.NEXT_PUBLIC_SITE_NAME || process.env.SITE_DISPLAY_NAME || 'Airento'
+
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * @param {unknown} json Playwright JSON reporter output
+ * @param {number} [limit]
+ * @returns {string[]}
+ */
+export function collectFailedPlaywrightTestLines(json, limit = 12) {
+  /** @type {string[]} */
+  const lines = []
+  const seen = new Set()
+
+  /** @param {Array<Record<string, unknown>> | undefined} suites @param {string[]} titlePath */
+  function walkSuites(suites, titlePath = []) {
+    for (const suite of suites || []) {
+      const nextPath = suite.title ? [...titlePath, String(suite.title)] : titlePath
+      walkSuites(/** @type {Array<Record<string, unknown>> | undefined} */ (suite.suites), nextPath)
+
+      for (const spec of /** @type {Array<Record<string, unknown>>} */ (suite.specs || [])) {
+        const specTitle = String(spec.title || '').trim()
+        const fullTitle = [...nextPath, specTitle].filter(Boolean).join(' › ')
+        const tests = /** @type {Array<Record<string, unknown>>} */ (spec.tests || [])
+
+        for (const testCase of tests) {
+          const project = String(testCase.projectName || 'default')
+          const results = /** @type {Array<Record<string, unknown>>} */ (testCase.results || [])
+          for (const result of results) {
+            const status = String(result.status || '')
+            if (!['failed', 'timedOut', 'interrupted'].includes(status)) continue
+            const key = `${project}::${fullTitle}::${status}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            const err =
+              /** @type {{ message?: string } | undefined} */ (result.error)?.message ||
+              status
+            const shortErr = String(err).split('\n')[0].slice(0, 140)
+            lines.push(`• [${project}] ${fullTitle || specTitle}: ${shortErr}`)
+            if (lines.length >= limit) return
+          }
+        }
+
+        if (!tests.length && spec.ok === false) {
+          const key = `spec::${fullTitle}`
+          if (!seen.has(key)) {
+            seen.add(key)
+            lines.push(`• ${fullTitle || specTitle}`)
+            if (lines.length >= limit) return
+          }
+        }
+      }
+    }
+  }
+
+  walkSuites(/** @type {Array<Record<string, unknown>> | undefined} */ (json?.suites))
+  return lines
+}
+
 async function sendTelegram(html) {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chat = process.env.TELEGRAM_CHAT_ID
@@ -140,7 +205,7 @@ async function main() {
     console.warn('[e2e-report] No report file:', reportPath, e?.message || e)
     const monitor = await gatherOperationalBlock()
     await sendTelegram(
-      `🤖 <b>Бортовой журнал Gostaylo</b>\n\n` +
+      `🤖 <b>Бортовой журнал ${escapeHtml(SITE_BRAND)}</b>\n\n` +
         `⚠️ Нет файла <code>playwright-report/results.json</code> (прогон не записал JSON).\n` +
         `${timeLine()}\n` +
         monitor.join('\n'),
@@ -154,7 +219,7 @@ async function main() {
   } catch {
     const monitor = await gatherOperationalBlock()
     await sendTelegram(
-      `🤖 <b>Бортовой журнал Gostaylo</b>\n\n` +
+      `🤖 <b>Бортовой журнал ${escapeHtml(SITE_BRAND)}</b>\n\n` +
         `⚠️ Повреждённый JSON отчёта.\n` +
         `${timeLine()}\n` +
         monitor.join('\n'),
@@ -174,9 +239,10 @@ async function main() {
       : ''
 
   const monitor = await gatherOperationalBlock()
+  const failedLines = failed > 0 ? collectFailedPlaywrightTestLines(json) : []
 
   const lines = [
-    `🤖 <b>Бортовой журнал Gostaylo</b>`,
+    `🤖 <b>Бортовой журнал ${escapeHtml(SITE_BRAND)}</b>`,
     '',
     `✅ <b>Тесты:</b> ${passed} пройдены успешно.` +
       (failed ? ` Ошибок: ${failed}.` : '') +
@@ -186,6 +252,17 @@ async function main() {
     ...monitor,
   ]
 
+  if (failedLines.length) {
+    lines.push('', '<b>Упавшие тесты:</b>')
+    for (const line of failedLines) {
+      lines.push(escapeHtml(line))
+    }
+    const hidden = Math.max(0, failed - failedLines.length)
+    if (hidden > 0) {
+      lines.push(escapeHtml(`… и ещё ${hidden} (см. playwright-report в Actions).`))
+    }
+  }
+
   if (runLink) {
     lines.push('', `<a href="${runLink}">Открыть workflow</a>`)
   }
@@ -193,4 +270,9 @@ async function main() {
   await sendTelegram(lines.join('\n'))
 }
 
-await main()
+const isMain =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
+
+if (isMain) {
+  await main()
+}
