@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.259 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.25** snapshot coverage + insurance SSOT.
+> **Version**: 13.2.260 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.27** engagement perf pass.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,16 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.28 — Listing country change geo (Ulan-Ude)
+- `resolveListingGeoWriteCascadeInput` — при смене `country_code` сбрасываются stale `region_code`/`city_code` (TH→RU fix).
+- `launch-markets-seed-data` + migration `stage202_28_geo-ulan-ude.sql` — **Улан-Удэ** (`ulan-ude`, `RU-BU`).
+- Provisional city path (`/api/v2/partner/geo/provisional`) — для городов вне seed; после 202.28 не конфликтует со старым регионом.
+
+### Stage 202.27 — Engagement perf pass (read-only)
+- `referral_earned_thb_total(text)` RPC — SQL `SUM` for lifetime earned (`earned` + `earned_held`); `sumReferralEarnedThb` uses RPC with legacy Node fallback.
+- `GET /api/v2/referral/me/engagement` — `unstable_cache` 60s + `Cache-Control: private, max-age=60`; client `staleTime` 5 min.
+- Bookings host count: existing partial index `idx_bookings_partner_completed` (Stage 136) — no new index migration.
 
 ### Stage 202.25 — Snapshot coverage + insurance SSOT
 - `resolveFintechPolicyForBooking`: snapshot → frozen snapshot → pre-cutover frozen canon → post-cutover **fail-closed** (`FinSnapshotMissingError`); no booking → live FinTech config (stats/promo).

@@ -340,8 +340,9 @@ export async function PATCH(request, context) {
   if (publishing || geoTouched) {
     const geoAssert = await assertListingGeoCodes({
       countryCode: updateData.country_code ?? existing.country_code,
-      regionCode: updateData.region_code ?? existing.region_code,
-      cityCode: updateData.city_code ?? existing.city_code,
+      regionCode:
+        updateData.region_code !== undefined ? updateData.region_code : existing.region_code,
+      cityCode: updateData.city_code !== undefined ? updateData.city_code : existing.city_code,
       latitude: updateData.latitude !== undefined ? updateData.latitude : existing.latitude,
       longitude: updateData.longitude !== undefined ? updateData.longitude : existing.longitude,
       requireCountry: publishing || nonEmptyGeo(body.country),

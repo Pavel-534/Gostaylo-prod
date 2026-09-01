@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.28 | 2026-09-01 | Listing country-change geo reset + Ulan-Ude in launch seed | Done |
+| 202.27 | 2026-09-01 | Engagement perf: referral_earned_thb_total RPC + /engagement cache (60s) | Done |
 | 202.25 | 2026-09-01 | Snapshot inventory/freeze (pre-cutover) + insurance % in FinTech SSOT + fail-closed resolve | Done |
 | 202.26 | 2026-09-01 | Partner metrics glossary + UI tooltips (4 axes: link sign-ups / withdraw % / L1-L2-L3 earnings / community qualified) | Done |
 | 202.24 | 2026-09-01 | Admin money write audit + idempotency on payouts / payout-profile verify / wallet payout PATCH (P0 from health audit) | Done |
