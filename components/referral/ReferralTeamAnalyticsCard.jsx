@@ -4,6 +4,8 @@ import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
+import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsTooltip'
+import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 import { cn } from '@/lib/utils'
@@ -113,8 +115,12 @@ export function ReferralTeamAnalyticsCard({
 
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
-          <CardTitle className="text-base">{t('stage133_analyticsTitle')}</CardTitle>
+          <CardTitle className="text-base inline-flex items-center gap-0.5 flex-wrap">
+            {t('stage133_analyticsTitle')}
+            <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.NETWORK_EARNINGS} t={t} />
+          </CardTitle>
           <CardDescription>{t('stage133_analyticsSubtitle')}</CardDescription>
+          <p className="text-[10px] text-slate-500 pt-1">{t('referralGlossary_networkEarnings_subtitle')}</p>
         </CardHeader>
         <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-4')}>
           {isEmpty ? (

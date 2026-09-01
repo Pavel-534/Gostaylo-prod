@@ -27,6 +27,8 @@ import { ReferralWithdrawEntryCta } from '@/components/referral/ReferralWithdraw
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
+import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsTooltip'
+import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
 import { formatAmbassadorShareLink } from '@/lib/referral/ambassador-utm-link'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { Share2, Trophy } from 'lucide-react'
@@ -422,7 +424,11 @@ export function ReferralProfilePage() {
 
               <Card className="gsl-card">
                 <CardContent className="p-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-900">{t('stage131a5_progressTitle')}</p>
+                  <p className="text-sm font-semibold text-slate-900 inline-flex items-center gap-0.5 flex-wrap">
+                    {t('stage131a5_progressTitle')}
+                    <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.WITHDRAW_TIER} t={t} />
+                  </p>
+                  <p className="text-xs text-slate-500">{t('referralGlossary_withdrawTier_subtitle')}</p>
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-slate-800" data-testid="referral-progress-current">
                       {t('stage131a5_progressCurrentWithPct', {

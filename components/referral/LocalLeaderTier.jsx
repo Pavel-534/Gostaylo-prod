@@ -3,6 +3,8 @@
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LEADER_TIER_PALETTE } from '@/lib/config/leader-tier-thresholds.js'
+import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsTooltip'
+import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
 import { cn } from '@/lib/utils'
 
 /**
@@ -42,7 +44,10 @@ export function LocalLeaderTier({
   return (
     <Card className={cn('gsl-card', className)} data-testid="local-leader-tier">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t('localLeaderTier_title')}</CardTitle>
+        <CardTitle className="text-base inline-flex items-center gap-0.5 flex-wrap">
+          {t('localLeaderTier_title')}
+          <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.COMMUNITY_QUALIFIED} t={t} />
+        </CardTitle>
         <CardDescription className="text-xs leading-relaxed">{t('localLeaderTier_subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>

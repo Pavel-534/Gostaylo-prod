@@ -3,6 +3,8 @@
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsTooltip'
+import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
 import { cn } from '@/lib/utils'
 import { HelpCircle } from 'lucide-react'
 import { localizeReferralTierName } from '@/lib/referral/localize-referral-tier-name'
@@ -26,7 +28,13 @@ export function ReferralAmbassadorLevels({ levels = [], directPartnersInvited = 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-slate-900">{t('stage1143_ambassadorLevelsTitle')}</p>
+        <div>
+          <p className="text-sm font-semibold text-slate-900 inline-flex items-center gap-0.5 flex-wrap">
+            {t('stage1143_ambassadorLevelsTitle')}
+            <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.WITHDRAW_TIER} t={t} />
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">{t('referralGlossary_withdrawTier_subtitle')}</p>
+        </div>
         {rows.map((row) => {
           const min = Math.max(0, Number(row.minPartnersInvited) || 0)
           const progress =

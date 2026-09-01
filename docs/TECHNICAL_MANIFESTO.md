@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.257 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.24** admin money write audit + idempotency.
+> **Version**: 13.2.258 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.26** partner metrics glossary.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.26 — Partner metrics glossary + UI disambiguation (copy-only)
+- Four metric axes documented in `lib/referral/partner-metrics-glossary.js` + `lib/translations/slices/referral-glossary.js` (RU/EN/ZH/TH): link sign-ups, withdraw % partners, L1/L2/L3 earnings depth, community qualified hosts.
+- `PartnerMetricsTooltip` on `ReferralTeamMetricsStrip`, withdraw tier ladder, `ReferralAmbassadorLevels`, `LocalLeaderTier`, team analytics — no SSOT counter changes.
 
 ### Stage 202.24 — Admin money write audit + idempotency (P0 fix)
 - P0 endpoints now emit `recordAdminAudit` + optional `Idempotency-Key`: `PATCH /api/v2/admin/payouts/[id]`, `PATCH /api/v2/admin/partner-payout-profiles/[id]`, `PATCH /api/v2/admin/wallet/payouts`.
