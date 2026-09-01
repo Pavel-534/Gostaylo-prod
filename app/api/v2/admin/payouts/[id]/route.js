@@ -17,13 +17,23 @@ import {
   interpretPayoutCasUpdate,
   resolvePayoutCasUpdatedAt,
 } from '@/lib/admin/payout-status-cas.js';
+import { buildPayoutStatusAuditPayload } from '@/lib/admin/money-write-audit.js';
+import { normalizeAdminRole } from '@/lib/admin/admin-menu';
+import {
+  interceptDuplicateIdempotencyKey,
+  readIdempotencyKeyFromRequest,
+  recordAdminAudit,
+} from '@/lib/services/audit/admin-audit.js';
 
 export const dynamic = 'force-dynamic';
 
 async function requireAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
-  return { userId: access.profile?.id || null };
+  return {
+    userId: access.profile?.id || null,
+    actorRole: normalizeAdminRole(access.profile?.role) || 'ADMIN',
+  };
 }
 
 export async function PATCH(request, { params }) {
@@ -78,6 +88,12 @@ export async function PATCH(request, { params }) {
       { success: false, error: 'updated_at required for CAS', code: 'CAS_TOKEN_REQUIRED' },
       { status: 400 },
     );
+  }
+
+  const idempotencyKey = readIdempotencyKeyFromRequest(request);
+  if (idempotencyKey) {
+    const dup = await interceptDuplicateIdempotencyKey(idempotencyKey);
+    if (dup) return dup;
   }
 
   const cur = String(row.status || '').toUpperCase();
@@ -144,6 +160,22 @@ export async function PATCH(request, { params }) {
       });
     }
 
+    await recordAdminAudit({
+      actorId: auth.userId,
+      actorRole: auth.actorRole,
+      action: 'payout_status_change',
+      entityType: 'payout',
+      entityId: String(id),
+      reason: adminNoteStored,
+      payload: buildPayoutStatusAuditPayload({
+        row,
+        payout: cas.payout,
+        nextStatus: 'PAID',
+        adminId: auth.userId,
+      }),
+      idempotencyKey,
+    });
+
     return NextResponse.json({
       success: true,
       data: { payout: cas.payout, ledger, documents },
@@ -186,6 +218,22 @@ export async function PATCH(request, { params }) {
       { status: cas.status },
     );
   }
+
+  await recordAdminAudit({
+    actorId: auth.userId,
+    actorRole: auth.actorRole,
+    action: 'payout_status_change',
+    entityType: 'payout',
+    entityId: String(id),
+    reason: adminNoteStored,
+    payload: buildPayoutStatusAuditPayload({
+      row,
+      payout: cas.payout,
+      nextStatus: 'FAILED',
+      adminId: auth.userId,
+    }),
+    idempotencyKey,
+  });
 
   return NextResponse.json({ success: true, data: { payout: cas.payout } });
 }

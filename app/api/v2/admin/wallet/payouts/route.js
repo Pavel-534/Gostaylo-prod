@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PricingService } from '@/lib/services/pricing.service';
-import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access';
+import {
+  buildWalletPayoutVerificationAuditPayload,
+  buildWalletReferralWithdrawalClearAuditPayload,
+} from '@/lib/admin/money-write-audit.js';
+import { normalizeAdminRole } from '@/lib/admin/admin-menu';
+import {
+  interceptDuplicateIdempotencyKey,
+  readIdempotencyKeyFromRequest,
+  recordAdminAudit,
+} from '@/lib/services/audit/admin-audit.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +24,10 @@ function round2(value) {
 async function requireAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
-  return { ok: true };
+  return {
+    userId: access.profile?.id || null,
+    actorRole: normalizeAdminRole(access.profile?.role) || 'ADMIN',
+  };
 }
 
 async function getMinPayoutThb() {
@@ -158,6 +171,13 @@ export async function PATCH(request) {
   if (auth.error) {
     return auth.error;
   }
+
+  const idempotencyKey = readIdempotencyKeyFromRequest(request);
+  if (idempotencyKey) {
+    const dup = await interceptDuplicateIdempotencyKey(idempotencyKey);
+    if (dup) return dup;
+  }
+
   let body = {};
   try {
     body = await request.json();
@@ -171,6 +191,23 @@ export async function PATCH(request) {
   const clearReferralWithdrawal =
     body?.clearReferralWithdrawal === true || body?.clear_referral_withdrawal === true;
   if (clearReferralWithdrawal) {
+    const { data: beforeWallet, error: beforeErr } = await supabaseAdmin
+      .from('user_wallets')
+      .select(
+        'id,user_id,balance_thb,internal_credits_thb,withdrawable_balance_thb,verified_for_payout,referral_withdrawal_status,referral_withdrawal_requested_at,referral_withdrawal_amount_thb,updated_at,created_at',
+      )
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (beforeErr) {
+      return NextResponse.json(
+        { success: false, error: beforeErr.message || 'WALLET_READ_FAILED' },
+        { status: 500 },
+      );
+    }
+    if (!beforeWallet) {
+      return NextResponse.json({ success: false, error: 'WALLET_NOT_FOUND' }, { status: 404 });
+    }
+
     const { data: cleared, error: clearErr } = await supabaseAdmin
       .from('user_wallets')
       .update({
@@ -199,6 +236,17 @@ export async function PATCH(request) {
       .eq('id', userId)
       .maybeSingle();
     const minPayoutThb = await getMinPayoutThb();
+
+    await recordAdminAudit({
+      actorId: auth.userId,
+      actorRole: auth.actorRole,
+      action: 'wallet_referral_withdrawal_clear',
+      entityType: 'wallet',
+      entityId: String(cleared.id || beforeWallet.id),
+      payload: buildWalletReferralWithdrawalClearAuditPayload({ wallet: beforeWallet, adminId: auth.userId }),
+      idempotencyKey,
+    });
+
     return NextResponse.json({
       success: true,
       data: toPayoutCandidateRow(cleared, profile || null, minPayoutThb),
@@ -209,7 +257,7 @@ export async function PATCH(request) {
   if (targetFlag == null) {
     const { data: current, error: currentErr } = await supabaseAdmin
       .from('user_wallets')
-      .select('verified_for_payout')
+      .select('id,user_id,verified_for_payout')
       .eq('user_id', userId)
       .maybeSingle();
     if (currentErr) {
@@ -218,9 +266,28 @@ export async function PATCH(request) {
         { status: 500 },
       );
     }
+    if (!current) {
+      return NextResponse.json({ success: false, error: 'WALLET_NOT_FOUND' }, { status: 404 });
+    }
     targetFlag = !(current?.verified_for_payout !== false);
   }
   const normalizedFlag = targetFlag === true;
+
+  const { data: beforeWallet, error: beforeErr } = await supabaseAdmin
+    .from('user_wallets')
+    .select('id,user_id,verified_for_payout')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (beforeErr) {
+    return NextResponse.json(
+      { success: false, error: beforeErr.message || 'WALLET_READ_FAILED' },
+      { status: 500 },
+    );
+  }
+  if (!beforeWallet) {
+    return NextResponse.json({ success: false, error: 'WALLET_NOT_FOUND' }, { status: 404 });
+  }
+
   const { data: updated, error: updateErr } = await supabaseAdmin
     .from('user_wallets')
     .update({ verified_for_payout: normalizedFlag, updated_at: new Date().toISOString() })
@@ -244,6 +311,21 @@ export async function PATCH(request) {
     .eq('id', userId)
     .maybeSingle();
   const minPayoutThb = await getMinPayoutThb();
+
+  await recordAdminAudit({
+    actorId: auth.userId,
+    actorRole: auth.actorRole,
+    action: 'wallet_payout_verification',
+    entityType: 'wallet',
+    entityId: String(updated.id || beforeWallet.id),
+    payload: buildWalletPayoutVerificationAuditPayload({
+      wallet: beforeWallet,
+      verifiedForPayout: normalizedFlag,
+      adminId: auth.userId,
+    }),
+    idempotencyKey,
+  });
+
   return NextResponse.json({
     success: true,
     data: toPayoutCandidateRow(updated, profile || null, minPayoutThb),

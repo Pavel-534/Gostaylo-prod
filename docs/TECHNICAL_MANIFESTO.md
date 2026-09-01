@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.256 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.23** Local Leader admin assignment.
+> **Version**: 13.2.257 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.24** admin money write audit + idempotency.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.24 — Admin money write audit + idempotency (P0 fix)
+- P0 endpoints now emit `recordAdminAudit` + optional `Idempotency-Key`: `PATCH /api/v2/admin/payouts/[id]`, `PATCH /api/v2/admin/partner-payout-profiles/[id]`, `PATCH /api/v2/admin/wallet/payouts`.
+- Audit payload SSOT: `lib/admin/money-write-audit.js` (`before` / `after` / `source` / `adminId`); actions: `payout_status_change`, `partner_payout_profile_verify`, `wallet_payout_verification`, `wallet_referral_withdrawal_clear`.
+- Idempotency intercept **before** ledger on payout PAID; duplicate key → `200 skipped` (Stage 153.1 helper). No formula / RBAC / ledger math changes.
 
 ### Stage 202.22 — Local Leader engagement (UX only)
 - **`GET /api/v2/referral/me/engagement`** — read-only bundle: community tier (5 steps), quests progress, locked roadmap.
