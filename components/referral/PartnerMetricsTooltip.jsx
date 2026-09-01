@@ -41,10 +41,13 @@ export function PartnerMetricsTooltip({
             <HelpCircle className={cn('h-3.5 w-3.5', iconClassName)} aria-hidden />
           </button>
         </TooltipTrigger>
-        <TooltipContent side={side} className="max-w-xs space-y-1.5 text-xs leading-relaxed">
+        <TooltipContent
+          side={side}
+          className="max-w-xs space-y-1.5 border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-800 shadow-lg"
+        >
           <p className="font-semibold text-slate-900">{t(entry.termKey)}</p>
           <p className="text-slate-700">{t(entry.definitionKey)}</p>
-          <p className="text-slate-500">{t(entry.exampleKey)}</p>
+          <p className="text-slate-600">{t(entry.exampleKey)}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

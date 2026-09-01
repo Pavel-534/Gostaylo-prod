@@ -5,7 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LEADER_TIER_PALETTE } from '@/lib/config/leader-tier-thresholds.js'
 import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsTooltip'
 import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { russianPluralCategory } from '@/lib/i18n/pluralize.js'
 import { cn } from '@/lib/utils'
+
+function missingCountLabel(n, t, keyStem) {
+  const count = Math.max(0, Number(n) || 0)
+  if (count <= 0) return ''
+  const cat = russianPluralCategory(count)
+  const suffix = cat === 'one' ? 'one' : cat === 'few' ? 'few' : 'many'
+  return t(`${keyStem}_${suffix}`, { n: String(count) })
+}
 
 /**
  * Stage 202.22 — 5-step community tier ladder (not withdraw % / not L1-L2-L3).
@@ -69,15 +79,22 @@ export function LocalLeaderTier({
               {hasMissing ? (
                 <ul className="mt-3 space-y-1 text-xs text-slate-600">
                   {(missing.qualifiedHosts ?? 0) > 0 ? (
-                    <li>{t('localLeaderTier_missing_hosts', { n: String(missing.qualifiedHosts) })}</li>
+                    <li>{missingCountLabel(missing.qualifiedHosts, t, 'localLeaderTier_missing_hosts')}</li>
                   ) : null}
                   {(missing.completedBookingsAsHost ?? 0) > 0 ? (
                     <li>
-                      {t('localLeaderTier_missing_bookings', { n: String(missing.completedBookingsAsHost) })}
+                      {missingCountLabel(
+                        missing.completedBookingsAsHost,
+                        t,
+                        'localLeaderTier_missing_bookings',
+                      )}
                     </li>
                   ) : null}
                   {(missing.earnedThb ?? 0) > 0 ? (
-                    <li>{t('localLeaderTier_missing_earned', { n: String(missing.earnedThb) })}</li>
+                    <li className="flex flex-wrap items-center gap-1">
+                      <span>{t('localLeaderTier_missing_earned_lead')}</span>
+                      <ReferralLedgerAmount thb={missing.earnedThb} className="font-medium" />
+                    </li>
                   ) : null}
                   {missing.regionAssignment ? (
                     <li>{t('localLeaderTier_missing_region')}</li>
