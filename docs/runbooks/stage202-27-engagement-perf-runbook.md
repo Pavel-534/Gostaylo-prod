@@ -28,7 +28,7 @@ Expect: `Index Scan using idx_bookings_partner_completed`.
 
 Server cache TTL 60s; tier/quests may lag up to 60s after qualifying events — acceptable for engagement UX.
 
-## Out of scope (202.27b)
+## Out of scope (moved to 202.27b — done)
 
-- `loadQualifiedHostSets` batch bookings for many L1 invites
-- `getMonthlyGuestReferralSpendThb` Node reduce (cap path has atomic RPC)
+- ~~`loadQualifiedHostSets` batch bookings for many L1 invites~~ → `qualified_host_first_completed_booking` RPC
+- ~~`getMonthlyGuestReferralSpendThb` Node reduce~~ → `referral_program_monthly_guest_spend_thb` RPC (cap non-atomic fallback path)

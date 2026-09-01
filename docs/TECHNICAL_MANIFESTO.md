@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.260 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.27** engagement perf pass.
+> **Version**: 13.2.262 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.29b** community i18n currency polish.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -31,6 +31,15 @@
 - `resolveListingGeoWriteCascadeInput` — при смене `country_code` сбрасываются stale `region_code`/`city_code` (TH→RU fix).
 - `launch-markets-seed-data` + migration `stage202_28_geo-ulan-ude.sql` — **Улан-Удэ** (`ulan-ude`, `RU-BU`).
 - Provisional city path (`/api/v2/partner/geo/provisional`) — для городов вне seed; после 202.28 не конфликтует со старым регионом.
+
+### Stage 202.29b — Community i18n currency polish (copy-only)
+- `leader-quests.js` EN/ZH/TH disclaimer aligned with RU — no hardcoded `100 THB`; rewards stay via `ReferralLedgerAmount`.
+- `ReferralProfileTabSettings` campaign block — `stage1143_campaign*` keys × 4 langs; no hardcoded RU literals.
+- `local-leader-tier.js` / `LocalLeaderTier.jsx` unchanged — earned gap already uses `ReferralLedgerAmount` (Stage 188).
+
+### Stage 202.27b — Referral hot spots perf (read-only)
+- `qualified_host_first_completed_booking(text[])` RPC — `MIN(COALESCE(updated_at, created_at))` per `partner_id` for qualified-host ladder; `loadQualifiedHostSets` uses RPC + legacy bookings fetch fallback.
+- `referral_program_monthly_guest_spend_thb(timestamptz)` RPC — program-wide `guest_booking` sum (`pending`/`earned`/`earned_held`, `created_at >= monthStart`); `getMonthlyGuestReferralSpendThb` uses RPC + legacy Node reduce fallback (cap gate non-atomic path only).
 
 ### Stage 202.27 — Engagement perf pass (read-only)
 - `referral_earned_thb_total(text)` RPC — SQL `SUM` for lifetime earned (`earned` + `earned_held`); `sumReferralEarnedThb` uses RPC with legacy Node fallback.

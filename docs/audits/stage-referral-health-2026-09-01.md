@@ -129,12 +129,12 @@
 
 ### ⚠️ Findings
 
-- **[P1] THB leak в community i18n** — `localLeaderTier_missing_earned` и quests disclaimer содержат литерал **«THB»** во всех 4 языках (не валюта шапки).  
-  - Files: `lib/translations/slices/local-leader-tier.js`, `leader-quests.js`  
-  - Rec: `{amount}` через display formatter / `{brand}`-style currency token.
+- **[P1] THB leak в community i18n** — ~~`localLeaderTier_missing_earned`~~ (fixed: `ReferralLedgerAmount` + `missing_earned_lead`); quests disclaimer EN/ZH/TH содержали **«100 THB»** (fixed Stage 202.29b — copy mirrors RU «сумма справа в вашей валюте»).  
+  - Files: `lib/translations/slices/leader-quests.js`  
+  - Rec: display amounts via `ReferralLedgerAmount`, not i18n literals.
 
-- **[P1] Hardcoded RU в user-facing referral settings** — toast/Label без `t()`.  
-  - File: `components/referral/ReferralProfileTabSettings.jsx:106,151`
+- **[P1] Hardcoded RU в user-facing referral settings** — toast/Label без `t()` (fixed Stage 202.29b — `stage1143_campaign*` keys).  
+  - File: `components/referral/ReferralProfileTabSettings.jsx`
 
 - **[P1] Admin user detail page** — почти весь UI на русском литералами (не 4 языка). Карточка Local Leader — i18n OK, страница вокруг — нет.  
   - File: `app/admin/users/[id]/page.js`  

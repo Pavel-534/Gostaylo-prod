@@ -103,9 +103,9 @@ export function ReferralProfileTabSettings({ data, t }) {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || 'CAMPAIGN_BIND_SAVE_FAILED')
-      toast.success('Кампания для вашей реферальной ссылки обновлена')
+      toast.success(t('stage1143_campaignSaved'))
     } catch (e) {
-      toast.error(e?.message || 'Не удалось сохранить кампанию')
+      toast.error(e?.message || t('stage1143_campaignSaveErr'))
     } finally {
       setCampaignSaving(false)
     }
@@ -148,13 +148,13 @@ export function ReferralProfileTabSettings({ data, t }) {
           {saving ? '…' : t('stage73_saveReportPrefs')}
         </Button>
         <div className={cn(MOBILE_FLAT_INSET_CLASS, 'space-y-2')}>
-          <Label>Кампания для реферальной ссылки</Label>
+          <Label>{t('stage1143_campaignLabel')}</Label>
           <Select value={campaignSlug} onValueChange={setCampaignSlug} disabled={campaignLoading}>
             <SelectTrigger>
-              <SelectValue placeholder="Без кампании" />
+              <SelectValue placeholder={t('stage1143_campaignNone')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">Без кампании</SelectItem>
+              <SelectItem value="__none__">{t('stage1143_campaignNone')}</SelectItem>
               {campaignOptions.map((row) => (
                 <SelectItem key={row.slug} value={row.slug}>
                   {row.name}
@@ -162,11 +162,9 @@ export function ReferralProfileTabSettings({ data, t }) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-slate-500">
-            Если выбрана активная кампания, для новых начислений применяется её hold override и лимиты бюджета.
-          </p>
+          <p className="text-xs text-slate-500">{t('stage1143_campaignHint')}</p>
           <Button variant="outline" disabled={campaignSaving || campaignLoading} onClick={() => void saveCampaignBinding()}>
-            {campaignSaving ? 'Сохраняем...' : 'Сохранить кампанию ссылки'}
+            {campaignSaving ? t('stage1143_campaignSaving') : t('stage1143_campaignSave')}
           </Button>
         </div>
       </CardContent>
