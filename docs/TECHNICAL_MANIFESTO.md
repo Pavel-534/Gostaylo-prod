@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.268 | **Last Updated**: 2026-09-02 | **Tip of tree:** Stage **202.39** referral map UX.
+> **Version**: 13.2.269 | **Last Updated**: 2026-09-03 | **Tip of tree:** Stage **202.40** host activation L1 full.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.40 — Host activation 100% L1 + pot 760 THB
+
+- SSOT: `partner_activation_bonus_thb = 760`, `mlm_level1_percent = 100`, `mlm_level2_percent = 0` (defaults + migration `stage202_40_host_activation_l1_full.sql` on `system_fintech_settings` global).
+- Host activation pays **only** direct referrer; guest pool / L2–L3 guest / referee / tier formulas unchanged.
+- UI: honest «you earn one-shot ~{amount}» via `ReferralLedgerAmount` (no literal ₽2500; RF mid ≈₽2500). Welcome copy separate from activation pot.
+- Tests: `__tests__/stage-202-40-host-activation-l1.test.js`. ADR-131 §6 updated.
 
 ### Stage 202.39 — Referral map UX (UI-only)
 

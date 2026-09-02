@@ -29,7 +29,7 @@
 | Контур | Поведение |
 |--------|-----------|
 | **Guest booking** | Пул из `AdjustedNetProfitOrder × referral_reinvestment_percent`, cap **95% platform gross**. Платит **L1** (`bonus`) + **referee** (`cashback`). **L2 с поездок гостей не получает.** |
-| **Host activation** | Фикс `partner_activation_bonus` (дефолт **500 THB**) из **Promo Tank**; split **L1/L2** по `mlm_level1_percent` / `mlm_level2_percent` (70/30). |
+| **Host activation** | Фикс `partner_activation_bonus_thb` (**760 THB**, Stage 202.40; ранее 500) из **Promo Tank**; split **L1 100% / L2 0%** (`mlm_level*_percent`). Guest pool L2/L3 — отдельно. |
 | **Расходы до пула** | Insurance (из snapshot), `acquiring_fee_percent`, `operational_reserve_percent`. **Нет** явного USN/НДС/payroll reserve; **нет** FX markup в базе пула. |
 | **FX markup (settlement)** | `pricing_profiles.fx_markup_pct` (FinTech preset **3%**), считается в **`computeFinalBreakdown`** → `fx_markup_thb` в snapshot/ledger. **Не входит** в `ReferralPolicyService.deriveFeeBaseFromBooking` → **не делится** с амбассадорами (остаётся владельцу). |
 | **Retail FX (витрина)** | `chatInvoiceRateMultiplier` / `getDisplayRateMap({ applyRetailMarkup: true })` — только каталог/checkout display; settlement — **mid** (`retail=0`). |
@@ -172,20 +172,29 @@ owner_retained_thb     = adjusted_net − referral_pool_thb + 0   # FX уже в
 
 ---
 
-## 6. Supply Builder (host activation) — без изменений формулы, уточнение позиционирования
+## 6. Supply Builder (host activation)
 
-| Параметр | Launch | Источник |
-|----------|--------|----------|
-| `partner_activation_bonus` | **500 THB** | Promo Tank |
-| `mlm_level1_percent` / `mlm_level2_percent` | **70 / 30** | От бонуса активации |
-| Tier progression | 0 / 5 / 20 **партнёров** | `referral_tiers` |
+**Stage 202.40 (owner):** pot **`partner_activation_bonus_thb = 760`** (RF mid display ~₽2500 via ambassador FX); split **`mlm_level1_percent = 100`**, **`mlm_level2_percent = 0`** — only the direct referrer is paid on host activation. Guest-pool L2/L3 unchanged.
+
+| Параметр | Значение (202.40) | Примечание |
+|----------|-------------------|------------|
+| `partner_activation_bonus_thb` | **760** | Promo tank debit; display via `ReferralLedgerAmount` |
+| `mlm_level1_percent` / `mlm_level2_percent` | **100 / 0** | Host-activation axis only |
+
+Historical launch preset was 500 THB @ 70/30 — superseded for supply fairness / conversion.
+
+| Параметр | После 202.40 | Источник |
+|----------|--------------|----------|
+| `partner_activation_bonus_thb` | **760 THB** | Promo Tank |
+| `mlm_level1_percent` / `mlm_level2_percent` | **100 / 0** | От бонуса активации (только L1) |
+| Tier progression | 0 / 5 / 20 **партнёров** | `referral_tiers` (unchanged) |
 
 **Позиционирование (важно для коммуникации):**
 
 | Продукт | Что получает амбассадор | Пассив? |
 |---------|-------------------------|---------|
 | **Travel Ambassador** (привёл **гостей**) | % пула с **каждой** COMPLETED поездки приглашённого гостя (L1; + L2 upline после P1) | Да, пока гость ездит |
-| **Supply Builder** (привёл **хоста**) | **Один раз** бонус активации (~500 THB из Promo Tank) при **первой** брони хоста | **Нет** % с броней этого хоста |
+| **Supply Builder** (привёл **хоста**) | **Один раз** бонус активации (**760 THB** из Promo Tank, 100% прямому) при **первой** брони хоста | **Нет** % с броней этого хоста |
 
 **Не обещать:** «привёл виллу — получаешь с каждого её гостя». Чужие ренторы платят **тому, кто привёл этого рентора**, не хостоводу.
 

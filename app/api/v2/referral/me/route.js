@@ -463,7 +463,7 @@ export async function GET(request) {
   );
   const partnerActivationBonusThb = Math.min(
     1_000_000,
-    Math.max(0, Number(fintechCfg?.partnerActivationBonusThb ?? fintechCfg?.partner_activation_bonus_thb ?? 500)),
+    Math.max(0, Number(fintechCfg?.partnerActivationBonusThb ?? fintechCfg?.partner_activation_bonus_thb ?? 760)),
   );
   const mlmLevel1Percent = Math.min(
     100,

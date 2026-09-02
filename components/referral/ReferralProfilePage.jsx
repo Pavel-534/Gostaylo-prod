@@ -352,6 +352,11 @@ export function ReferralProfilePage() {
             onShare={() => void handleHeroShare()}
             onGoToLink={goToLinkTab}
             shareBusy={shareBusy}
+            partnerActivationBonusThb={Number(
+              data?.referralEstimator?.partnerActivationBonusThb ??
+                data?.referralEstimator?.partner_activation_bonus_thb ??
+                0,
+            )}
           />
 
           {/* 3. Primary share CTA */}

@@ -35,7 +35,7 @@ function JourneySteps({ steps, icons, t, testIdPrefix }) {
 }
 
 /**
- * Stage 202.37 / 202.39 — collapsible guest + host/partner referral lifecycle (Link tab).
+ * Stage 202.37 / 202.39 / 202.40 — collapsible guest + host/partner referral lifecycle (Link tab).
  *
  * @param {{
  *   data: object,
@@ -43,11 +43,9 @@ function JourneySteps({ steps, icons, t, testIdPrefix }) {
  *   className?: string,
  * }} props
  */
-export function HostReferralJourney({ data, t, className }) {
+export function HostReferralJourney({ data: _data, t, className }) {
   const [open, setOpen] = useState(false)
   const referralPublicSimple = isSimpleReferralPublicMode()
-  const estimator = data?.referralEstimator || {}
-  const l1Pct = Math.round(Number(estimator.mlmLevel1Percent ?? estimator.mlm_level1_percent ?? 70))
 
   const guestSteps = useMemo(
     () => [
@@ -67,7 +65,6 @@ export function HostReferralJourney({ data, t, className }) {
         bodyKey: referralPublicSimple
           ? 'hostReferralJourney_step3Body_simple'
           : 'hostReferralJourney_step3Body',
-        ctx: referralPublicSimple ? undefined : { l1Pct: String(l1Pct) },
       },
     ]
     if (!referralPublicSimple) {
@@ -77,7 +74,7 @@ export function HostReferralJourney({ data, t, className }) {
       })
     }
     return rows
-  }, [referralPublicSimple, l1Pct])
+  }, [referralPublicSimple])
 
   return (
     <section

@@ -66,9 +66,10 @@ describe('stage-202-33 ux quick wins', () => {
     assert.match(src, /hostReferralDisclosure/)
     assert.match(src, /noAgencyRelationship/)
     assert.match(src, /partnerActivationBonusThb|partner_activation_bonus/)
-    assert.match(src, /mlmLevel1Percent|mlm_level1_percent/)
     assert.match(src, /ReferralLedgerAmount/)
     assert.match(src, /data-testid="host-referral-card"/)
+    assert.match(src, /hostReferralCard_withdrawHint/)
+    assert.doesNotMatch(src, /реферал получит/)
   })
 
   it('referral-disclaimers.js has 4 languages for compliance keys', () => {

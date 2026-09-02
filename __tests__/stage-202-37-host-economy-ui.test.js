@@ -42,14 +42,19 @@ describe('stage-202-37 host economy ui', () => {
     }
   })
 
-  it('example uses mlmLevel1Percent axis, not guest pool L1 (42%)', () => {
+  it('host card shows YOU earn activation pot from SSOT, not host-gets-pot copy', () => {
     const cardSrc = read('components/referral/HostReferralCard.jsx')
-    assert.match(cardSrc, /mlmLevel1Percent|mlm_level1_percent/)
+    assert.match(cardSrc, /partnerActivationBonusThb|partner_activation_bonus/)
+    assert.match(cardSrc, /ReferralLedgerAmount/)
     assert.doesNotMatch(cardSrc, /ambassadorGuestPoolL1Percent/)
     for (const lang of LANGS) {
-      const example = referralDisclaimersUi[lang].hostReferralCard_example
-      assert.doesNotMatch(example, /42/)
-      assert.doesNotMatch(example, /5000/)
+      const subtitle = referralDisclaimersUi[lang].hostReferralCard_subtitle
+      assert.match(subtitle, /__ACTIVATION__/)
+      assert.doesNotMatch(subtitle, /получит .* на старт|gets .* to start/i)
+      assert.doesNotMatch(subtitle, /42/)
+      assert.doesNotMatch(subtitle, /5000/)
+      assert.doesNotMatch(subtitle, /2500/)
+      assert.doesNotMatch(subtitle, /1300/)
     }
   })
 

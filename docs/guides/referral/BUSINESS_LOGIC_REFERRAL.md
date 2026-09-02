@@ -77,7 +77,7 @@ Expense Control Panel applies costs in this order:
 - Legacy `referral_split_ratio`: `0.5` (50/50) when guest L2 disabled.
 - Host activation MLM (promo tank, unchanged): L1 **`70`** / L2 **`30`**.
 
-Tune by business targets (CAC, LTV, refund rate, PSP costs). Do **not** confuse reinvestment **45%** with host-activation **70/30**.
+Tune by business targets (CAC, LTV, refund rate, PSP costs). Do **not** confuse reinvestment **45%** with host-activation **100% L1** (Stage 202.40; formerly 70/30).
 
 ## Security Rules (Stage 71.2)
 

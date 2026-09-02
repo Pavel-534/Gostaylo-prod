@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { formatAmbassadorShareLink } from '@/lib/referral/ambassador-utm-link'
 import { getSiteDisplayName } from '@/lib/site-url'
-import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
+import { FINTECH_JS_DEFAULTS } from '@/lib/config/fintech-config-defaults.js'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -23,7 +23,8 @@ function round2(value) {
 }
 
 /**
- * Stage 202.33 — supply-side host/partner referral card (Link tab).
+ * Stage 202.33 / 202.40 — supply-side host/partner referral card (Link tab).
+ * Honest copy: YOU get one-shot activation pot (SSOT THB → display), not "host gets pot at start".
  *
  * @param {{
  *   data: object,
@@ -33,17 +34,16 @@ function round2(value) {
  */
 export function HostReferralCard({ data, t, className }) {
   const [shareBusy, setShareBusy] = useState(false)
-  const referralPublicSimple = isSimpleReferralPublicMode()
   const brand = String(data?.brandName || '').trim() || getSiteDisplayName()
   const estimator = data?.referralEstimator || {}
 
   const activationThb = round2(
-    Number(estimator.partnerActivationBonusThb ?? estimator.partner_activation_bonus_thb ?? 500),
+    Number(
+      estimator.partnerActivationBonusThb ??
+        estimator.partner_activation_bonus_thb ??
+        FINTECH_JS_DEFAULTS.partnerActivationBonusThb,
+    ),
   )
-  const l1Pct = Math.round(
-    Number(estimator.mlmLevel1Percent ?? estimator.mlm_level1_percent ?? 70),
-  )
-  const exampleThb = round2((activationThb * l1Pct) / 100)
 
   const cleanInviteLink = useMemo(() => {
     const preferred = String(
@@ -52,37 +52,15 @@ export function HostReferralCard({ data, t, className }) {
     return formatAmbassadorShareLink(preferred) || preferred
   }, [data?.vanityUrl, data?.referralLandingUrl, data?.referralLink])
 
-  const subtitleCtx = useMemo(
-    () => ({
-      activationAmount: '__ACTIVATION__',
-      l1Pct: String(l1Pct),
-    }),
-    [l1Pct],
-  )
-
-  const exampleCtx = useMemo(
-    () => ({
-      activationAmount: '__ACTIVATION__',
-      exampleAmount: '__EXAMPLE__',
-    }),
-    [],
-  )
-
-  const renderWithAmounts = useCallback(
-    (template, ctx) => {
-      const parts = String(t(template, ctx)).split(/(__ACTIVATION__|__EXAMPLE__)/)
-      return parts.map((part, idx) => {
-        if (part === '__ACTIVATION__') {
-          return <ReferralLedgerAmount key={`act-${idx}`} thb={activationThb} />
-        }
-        if (part === '__EXAMPLE__') {
-          return <ReferralLedgerAmount key={`ex-${idx}`} thb={exampleThb} />
-        }
-        return <span key={`txt-${idx}`}>{part}</span>
-      })
-    },
-    [t, activationThb, exampleThb],
-  )
+  const renderYouEarnLine = useCallback(() => {
+    const parts = String(t('hostReferralCard_subtitle')).split(/(__ACTIVATION__)/)
+    return parts.map((part, idx) => {
+      if (part === '__ACTIVATION__') {
+        return <ReferralLedgerAmount key={`act-${idx}`} thb={activationThb} />
+      }
+      return <span key={`txt-${idx}`}>{part}</span>
+    })
+  }, [t, activationThb])
 
   const handleShare = useCallback(async () => {
     const url = String(cleanInviteLink || '').trim()
@@ -126,18 +104,19 @@ export function HostReferralCard({ data, t, className }) {
         </div>
       </CardHeader>
       <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
-        <p className="text-sm leading-relaxed text-slate-700">
-          {renderWithAmounts(
-            referralPublicSimple ? 'hostReferralCard_subtitle_simple' : 'hostReferralCard_subtitle',
-            subtitleCtx,
-          )}
+        <p className="text-sm leading-relaxed text-slate-700" data-testid="host-referral-you-earn">
+          {renderYouEarnLine()}
         </p>
-        <p className="text-xs leading-relaxed text-slate-500">
-          {renderWithAmounts('hostReferralCard_example', exampleCtx)}
+        <p className="text-xs leading-relaxed text-slate-500" data-testid="host-referral-withdraw-hint">
+          {t('hostReferralCard_withdrawHint')}
+        </p>
+        <p className="text-xs leading-relaxed text-slate-500" data-testid="host-referral-welcome-separate">
+          {t('hostReferralCard_welcomeSeparate')}
         </p>
         <p className="text-[11px] leading-relaxed text-slate-400" data-testid="host-referral-example-disclaimer">
           {t('hostReferralCard_exampleDisclaimer')}
         </p>
+        <p className="text-[11px] leading-relaxed text-slate-500">{t('hostReferralCard_promoNote')}</p>
         <Button
           type="button"
           variant="brand"

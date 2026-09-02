@@ -293,7 +293,7 @@ export function LaunchPromoCalculatorPanel() {
                 onChange={(e) => setHostActivationsPerMonth(Number(e.target.value))}
               />
               <p className="text-[11px] text-slate-500">
-                {fmtThb(fintechApi?.partner_activation_bonus_thb ?? 500)} из promo tank за активацию (уровни L1/L2).
+                {fmtThb(fintechApi?.partner_activation_bonus_thb ?? 760)} из promo tank за активацию (100% прямому L1).
               </p>
             </div>
           </CardContent>

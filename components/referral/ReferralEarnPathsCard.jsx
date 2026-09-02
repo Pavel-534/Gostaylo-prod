@@ -3,20 +3,42 @@
 import { Users, Home, Share2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { FINTECH_JS_DEFAULTS } from '@/lib/config/fintech-config-defaults.js'
 import { cn } from '@/lib/utils'
 
+function round2(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 0
+  return Math.round(n * 100) / 100
+}
+
 /**
- * Stage 202.39 — two-lane earn map (guest bookings + host/partner activation, one link).
+ * Stage 202.39 / 202.40 — two-lane earn map (guest bookings + host/partner activation, one link).
  *
  * @param {{
  *   t: (key: string, ctx?: object) => string,
  *   onShare?: () => void,
  *   onGoToLink?: () => void,
  *   shareBusy?: boolean,
+ *   partnerActivationBonusThb?: number | null,
  *   className?: string,
  * }} props
  */
-export function ReferralEarnPathsCard({ t, onShare, onGoToLink, shareBusy = false, className }) {
+export function ReferralEarnPathsCard({
+  t,
+  onShare,
+  onGoToLink,
+  shareBusy = false,
+  partnerActivationBonusThb = null,
+  className,
+}) {
+  const activationThb = round2(
+    Number(
+      partnerActivationBonusThb ?? FINTECH_JS_DEFAULTS.partnerActivationBonusThb,
+    ),
+  )
+
   const handleGuestCta = () => {
     if (onShare) onShare()
     else if (onGoToLink) onGoToLink()
@@ -26,6 +48,16 @@ export function ReferralEarnPathsCard({ t, onShare, onGoToLink, shareBusy = fals
     if (onGoToLink) onGoToLink()
     else if (onShare) onShare()
   }
+
+  const partnerBody = (() => {
+    const parts = String(t('referralEarnPaths_partnerBody')).split(/(__ACTIVATION__)/)
+    return parts.map((part, idx) => {
+      if (part === '__ACTIVATION__') {
+        return <ReferralLedgerAmount key={`act-${idx}`} thb={activationThb} />
+      }
+      return <span key={`txt-${idx}`}>{part}</span>
+    })
+  })()
 
   return (
     <Card className={cn('gsl-card', className)} data-testid="referral-earn-paths-card">
@@ -68,7 +100,7 @@ export function ReferralEarnPathsCard({ t, onShare, onGoToLink, shareBusy = fals
               </div>
               <h3 className="text-sm font-semibold text-slate-900">{t('referralEarnPaths_partnerTitle')}</h3>
             </div>
-            <p className="text-xs leading-relaxed text-slate-700">{t('referralEarnPaths_partnerBody')}</p>
+            <p className="text-xs leading-relaxed text-slate-700">{partnerBody}</p>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('referralEarnPaths_partnerWhen')}</p>
             <Button
               type="button"
