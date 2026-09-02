@@ -94,12 +94,14 @@ function round2(value) {
  * @param {{
  *   compact?: boolean,
  *   directPartnersInvited?: number | null,
+ *   showContextCopy?: boolean,
  *   className?: string,
  * }} props
  */
 export function ReferralCalculatorV2({
   compact = false,
   directPartnersInvited = null,
+  showContextCopy = false,
   className,
 }) {
   const { language } = useI18n()
@@ -183,6 +185,15 @@ export function ReferralCalculatorV2({
   return (
     <Card className={cn('gsl-card', className)} data-testid="referral-calculator-v2">
       <CardContent className={cn('space-y-4', compact ? 'p-4' : 'p-5 sm:p-6')}>
+        {showContextCopy ? (
+          <div className="space-y-1" data-testid="referral-calc-context-copy">
+            <p className="text-sm font-semibold text-slate-900">{t('referralCalc_contextTitle')}</p>
+            <p className="text-[11px] leading-relaxed text-slate-500">
+              {t(bankSimple ? 'referralCalc_contextHintSimple' : 'referralCalc_contextHintFull')}
+            </p>
+          </div>
+        ) : null}
+
         <div className="space-y-1">
           <p className="text-sm font-semibold text-slate-900">{t('calc_simple_title')}</p>
           <p className="text-xs text-slate-500">{t('calc_simple_subtitle')}</p>

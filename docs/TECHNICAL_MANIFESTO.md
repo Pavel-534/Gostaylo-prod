@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.267 | **Last Updated**: 2026-09-02 | **Tip of tree:** Stage **202.36** referral public mode.
+> **Version**: 13.2.268 | **Last Updated**: 2026-09-02 | **Tip of tree:** Stage **202.39** referral map UX.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.39 — Referral map UX (UI-only)
+
+- **`ReferralEarnPathsCard`** on Overview — two lanes (guest bookings + host/partner activation) + «one link» line; no formula/API changes.
+- Overview reorder: hero (name+code) → earn map → share CTA → newcomer steps (earned≈0, invites&lt;3) → calculator (`referralCalc_contextTitle`) → balance → tier → engagement below.
+- Link tab: page title, lane chips, guest one-liner; **`HostReferralJourney`** — collapsible guest + partner sections.
+- **`QuestsBlock`** — UI grouping guest vs partner quests; engagement optional hint. i18n: `referral-earn-paths.js`. Tests: `__tests__/stage-202-39-referral-map-ux.test.js`.
 
 ### Stage 202.38 — Referral simple mode bank copy hygiene
 

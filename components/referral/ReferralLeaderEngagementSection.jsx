@@ -40,6 +40,9 @@ export function ReferralLeaderEngagementSection({ enabled = true, className }) {
 
   return (
     <section className={className} data-testid="referral-leader-engagement">
+      <p className="mb-4 text-xs leading-relaxed text-slate-500" data-testid="referral-engagement-optional-hint">
+        {t('referralEngagement_optionalHint')}
+      </p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <LocalLeaderTier
           currentTier={tier?.current}

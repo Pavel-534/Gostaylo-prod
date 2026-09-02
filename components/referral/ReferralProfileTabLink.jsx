@@ -114,8 +114,26 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
 
   return (
     <div className="space-y-6" data-testid="referral-link-tab-v2">
+      <header className="space-y-3">
+        <h1 className="text-xl font-bold text-slate-900">{t('referralLink_pageTitle')}</h1>
+        <div className="flex flex-wrap gap-2" data-testid="referral-link-lane-chips">
+          <span className="inline-flex min-h-[44px] items-center rounded-xl border border-teal-200 bg-teal-50/60 px-3 text-xs font-medium text-teal-900">
+            {t('referralLink_laneGuest')}
+          </span>
+          <span className="inline-flex min-h-[44px] items-center rounded-xl border border-brand/20 bg-brand/5 px-3 text-xs font-medium text-brand-hover">
+            {t('referralLink_lanePartner')}
+          </span>
+        </div>
+      </header>
+
       <HostReferralCard data={data} t={t} />
-      <HostReferralJourney data={data} t={t} />
+
+      <p
+        className="rounded-2xl border border-teal-200/80 bg-teal-50/40 px-4 py-3 text-sm leading-relaxed text-teal-950"
+        data-testid="referral-link-guest-oneliner"
+      >
+        {t('referralLink_guestOneLiner')}
+      </p>
 
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>
@@ -235,15 +253,6 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3 space-y-2 text-sm text-slate-600">
-            <p className="font-medium text-slate-800">{t('stage1143_howItWorks')}</p>
-            <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed">
-              <li>{t('stage1143_howStep1')}</li>
-              <li>{t('stage1143_howStep2')}</li>
-              <li>{t('stage1143_howStep3')}</li>
-            </ol>
-          </div>
-
           <div className="border-t border-slate-200 pt-3">
             <button
               type="button"
@@ -298,6 +307,8 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
           </div>
         </CardContent>
       </Card>
+
+      <HostReferralJourney data={data} t={t} />
 
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardContent

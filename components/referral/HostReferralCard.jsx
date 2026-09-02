@@ -119,7 +119,9 @@ export function HostReferralCard({ data, t, className }) {
           </div>
           <div className="min-w-0">
             <CardTitle>{t('hostReferralCard_title')}</CardTitle>
-            <CardDescription className="text-slate-600">{t('hostReferralCard_promoNote')}</CardDescription>
+            <CardDescription className="text-slate-600">
+              {t('hostReferralCard_categories')}
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
