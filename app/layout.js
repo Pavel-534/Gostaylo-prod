@@ -32,12 +32,12 @@ export async function generateMetadata() {
   const ogTitle = lang === 'ru' ? `${brand} — Аренда` : `${brand} - Rentals`
   const description =
     lang === 'ru'
-      ? `${brand} — бронирование жилья, транспорта, яхт и туров с онлайн-предоплатой и защитой эскроу до заселения.`
-      : `${brand} — book homes, transport, yachts and tours with secure online prepayment and escrow until check-in.`
+      ? `${brand} — бронирование краткосрочной аренды жилья и услуг в России с онлайн-предоплатой через платёжного партнёра.`
+      : `${brand} — short-term rentals in Russia with secure online prepayment via a licensed payment partner.`
   const ogDescription =
     lang === 'ru'
-      ? `Аренда с онлайн-бронированием и безопасной предоплатой (эскроу).`
-      : `Rentals with online booking and secure prepayment (escrow).`
+      ? `Аренда в России с онлайн-бронированием и безопасной предоплатой.`
+      : `Rentals in Russia with online booking and secure prepayment.`
   return {
     metadataBase: new URL(siteUrl),
     title,

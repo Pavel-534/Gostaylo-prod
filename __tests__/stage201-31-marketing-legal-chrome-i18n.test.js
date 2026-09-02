@@ -58,8 +58,8 @@ describe('Stage 201.31 — marketing/legal chrome + i18n', () => {
 
   it('About story has no hard-coded middleman percent', () => {
     const about = read('components/about/AboutContent.jsx')
-    assert.match(about, /Пхукет/)
-    assert.match(about, /Phuket/)
+    assert.match(about, /России/)
+    assert.match(about, /Russia/)
     assert.doesNotMatch(about, /20\s*%/)
     assert.doesNotMatch(about, /twenty percent/i)
   })
@@ -74,6 +74,6 @@ describe('Stage 201.31 — marketing/legal chrome + i18n', () => {
     assert.match(offer, /supportEmail/)
 
     const ver = read('lib/config/legal-terms-version.js')
-    assert.match(ver, /2026-08-28-v1/)
+    assert.match(ver, /2026-09-02-v1/)
   })
 })

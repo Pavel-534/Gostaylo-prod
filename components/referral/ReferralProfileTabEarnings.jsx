@@ -15,9 +15,11 @@ import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkli
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { ReferralLegalFootnotes } from '@/components/referral/ReferralLegalFootnotes'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
+import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
 
 export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
   const router = useRouter()
+  const referralPublicSimple = isSimpleReferralPublicMode()
   const { formatLedgerWithApprox } = useReferralLedgerDisplay()
   const walletTotal = Number(walletData?.wallet?.balance_thb || 0)
   const pending = Number(data?.stats?.expectedPendingThb || 0)
@@ -98,17 +100,19 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             </p>
           </CardContent>
         </Card>
-        <Card className={MOBILE_FLAT_CARD_CLASS}>
-          <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
-            <CardTitle className="text-base">{t('stage91_statsPartnerNetwork')}</CardTitle>
-            <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
-            <p className="text-2xl font-semibold text-brand break-words">
-              <ReferralLedgerAmount thb={l2Monthly} />
-            </p>
-          </CardContent>
-        </Card>
+        {!referralPublicSimple ? (
+          <Card className={MOBILE_FLAT_CARD_CLASS}>
+            <CardHeader className={cn(MOBILE_FLAT_CARD_HEADER_CLASS, 'sm:pb-2')}>
+              <CardTitle className="text-base">{t('stage91_statsPartnerNetwork')}</CardTitle>
+              <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>
+              <p className="text-2xl font-semibold text-brand break-words">
+                <ReferralLedgerAmount thb={l2Monthly} />
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <ReferralLegalFootnotes

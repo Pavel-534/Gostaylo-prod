@@ -43,8 +43,8 @@ describe('Stage 201.26 — marketing copy ≤ offer', () => {
     assert.match(src, /eyebrow: 'Супер-приложение'/)
     assert.match(src, /собственниками/)
     assert.match(src, /представителями/)
-    assert.match(src, /Таиланде и России/)
-    assert.match(src, /Пхукет/)
+    assert.match(src, /краткосрочной аренды жилья и услуг в России/)
+    assert.doesNotMatch(src, /Таиланд|Пхукет/)
     assert.doesNotMatch(src, /без посредников/)
     assert.match(src, /платёжным партнёром/)
     assert.match(src, /рабочие часы/)
@@ -77,8 +77,8 @@ describe('Stage 201.26 — marketing copy ≤ offer', () => {
   it('profile partner pitch drops Phuket network and 24/7', () => {
     const src = read('app/(storefront)/profile/components/ProfileInfo.jsx')
     assert.doesNotMatch(src, /24\/7/)
-    assert.doesNotMatch(src, /Пхукет/)
-    assert.match(src, /Таиланд и Россия/)
+    assert.doesNotMatch(src, /Пхукет|Таиланд/)
+    assert.match(src, /Основной рынок — Россия/)
     assert.match(src, /Поддержка в рабочие часы/)
   })
 

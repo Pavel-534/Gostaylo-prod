@@ -9,7 +9,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 
 const linkClass = 'font-medium text-brand-hover hover:underline'
 
-export default function PublicOfferLegalContent({ avgEarnedFromStats = null }) {
+export default function PublicOfferLegalContent() {
   const brand = getSiteDisplayName()
   const publisher = getLegalPublisherDetails()
   const { isRu, showRussian } = useLegalDocLocale()
@@ -22,7 +22,7 @@ export default function PublicOfferLegalContent({ avgEarnedFromStats = null }) {
         lead={`Настоящий документ является официальным предложением (публичной офертой) ${brand} (далее — «Платформа», «Оператор») заключить договор на условиях ниже. Оплачивая бронирование или подтверждая действия в интерфейсе с отметкой о согласии, Пользователь принимает условия настоящей оферты.`}
         publisher={publisher}
       >
-        <RuBody brand={brand} supportEmail={publisher.email} avgEarnedFromStats={avgEarnedFromStats} />
+        <RuBody brand={brand} supportEmail={publisher.email} />
       </LegalDocShell>
     )
   }
@@ -35,12 +35,12 @@ export default function PublicOfferLegalContent({ avgEarnedFromStats = null }) {
       publisher={publisher}
       disclaimer={<LegalTranslationDisclaimer onShowRussian={showRussian} />}
     >
-      <EnBody brand={brand} supportEmail={publisher.email} avgEarnedFromStats={avgEarnedFromStats} />
+      <EnBody brand={brand} supportEmail={publisher.email} />
     </LegalDocShell>
   )
 }
 
-function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
+function RuBody({ brand, supportEmail }) {
   return (
     <>
       <LegalDefinitionsSection variant="public-offer" locale="ru" />
@@ -137,19 +137,20 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ol>
 
-      <h2>7. Многоуровневая партнёрская программа</h2>
+      <h2>7. Реферальная программа</h2>
       <p>
-        Платформа реализует многоуровневую партнёрскую программу (далее — «MLM»), в рамках которой участники могут
-        получать вознаграждение за привлечение и активность приглашённых ими пользователей.
+        Платформа может проводить <strong>реферальную программу</strong>: пользователи, приглашающие новых гостей
+        или партнёров по персональной ссылке, могут получать бонусы, скидки или иные поощрения в соответствии с
+        правилами, опубликованными в интерфейсе Платформы.
       </p>
       <p>
-        <strong>Доход не гарантирован.</strong> Размер вознаграждения зависит от количества приглашённых, их активности
-        и условий конкретной акции. Средний доход активного участника программы за последний квартал:{' '}
-        <em>{avgEarnedFromStats ?? 'N/A, программа работает с 2026'}</em> (обновляется ежеквартально).
+        <strong>Доход не гарантирован.</strong> Размер поощрения зависит от активности приглашённых и условий
+        конкретной акции. Программа не является инвестиционным предложением, финансовой услугой или трудовым
+        договором с Оператором.
       </p>
       <p>
-        Подробные условия участия, ограничения и пороги выплат изложены в условиях для партнёров, в расчётных правилах
-        программы и в кабинете участника.
+        Подробные условия участия, ограничения и пороги начисления изложены в интерфейсе программы и в личном
+        кабинете участника.
       </p>
 
       <h2>8. Ответственность и претензии</h2>
@@ -207,7 +208,7 @@ function RuBody({ brand, supportEmail, avgEarnedFromStats }) {
   )
 }
 
-function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
+function EnBody({ brand, supportEmail }) {
   return (
     <>
       <LegalDefinitionsSection variant="public-offer" locale="en" />
@@ -300,19 +301,18 @@ function EnBody({ brand, supportEmail, avgEarnedFromStats }) {
         </li>
       </ol>
 
-      <h2>7. Multi-level partner program</h2>
+      <h2>7. Referral program</h2>
       <p>
-        The Platform operates a multi-level partner program (“MLM”) under which participants may receive rewards for
-        referring users and for those invitees’ activity.
+        The Platform may run a <strong>referral program</strong>: users who invite new guests or partners via a personal
+        link may receive bonuses, discounts, or other rewards under the rules published in the Platform UI.
       </p>
       <p>
-        <strong>Income is not guaranteed.</strong> Reward size depends on the number of invitees, their activity, and
-        the terms of a given campaign. Average earnings of an active program participant for the last quarter:{' '}
-        <em>{avgEarnedFromStats ?? 'N/A, the program has been running since 2026'}</em> (updated quarterly).
+        <strong>Income is not guaranteed.</strong> Reward size depends on invitees&apos; activity and campaign terms.
+        The program is not an investment offer, financial service, or employment contract with the Operator.
       </p>
       <p>
-        Detailed participation terms, limits, and payout thresholds are set out in the partner terms, the program
-        calculation rules, and the participant cabinet.
+        Detailed participation terms, limits, and accrual thresholds are set out in the program UI and the participant
+        cabinet.
       </p>
 
       <h2>8. Liability and claims</h2>

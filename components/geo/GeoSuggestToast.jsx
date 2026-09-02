@@ -25,6 +25,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
 import { fetchSearchAvailableCount } from '@/lib/api/catalog-public-client'
+import { isRfOnlyPublicMarketScope } from '@/lib/compliance/public-market-scope.js'
 
 const DISMISS_KEY = 'gostaylo_geo_suggest_dismissed_v1'
 
@@ -91,6 +92,7 @@ export default function GeoSuggestToast() {
 
     const geo = GEO_MAP[country.toUpperCase()]
     if (!geo) return // страна не в списке поддерживаемых
+    if (isRfOnlyPublicMarketScope() && geo.where !== 'RU') return
 
     try {
       if (localStorage.getItem(DISMISS_KEY) === '1') return

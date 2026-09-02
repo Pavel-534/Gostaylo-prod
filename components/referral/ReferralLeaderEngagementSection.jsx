@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { useReferralEngagementQuery } from '@/lib/hooks/use-referral-engagement'
+import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
 import { LocalLeaderTier } from '@/components/referral/LocalLeaderTier'
 import { QuestsBlock } from '@/components/referral/QuestsBlock'
 import { TierRoadmap } from '@/components/referral/TierRoadmap'
@@ -15,11 +16,12 @@ import { Loader2 } from 'lucide-react'
  * @param {{ enabled?: boolean, className?: string }} props
  */
 export function ReferralLeaderEngagementSection({ enabled = true, className }) {
+  const simpleMode = isSimpleReferralPublicMode()
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
-  const { data, isLoading, isError } = useReferralEngagementQuery({ enabled })
+  const { data, isLoading, isError } = useReferralEngagementQuery({ enabled: enabled && !simpleMode })
 
-  if (!enabled) return null
+  if (simpleMode || !enabled) return null
 
   if (isLoading && !data) {
     return (

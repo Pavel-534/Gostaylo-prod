@@ -41,7 +41,7 @@ const STR = {
         'При отмене Партнёром по причинам, не зависящим от Гостя, оплата возвращается в полном объёме.',
       ] },
       { n: '05', title: 'Персональные данные', body: [
-        'Мы обрабатываем персональные данные в соответствии с GDPR, ФЗ-152 РФ и PDPA Королевства Таиланд.',
+        'Мы обрабатываем персональные данные в соответствии с Федеральным законом № 152-ФЗ «О персональных данных» и иным применимым законодательством Российской Федерации.',
         'Cookies используются для аутентификации, поддержки сессий, аналитики и персонализации поиска. Управлять можно в настройках браузера.',
       ] },
       { n: '06', title: 'Запрещённый контент', body: [
@@ -82,7 +82,7 @@ const STR = {
         'If the Partner cancels for reasons independent of the Guest, payment is fully refunded.',
       ] },
       { n: '05', title: 'Personal data', body: [
-        'We process personal data in accordance with GDPR, RU FL-152, and Thailand’s PDPA.',
+        'We process personal data under Russian Federal Law No. 152-FZ “On Personal Data” and other applicable laws of the Russian Federation.',
         'Cookies are used for authentication, session support, analytics, and search personalization. You can manage them via your browser settings.',
       ] },
       { n: '06', title: 'Prohibited content', body: [
@@ -123,7 +123,7 @@ const STR = {
         '若合作伙伴出于与房客无关的原因取消，款项将全额退还。',
       ] },
       { n: '05', title: '个人数据', body: [
-        '我们依据 GDPR、俄罗斯 FL-152 和泰国 PDPA 处理个人数据。',
+        '我们依据俄罗斯联邦第 152-FZ 号《个人数据法》及其他适用法律处理个人数据。',
         'Cookies 用于身份验证、会话支持、分析和搜索个性化。您可以通过浏览器设置进行管理。',
       ] },
       { n: '06', title: '禁止内容', body: [
@@ -164,7 +164,7 @@ const STR = {
         'หากพาร์ทเนอร์ยกเลิกด้วยเหตุที่ไม่เกี่ยวกับแขก จะคืนเงินเต็มจำนวน',
       ] },
       { n: '05', title: 'ข้อมูลส่วนบุคคล', body: [
-        'เราดำเนินการกับข้อมูลส่วนบุคคลตาม GDPR, FL-152 ของรัสเซีย และ PDPA ของประเทศไทย',
+        'เราดำเนินการกับข้อมูลส่วนบุคคลตาม พ.ร.บ. 152-FZ ของรัสเซีย และกฎหมายที่ใช้บังคับอื่น ๆ',
         'Cookies ใช้เพื่อการยืนยันตัวตน การรองรับเซสชัน การวิเคราะห์ และการปรับแต่งการค้นหา จัดการได้ในการตั้งค่าเบราว์เซอร์',
       ] },
       { n: '06', title: 'เนื้อหาต้องห้าม', body: [

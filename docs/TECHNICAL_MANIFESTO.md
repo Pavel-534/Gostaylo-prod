@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.265 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.32** referral leaderboard smoke filter.
+> **Version**: 13.2.267 | **Last Updated**: 2026-09-02 | **Tip of tree:** Stage **202.36** referral public mode.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,37 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.38 — Referral simple mode bank copy hygiene
+
+- Overview footer in `NEXT_PUBLIC_REFERRAL_PUBLIC_MODE=simple` — `referral_simple_persistent_disclaimer` (not MLM-keyed footer).
+- Calculator result label in simple mode — `calc_result_direct_simple` (no «L1» jargon).
+
+### Stage 202.37 — Host-side economy UI (Link + earnings compliance)
+
+- **`HostReferralJourney.jsx`** — collapsible 4-step lifecycle on tab «Ссылка» (honest activation one-shot + guest pool as separate axis); respects `NEXT_PUBLIC_REFERRAL_PUBLIC_MODE=simple` (hides step 4 / pct in step 3).
+- **`HostReferralCard`** — example disclaimer under activation illustration (`mlmLevel1Percent`, not guest L1 42%).
+- **`ReferralLegalFootnotes`** — host disclosure, anti-spam, no-social-housing, no-paid-promotion + existing cap/tax/no-agency.
+- i18n: `host-referral-journey.js` + extended `referral-disclaimers.js` × 4 langs. Tests: `__tests__/stage-202-37-host-economy-ui.test.js`.
+
+### Stage 202.36 — Referral public mode (reversible)
+
+- Env **`NEXT_PUBLIC_REFERRAL_PUBLIC_MODE=simple`** (alias `bank`): hide team tab, tier ladder, L2/L3 calculator, engagement/roadmap, MLM consent modal; earnings tab hides «network» card.
+- Default **`full`** — unchanged prod cabinet. **Backend accruals / API unchanged** — flip env + redeploy to restore.
+- SSOT: `lib/compliance/referral-public-mode.js`. Tests: `__tests__/stage202-36-referral-public-mode.test.js`.
+
+### Stage 202.35 — RF-only public market scope (reversible)
+
+- Env **`NEXT_PUBLIC_PUBLIC_MARKET_SCOPE=rf-only`**: popular destination chips + geo toast only Russia (full list stays in `POPULAR_DESTINATION_GROUPS_ALL`).
+- Hero/layout/terms zh/th — Russia-first copy (no worldwide / Thailand PDPA).
+- Tests: `__tests__/stage202-35-public-market-scope.test.js`.
+
+### Stage 202.34 — Bank-facing public copy (RF focus)
+
+- Public offer §7: **реферальная программа** (removed «MLM» / multi-level wording + quarterly earnings teaser).
+- `/about`, `/terms`, footer, privacy lead, referral consent copy — **Russia-first**; no Thailand/Phuket/international transfers on bank-visible pages.
+- Legal versions → **`2026-09-02-v1`**. Tests: `__tests__/stage202-34-bank-compliance-copy.test.js`.
+- **Product/geo catalog unchanged** — TH listings remain; only compliance-facing marketing/legal text.
 
 ### Stage 202.33 — Referral UX quick wins + compliance copy (UI-only)
 - `/about/loyalty` step 2 — static title (no `{welcomeAmount}` / fake ₽0); optional amount line when FX ready.

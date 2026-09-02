@@ -6,6 +6,11 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.38 | 2026-09-02 | Simple mode: bank-safe overview disclaimer + calculator label without L1/MLM jargon | Done |
+| 202.37 | 2026-09-02 | Host referral journey + legal footnotes (anti-spam, honest activation copy) | Done |
+| 202.36 | 2026-09-02 | Referral UI `simple|full` env — bank-safe cabinet, backend unchanged | Done |
+| 202.35 | 2026-09-02 | RF-only public market scope env + hero/layout/terms TH sweep | Done |
+| 202.34 | 2026-09-02 | Bank-facing copy: RF focus, referral (not MLM), no Thailand on legal/about | Done |
 | 202.33 | 2026-09-02 | Referral UX: loyalty ₽0 fix, roadmap honesty, host card, compliance footnotes | Done |
 | 202.31 | 2026-09-01 | Ops TG: money cron GET=run + shadow reconcile skips smoke partners | Done |
 | 202.28 | 2026-09-01 | Listing country-change geo reset + Ulan-Ude in launch seed | Done |

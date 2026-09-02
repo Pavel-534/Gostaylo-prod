@@ -31,6 +31,7 @@ import { PartnerMetricsTooltip } from '@/components/referral/PartnerMetricsToolt
 import { PARTNER_METRICS_AXES } from '@/lib/referral/partner-metrics-glossary.js'
 import { formatAmbassadorShareLink } from '@/lib/referral/ambassador-utm-link'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
 import { Share2, Trophy } from 'lucide-react'
 
 const TAB_ACTIVE =
@@ -59,10 +60,11 @@ export function ReferralProfilePage() {
   const { data: walletData, isLoading: walletLoading } = useWalletMeQuery({
     enabled: !authLoading && isAuthenticated,
   })
+  const referralPublicSimple = isSimpleReferralPublicMode()
   const { data, isLoading: referralLoading, isError: referralError } = useReferralMeQuery({
     enabled: !authLoading && isAuthenticated,
-    includeTeam: true,
-    includeTeamAnalytics: true,
+    includeTeam: !referralPublicSimple,
+    includeTeamAnalytics: !referralPublicSimple,
     analyticsPeriod: 'month',
     teamLimit: 100,
   })
@@ -224,6 +226,11 @@ export function ReferralProfilePage() {
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) return undefined
+    if (referralPublicSimple) {
+      setConsentAt('simple-mode')
+      setConsentModalOpen(false)
+      return undefined
+    }
     let cancelled = false
     ;(async () => {
       try {
@@ -248,11 +255,11 @@ export function ReferralProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated, referralPublicSimple])
 
   const [userRankData, setUserRankData] = useState(null)
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return undefined
+    if (authLoading || !isAuthenticated || referralPublicSimple) return undefined
     let cancelled = false
     ;(async () => {
       try {
@@ -262,7 +269,7 @@ export function ReferralProfilePage() {
       } catch { /* optional */ }
     })()
     return () => { cancelled = true }
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated, referralPublicSimple])
 
   if (authLoading || referralLoading || walletLoading) {
     return <ReferralPageSkeleton />
@@ -287,9 +294,11 @@ export function ReferralProfilePage() {
             <TabsTrigger value="earnings" className={TAB_ACTIVE}>
               {t('stage1143_tabEarnings')}
             </TabsTrigger>
-            <TabsTrigger value="team" className={TAB_ACTIVE}>
-              {t('stage1143_tabTeam')}
-            </TabsTrigger>
+            {!referralPublicSimple ? (
+              <TabsTrigger value="team" className={TAB_ACTIVE}>
+                {t('stage1143_tabTeam')}
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="history" className={TAB_ACTIVE}>
               {t('stage1143_tabHistory')}
             </TabsTrigger>
@@ -339,7 +348,7 @@ export function ReferralProfilePage() {
               </Button>
             </div>
 
-            {userRankData?.rank != null && Number(userRankData.total_ambassadors) >= 5 ? (
+            {!referralPublicSimple && userRankData?.rank != null && Number(userRankData.total_ambassadors) >= 5 ? (
               <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200/80 bg-amber-50/60 px-4 py-2 text-sm text-amber-950" data-testid="user-rank-badge">
                 <Trophy className="h-4 w-4 text-amber-600 shrink-0" aria-hidden />
                 <span>
@@ -355,36 +364,38 @@ export function ReferralProfilePage() {
             ) : null}
 
             <p className="mt-3 text-sm text-slate-700 rounded-2xl border border-brand/10 bg-brand/5 px-4 py-2" role="status">
-              {adaptiveState === 'new'
-                ? t('stage131a5_adaptive_new', {
-                    remaining: remainingToNext ?? 5,
-                    nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
-                    rewardPct: nextRewardPct || 75,
-                    currentPct: currentRewardPct || 60,
-                    sampleAmount: starterPreviewAmount,
-                  })
-                : adaptiveState === 'early'
-                  ? t('stage131a5_adaptive_early', {
+              {referralPublicSimple
+                ? t('referral_simple_overview_hint')
+                : adaptiveState === 'new'
+                  ? t('stage131a5_adaptive_new', {
                       remaining: remainingToNext ?? 5,
                       nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
                       rewardPct: nextRewardPct || 75,
                       currentPct: currentRewardPct || 60,
+                      sampleAmount: starterPreviewAmount,
                     })
-                  : adaptiveState === 'active'
-                    ? t('stage131a5_adaptive_active', {
-                        earned: formatThbAsDisplay(earnedThb),
-                        nextTier: nextTierName ?? 'Gold',
-                        remaining: remainingToNext ?? 10,
+                  : adaptiveState === 'early'
+                    ? t('stage131a5_adaptive_early', {
+                        remaining: remainingToNext ?? 5,
+                        nextTier: nextTierName ?? t('stage73_tierFallbackPro'),
                         rewardPct: nextRewardPct || 75,
                         currentPct: currentRewardPct || 60,
                       })
-                    : t('stage131a5_adaptive_veteran', {
-                        earned: formatThbAsDisplay(earnedThb),
-                        remainingDiamond: remainingToDiamond ?? 0,
-                        rankMonthly: leaderboardRankMonthly != null ? `#${leaderboardRankMonthly}` : '',
-                        topTier: topTierName ?? t('stage73_tierFallbackAmbassador'),
-                        topPct: topRewardPct || 85,
-                      })}
+                    : adaptiveState === 'active'
+                      ? t('stage131a5_adaptive_active', {
+                          earned: formatThbAsDisplay(earnedThb),
+                          nextTier: nextTierName ?? 'Gold',
+                          remaining: remainingToNext ?? 10,
+                          rewardPct: nextRewardPct || 75,
+                          currentPct: currentRewardPct || 60,
+                        })
+                      : t('stage131a5_adaptive_veteran', {
+                          earned: formatThbAsDisplay(earnedThb),
+                          remainingDiamond: remainingToDiamond ?? 0,
+                          rankMonthly: leaderboardRankMonthly != null ? `#${leaderboardRankMonthly}` : '',
+                          topTier: topTierName ?? t('stage73_tierFallbackAmbassador'),
+                          topPct: topRewardPct || 85,
+                        })}
             </p>
           </div>
 
@@ -422,85 +433,87 @@ export function ReferralProfilePage() {
                 </CardContent>
               </Card>
 
-              <Card className="gsl-card">
-                <CardContent className="p-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-900 inline-flex items-center gap-0.5 flex-wrap">
-                    {t('stage131a5_progressTitle')}
-                    <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.WITHDRAW_TIER} t={t} />
-                  </p>
-                  <p className="text-xs text-slate-500">{t('referralGlossary_withdrawTier_subtitle')}</p>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-slate-800" data-testid="referral-progress-current">
-                      {t('stage131a5_progressCurrentWithPct', {
-                        tier: currentTierName || '—',
-                        pct: currentRewardPct || 60,
-                      })}
+              {!referralPublicSimple ? (
+                <Card className="gsl-card">
+                  <CardContent className="p-4 space-y-3">
+                    <p className="text-sm font-semibold text-slate-900 inline-flex items-center gap-0.5 flex-wrap">
+                      {t('stage131a5_progressTitle')}
+                      <PartnerMetricsTooltip axis={PARTNER_METRICS_AXES.WITHDRAW_TIER} t={t} />
                     </p>
-                    {typeof ambassador?.tierProgressPercent === 'number' ? (
-                      <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
-                    ) : null}
-
-                    {tierLadder.length ? (
-                      <ul className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3" data-testid="referral-tier-ladder">
-                        {tierLadder.map((row) => {
-                          const name = localizeReferralTierName(row?.name, t)
-                          const pct = Math.max(0, Math.round(Number(row?.payoutRatio || 0)))
-                          const minPartners = Math.max(0, Math.round(Number(row?.minPartnersInvited || 0)))
-                          const isCurrent =
-                            String(row?.id || '') === String(currentTier?.id || '') ||
-                            String(row?.name || '').toLowerCase() === String(currentTier?.name || '').toLowerCase()
-                          const unlocked = directPartnersInvited >= minPartners
-                          return (
-                            <li
-                              key={row?.id || row?.name || `${name}-${pct}`}
-                              className={
-                                isCurrent
-                                  ? 'text-sm font-semibold text-brand-hover'
-                                  : unlocked
-                                    ? 'text-sm text-slate-700'
-                                    : 'text-sm text-slate-500'
-                              }
-                            >
-                              {t('stage131a5_progressTierRow', {
-                                tier: name,
-                                partners: minPartners,
-                                pct,
-                              })}
-                              {isCurrent ? ` · ${t('stage1143_levelCurrent')}` : null}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    ) : null}
-
-                    {nextTierName ? (
-                      <p className="text-sm text-slate-700">
-                        {t('stage131a5_progressNextReward', {
-                          pct: nextRewardPct,
-                          tier: nextTierName,
+                    <p className="text-xs text-slate-500">{t('referralGlossary_withdrawTier_subtitle')}</p>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-slate-800" data-testid="referral-progress-current">
+                        {t('stage131a5_progressCurrentWithPct', {
+                          tier: currentTierName || '—',
+                          pct: currentRewardPct || 60,
                         })}
                       </p>
-                    ) : null}
+                      {typeof ambassador?.tierProgressPercent === 'number' ? (
+                        <Progress value={Number(ambassador.tierProgressPercent || 0)} className="h-2" />
+                      ) : null}
 
-                    {nextTierName && remainingToNext != null ? (
-                      <p className="text-sm text-slate-600">
-                        {t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-slate-600">{t('stage131a5_progressMax')}</p>
-                    )}
+                      {tierLadder.length ? (
+                        <ul className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3" data-testid="referral-tier-ladder">
+                          {tierLadder.map((row) => {
+                            const name = localizeReferralTierName(row?.name, t)
+                            const pct = Math.max(0, Math.round(Number(row?.payoutRatio || 0)))
+                            const minPartners = Math.max(0, Math.round(Number(row?.minPartnersInvited || 0)))
+                            const isCurrent =
+                              String(row?.id || '') === String(currentTier?.id || '') ||
+                              String(row?.name || '').toLowerCase() === String(currentTier?.name || '').toLowerCase()
+                            const unlocked = directPartnersInvited >= minPartners
+                            return (
+                              <li
+                                key={row?.id || row?.name || `${name}-${pct}`}
+                                className={
+                                  isCurrent
+                                    ? 'text-sm font-semibold text-brand-hover'
+                                    : unlocked
+                                      ? 'text-sm text-slate-700'
+                                      : 'text-sm text-slate-500'
+                                }
+                              >
+                                {t('stage131a5_progressTierRow', {
+                                  tier: name,
+                                  partners: minPartners,
+                                  pct,
+                                })}
+                                {isCurrent ? ` · ${t('stage1143_levelCurrent')}` : null}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      ) : null}
 
-                    {topTierName && nextTierName && topTierName !== nextTierName ? (
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {t('stage131a5_progressGoalHint', {
-                          tier: topTierName,
-                          pct: topRewardPct || 85,
-                        })}
-                      </p>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
+                      {nextTierName ? (
+                        <p className="text-sm text-slate-700">
+                          {t('stage131a5_progressNextReward', {
+                            pct: nextRewardPct,
+                            tier: nextTierName,
+                          })}
+                        </p>
+                      ) : null}
+
+                      {nextTierName && remainingToNext != null ? (
+                        <p className="text-sm text-slate-600">
+                          {t('stage131a5_progressRemaining', { tier: nextTierName, count: remainingToNext })}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-600">{t('stage131a5_progressMax')}</p>
+                      )}
+
+                      {topTierName && nextTierName && topTierName !== nextTierName ? (
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          {t('stage131a5_progressGoalHint', {
+                            tier: topTierName,
+                            pct: topRewardPct || 85,
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
 
               <div className="space-y-3">
                 <ReferralActivityFeed pageLimit={5} hideLoadMore layout="carousel" />
@@ -511,13 +524,20 @@ export function ReferralProfilePage() {
             </div>
           </div>
 
-          <ReferralLeaderEngagementSection
-            enabled={!authLoading && isAuthenticated}
-            className="mt-5"
-          />
+          {!referralPublicSimple ? (
+            <ReferralLeaderEngagementSection
+              enabled={!authLoading && isAuthenticated}
+              className="mt-5"
+            />
+          ) : null}
 
-          <p className="text-xs text-slate-500" data-testid="referral-mlm-persistent-disclaimer">
-            {t('referral_mlm_persistent_disclaimer')}
+          <p
+            className="text-xs text-slate-500"
+            data-testid={referralPublicSimple ? 'referral-simple-persistent-disclaimer' : 'referral-mlm-persistent-disclaimer'}
+          >
+            {referralPublicSimple
+              ? t('referral_simple_persistent_disclaimer')
+              : t('referral_mlm_persistent_disclaimer')}
           </p>
         </TabsContent>
 
@@ -527,9 +547,11 @@ export function ReferralProfilePage() {
         <TabsContent value="earnings" className="mt-0">
           <ReferralProfileTabEarnings data={data} walletData={walletData} t={t} locale={locale} />
         </TabsContent>
-        <TabsContent value="team" className="mt-0">
-          <ReferralProfileTabTeam data={data} t={t} locale={locale} language={language} />
-        </TabsContent>
+        {!referralPublicSimple ? (
+          <TabsContent value="team" className="mt-0">
+            <ReferralProfileTabTeam data={data} t={t} locale={locale} language={language} />
+          </TabsContent>
+        ) : null}
         <TabsContent value="history" className="mt-0">
           <ReferralProfileTabHistory data={data} walletData={walletData} t={t} locale={locale} />
         </TabsContent>
@@ -538,15 +560,17 @@ export function ReferralProfilePage() {
         </TabsContent>
       </Tabs>
 
-      <MlmConsentModal
-        open={consentAt === null && consentModalOpen}
-        language={language}
-        t={t}
-        onOpenChange={(next, meta) => {
-          setConsentModalOpen(next)
-          if (meta?.consented) setConsentAt(meta.consentAt || new Date().toISOString())
-        }}
-      />
+      {!referralPublicSimple ? (
+        <MlmConsentModal
+          open={consentAt === null && consentModalOpen}
+          language={language}
+          t={t}
+          onOpenChange={(next, meta) => {
+            setConsentModalOpen(next)
+            if (meta?.consented) setConsentAt(meta.consentAt || new Date().toISOString())
+          }}
+        />
+      ) : null}
     </ProductPageShell>
   )
 }

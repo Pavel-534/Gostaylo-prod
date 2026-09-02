@@ -45,9 +45,9 @@ describe('Stage 202.19 — legal glossary §1', () => {
 
   it('legal version bump reflects glossary change', () => {
     const ver = read('lib/config/legal-terms-version.js')
-    assert.match(ver, /2026-08-28-v1/)
+    assert.match(ver, /2026-09-02-v1/)
 
     const details = read('lib/config/legal-details.js')
-    assert.match(details, /28 августа 2026/)
+    assert.match(details, /2 сентября 2026/)
   })
 })

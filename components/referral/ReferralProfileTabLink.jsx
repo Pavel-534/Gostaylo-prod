@@ -27,6 +27,7 @@ import {
 } from '@/lib/ui/mobile-flat-canvas'
 import { toast } from 'sonner'
 import { HostReferralCard } from '@/components/referral/HostReferralCard'
+import { HostReferralJourney } from '@/components/referral/HostReferralJourney'
 
 const CHANNEL_LABEL_KEYS = {
   telegram: 'stage192_utmChannelTelegram',
@@ -114,6 +115,7 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
   return (
     <div className="space-y-6" data-testid="referral-link-tab-v2">
       <HostReferralCard data={data} t={t} />
+      <HostReferralJourney data={data} t={t} />
 
       <Card className={MOBILE_FLAT_CARD_CLASS}>
         <CardHeader className={MOBILE_FLAT_CARD_HEADER_CLASS}>

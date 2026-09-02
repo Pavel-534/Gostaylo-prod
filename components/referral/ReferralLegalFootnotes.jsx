@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 /**
- * Stage 202.33 — collapsible compliance footnotes (earnings tab).
+ * Stage 202.33 / 202.37 — collapsible compliance footnotes (earnings tab).
  *
  * @param {{
  *   t: (key: string, ctx?: object) => string,
@@ -38,6 +38,10 @@ export function ReferralLegalFootnotes({ t, monthlyInviteLimit, brandName, class
       </button>
       {open ? (
         <ul className="space-y-2 border-t border-slate-200/80 px-4 py-3 text-[11px] leading-relaxed text-slate-600">
+          <li data-testid="referral-disclaimer-host-disclosure">{t('hostReferralDisclosure')}</li>
+          <li data-testid="referral-disclaimer-anti-spam">{t('referralAntiSpam')}</li>
+          <li data-testid="referral-disclaimer-no-social">{t('referralNoSocialHousing')}</li>
+          <li data-testid="referral-disclaimer-no-paid">{t('referralNoPaidPromotion')}</li>
           <li data-testid="referral-disclaimer-invite-limit">
             {t('referralInviteLimit', { limit: String(limitText) })}
           </li>

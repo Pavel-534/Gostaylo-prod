@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
 import { formatAmbassadorShareLink } from '@/lib/referral/ambassador-utm-link'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
 import { cn } from '@/lib/utils'
 import {
   MOBILE_FLAT_CARD_CLASS,
@@ -32,6 +33,7 @@ function round2(value) {
  */
 export function HostReferralCard({ data, t, className }) {
   const [shareBusy, setShareBusy] = useState(false)
+  const referralPublicSimple = isSimpleReferralPublicMode()
   const brand = String(data?.brandName || '').trim() || getSiteDisplayName()
   const estimator = data?.referralEstimator || {}
 
@@ -123,10 +125,16 @@ export function HostReferralCard({ data, t, className }) {
       </CardHeader>
       <CardContent className={cn(MOBILE_FLAT_CARD_CONTENT_CLASS, 'space-y-3')}>
         <p className="text-sm leading-relaxed text-slate-700">
-          {renderWithAmounts('hostReferralCard_subtitle', subtitleCtx)}
+          {renderWithAmounts(
+            referralPublicSimple ? 'hostReferralCard_subtitle_simple' : 'hostReferralCard_subtitle',
+            subtitleCtx,
+          )}
         </p>
         <p className="text-xs leading-relaxed text-slate-500">
           {renderWithAmounts('hostReferralCard_example', exampleCtx)}
+        </p>
+        <p className="text-[11px] leading-relaxed text-slate-400" data-testid="host-referral-example-disclaimer">
+          {t('hostReferralCard_exampleDisclaimer')}
         </p>
         <Button
           type="button"

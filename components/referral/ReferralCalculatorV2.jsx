@@ -15,6 +15,7 @@ import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-displa
 import { convertAmountThbWithMap } from '@/lib/finance/currency-converter-shared'
 import { formatNativeAmountInCurrency } from '@/lib/currency'
 import { cn } from '@/lib/utils'
+import { isSimpleReferralPublicMode } from '@/lib/compliance/referral-public-mode.js'
 import { Loader2 } from 'lucide-react'
 
 /**
@@ -103,6 +104,7 @@ export function ReferralCalculatorV2({
 }) {
   const { language } = useI18n()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
+  const bankSimple = isSimpleReferralPublicMode()
   const { convertDisplayToThb, currency: displayCurrency, rateMap } = useReferralLedgerDisplay()
 
   const formatMoney = useCallback(
@@ -135,7 +137,7 @@ export function ReferralCalculatorV2({
       guestFeePercent: '15',
       guestPaymentMode,
       l1BookingsCount: String(orders),
-      l2ConversionRate: String(activityRate),
+      l2ConversionRate: bankSimple ? '0' : String(activityRate),
     })
 
     setLoading(true)
@@ -155,7 +157,7 @@ export function ReferralCalculatorV2({
     } finally {
       setLoading(false)
     }
-  }, [ordersArr, avgArr, activityRate, convertDisplayToThb, displayCurrency])
+  }, [ordersArr, avgArr, activityRate, convertDisplayToThb, displayCurrency, bankSimple])
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -172,8 +174,8 @@ export function ReferralCalculatorV2({
   const l3Locked = l3LockedByPartners || l3LockedByFlag || Number(result?.l3TotalThb || 0) <= 0
 
   const l1Total = Number(result?.l1TotalThb || 0)
-  const l2Total = Number(result?.l2TotalThb || 0)
-  const l3Total = l3Locked ? 0 : Number(result?.l3TotalThb || 0)
+  const l2Total = bankSimple ? 0 : Number(result?.l2TotalThb || 0)
+  const l3Total = bankSimple || l3Locked ? 0 : Number(result?.l3TotalThb || 0)
   const yourTotal = round2(l1Total + l2Total + l3Total)
 
   const split = result?.splitPercents || {}
@@ -227,30 +229,32 @@ export function ReferralCalculatorV2({
             />
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-800">{t('calc_slider3_label')}</p>
-            <div className="grid grid-cols-4 gap-2" data-testid="calc-activity-presets">
-              {ACTIVITY_PRESETS.map((p) => {
-                const active = nearestActivityPreset(activityRate) === p.value
-                return (
-                  <button
-                    key={p.label}
-                    type="button"
-                    className={cn(
-                      'min-h-[44px] rounded-xl border text-sm font-semibold tabular-nums transition',
-                      active
-                        ? 'border-brand bg-brand text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-brand/40',
-                    )}
-                    onClick={() => setActivityRate(p.value)}
-                  >
-                    {p.label}
-                  </button>
-                )
-              })}
+          {!bankSimple ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-800">{t('calc_slider3_label')}</p>
+              <div className="grid grid-cols-4 gap-2" data-testid="calc-activity-presets">
+                {ACTIVITY_PRESETS.map((p) => {
+                  const active = nearestActivityPreset(activityRate) === p.value
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      className={cn(
+                        'min-h-[44px] rounded-xl border text-sm font-semibold tabular-nums transition',
+                        active
+                          ? 'border-brand bg-brand text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-brand/40',
+                      )}
+                      onClick={() => setActivityRate(p.value)}
+                    >
+                      {p.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-500">{t('calc_slider3_help')}</p>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">{t('calc_slider3_help')}</p>
-          </div>
+          ) : null}
         </div>
 
         {loading && !result ? (
@@ -272,14 +276,16 @@ export function ReferralCalculatorV2({
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
               <span>
-                {t('calc_result_l1_label')}: {formatMoney(l1Total)}
+                {t(bankSimple ? 'calc_result_direct_simple' : 'calc_result_l1_label')}: {formatMoney(l1Total)}
               </span>
-              <span>
-                {t('calc_result_network_label')}: {formatMoney(l2Total)}
-              </span>
+              {!bankSimple ? (
+                <span>
+                  {t('calc_result_network_label')}: {formatMoney(l2Total)}
+                </span>
+              ) : null}
             </div>
 
-            {l3Locked ? (
+            {!bankSimple && l3Locked ? (
               <div
                 className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600"
                 data-testid="calc-l3-locked"
@@ -291,36 +297,38 @@ export function ReferralCalculatorV2({
                     : t('calc_l3_locked_public')}
                 </p>
               </div>
-            ) : (
+            ) : !bankSimple ? (
               <p className="text-xs text-violet-800">
                 {t('calc_result_l3_label')}: {formatMoney(l3Total)}
               </p>
-            )}
+            ) : null}
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[44px] flex-1"
-            data-testid="calc-btn-how"
-            onClick={() => setMode((m) => (m === 'detail' ? 'simple' : 'detail'))}
-          >
-            {mode === 'detail' ? t('calc_btn_close') : t('calc_btn_how')}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[44px] flex-1"
-            data-testid="calc-btn-guest"
-            onClick={() => setMode((m) => (m === 'guest' ? 'simple' : 'guest'))}
-          >
-            {mode === 'guest' ? t('calc_btn_close') : t('calc_btn_guest')}
-          </Button>
-        </div>
+        {!bankSimple ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px] flex-1"
+              data-testid="calc-btn-how"
+              onClick={() => setMode((m) => (m === 'detail' ? 'simple' : 'detail'))}
+            >
+              {mode === 'detail' ? t('calc_btn_close') : t('calc_btn_how')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px] flex-1"
+              data-testid="calc-btn-guest"
+              onClick={() => setMode((m) => (m === 'guest' ? 'simple' : 'guest'))}
+            >
+              {mode === 'guest' ? t('calc_btn_close') : t('calc_btn_guest')}
+            </Button>
+          </div>
+        ) : null}
 
-        {mode === 'detail' && result ? (
+        {!bankSimple && mode === 'detail' && result ? (
           <div
             className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm"
             data-testid="calc-detail-panel"
@@ -412,7 +420,7 @@ export function ReferralCalculatorV2({
           </div>
         ) : null}
 
-        {mode === 'guest' && result ? (
+        {!bankSimple && mode === 'guest' && result ? (
           <div
             className="space-y-2 rounded-2xl border border-teal-200 bg-teal-50/60 px-4 py-4 text-sm"
             data-testid="calc-guest-panel"

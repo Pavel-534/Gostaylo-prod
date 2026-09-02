@@ -156,7 +156,7 @@ export function ProfileInfo({
               <span className="min-w-0">Станьте партнёром {getSiteDisplayName()}</span>
             </CardTitle>
             <CardDescription>
-              Публикуйте объявления и получайте доход. Сейчас основной фокус — Таиланд и Россия.
+              Публикуйте объявления и получайте доход. Основной рынок — Россия.
             </CardDescription>
           </CardHeader>
           <CardContent className={MOBILE_FLAT_CARD_CONTENT_CLASS}>

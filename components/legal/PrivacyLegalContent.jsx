@@ -16,7 +16,7 @@ export default function PrivacyLegalContent() {
       <LegalDocShell
         eyebrow="Privacy Policy"
         title="Политика в отношении обработки персональных данных"
-        lead={`Документ описывает порядок сбора, хранения и использования информации пользователей платформы ${brand} для целей аудита платёжных партнёров и соответствия требованиям GDPR и Федерального закона РФ №152-ФЗ «О персональных данных» (далее — «152-ФЗ»).`}
+        lead={`Документ описывает порядок сбора, хранения и использования информации пользователей платформы ${brand} в соответствии с Федеральным законом РФ № 152-ФЗ «О персональных данных». Для пользователей из ЕС дополнительно применяются требования GDPR.`}
         publisher={publisher}
       >
         <RuBody supportEmail={supportEmail} />
@@ -28,7 +28,7 @@ export default function PrivacyLegalContent() {
     <LegalDocShell
       eyebrow="Privacy Policy"
       title="Personal data processing policy"
-      lead={`This document describes how ${brand} collects, stores, and uses user information for payment-partner audit purposes and compliance with GDPR and Russian Federal Law No. 152-FZ “On Personal Data” (“152-FZ”).`}
+      lead={`This document describes how ${brand} collects, stores, and uses user information under Russian Federal Law No. 152-FZ “On Personal Data”. For users in the EU, GDPR requirements also apply.`}
       publisher={publisher}
       disclaimer={<LegalTranslationDisclaimer onShowRussian={showRussian} />}
     >
