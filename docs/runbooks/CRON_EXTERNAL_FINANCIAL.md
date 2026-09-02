@@ -15,10 +15,10 @@ Partner **auto bank payouts remain Concierge/manual** until ops are proven; `pay
 
 | Route | Method | Hobby: Vercel `vercel.json` | cron-job.org schedule |
 |-------|--------|----------------------------|------------------------|
-| `/api/cron/escrow-thaw` | POST | Daily 00:00 UTC (fallback) | **Every hour** |
-| `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (fallback) | **Every hour** (AUDIT_03 C3.4 + intents/crypto heal) |
+| `/api/cron/escrow-thaw` | POST | Daily 00:00 UTC (Vercel GET runs job — Stage **202.31**) | **Every hour** |
+| `/api/cron/reconcile-confirmed-payments` | POST | Daily 00:00 UTC (Vercel GET runs job — **202.31**) | **Every hour** (AUDIT_03 C3.4 + intents/crypto heal) |
 | `/api/cron/reconcile-yookassa-pending` | POST | Daily 02:00 UTC (fallback) | **Every 10 min** `*/10 * * * *` (Stage 202.7 — INITIATED MIR poll) |
-| `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** | **Every hour** |
+| `/api/cron/promote-ready-for-payout` | POST | **Not in vercel.json** (GET runs job — **202.31**) | **Every hour** |
 | `/api/cron/payout-batch-pools` | POST | **Not in vercel.json** | Mon & Thu 07:00 UTC (draft pool only) |
 | `/api/cron/financial-health-monitor` | GET or POST | Daily 06:30 UTC (Vercel GET runs scan — Stage **202.10**) | Daily optional POST duplicate |
 | `/api/cron/ledger-shadow-reconcile` | GET or POST | Daily 06:45 UTC (Vercel GET runs job — **202.10**) | Daily 06:45 UTC optional POST backup (ADR-203 Phase 1) |

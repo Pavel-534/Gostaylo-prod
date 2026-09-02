@@ -24,6 +24,12 @@ const STEPS = [
   { key: 'stage91_loyaltyStep3Title', bodyKey: 'stage91_loyaltyStep3Body', Icon: Share2, tone: 'bg-slate-800' },
 ]
 
+function isZeroOrPlaceholderDisplay(formatted) {
+  const s = String(formatted || '').trim()
+  if (!s || s === '…') return true
+  return /(?:₽|RUB|\$|€|£|¥|฿)\s*0(?:[.,]0+)?\s*$|^0(?:[.,]0+)?\s*(?:₽|RUB|\$|€|£|¥|฿)?$/i.test(s)
+}
+
 /**
  * @param {{ welcomeBonusThb: number, brandDisplayName: string }} props
  */
@@ -31,7 +37,7 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
   const searchParams = useSearchParams()
   const { language, setLanguage } = useI18n()
   const { isAuthenticated } = useAuth()
-  const { formatThbAsDisplay } = useReferralLedgerDisplay()
+  const { formatThbAsDisplay, fxReady } = useReferralLedgerDisplay()
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
 
   useEffect(() => {
@@ -42,7 +48,11 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
   }, [searchParams, language, setLanguage])
 
   const welcomeAmount = formatThbAsDisplay(welcomeBonusThb)
-  const step2Ctx = useMemo(() => ({ welcomeAmount }), [welcomeAmount])
+  const showWelcomeAmount =
+    Number(welcomeBonusThb) > 0 &&
+    !isZeroOrPlaceholderDisplay(welcomeAmount) &&
+    (fxReady || String(welcomeAmount).includes('฿'))
+  const step2AmountCtx = useMemo(() => ({ welcomeAmount }), [welcomeAmount])
 
   return (
     <div className="min-h-screen bg-brand-surface">
@@ -64,8 +74,7 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
         <ol className="space-y-4">
           {STEPS.map((step, idx) => {
             const Icon = step.Icon
-            const titleKey = step.key
-            const ctx = titleKey === 'stage91_loyaltyStep2Title' || step.bodyKey === 'stage91_loyaltyStep2Body' ? step2Ctx : undefined
+            const isStep2 = step.key === 'stage91_loyaltyStep2Title'
             return (
               <li key={step.key}>
                 <Card className={cn(MOBILE_FLAT_CARD_CLASS, 'overflow-hidden')}>
@@ -79,8 +88,13 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
                       </div>
                       <div className="min-w-0 space-y-1">
                         <p className="text-xs font-semibold text-slate-400 tabular-nums">0{idx + 1}</p>
-                        <h2 className="text-lg font-semibold text-slate-900 break-words">{t(titleKey, ctx)}</h2>
-                        <p className="text-sm text-slate-600 leading-relaxed break-words">{t(step.bodyKey, ctx)}</p>
+                        <h2 className="text-lg font-semibold text-slate-900 break-words">{t(step.key)}</h2>
+                        <p className="text-sm text-slate-600 leading-relaxed break-words">{t(step.bodyKey)}</p>
+                        {isStep2 && showWelcomeAmount ? (
+                          <p className="text-sm font-medium text-brand break-words">
+                            {t('stage91_loyaltyStep2AmountLine', step2AmountCtx)}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </CardContent>

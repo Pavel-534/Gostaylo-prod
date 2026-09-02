@@ -461,6 +461,21 @@ export async function GET(request) {
     100,
     Math.max(0, Number(fintechCfg?.ambassadorGuestPoolL1Percent ?? 45)),
   );
+  const partnerActivationBonusThb = Math.min(
+    1_000_000,
+    Math.max(0, Number(fintechCfg?.partnerActivationBonusThb ?? fintechCfg?.partner_activation_bonus_thb ?? 500)),
+  );
+  const mlmLevel1Percent = Math.min(
+    100,
+    Math.max(0, Number(fintechCfg?.mlmLevel1Percent ?? fintechCfg?.mlm_level1_percent ?? 70)),
+  );
+  const referralMonthlyLimitRaw = Number(
+    general?.referral_monthly_limit_per_user ?? general?.referralMonthlyLimitPerUser,
+  );
+  const referralMonthlyLimitPerUser =
+    Number.isFinite(referralMonthlyLimitRaw) && referralMonthlyLimitRaw >= 1
+      ? Math.min(500, Math.floor(referralMonthlyLimitRaw))
+      : 30;
 
   const { directReferrerId, referredBy } = await resolveDirectReferrerForUser(profile.id);
 
@@ -593,6 +608,9 @@ export async function GET(request) {
         ambassadorGuestPoolL1Percent,
         ambassadorGuestPoolL2Percent: Number(fintechCfg?.ambassadorGuestPoolL2Percent ?? 12),
         ambassadorGuestPoolRefereePercent: Number(fintechCfg?.ambassadorGuestPoolRefereePercent ?? 43),
+        partnerActivationBonusThb,
+        mlmLevel1Percent,
+        referralMonthlyLimitPerUser,
       },
     },
   });

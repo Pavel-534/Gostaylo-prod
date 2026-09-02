@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.263 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.30** me/rank perf.
+> **Version**: 13.2.265 | **Last Updated**: 2026-09-01 | **Tip of tree:** Stage **202.32** referral leaderboard smoke filter.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,19 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.33 — Referral UX quick wins + compliance copy (UI-only)
+- `/about/loyalty` step 2 — static title (no `{welcomeAmount}` / fake ₽0); optional amount line when FX ready.
+- Roadmap i18n — L3 without «live»; Verified-by item removed; squad quests lock tooltip.
+- `HostReferralCard` on Link tab — supply-side activation from `referral/me.referralEstimator` (`partnerActivationBonusThb`, `mlmLevel1Percent`).
+- `ReferralLegalFootnotes` collapsible on earnings tab — monthly invite limit (SSOT), tax, no-agency disclaimers × 4 langs (`referral-disclaimers.js`).
+
+### Stage 202.32 — Referral leaderboard excludes smoke referrers
+- `aggregateReferralLeaderboardFromDb` / `alltime` — skip `isTestProfileId` referrers (e.g. AUDIT_02 `user-smoke-a02-p` / `A02Partner`); over-fetch before filter so top-N stays filled.
+
+### Stage 202.31 — Ops TG alert hygiene (cron + shadow reconcile)
+- Money crons `escrow-thaw`, `reconcile-confirmed-payments`, `promote-ready-for-payout` — **GET = POST** (Vercel daily fallback writes `ops_job_runs` success; idempotent).
+- `ledger_shadow_reconcile` — skip `user-smoke-*` / fintech test partner ids (`isFintechTestEntityId`) → no `[LEDGER_DRIFT]` spam from AUDIT_02 smoke.
 
 ### Stage 202.28 — Listing country change geo (Ulan-Ude)
 - `resolveListingGeoWriteCascadeInput` — при смене `country_code` сбрасываются stale `region_code`/`city_code` (TH→RU fix).

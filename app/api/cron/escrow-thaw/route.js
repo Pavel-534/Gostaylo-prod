@@ -2,6 +2,8 @@
  * POST /api/cron/escrow-thaw
  * PAID_ESCROW → THAWED when escrow_thaw_at <= now (category rules in lib/escrow-thaw-rules.js).
  * Replaces automatic bank payout: partners withdraw via Request Payout only.
+ *
+ * Stage 202.31 — GET runs the same job as POST (Vercel Cron is GET-only; daily Hobby fallback).
  */
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +16,7 @@ import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 import { resolveEscrowThawOps } from '@/lib/ops/ops-job-outcome.js';
 import { runStaleCronMonitor } from '@/lib/ops/stale-cron-monitor.js';
 
-export async function POST(request) {
+async function runEscrowThawCron(request) {
   const denied = assertCronAuthorized(request);
   if (denied) return denied;
   const run = await startOpsJobRun('escrow-thaw');
@@ -57,11 +59,10 @@ export async function POST(request) {
   }
 }
 
+export async function POST(request) {
+  return runEscrowThawCron(request);
+}
+
 export async function GET(request) {
-  const denied = assertCronAuthorized(request);
-  if (denied) return denied;
-  return NextResponse.json({
-    success: true,
-    message: 'Escrow thaw cron — moves PAID_ESCROW → THAWED when due',
-  });
+  return runEscrowThawCron(request);
 }

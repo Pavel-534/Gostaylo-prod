@@ -6,6 +6,8 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.33 | 2026-09-02 | Referral UX: loyalty ₽0 fix, roadmap honesty, host card, compliance footnotes | Done |
+| 202.31 | 2026-09-01 | Ops TG: money cron GET=run + shadow reconcile skips smoke partners | Done |
 | 202.28 | 2026-09-01 | Listing country-change geo reset + Ulan-Ude in launch seed | Done |
 | 202.30 | 2026-09-01 | me/rank perf: referral_user_rank_for_period RPC + legacy fallback | Done |
 | 202.29b | 2026-09-01 | Community i18n: quests disclaimer without THB literal + campaign settings i18n | Done |

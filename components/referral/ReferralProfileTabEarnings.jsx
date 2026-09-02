@@ -13,6 +13,7 @@ import {
 import { ReferralMonthlyGoalCard } from '@/components/referral/ReferralMonthlyGoalCard'
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { ReferralLedgerAmount } from '@/components/referral/ReferralLedgerAmount'
+import { ReferralLegalFootnotes } from '@/components/referral/ReferralLegalFootnotes'
 import { useReferralLedgerDisplay } from '@/lib/hooks/use-referral-ledger-display'
 
 export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
@@ -109,6 +110,12 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
           </CardContent>
         </Card>
       </div>
+
+      <ReferralLegalFootnotes
+        t={t}
+        brandName={data?.brandName}
+        monthlyInviteLimit={data?.referralEstimator?.referralMonthlyLimitPerUser}
+      />
     </div>
   )
 }

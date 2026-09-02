@@ -7,6 +7,8 @@
  *
  * Vercel Hobby: daily fallback in vercel.json only.
  * Production cadence: cron-job.org hourly — see docs/runbooks/CRON_EXTERNAL_FINANCIAL.md
+ *
+ * Stage 202.31 — GET runs the same job as POST (Vercel Cron is GET-only).
  */
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +20,7 @@ import { runReconcileConfirmedPaymentsCron } from '@/lib/payment/reconcile-confi
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { runStaleCronMonitor } from '@/lib/ops/stale-cron-monitor.js'
 
-export async function POST(request) {
+async function runReconcileConfirmedPaymentsHandler(request) {
   const denied = assertCronAuthorized(request)
   if (denied) return denied
 
@@ -86,12 +88,10 @@ export async function POST(request) {
   }
 }
 
+export async function POST(request) {
+  return runReconcileConfirmedPaymentsHandler(request)
+}
+
 export async function GET(request) {
-  const denied = assertCronAuthorized(request)
-  if (denied) return denied
-  return NextResponse.json({
-    success: true,
-    message:
-      'Heals payments.CONFIRMED + payment_intents.PAID + CRYPTO+txid when booking is not yet in escrow (moveToEscrow retry)',
-  })
+  return runReconcileConfirmedPaymentsHandler(request)
 }

@@ -46,3 +46,25 @@ test('financial-health-monitor GET runs the same scan as POST', () => {
   assert.match(src, /return runFinancialHealthCron\(request\)/)
   assert.doesNotMatch(src, /Scans PENDING_FISCAL/)
 })
+
+test('Stage 202.31 — money crons GET run the same handler as POST', () => {
+  for (const [file, handler] of [
+    ['app/api/cron/escrow-thaw/route.js', 'runEscrowThawCron'],
+    ['app/api/cron/reconcile-confirmed-payments/route.js', 'runReconcileConfirmedPaymentsHandler'],
+    ['app/api/cron/promote-ready-for-payout/route.js', 'runPromoteReadyForPayoutCron'],
+  ]) {
+    const src = readFileSync(join(root, file), 'utf8')
+    assert.match(src, new RegExp(handler))
+    assert.match(src, /export async function GET/)
+    assert.match(src, new RegExp(`return ${handler}\\(request\\)`))
+    assert.doesNotMatch(src, /message: 'Escrow thaw cron/)
+    assert.doesNotMatch(src, /message:\s*\n\s*'Heals payments/)
+    assert.doesNotMatch(src, /message: 'Promotes THAWED/)
+  }
+})
+
+test('ledger shadow reconcile skips fintech test partner ids', () => {
+  const src = readFileSync(join(root, 'lib/ops/ledger-shadow-reconcile.js'), 'utf8')
+  assert.match(src, /isFintechTestEntityId/)
+  assert.match(src, /filter\(\(id\) => !isFintechTestEntityId\(id\)\)/)
+})

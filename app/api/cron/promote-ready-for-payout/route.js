@@ -2,6 +2,8 @@
  * Platform cron — POST /api/cron/promote-ready-for-payout
  * THAWED → READY_FOR_PAYOUT after 24h hold (Stage 98).
  * Run hourly via cron-job.org (see docs/CRON_EXTERNAL_FINANCIAL.md).
+ *
+ * Stage 202.31 — GET runs the same job as POST (external / manual GET probes).
  */
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +22,7 @@ function resolvePromoteOps(result) {
   return { status: 'success', errorMessage: null }
 }
 
-export async function POST(request) {
+async function runPromoteReadyForPayoutCron(request) {
   const denied = assertCronAuthorized(request)
   if (denied) return denied
 
@@ -54,11 +56,10 @@ export async function POST(request) {
   }
 }
 
+export async function POST(request) {
+  return runPromoteReadyForPayoutCron(request)
+}
+
 export async function GET(request) {
-  const denied = assertCronAuthorized(request)
-  if (denied) return denied
-  return NextResponse.json({
-    success: true,
-    message: 'Promotes THAWED bookings to READY_FOR_PAYOUT after 24h escrow_thawed_at',
-  })
+  return runPromoteReadyForPayoutCron(request)
 }
