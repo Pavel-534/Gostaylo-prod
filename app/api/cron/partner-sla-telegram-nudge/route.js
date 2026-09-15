@@ -9,6 +9,7 @@ import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 export async function POST(request) {
   const denied = assertCronAuthorized(request)

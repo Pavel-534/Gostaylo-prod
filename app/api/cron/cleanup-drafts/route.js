@@ -45,6 +45,8 @@ import {
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+/** Heavy janitor — allow up to 60s (cron-job.org timeout must be ≥60s). */
+export const maxDuration = 60;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -470,9 +472,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });
     }
     
-    const allInactive = await listingsRes.json();
-    
-    const draftCandidates = (allInactive || []).filter((listing) =>
+    const allInactiveRaw = await listingsRes.json();
+    const allInactive = Array.isArray(allInactiveRaw) ? allInactiveRaw : [];
+    if (!Array.isArray(allInactiveRaw)) {
+      console.warn(
+        '[CLEANUP] listings response was not an array:',
+        typeof allInactiveRaw,
+        allInactiveRaw && typeof allInactiveRaw === 'object'
+          ? String(allInactiveRaw.message || allInactiveRaw.error || '').slice(0, 200)
+          : '',
+      );
+    }
+
+    const draftCandidates = allInactive.filter((listing) =>
       isListingDraftMetadata(listing.metadata),
     );
     const expiredDrafts = draftCandidates.filter((listing) => shouldDeleteExpiredDraft(listing));
@@ -583,92 +595,9 @@ export async function POST(request) {
 
 /**
  * GET /api/cron/cleanup-drafts
- * Status endpoint - shows what would be cleaned up (dry run)
+ * Stage 202.41 — same as POST (cron-job.org / Vercel Cron often GET-only).
+ * Previously GET was a dry-run that crashed on non-array PostgREST errors and spammed TG every few minutes.
  */
 export async function GET(request) {
-  const denied = assertCronAuthorized(request);
-  if (denied) return denied;
-  try {
-    const cutoffISO = draftCleanupCandidateCutoffIso();
-
-    const listingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?status=eq.INACTIVE&updated_at=lt.${cutoffISO}&select=id,title,description,images,metadata,updated_at,import_platform`,
-      {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      }
-    );
-
-    const allInactive = await listingsRes.json();
-    const draftCandidates = (allInactive || []).filter((l) => isListingDraftMetadata(l.metadata));
-    const expiredDrafts = draftCandidates.filter((l) => shouldDeleteExpiredDraft(l));
-    const bookingSlaCutoffIso = withHoursAgo(PARTNER_RESPONSE_SLA_HOURS);
-    const { count: staleBookingCount } = await supabaseAdmin
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .in('status', DRAFT_CLEANUP_STALE_BOOKING_STATUSES)
-      .lt('created_at', bookingSlaCutoffIso);
-    const { data: pendingInvoices } = await supabaseAdmin
-      .from('invoices')
-      .select('id,metadata,created_at,status')
-      .eq('status', 'pending')
-      .limit(1000);
-    const expiredInvoiceCount = (pendingInvoices || []).reduce((acc, row) => {
-      const expiryIso = resolveInvoiceExpiryIso(row);
-      const expiryMs = Date.parse(String(expiryIso || ''));
-      if (Number.isFinite(expiryMs) && expiryMs < Date.now()) return acc + 1;
-      return acc;
-    }, 0);
-
-    const evidenceCutoffMs =
-      Date.now() - DISPUTE_EVIDENCE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-    const { data: terminalDisputes } = await supabaseAdmin
-      .from('disputes')
-      .select('id, resolved_at, updated_at, metadata')
-      .in('status', TERMINAL_DISPUTE_STATUSES)
-      .limit(500);
-    const disputeEvidenceEligible = (terminalDisputes || []).filter((row) => {
-      const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
-      if (meta.dispute_evidence_storage_purged_at) return false;
-      const refMs = disputeClosedReferenceMs(row);
-      return Number.isFinite(refMs) && refMs <= evidenceCutoffMs;
-    }).length;
-
-    const totalImages = expiredDrafts.reduce((sum, d) => sum + (d.images?.length || 0), 0);
-
-    return NextResponse.json({
-      ok: true,
-      service: 'Draft Cleanup Cron',
-      dryRun: true,
-      stats: {
-        draftCandidates: draftCandidates.length,
-        expiredDrafts: expiredDrafts.length,
-        totalImages: totalImages,
-        cutoffDate: cutoffISO,
-        emptyExpiryDays: DRAFT_EMPTY_DAYS,
-        contentfulExpiryDays: DRAFT_CONTENTFUL_DAYS,
-        expiryDays: DRAFT_CONTENTFUL_DAYS,
-        staleBookingsByPartnerSla24h: Number(staleBookingCount || 0),
-        expiredPendingInvoices: expiredInvoiceCount,
-        disputeEvidenceRetentionEligible: disputeEvidenceEligible,
-        disputeEvidenceRetentionDays: DISPUTE_EVIDENCE_RETENTION_DAYS,
-      },
-      drafts: expiredDrafts.map((d) => ({
-        id: d.id,
-        title: d.title,
-        imagesCount: d.images?.length || 0,
-        lastUpdated: d.updated_at,
-      })),
-    });
-  } catch (error) {
-    void notifySystemAlert(
-      `⏰ <b>Cron: cleanup-drafts</b> (GET dry-run)\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
-    );
-    return NextResponse.json({
-      error: 'Failed to check drafts',
-      message: error.message,
-    }, { status: 500 });
-  }
+  return POST(request);
 }

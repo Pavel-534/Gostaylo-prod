@@ -7,6 +7,7 @@
  */
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
@@ -42,11 +43,18 @@ export async function POST(request) {
         : null,
     })
 
-    if (errCount > 0 || failed) {
-      void notifySystemAlert(
-        `🔧 <b>Cron: reconcile-yookassa-pending</b> — ${escapeSystemAlertHtml(result.summary || '')}\n` +
-          `<code>${escapeSystemAlertHtml(JSON.stringify(result.errors || []).slice(0, 400))}</code>`,
-      )
+    if (errCount > 0 || (failed && result.error)) {
+      const detail =
+        errCount > 0
+          ? JSON.stringify(result.errors || []).slice(0, 400)
+          : String(result.error || '')
+      // Skip empty "[]" noise (no real failure detail).
+      if (detail && detail !== '[]') {
+        void notifySystemAlert(
+          `🔧 <b>Cron: reconcile-yookassa-pending</b> — ${escapeSystemAlertHtml(result.summary || '')}\n` +
+            `<code>${escapeSystemAlertHtml(detail)}</code>`,
+        )
+      }
     }
 
     void runStaleCronMonitor().catch(() => {})

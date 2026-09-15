@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.269 | **Last Updated**: 2026-09-03 | **Tip of tree:** Stage **202.40** host activation L1 full.
+> **Version**: 13.2.270 | **Last Updated**: 2026-09-16 | **Tip of tree:** Stage **202.41** ops TG spam hygiene.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.41 — Ops TG spam hygiene
+- `notifySystemAlert` — skip Gateway Timeout / AbortError / fetch-failed blips (`isTransientOpsError`); STALE_CRON still catches real outages.
+- `cleanup-drafts` — GET=POST, `Array.isArray` listings guard, `maxDuration=60` (was crashing dry-run `.filter` on PostgREST error objects → TG spam).
+- `reconcile-yookassa-pending` — no alert when errors payload is empty `[]`.
+- Money/ops crons — `maxDuration=60` where missing (escrow-thaw, yookassa, financial-health, ledger-shadow, partner-sla).
 
 ### Stage 202.40 — Host activation 100% L1 + pot 760 THB
 

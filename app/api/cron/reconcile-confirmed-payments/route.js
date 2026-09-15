@@ -12,6 +12,7 @@
  */
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'

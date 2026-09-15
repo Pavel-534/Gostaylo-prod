@@ -20,7 +20,7 @@ SSOT: **`lib/cron/verify-cron-secret.js`** — `assertCronAuthorized`
 - `CRON_SECRET` not set on server → **503**
 - Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` when the env var is configured.
 
-**cron-job.org:** Request method **GET** or **POST** (both supported on most routes). Set scheduler timeout **≥ 60 s** for `ical-sync`, `draft-digest`, `notification-outbox`.
+**cron-job.org:** Request method **GET** or **POST** (both supported on most routes). Set scheduler timeout **≥ 60 s** for **all** money/janitor jobs (`escrow-thaw`, `promote-ready-for-payout`, `reconcile-*`, `cleanup-drafts`, `financial-health-monitor`, `ledger-shadow-reconcile`, `ical-sync`, `draft-digest`, `notification-outbox`, `partner-sla-telegram-nudge`). **Do not leave the default 30 s** — it causes client-side «тайм-аут (30 с)», missed `ops_job_runs` success, and `[STALE_CRON]` Telegram spam.
 
 ## Naming on cron-job.org
 
@@ -60,7 +60,7 @@ See **`docs/CRON_EXTERNAL_FINANCIAL.md`** for escrow / payout / financial-health
 | `Airento: checkin-reminder` | `/api/cron/checkin-reminder` | Daily (align with listing TZ; e.g. 07:00 UTC) | `0 0 * * *` |
 | `Airento: review-reminder` | `/api/cron/review-reminder` | Daily | `0 0 * * *` |
 | `Airento: draft-digest` | `/api/cron/draft-digest` | Daily (e.g. `0 8 * * *` UTC) | `0 0 * * *` |
-| `Airento: cleanup-drafts` | `/api/cron/cleanup-drafts` | Daily | `0 0 * * *` |
+| `Airento: cleanup-drafts` | `/api/cron/cleanup-drafts` | **Daily** (never `*/5` — heavy janitor; Stage 202.41 GET=POST) | `0 0 * * *` |
 | `Airento: escrow-thaw` | `/api/cron/escrow-thaw` | Hourly (external) | `0 0 * * *` |
 | `Airento: financial-health-monitor` | `/api/cron/financial-health-monitor` | `30 6 * * *` UTC | `30 6 * * *` |
 | `Airento: partner-client-review-invite` | `/api/cron/partner-client-review-invite` | Daily | `30 0 * * *` |
