@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.42 | 2026-09-18 | Safe resilience: commission cache + read/TG transient retry | Done |
 | 202.41 | 2026-09-16 | Ops TG: skip Gateway Timeout spam + cleanup-drafts GET=POST | Done |
 | 202.40 | 2026-09-03 | Host activation: pot 760 THB, 100% L1 (no L2 on supply); honest copy | Done |
 | 202.39 | 2026-09-02 | Referral map UX: two earn paths (guest + host), one link; overview reorder (UI-only) | Done |

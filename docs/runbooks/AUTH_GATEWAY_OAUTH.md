@@ -62,6 +62,13 @@ NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=   # BotFather @username (Login Widget data-te
 
 Keep secrets out of client bundles unless using public anon flows documented by Supabase.
 
+### Resilience notes (Stage 202.42)
+
+- **Server must use `SUPABASE_SERVER_URL` → direct `*.supabase.co`.** Do not route `supabaseAdmin` through the RF VPS/nginx proxy; proxy blips then look like app Gateway Timeouts.
+- **Cloudflare 525 SSL handshake** on `gateway.supabase.co` is an **infra** failure (Cloudflare ↔ Supabase origin). App-level read retries soften UX; they do **not** fix broken SSL on Supabase’s edge. Check [Supabase status](https://status.supabase.com/) / project health first.
+- **Do not switch `createClient` to a Postgres pooler URL** for supabase-js. The JS client talks HTTP PostgREST; `?pgbouncer=true` / transaction pooler is for direct SQL drivers, not this stack. Wrong URL can break Auth/Realtime.
+- Safe in-app mitigations: short TTL cache on **`getCommissionRate`**, transient retry on **settings reads**, one retry on outbound **`sendTelegram`**. Money write paths stay without blanket retry.
+
 ## Checklist before going live with OAuth
 
 - [ ] Redirect URLs whitelist includes production and staging domains.

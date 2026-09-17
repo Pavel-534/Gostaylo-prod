@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.270 | **Last Updated**: 2026-09-16 | **Tip of tree:** Stage **202.41** ops TG spam hygiene.
+> **Version**: 13.2.271 | **Last Updated**: 2026-09-18 | **Tip of tree:** Stage **202.42** Supabase/TG read resilience.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,12 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.42 — Safe resilience (commission cache + read/TG retry)
+- `getCommissionRate` — `unstable_cache` ~45s for system fee snapshot; partner `custom_commission_rate` read with transient retry (formulas unchanged).
+- `readSystemSettingsByKeys` / `withTransientRetry` — max 2 attempts on Gateway Timeout / 502–504 / Abort (reads only; no money writes).
+- `sendTelegram` — one outbound Bot API retry on transient timeout (not inbound webhook).
+- Runbook: `docs/runbooks/AUTH_GATEWAY_OAUTH.md` — 525/pooler notes (infra, not createClient knob).
 
 ### Stage 202.41 — Ops TG spam hygiene
 - `notifySystemAlert` — skip Gateway Timeout / AbortError / fetch-failed blips (`isTransientOpsError`); STALE_CRON still catches real outages.
