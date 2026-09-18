@@ -77,6 +77,10 @@ const nextConfig = {
       } else {
         config.externals = [pdfkitExt]
       }
+    } else {
+      // Stage 202.43 — airento.ru VPS proxy can be slow on `/_next/static` map chunks.
+      config.output = config.output || {}
+      config.output.chunkLoadTimeout = 180_000
     }
     return config
   },

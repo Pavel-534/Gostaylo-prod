@@ -68,6 +68,7 @@ Keep secrets out of client bundles unless using public anon flows documented by 
 - **Cloudflare 525 SSL handshake** on `gateway.supabase.co` is an **infra** failure (Cloudflare ↔ Supabase origin). App-level read retries soften UX; they do **not** fix broken SSL on Supabase’s edge. Check [Supabase status](https://status.supabase.com/) / project health first.
 - **Do not switch `createClient` to a Postgres pooler URL** for supabase-js. The JS client talks HTTP PostgREST; `?pgbouncer=true` / transaction pooler is for direct SQL drivers, not this stack. Wrong URL can break Auth/Realtime.
 - Safe in-app mitigations: short TTL cache on **`getCommissionRate`**, transient retry on **settings reads**, one retry on outbound **`sendTelegram`**. Money write paths stay without blanket retry.
+- **Catalog / map ChunkLoadError** (Stage 202.43): webpack `Loading chunk … (timeout)` on `airento.ru/_next/static/*` is usually the **VPS→Vercel** hop (or stale hash after deploy), not `/api/v2/listings/search`. App retries the dynamic import once and hard-reloads on segment error; still check nginx `proxy_read_timeout` / disk / upstream if timeouts persist.
 
 ## Checklist before going live with OAuth
 

@@ -2,6 +2,7 @@
 
 /**
  * Error Boundary for /listings segment — Stage 199.3 One Surface.
+ * Stage 202.43 — ChunkLoadError / proxy timeout → hard reload (soft reset cannot recover).
  */
 
 import { useEffect } from 'react'
@@ -9,18 +10,30 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { StorefrontStateView } from '@/components/product/StorefrontStateView'
 import { isUnresolvedI18nKey } from '@/lib/i18n/is-unresolved-i18n-key'
+import { isClientNavFailure } from '@/lib/navigation/is-client-nav-failure'
+import { hardReloadForChunkFailure } from '@/lib/navigation/chunk-load-reload.js'
 
 export default function ListingsError({ error, reset }) {
   const { language } = useI18n()
+  const hardReloadOnRetry = isClientNavFailure(error)
 
   useEffect(() => {
     console.error('[Listings Error]', error)
+    hardReloadForChunkFailure(error)
   }, [error])
 
   const titleRaw = getUIText('loadError', language)
   const bodyRaw = getUIText('listingsSegmentError_body', language)
   const retryRaw = getUIText('retry', language)
   const homeRaw = getUIText('backToHome', language)
+
+  const onPrimaryClick = () => {
+    if (hardReloadOnRetry && typeof window !== 'undefined') {
+      window.location.reload()
+      return
+    }
+    reset()
+  }
 
   return (
     <StorefrontStateView
@@ -33,7 +46,7 @@ export default function ListingsError({ error, reset }) {
           : bodyRaw
       }
       primaryLabel={isUnresolvedI18nKey(retryRaw, 'retry') ? 'Try again' : retryRaw}
-      onPrimaryClick={reset}
+      onPrimaryClick={onPrimaryClick}
       secondaryLabel={isUnresolvedI18nKey(homeRaw, 'backToHome') ? 'Home' : homeRaw}
       secondaryHref="/"
     />

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.271 | **Last Updated**: 2026-09-18 | **Tip of tree:** Stage **202.42** Supabase/TG read resilience.
+> **Version**: 13.2.272 | **Last Updated**: 2026-09-18 | **Tip of tree:** Stage **202.43** catalog ChunkLoadError resilience.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,13 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.43 — Catalog ChunkLoadError resilience (airento.ru proxy)
+- Root cause of intermittent «Ошибка загрузки» on `/listings#map`: webpack `Loading chunk … (timeout)` for `/_next/static` via VPS proxy (not search API).
+- `listings/error.jsx` — hard reload on chunk failures (soft `reset` cannot recover); auto one-shot reload.
+- `ChunkLoadResilience` mounted eagerly in `RootClientProviders` (was deferred).
+- Catalog `dynamic()` map/filter imports — one retry via `importWithChunkRetry`.
+- Client `chunkLoadTimeout` 180s for slow proxy.
 
 ### Stage 202.42 — Safe resilience (commission cache + read/TG retry)
 - `getCommissionRate` — `unstable_cache` ~45s for system fee snapshot; partner `custom_commission_rate` read with transient retry (formulas unchanged).

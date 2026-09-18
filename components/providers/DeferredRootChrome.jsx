@@ -2,11 +2,11 @@
 
 /**
  * Non-critical root chrome — deferred client chunk (Stage 171.31).
- * SW registration, chunk reload guard, toast host.
+ * SW registration, toast host.
+ * Stage 202.43 — ChunkLoadResilience moved to RootClientProviders (eager).
  */
 
 import { SwRegister } from '@/components/sw-register'
-import { ChunkLoadResilience } from '@/components/pwa/ChunkLoadResilience'
 import { CookieConsent } from '@/components/CookieConsent'
 import { Toaster } from 'sonner'
 
@@ -14,7 +14,6 @@ export function DeferredRootChrome() {
   return (
     <>
       <SwRegister />
-      <ChunkLoadResilience />
       <CookieConsent />
       <Toaster
         position="top-center"

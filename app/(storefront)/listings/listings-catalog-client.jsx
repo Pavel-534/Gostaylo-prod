@@ -74,25 +74,41 @@ import {
   navigateWithListingHeroTransition,
   prefetchListingPdp,
 } from '@/lib/navigation/listing-hero-transition'
+import { importWithChunkRetry } from '@/lib/navigation/chunk-load-reload.js'
 
 const ForYouRail = dynamic(
-  () => import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
+  () =>
+    importWithChunkRetry(() =>
+      import('@/components/recommendations/ForYouRail').then((m) => m.ForYouRail),
+    ),
   { ssr: false, loading: () => null },
 )
 const CatalogMobileMapSheet = dynamic(
-  () => import('@/components/search/CatalogMobileMapSheet').then((m) => m.CatalogMobileMapSheet),
+  () =>
+    importWithChunkRetry(() =>
+      import('@/components/search/CatalogMobileMapSheet').then((m) => m.CatalogMobileMapSheet),
+    ),
   { ssr: false, loading: () => null },
 )
 const CatalogMobileSearchSheet = dynamic(
-  () => import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
+  () =>
+    importWithChunkRetry(() =>
+      import('@/components/search/CatalogMobileSearchSheet').then((m) => m.CatalogMobileSearchSheet),
+    ),
   { ssr: false, loading: () => null },
 )
 const SearchMapWrapper = dynamic(
-  () => import('@/components/search/SearchMapWrapper').then((m) => m.SearchMapWrapper),
+  () =>
+    importWithChunkRetry(() =>
+      import('@/components/search/SearchMapWrapper').then((m) => m.SearchMapWrapper),
+    ),
   { ssr: false, loading: () => null },
 )
 const FilterBar = dynamic(
-  () => import('@/components/search/FilterBar').then((m) => m.FilterBar),
+  () =>
+    importWithChunkRetry(() =>
+      import('@/components/search/FilterBar').then((m) => m.FilterBar),
+    ),
   { ssr: true, loading: () => <HomeSearchBarSkeleton variant="filter" /> },
 )
 

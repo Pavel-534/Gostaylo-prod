@@ -12,6 +12,7 @@ import { GeoProvider } from '@/contexts/geo-context'
 import { GlobalStyles } from '@/components/providers/GlobalStyles'
 import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { RouteScrollMemoryHost } from '@/components/navigation/RouteScrollMemoryHost'
+import { ChunkLoadResilience } from '@/components/pwa/ChunkLoadResilience'
 
 const AuthProviderLazy = dynamic(
   () => import('@/contexts/auth-context').then((mod) => ({ default: mod.AuthProvider })),
@@ -30,6 +31,8 @@ export function RootClientProviders({ children, initialIsRussia }) {
   return (
     <>
       <GlobalStyles />
+      {/* Stage 202.43 — eager: must run before deferred chrome; catalog map chunks can fail first. */}
+      <ChunkLoadResilience />
       <I18nProvider>
         <CurrencyProvider>
           <GeoProvider initialIsRussia={initialIsRussia}>
