@@ -24,9 +24,14 @@ describe('public edge cache control (Stage 179.0a / 179.2a / 179.1)', () => {
   })
 
   describe('map-pins', () => {
-    it('anonymous 200 → s-maxage + SWR', () => {
+    it('anonymous browse 200 → longer s-maxage (Stage 202.44)', () => {
       const cc = mapPinsEdgeCacheControl({ viewerId: null, status: 200 })
-      assert.match(cc, /^public, s-maxage=15, stale-while-revalidate=60$/)
+      assert.match(cc, /^public, s-maxage=45, stale-while-revalidate=90$/)
+    })
+
+    it('anonymous dated 200 → short s-maxage (availability freshness)', () => {
+      const cc = mapPinsEdgeCacheControl({ viewerId: null, status: 200, hasDateFilter: true })
+      assert.match(cc, /^public, s-maxage=10, stale-while-revalidate=30$/)
     })
 
     it('logged-in 200 → private no-store (ADR-163)', () => {

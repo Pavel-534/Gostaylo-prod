@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { COOKIE_CONSENT_EVENT } from '@/lib/consent/cookie-consent-config.js'
 import {
@@ -11,10 +11,12 @@ import {
 
 /**
  * Stage 116.0 — page_view + PostHog init (opt-in via NEXT_PUBLIC_POSTHOG_KEY).
+ * Stage 202.44 — dedupe page_view per path+search (Strict Mode / consent re-fire).
  */
 export function ProductAnalyticsInit() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const lastPageViewKeyRef = useRef('')
 
   useEffect(() => {
     void initProductAnalytics()
@@ -28,6 +30,9 @@ export function ProductAnalyticsInit() {
         await initProductAnalytics()
         if (!pathname) return
         const qs = searchParams?.toString()
+        const key = `${pathname}?${qs || ''}`
+        if (lastPageViewKeyRef.current === key) return
+        lastPageViewKeyRef.current = key
         void trackProductEvent(ProductAnalyticsEvents.PAGE_VIEW, {
           path: pathname,
           search: qs || undefined,
@@ -41,6 +46,9 @@ export function ProductAnalyticsInit() {
   useEffect(() => {
     if (!pathname) return
     const qs = searchParams?.toString()
+    const key = `${pathname}?${qs || ''}`
+    if (lastPageViewKeyRef.current === key) return
+    lastPageViewKeyRef.current = key
     void trackProductEvent(ProductAnalyticsEvents.PAGE_VIEW, {
       path: pathname,
       search: qs || undefined,

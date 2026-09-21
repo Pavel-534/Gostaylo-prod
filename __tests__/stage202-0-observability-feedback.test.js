@@ -171,6 +171,8 @@ describe('Stage 202.0-C — PostHog opt-in smoke (no refactor)', () => {
     assert.match(analytics, /NEXT_PUBLIC_POSTHOG_KEY/)
     assert.match(analytics, /analyticsEnabled/)
     assert.match(analytics, /capture_pageview:\s*false/)
+    assert.match(analytics, /autocapture:\s*false/)
+    assert.match(analytics, /disable_session_recording:\s*true/)
     assert.doesNotMatch(analytics, /clarity|yandex|metrika/i)
   })
 })

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.272 | **Last Updated**: 2026-09-18 | **Tip of tree:** Stage **202.43** catalog ChunkLoadError resilience.
+> **Version**: 13.2.273 | **Last Updated**: 2026-09-21 | **Tip of tree:** Stage **202.44** PostHog/map-pins/cron empty-path hygiene.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.44 — PostHog / map-pins / cron empty-path hygiene
+- PostHog: `autocapture` + session recording off; dedupe `page_view` / `listing_view` (no fee/formula change).
+- Map-pins: anon browse CDN `s-maxage=45` (dated stays short); in-process spatial TTL 25s; overlap `getCommissionRate` with spatial work.
+- Cron: outbox empty probe skip; flash-sale SQL window filter; cleanup-drafts janitor steps via `Promise.allSettled`.
 
 ### Stage 202.43 — Catalog ChunkLoadError resilience (airento.ru proxy)
 - Root cause of intermittent «Ошибка загрузки» on `/listings#map`: webpack `Loading chunk … (timeout)` for `/_next/static` via VPS proxy (not search API).

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.44 | 2026-09-21 | PostHog/map-pins/cron empty-path hygiene (CPU + console spam) | Done |
 | 202.43 | 2026-09-18 | Catalog ChunkLoadError: hard reload + import retry (VPS static timeout) | Done |
 | 202.42 | 2026-09-18 | Safe resilience: commission cache + read/TG transient retry | Done |
 | 202.41 | 2026-09-16 | Ops TG: skip Gateway Timeout spam + cleanup-drafts GET=POST | Done |

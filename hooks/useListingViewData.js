@@ -9,7 +9,7 @@
  * (`refetchOnMount: false` in `lib/query-client.js`).
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { detectLanguage } from '@/lib/translations'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
@@ -137,24 +137,29 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     return () => window.removeEventListener('language-change', handler)
   }, [])
 
+  const trackedListingViewIdRef = useRef(null)
+
   useEffect(() => {
-    if (listing && !loading) {
-      void trackProductEvent(ProductAnalyticsEvents.LISTING_VIEW, {
-        listing_id: listing.id,
-        category_slug: listing.categorySlug || undefined,
-      })
-      recordPwaEngagement('pdp_view')
-      addToRecent({
-        id: listing.id,
-        title: listing.title,
-        district: listing.district,
-        coverImage: listing.coverImage,
-        basePriceThb: listing.basePriceThb,
-        guestDisplayPriceThb: listing.guestDisplayPriceThb,
-        rating: listing.rating,
-        reviewsCount: listing.reviewsCount,
-      })
-    }
+    const lid = listing?.id != null ? String(listing.id) : ''
+    if (!lid || loading) return
+    // Stage 202.44 — fire once per listing id (listing object identity churn must not spam PostHog).
+    if (trackedListingViewIdRef.current === lid) return
+    trackedListingViewIdRef.current = lid
+    void trackProductEvent(ProductAnalyticsEvents.LISTING_VIEW, {
+      listing_id: lid,
+      category_slug: listing.categorySlug || undefined,
+    })
+    recordPwaEngagement('pdp_view')
+    addToRecent({
+      id: listing.id,
+      title: listing.title,
+      district: listing.district,
+      coverImage: listing.coverImage,
+      basePriceThb: listing.basePriceThb,
+      guestDisplayPriceThb: listing.guestDisplayPriceThb,
+      rating: listing.rating,
+      reviewsCount: listing.reviewsCount,
+    })
   }, [listing, loading, addToRecent])
 
   return {

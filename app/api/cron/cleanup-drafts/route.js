@@ -534,19 +534,49 @@ export async function POST(request) {
     }
     
     const bookingSla = await processExpiredBookingRequests();
-    const checkoutHoldExpiry = await processExpiredAwaitingPaymentCheckouts({
-      trigger: 'cron_cleanup_drafts_checkout_hold',
-    });
-    const staleUnpaidPastCheckout = await processStaleUnpaidPastCheckout({
-      trigger: 'cron_cleanup_drafts_past_checkout',
-    });
-    const unpaidCheckoutNudge = await processUnpaidCheckoutNudges({
-      limit: 80,
-    });
-    const invoiceExpiry = await processExpiredPendingInvoices();
-    const expiredHoldPurge = await purgeExpiredCalendarHoldBlocks(supabaseAdmin);
-    const disputeEvidenceRetention = await processDisputeEvidenceRetention();
-    const disputeSla72h = await DisputeService.processSlaBreaches({ limit: 300 });
+    const [
+      checkoutHoldExpirySettled,
+      staleUnpaidPastCheckoutSettled,
+      unpaidCheckoutNudgeSettled,
+      invoiceExpirySettled,
+      expiredHoldPurgeSettled,
+      disputeEvidenceRetentionSettled,
+      disputeSla72hSettled,
+    ] = await Promise.allSettled([
+      processExpiredAwaitingPaymentCheckouts({
+        trigger: 'cron_cleanup_drafts_checkout_hold',
+      }),
+      processStaleUnpaidPastCheckout({
+        trigger: 'cron_cleanup_drafts_past_checkout',
+      }),
+      processUnpaidCheckoutNudges({
+        limit: 80,
+      }),
+      processExpiredPendingInvoices(),
+      purgeExpiredCalendarHoldBlocks(supabaseAdmin),
+      processDisputeEvidenceRetention(),
+      DisputeService.processSlaBreaches({ limit: 300 }),
+    ]);
+
+    const settledValue = (settled, label) => {
+      if (settled.status === 'fulfilled') return settled.value;
+      console.error(`[CLEANUP] ${label} failed:`, settled.reason?.message || settled.reason);
+      return { success: false, error: String(settled.reason?.message || settled.reason || 'failed') };
+    };
+
+    const checkoutHoldExpiry = settledValue(checkoutHoldExpirySettled, 'checkoutHoldExpiry');
+    const staleUnpaidPastCheckout = settledValue(
+      staleUnpaidPastCheckoutSettled,
+      'staleUnpaidPastCheckout',
+    );
+    const unpaidCheckoutNudge = settledValue(unpaidCheckoutNudgeSettled, 'unpaidCheckoutNudge');
+    const invoiceExpiry = settledValue(invoiceExpirySettled, 'invoiceExpiry');
+    const expiredHoldPurge = settledValue(expiredHoldPurgeSettled, 'expiredHoldPurge');
+    const disputeEvidenceRetention = settledValue(
+      disputeEvidenceRetentionSettled,
+      'disputeEvidenceRetention',
+    );
+    const disputeSla72h = settledValue(disputeSla72hSettled, 'disputeSla72h');
 
     const result = {
       success: true,

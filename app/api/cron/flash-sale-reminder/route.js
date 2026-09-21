@@ -8,22 +8,24 @@ export const dynamic = 'force-dynamic'
 async function runJob() {
   const nowMs = Date.now()
   const inOneHourMs = nowMs + 60 * 60 * 1000
+  const nowIso = new Date(nowMs).toISOString()
+  const inOneHourIso = new Date(inOneHourMs).toISOString()
 
+  // Stage 202.44 — only rows ending within the next hour (avoid scanning all flash promos).
   const { data, error } = await supabaseAdmin
     .from('promo_codes')
     .select('id,code,partner_id,is_flash_sale,is_active,valid_until,metadata,allowed_listing_ids')
     .eq('created_by_type', 'PARTNER')
     .eq('is_flash_sale', true)
     .eq('is_active', true)
+    .gt('valid_until', nowIso)
+    .lte('valid_until', inOneHourIso)
 
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
-  const candidates = (Array.isArray(data) ? data : []).filter((row) => {
-    const endMs = new Date(row.valid_until || '').getTime()
-    return Number.isFinite(endMs) && endMs > nowMs && endMs <= inOneHourMs
-  })
+  const candidates = Array.isArray(data) ? data : []
 
   let sent = 0
   let deduped = 0
@@ -37,7 +39,7 @@ async function runJob() {
 
   return NextResponse.json({
     success: true,
-    checked: Array.isArray(data) ? data.length : 0,
+    checked: candidates.length,
     notified: sent,
     deduped,
     candidates: candidates.length,
