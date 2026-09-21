@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.274 | **Last Updated**: 2026-09-21 | **Tip of tree:** Stage **202.45** DB hardening (indexes/RLS/RPC grants).
+> **Version**: 13.2.275 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.46** search filters price UI currency.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,9 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.46 — Search filters price label follows UI currency
+- `SearchFiltersPanel`: label + slider endpoints via `useStorefrontDisplayFx` / `getCurrencySymbol` (header SSOT). Filter values stay THB (`minPriceThb` / `max_price`).
 
 ### Stage 202.45 — DB hardening (indexes / RLS / SECURITY DEFINER grants)
 - Migration `migrations/stage202_45_db_hardening.sql` (incl. trigger-RPC revoke §6) applied on prod Supabase.

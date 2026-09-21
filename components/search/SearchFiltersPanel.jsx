@@ -3,6 +3,7 @@
 /**
  * SearchFiltersPanel — controlled filter body (ADR-102).
  * Shell-agnostic: Dialog (Phase 1) or Drawer (Phase 2).
+ * Price filter values stay THB (URL/API SSOT); labels/amounts follow header UI currency.
  */
 
 import { useMemo } from 'react'
@@ -28,6 +29,8 @@ import { cn } from '@/lib/utils'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { isYachtLikeCategory } from '@/lib/listing-category-slug'
 import { normalizeCategoryWizardProfileColumn } from '@/lib/config/category-wizard-profile-db'
+import { getCurrencySymbol } from '@/lib/currency'
+import { useStorefrontDisplayFx } from '@/lib/hooks/use-storefront-display-fx'
 
 /** Above Dialog overlay/content (z-[120]) so Select portals are interactive. */
 export const SEARCH_FILTERS_SELECT_Z = 'z-[130]'
@@ -97,11 +100,13 @@ export function SearchFiltersPanel({
 }) {
   const panel = getSearchFilterPanelKind(categorySlug, categoryWizardProfile)
   const t = (ru, en) => (language === 'ru' ? ru : en)
+  const { currency, formatGuestThbAsDisplay } = useStorefrontDisplayFx()
+  const currencySymbol = getCurrencySymbol(currency)
 
   const pricePeriodLabel =
     getListingRentalPeriodMode(categorySlug) === 'day'
-      ? t('Цена за сутки (฿)', 'Price per day (฿)')
-      : t('Цена за ночь (฿)', 'Price per night (฿)')
+      ? t(`Цена за сутки (${currencySymbol})`, `Price per day (${currencySymbol})`)
+      : t(`Цена за ночь (${currencySymbol})`, `Price per night (${currencySymbol})`)
 
   const showYachtCabinsFilter =
     isYachtLikeCategory(categorySlug) ||
@@ -166,11 +171,11 @@ export function SearchFiltersPanel({
           className="pt-2"
         />
         <div className="flex justify-between text-sm text-slate-600">
-          <span>{slideMin <= 0 ? t('Любая', 'Any') : `฿${slideMin.toLocaleString()}`}</span>
+          <span>{slideMin <= 0 ? t('Любая', 'Any') : formatGuestThbAsDisplay(slideMin)}</span>
           <span>
             {slideMax >= LISTINGS_PRICE_SLIDER_MAX_THB
               ? t('Любая', 'Any')
-              : `฿${slideMax.toLocaleString()}`}
+              : formatGuestThbAsDisplay(slideMax)}
           </span>
         </div>
       </section>

@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.46 | 2026-09-22 | Search filters: price label/amounts follow header UI currency | Done |
 | 202.45 | 2026-09-21 | DB hardening: FK indexes + categories/messages RLS + RPC/view grants | Done |
 | 202.44 | 2026-09-21 | PostHog/map-pins/cron empty-path hygiene (CPU + console spam) | Done |
 | 202.43 | 2026-09-18 | Catalog ChunkLoadError: hard reload + import retry (VPS static timeout) | Done |
