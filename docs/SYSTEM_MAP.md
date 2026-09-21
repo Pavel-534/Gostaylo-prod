@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.106 | **Last Updated**: 2026-08-23 | **201.113** FX cron soft 200 + 429 cooldown; **201.112** FX cron skip/keep-existing.  
+> **Version**: 13.2.107 | **Last Updated**: 2026-09-21 | **202.45** DB hardening (FK indexes, categories/messages RLS, RPC grants).  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -51,10 +51,10 @@
 |---------|------------|
 | `profiles` | Пользователи, роли, балансы, Telegram, quiet hours, referral; ADR-210: `is_shadow`, `shadow_claimed_at`; **202.15** `profiles_email_lower_idx` |
 | `listings` | Объявления; `base_price_thb` THB-канон (L1 asset→THB mid); wizard form `basePriceThb` = asset in `baseCurrency` (preview: mid→THB→guest fee→retail header FX, Stage 200.49); `metadata` JSONB; статус модерации; ADR-210: optional `concierge_batch_id` |
-| `categories` | Вертикали: `slug`, `wizard_profile`, i18n, visibility flags |
+| `categories` | Вертикали: `slug`, `wizard_profile`, i18n, visibility flags; **202.45** RLS SELECT active-only + staff INSERT/UPDATE/DELETE (no dual SELECT) |
 | `bookings` | Заказы; статусы FSM; `pricing_snapshot`; fee/pot колонки; **202.15** `trg_bookings_guard_paid_money_columns`; **202.20** `payout_at` |
 | `conversations` | Чаты; deal SSOT через `booking_id` |
-| `messages` | Сообщения треда |
+| `messages` | Сообщения треда; **202.45** drop redundant admin FOR ALL; admin DELETE only |
 | `calendar_blocks` | Блокировки: manual / iCal URL / invoice_hold; **201.47** expired holds purged |
 | `seasonal_prices` | Сезонные цены (приоритет над metadata) |
 | `promo_codes` | Промо PLATFORM/PARTNER, flash sale, allowlist |
