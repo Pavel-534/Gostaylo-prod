@@ -99,7 +99,10 @@ const DialogContent = React.forwardRef(({
     return () => mq.removeEventListener?.('change', sync)
   }, [])
   useMobileDockLock(dialogOpen && isPhone)
-  const viewportStyle = buildVisualViewportPinStyle(frame, { recipe })
+  // Form recipe pin sets inline left/width/transform:none — on desktop that
+  // beats non-!important translate and parks the dialog at left:50% (off to the right).
+  // Pin only on phone; desktop uses classic centered classes below.
+  const viewportStyle = isPhone ? buildVisualViewportPinStyle(frame, { recipe }) : undefined
   useKeepFocusedFieldVisible(contentRef, dialogOpen && isPhone)
 
   return (
@@ -107,7 +110,7 @@ const DialogContent = React.forwardRef(({
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={setRefs}
-        style={{ ...viewportStyle, ...style }}
+        style={viewportStyle || style ? { ...viewportStyle, ...style } : undefined}
         className={cn(
           "fixed z-[220] flex flex-col w-full min-w-0 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-t-xl sm:rounded-lg",
           // Mobile bottom sheets are full-bleed under vv pin; desktop stays centered.
@@ -115,8 +118,8 @@ const DialogContent = React.forwardRef(({
             ? "left-0 right-0 max-w-none translate-x-0 translate-y-0 rounded-t-2xl rounded-b-none border-b-0 gap-0 sm:left-[50%] sm:right-auto sm:max-w-lg sm:translate-x-[-50%] sm:rounded-lg sm:border-b sm:gap-2"
             : "left-[50%] max-w-[calc(100vw-1rem)] translate-x-[-50%] gap-2 sm:max-w-lg sm:translate-y-[-50%]",
           "overflow-hidden",
-          // Desktop: classic centered dialog (override mobile vv pin).
-          "sm:!inset-auto sm:!top-[50%] sm:!bottom-auto sm:!left-[50%] sm:!h-auto sm:!max-h-[min(90dvh,720px)] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          // Desktop: classic centered dialog (clear any leftover vv pin props).
+          "sm:!inset-auto sm:!top-[50%] sm:!bottom-auto sm:!left-[50%] sm:!right-auto sm:!h-auto sm:!w-auto sm:!max-h-[min(90dvh,720px)] sm:!translate-x-[-50%] sm:!translate-y-[-50%]",
           className
         )}
         {...props}>

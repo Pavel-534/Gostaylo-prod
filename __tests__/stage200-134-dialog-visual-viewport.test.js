@@ -32,6 +32,13 @@ describe('Stage 200.134 — dialog visualViewport + seasonal sheet', () => {
     assert.match(src, /classHintsBottom/)
   })
 
+  it('DialogContent skips visualViewport pin on desktop (no right-shift)', () => {
+    const src = read('components/ui/dialog.jsx')
+    assert.match(src, /isPhone \? buildVisualViewportPinStyle/)
+    assert.match(src, /sm:!translate-x-\[-50%\]/)
+    assert.match(src, /sm:!w-auto/)
+  })
+
   it('seasonal price manager uses bottom sheet (no fixed 100vh height)', () => {
     const src = read('components/seasonal-price-manager.js')
     assert.match(src, /mobileAnchor="bottom"/)
