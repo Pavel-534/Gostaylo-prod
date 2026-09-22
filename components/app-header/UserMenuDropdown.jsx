@@ -33,6 +33,10 @@ import {
   USER_MENU_PREFETCH_PATHS,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href'
+import {
+  isMiddlewareGuardedCabinetHref,
+  navigateMiddlewareGuardedHref,
+} from '@/lib/navigation/guarded-cabinet-nav'
 
 export function UserMenuDropdown() {
   const router = useRouter()
@@ -45,26 +49,25 @@ export function UserMenuDropdown() {
 
   const navigate = (href) => {
     markPending(href)
+    if (isMiddlewareGuardedCabinetHref(href)) {
+      void navigateMiddlewareGuardedHref({
+        href,
+        refreshUserFromServer,
+        openLoginModal,
+      })
+      return
+    }
     router.push(href)
   }
 
-  /** Partner zone is middleware-guarded — refresh JWT (RENTER→PARTNER) then hard-nav (avoid poisoned prefetch). */
-  const navigatePartnerCabinet = async () => {
+  /** Partner zone is middleware-guarded — refresh JWT then hard-nav (Stage 201.56 / 202.50). */
+  const navigatePartnerCabinet = () => {
     markPending('/partner/dashboard')
-    try {
-      const refreshed = await refreshUserFromServer?.()
-      if (refreshed === null) {
-        openLoginModal({ redirect: '/partner/dashboard' })
-        return
-      }
-    } catch {
-      /* transient — still attempt entry */
-    }
-    if (typeof window !== 'undefined') {
-      window.location.assign('/partner/dashboard')
-      return
-    }
-    router.push('/partner/dashboard')
+    void navigateMiddlewareGuardedHref({
+      href: '/partner/dashboard',
+      refreshUserFromServer,
+      openLoginModal,
+    })
   }
 
   if (!user) {

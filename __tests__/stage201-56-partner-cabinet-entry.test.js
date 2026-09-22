@@ -24,8 +24,8 @@ describe('Stage 201.56 — partner cabinet entry', () => {
   it('user menu refreshes session then hard-navigates to partner dashboard', () => {
     const menu = read('components/app-header/UserMenuDropdown.jsx')
     assert.match(menu, /navigatePartnerCabinet/)
-    assert.match(menu, /refreshUserFromServer/)
-    assert.match(menu, /location\.assign\(['\"]\/partner\/dashboard['\"]\)/)
+    assert.match(menu, /navigateMiddlewareGuardedHref/)
+    assert.match(menu, /\/partner\/dashboard/)
     assert.doesNotMatch(
       menu,
       /onSelect=\{\(\)\s*=>\s*navigate\(['\"]\/partner\/dashboard['\"]\)\}/,

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.278 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.49** map-pins lean metadata + LCP SSOT + nginx runbook.
+> **Version**: 13.2.279 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.50** renter Profile nav (prefetch poison → login).
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.50 — Profile tab opens login while header shows logged-in
+- Bug (Samsung / PWA): dock prefetch of `/renter/profile` while cookie missing caches middleware `/auth/login` in App Router; after login UI shows wallet but Profile soft-nav still hits poisoned login.
+- Fix: drop `/renter/*` from `STOREFRONT_NAV_PREFETCH_PATHS` / `USER_MENU_PREFETCH_PATHS`; `navigateMiddlewareGuardedHref` (refresh `/me` → `location.assign`); dock Profile uses it. Same class as Stage **201.56** partner.
 
 ### Stage 202.49 — Map-pins lean metadata + LCP image SSOT + nginx checklist
 - Map-pins PostgREST: default **`MAP_PINS_SELECT_CORE`** (no `metadata` JSONB); include metadata only when JS facet post-filter is active. Client pin DTO unchanged (never shipped metadata). SQL E2E `test_data_tag` guard on query.

@@ -26,6 +26,10 @@ import {
   isOptimisticDockTabActive,
   useOptimisticNavHref,
 } from '@/hooks/use-optimistic-nav-href';
+import {
+  isMiddlewareGuardedCabinetHref,
+  navigateMiddlewareGuardedHref,
+} from '@/lib/navigation/guarded-cabinet-nav';
 import { useMobileDockLocked } from '@/hooks/use-mobile-dock-lock';
 import { isSoftKeyboardOpen } from '@/lib/layout/is-soft-keyboard-open';
 import { cn } from '@/lib/utils';
@@ -83,7 +87,7 @@ export function MobileBottomNav() {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const navRef = useRef(null);
   const pathname = usePathname();
-  const { user, openLoginModal } = useAuth();
+  const { user, openLoginModal, refreshUserFromServer } = useAuth();
   const { totalUnread } = useChatUnreadBadge();
   const { language } = useI18n();
   const dockLocked = useMobileDockLocked();
@@ -157,7 +161,7 @@ export function MobileBottomNav() {
   const handleNavClick = (item, e) => {
     if (item.requiresAuth && !user) {
       e.preventDefault();
-      openLoginModal?.('login');
+      openLoginModal?.({ redirect: item.href });
       return;
     }
 
@@ -168,6 +172,18 @@ export function MobileBottomNav() {
         markPending('/listings')
       }
       dispatchMobileSearchTabAction({ source: 'bottom-nav' });
+      return;
+    }
+
+    // Stage 202.50 — hard-nav guarded cabinets (avoid poisoned soft-nav login cache).
+    if (isMiddlewareGuardedCabinetHref(item.href)) {
+      e.preventDefault();
+      markPending(item.href);
+      void navigateMiddlewareGuardedHref({
+        href: item.href,
+        refreshUserFromServer,
+        openLoginModal,
+      });
       return;
     }
 
