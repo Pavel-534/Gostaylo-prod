@@ -11,8 +11,9 @@
 | TLS ALPN | Node TLS client negotiated **`h2`** (HTTP/2 is enabled on the public listener) |
 | Upstream region | `X-Vercel-Id: …::sin1::…` after Stage 202.48 |
 | Keep-alive (browser↔nginx) | `Connection: keep-alive` on `/api/health` |
+| Upstream keepalive → Vercel | **Confirmed by ops** (2026-09-22): Keep-Alive to Vercel enabled; `nginx -t` OK |
 
-We do **not** have SSH to the VPS from this agent environment — **upstream** `proxy_http_version` / `keepalive` to Vercel must be confirmed on the box.
+Outside probe could not SSH to the VPS; upstream keepalive is now **ops-confirmed** on the box (no further agent action).
 
 ## Recommended nginx snippet (ops)
 
@@ -75,4 +76,4 @@ server {
 
 ## Out of scope for Stage 202.49 code
 
-Changing live nginx requires VPS SSH + reload. This runbook is the SSOT checklist until ops applies/verifies upstream keepalive.
+Live nginx lives on the VPS. Upstream keepalive was **applied and verified by ops** (2026-09-22). Re-check only after proxy/nginx edits (`nginx -T` checklist above).
