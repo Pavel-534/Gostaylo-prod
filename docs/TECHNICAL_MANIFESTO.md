@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.276 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.47** CDN TTL bump + Attack Mode off.
+> **Version**: 13.2.277 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.48** Vercel Functions `sin1` ↔ Supabase Singapore.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.48 — Vercel Functions co-located with Supabase (Singapore)
+- `vercel.json`: `"regions": ["sin1"]` — Serverless / Fluid CPU near Supabase project region **`ap-southeast-1`** (was default Hobby **`iad1`** → multi‑hundred ms RTT on every PostgREST hop).
+- Hot path stays **supabase-js → HTTPS PostgREST** (no Prisma/`pg` wire); Transaction Pooler **6543** not required for catalog/API latency.
+- After deploy: expect `X-Vercel-Id` / function region **`sin1`** on `/api/v2/*`; no fee/FSM change.
 
 ### Stage 202.47 — CDN TTL bump + Attack Challenge off (Vercel cost / Yandex TTFB)
 - Ops: disabled **Attack Challenge Mode** on `gostaylo-prod` (was returning `X-Vercel-Mitigated: challenge` / 403 and multi‑minute bot waits).

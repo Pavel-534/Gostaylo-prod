@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.107 | **Last Updated**: 2026-09-21 | **202.45** DB hardening (FK indexes, categories/messages RLS, RPC grants).  
+> **Version**: 13.2.108 | **Last Updated**: 2026-09-22 | **202.48** Vercel Functions `sin1` ↔ Supabase `ap-southeast-1`.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -33,12 +33,12 @@
 |------|------------|
 | Framework | **Next.js 14** (App Router), React 18 |
 | UI | Tailwind CSS + Shadcn/UI |
-| Database | **Supabase** PostgreSQL |
+| Database | **Supabase** PostgreSQL (**`ap-southeast-1`** / Singapore) |
 | Auth | Cookie `gostaylo_session` + опционально **Supabase Auth** (OAuth) |
 | Storage | Supabase Storage |
 | State (client) | React + **TanStack Query** (`lib/query-keys.js`) |
 | Notifications | Telegram Bot API + Resend email + **FCM** push |
-| Deployment | **Vercel** |
+| Deployment | **Vercel** — Functions **`regions: ["sin1"]`** (Stage **202.48**; co-located with DB) |
 | Schema doc | `prisma/schema.prisma` (описание; рантайм — Supabase) |
 
 **Ключи БД:** доменные PK/FK (`profiles`, `listings`, `bookings`, chat ids) в проде — **TEXT**, не нативный `uuid`.
