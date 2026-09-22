@@ -30,10 +30,10 @@ describe('Stage 202.44 — perf hygiene', () => {
     assert.match(pins, /commissionPromise/)
     assert.match(pins, /hasDateFilter/)
     const edge = read('lib/api/public-edge-cache-control.js')
-    assert.match(edge, /sMaxAge: 45/)
+    assert.match(edge, /sMaxAge: 90/)
     assert.match(edge, /sMaxAge: 10/)
     const spatial = read('lib/ops/spatial-query-cache.js')
-    assert.match(spatial, /25 \* 1000/)
+    assert.match(spatial, /40 \* 1000/)
   })
 
   it('cron empty paths: outbox probe, flash-sale window SQL, cleanup parallel janitor', () => {

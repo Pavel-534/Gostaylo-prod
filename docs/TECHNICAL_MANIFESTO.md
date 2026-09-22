@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.275 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.46** search filters price UI currency.
+> **Version**: 13.2.276 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.47** CDN TTL bump + Attack Mode off.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -27,6 +27,11 @@
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
 
+### Stage 202.47 — CDN TTL bump + Attack Challenge off (Vercel cost / Yandex TTFB)
+- Ops: disabled **Attack Challenge Mode** on `gostaylo-prod` (was returning `X-Vercel-Mitigated: challenge` / 403 and multi‑minute bot waits).
+- Anon edge cache: map-pins browse `s-maxage=90`, categories `600`, simple search `90`; spatial in-process TTL 40s; `site-features` via `edgeCacheResponseHeaders`.
+- ADR-163 unchanged: dated pins / logged-in / complex search stay `private, no-store`.
+
 ### Stage 202.46 — Search filters price label follows UI currency
 - `SearchFiltersPanel`: label + slider endpoints via `useStorefrontDisplayFx` / `getCurrencySymbol` (header SSOT). Filter values stay THB (`minPriceThb` / `max_price`).
 
@@ -36,7 +41,7 @@
 
 ### Stage 202.44 — PostHog / map-pins / cron empty-path hygiene
 - PostHog: `autocapture` + session recording off; dedupe `page_view` / `listing_view` (no fee/formula change).
-- Map-pins: anon browse CDN `s-maxage=45` (dated stays short); in-process spatial TTL 25s; overlap `getCommissionRate` with spatial work.
+- Map-pins: anon browse CDN `s-maxage=90` (dated stays short); in-process spatial TTL 40s; overlap `getCommissionRate` with spatial work.
 - Cron: outbox empty probe skip; flash-sale SQL window filter; cleanup-drafts janitor steps via `Promise.allSettled`.
 
 ### Stage 202.43 — Catalog ChunkLoadError resilience (airento.ru proxy)

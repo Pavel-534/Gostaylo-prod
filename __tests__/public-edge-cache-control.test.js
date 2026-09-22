@@ -24,9 +24,9 @@ describe('public edge cache control (Stage 179.0a / 179.2a / 179.1)', () => {
   })
 
   describe('map-pins', () => {
-    it('anonymous browse 200 → longer s-maxage (Stage 202.44)', () => {
+    it('anonymous browse 200 → longer s-maxage (Stage 202.47)', () => {
       const cc = mapPinsEdgeCacheControl({ viewerId: null, status: 200 })
-      assert.match(cc, /^public, s-maxage=45, stale-while-revalidate=90$/)
+      assert.match(cc, /^public, s-maxage=90, stale-while-revalidate=180$/)
     })
 
     it('anonymous dated 200 → short s-maxage (availability freshness)', () => {
@@ -64,7 +64,7 @@ describe('public edge cache control (Stage 179.0a / 179.2a / 179.1)', () => {
         includeInactive: false,
         status: 200,
       })
-      assert.match(cc, /^public, s-maxage=300, stale-while-revalidate=600$/)
+      assert.match(cc, /^public, s-maxage=600, stale-while-revalidate=1200$/)
     })
 
     it('admin or ?all=true → private no-store', () => {
@@ -87,13 +87,13 @@ describe('public edge cache control (Stage 179.0a / 179.2a / 179.1)', () => {
   })
 
   describe('listings search (Stage 179.1)', () => {
-    it('anonymous simple 200 → s-maxage=60 + SWR=120', () => {
+    it('anonymous simple 200 → s-maxage=90 + SWR=180 (Stage 202.47)', () => {
       const cc = listingsSearchEdgeCacheControl({
         viewerId: null,
         status: 200,
         isSimpleQuery: true,
       })
-      assert.match(cc, /^public, s-maxage=60, stale-while-revalidate=120$/)
+      assert.match(cc, /^public, s-maxage=90, stale-while-revalidate=180$/)
     })
 
     it('logged-in simple 200 → private no-store (ADR-163)', () => {
