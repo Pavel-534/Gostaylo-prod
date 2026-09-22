@@ -13,6 +13,11 @@ import { EmptyState } from '@/components/empty-state'
 import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import {
+  resolveListingCardImagePriority,
+  resolveListingCardImageSizes,
+} from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { format, isSameDay } from 'date-fns'
 import { formatDisplayDate } from '@/lib/date-display-format'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
@@ -42,6 +47,8 @@ export function TopListingsGrid({
   customTitle = null,
 }) {
   const router = useRouter()
+  const networkQuality = useNetworkQuality()
+  const cardImageSizes = resolveListingCardImageSizes(networkQuality)
   const cleanCustomTitle = typeof customTitle === 'string' ? customTitle.trim() : ''
   const fallbackTitle =
     dateRange.from && dateRange.to
@@ -149,8 +156,11 @@ export function TopListingsGrid({
                         unoptimized={isRemoteHttpImageSrc(
                           mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc,
                         )}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        priority={idx < 4}
+                        sizes={cardImageSizes}
+                        priority={resolveListingCardImagePriority(
+                          { cardIndex: idx, enableLcp: true },
+                          networkQuality,
+                        )}
                         className="object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={() => markMediaFailed(`lst-${listing.id}`)}
                       />

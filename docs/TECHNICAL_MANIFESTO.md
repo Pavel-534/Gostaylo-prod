@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.277 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.48** Vercel Functions `sin1` ↔ Supabase Singapore.
+> **Version**: 13.2.278 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.49** map-pins lean metadata + LCP SSOT + nginx runbook.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,11 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.49 — Map-pins lean metadata + LCP image SSOT + nginx checklist
+- Map-pins PostgREST: default **`MAP_PINS_SELECT_CORE`** (no `metadata` JSONB); include metadata only when JS facet post-filter is active. Client pin DTO unchanged (never shipped metadata). SQL E2E `test_data_tag` guard on query.
+- LCP: `LISTING_CARD_LCP_PRIORITY_COUNT=4`; BentoGallery / TopListingsGrid / InstantShell / favorites use `lib/media/image-delivery` sizes+priority; hosted photos stay `unoptimized` (upload WebP + Hobby Image Optimization guard). `next.config` already `avif`/`webp`.
+- Ops: [`docs/runbooks/VPS_NGINX_VERCEL_PROXY.md`](./runbooks/VPS_NGINX_VERCEL_PROXY.md) — public HTTP/2 confirmed; VPS→Vercel `proxy_http_version 1.1` + upstream `keepalive` checklist (no SSH from agent).
 
 ### Stage 202.48 — Vercel Functions co-located with Supabase (Singapore)
 - `vercel.json`: `"regions": ["sin1"]` — Serverless / Fluid CPU near Supabase project region **`ap-southeast-1`** (was default Hobby **`iad1`** → multi‑hundred ms RTT on every PostgREST hop).

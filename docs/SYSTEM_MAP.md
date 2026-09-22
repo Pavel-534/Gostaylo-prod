@@ -1,6 +1,6 @@
 # System Map — архитектурный паспорт (живой)
 
-> **Version**: 13.2.108 | **Last Updated**: 2026-09-22 | **202.48** Vercel Functions `sin1` ↔ Supabase `ap-southeast-1`.  
+> **Version**: 13.2.109 | **Last Updated**: 2026-09-22 | **202.49** map-pins lean metadata + LCP SSOT; nginx runbook.  
 > **Это и есть «паспорт» системы** (стек, таблицы, API-пути, интеграции).  
 > Инварианты — [`CONSTITUTION.md`](./CONSTITUTION.md). Code-truth — [`TECHNICAL_MANIFESTO.md`](./TECHNICAL_MANIFESTO.md).  
 > Хаб — [`README.md`](./README.md). Монолит-архив — [`archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md`](./archive/ARCHITECTURAL_PASSPORT_ARCHIVE.md).
@@ -38,7 +38,7 @@
 | Storage | Supabase Storage |
 | State (client) | React + **TanStack Query** (`lib/query-keys.js`) |
 | Notifications | Telegram Bot API + Resend email + **FCM** push |
-| Deployment | **Vercel** — Functions **`regions: ["sin1"]`** (Stage **202.48**; co-located with DB) |
+| Deployment | **Vercel** — Functions **`regions: ["sin1"]`** (Stage **202.48**; co-located with DB). Public apex **airento.ru** via RF **nginx** → Vercel — see [`runbooks/VPS_NGINX_VERCEL_PROXY.md`](./runbooks/VPS_NGINX_VERCEL_PROXY.md) (**202.49**) |
 | Schema doc | `prisma/schema.prisma` (описание; рантайм — Supabase) |
 
 **Ключи БД:** доменные PK/FK (`profiles`, `listings`, `bookings`, chat ids) в проде — **TEXT**, не нативный `uuid`.

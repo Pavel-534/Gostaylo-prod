@@ -22,6 +22,8 @@ import { WorkspaceEmptyState } from '@/components/empty-state'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
 import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { dispatchOptimisticNavPending } from '@/lib/navigation/optimistic-nav-href'
+import { resolveListingCardImagePriority } from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 export default function FavoritesPage() {
   const { user } = useAuth()
@@ -29,6 +31,7 @@ export default function FavoritesPage() {
   const { language } = useI18n()
   const { currency } = useCurrency()
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const networkQuality = useNetworkQuality()
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -157,7 +160,7 @@ export default function FavoritesPage() {
 
       {!loading && !error && favorites.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-          {favorites.map((listing) => (
+          {favorites.map((listing, index) => (
             <ListingCard
               key={listing.id}
               listing={listing}
@@ -167,6 +170,7 @@ export default function FavoritesPage() {
               onFavorite={handleFavorite}
               isFavorited={true}
               layout="solo"
+              imagePriority={resolveListingCardImagePriority({ cardIndex: index }, networkQuality)}
             />
           ))}
         </div>

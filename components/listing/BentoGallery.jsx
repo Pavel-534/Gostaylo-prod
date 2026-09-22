@@ -2,6 +2,7 @@
 
 /**
  * PDP gallery — desktop Airbnb bento (1+4), mobile aspect-[4/3] scroll-snap (catalog parity).
+ * Stage 202.49 — sizes / LCP priority via `lib/media/image-delivery` SSOT + network quality.
  */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react'
@@ -15,8 +16,16 @@ import {
   PDP_HERO_MOBILE_ASPECT_CLASS,
   PDP_HERO_SECTION_MB,
 } from '@/lib/listing/pdp-hero-layout'
+import {
+  resolvePdpHeroImagePriority,
+  resolvePdpImageSizes,
+  shouldMountPdpBentoSecondary,
+} from '@/lib/media/image-delivery'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 function pdpImageUnoptimized(src) {
+  // Hosted listing photos are already WebP thumbs/mains from upload pipeline;
+  // skip Vercel Image Optimization to avoid Hobby quota burn (Stage 171+).
   return isRemoteHttpImageSrc(src) || isHostedListingImageUrl(src)
 }
 
@@ -46,9 +55,15 @@ export function BentoGallery({
   const displayUrls = useMemo(() => (images || []).filter(Boolean), [images])
   const [activeIndex, setActiveIndex] = useState(0)
   const scrollRef = useRef(null)
+  const networkQuality = useNetworkQuality()
+
+  const mobileSizes = resolvePdpImageSizes('carousel', networkQuality)
+  const leadSizes = resolvePdpImageSizes('bento-lead', networkQuality)
+  const secondarySizes = resolvePdpImageSizes('bento-secondary', networkQuality)
+  const heroPriority = resolvePdpHeroImagePriority({ index: 0 }, networkQuality)
 
   const multiPhoto = displayUrls.length > 1
-  const showBentoSecondary = multiPhoto
+  const mountBentoSecondary = multiPhoto && shouldMountPdpBentoSecondary(networkQuality)
 
   const openAt = useCallback(
     (index) => {
@@ -88,8 +103,8 @@ export function BentoGallery({
               <PdpHeroImage
                 src={displayUrls[0]}
                 alt={title}
-                sizes="100vw"
-                priority
+                sizes={mobileSizes}
+                priority={heroPriority}
                 blurDataURL={blurDataURL}
               />
             </button>
@@ -109,8 +124,8 @@ export function BentoGallery({
                   <PdpHeroImage
                     src={src}
                     alt={idx === 0 ? title : `${title} ${idx + 1}`}
-                    sizes="100vw"
-                    priority={idx === 0}
+                    sizes={mobileSizes}
+                    priority={resolvePdpHeroImagePriority({ index: idx }, networkQuality)}
                     blurDataURL={blurDataURL}
                   />
                 </button>
@@ -150,14 +165,14 @@ export function BentoGallery({
           <PdpHeroImage
             src={displayUrls[0]}
             alt={title}
-            sizes="50vw"
-            priority
+            sizes={leadSizes}
+            priority={heroPriority}
             blurDataURL={blurDataURL}
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           />
         </button>
 
-        {showBentoSecondary
+        {mountBentoSecondary
           ? displayUrls.slice(1, 5).map((img, idx) => (
               <button
                 key={`${img}-${idx}`}
@@ -168,7 +183,7 @@ export function BentoGallery({
                 <PdpHeroImage
                   src={img}
                   alt={`${title} ${idx + 2}`}
-                  sizes="25vw"
+                  sizes={secondarySizes}
                   blurDataURL={blurDataURL}
                   className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                 />
@@ -182,11 +197,7 @@ export function BentoGallery({
               </button>
             ))
           : [0, 1, 2, 3].map((slot) => (
-              <div
-                key={`placeholder-${slot}`}
-                className="bg-slate-100"
-                aria-hidden
-              />
+              <div key={`placeholder-${slot}`} className="bg-slate-100" aria-hidden />
             ))}
       </div>
     </>

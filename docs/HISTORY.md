@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.49 | 2026-09-22 | Map-pins lean metadata + LCP image SSOT + VPS nginx proxy checklist | Done |
 | 202.48 | 2026-09-22 | Vercel Functions `regions: [sin1]` co-locate with Supabase ap-southeast-1 | Done |
 | 202.47 | 2026-09-22 | CDN TTL bump + Vercel Attack Challenge off (CPU + Yandex TTFB) | Done |
 | 202.46 | 2026-09-22 | Search filters: price label/amounts follow header UI currency | Done |

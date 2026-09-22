@@ -12,13 +12,14 @@ import { Button } from '@/components/ui/button'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { ListingPageSkeleton } from '@/app/(storefront)/listings/[id]/components/ListingPageSkeleton'
 import { readPdpInstantListing } from '@/lib/listing/read-pdp-instant-listing'
-import { getListingCardImageUrls } from '@/lib/media/image-delivery'
+import { getListingCardImageUrls, resolvePdpImageSizes } from '@/lib/media/image-delivery'
 import { getListingText, getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { useCurrency } from '@/contexts/currency-context'
 import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { isRemoteHttpImageSrc, mapPublicImageUrls } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import { useNetworkQuality } from '@/hooks/use-network-quality'
 
 /**
  * @param {{ listingId: string }} props
@@ -28,6 +29,7 @@ export function ListingPdpInstantShell({ listingId }) {
   const { language } = useI18n()
   const { currency } = useCurrency()
   const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const networkQuality = useNetworkQuality()
   const listing = readPdpInstantListing(queryClient, listingId)
 
   const cover = useMemo(() => {
@@ -40,6 +42,7 @@ export function ListingPdpInstantShell({ listingId }) {
 
   const title = getListingText(listing, 'title', language) || listing.title || ''
   const unoptimized = isRemoteHttpImageSrc(cover)
+  const heroSizes = resolvePdpImageSizes('carousel', networkQuality)
 
   return (
     <div
@@ -54,7 +57,7 @@ export function ListingPdpInstantShell({ listingId }) {
               alt={title}
               fill
               priority
-              sizes="100vw"
+              sizes={heroSizes}
               className="object-cover"
               placeholder="blur"
               blurDataURL={LISTING_CARD_BLUR_DATA_URL}
