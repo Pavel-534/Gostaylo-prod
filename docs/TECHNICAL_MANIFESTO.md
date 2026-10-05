@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.280 | **Last Updated**: 2026-10-05 | **Tip of tree:** Stage **202.51** desktop PDP bento secondary tiles stay mounted.
+> **Version**: 13.2.281 | **Last Updated**: 2026-10-05 | **Tip of tree:** Stage **202.52** catalog map popup soft keep-in-view.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.52 — Catalog map popup clipped at map edges
+- Bug: price-pin popup (`CatalogMapSelectedPopup`) used `autoPan={false}`; pin near top/edge left the card cut by map chrome (desktop split + mobile sheet).
+- Fix: Leaflet `autoPan` + soft `panBy` keep-in-view (no zoom) after open/lazy paint; desktop/mobile padding SSOT in `catalog-map-ux-policy`; micro-pans &lt; 8px ignored (no jitter when switching nearby pins).
 
 ### Stage 202.51 — Desktop PDP bento: secondary photos flash then vanish
 - Bug: Stage 202.49 gated desktop bento tiles on `shouldMountPdpBentoSecondary(networkQuality)` — Network Information `constrained` (3g / save-data / VPN) unmounted the right-hand grid after first paint.

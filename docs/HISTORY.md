@@ -6,6 +6,7 @@
 
 | Stage | Дата | Краткое описание | Статус |
 |-------|------|------------------|--------|
+| 202.52 | 2026-10-05 | Catalog map popup: soft keep-in-view pan (desktop + mobile) | Done |
 | 202.51 | 2026-10-05 | Desktop PDP bento: always mount secondary tiles (no NetInfo unmount) | Done |
 | 202.50 | 2026-09-22 | Profile dock: no /renter prefetch poison; hard-nav after session refresh | Done |
 | 202.49 | 2026-09-22 | Map-pins lean metadata + LCP image SSOT + VPS nginx proxy checklist | Done |

@@ -742,6 +742,7 @@ export default function InteractiveSearchMap({
           exchangeRates={exchangeRates}
           onOpenDetails={onListingOpen}
           onClose={onMapBackgroundClick}
+          compactMapChrome={selectionPanMode === CATALOG_MAP_SELECTION_PAN_HIGHLIGHT_ONLY}
         />
 
         {useServerClusters ? (
