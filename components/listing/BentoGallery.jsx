@@ -19,7 +19,6 @@ import {
 import {
   resolvePdpHeroImagePriority,
   resolvePdpImageSizes,
-  shouldMountPdpBentoSecondary,
 } from '@/lib/media/image-delivery'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
 
@@ -63,7 +62,9 @@ export function BentoGallery({
   const heroPriority = resolvePdpHeroImagePriority({ index: 0 }, networkQuality)
 
   const multiPhoto = displayUrls.length > 1
-  const mountBentoSecondary = multiPhoto && shouldMountPdpBentoSecondary(networkQuality)
+  // Stage 202.51 — desktop bento secondary must always mount when multi-photo.
+  // Stage 202.49 wrongly gated on Network Information `constrained` (save-data / 3g /
+  // missing effectiveType): tiles painted then vanished on desktop Chrome/VPN.
 
   const openAt = useCallback(
     (index) => {
@@ -172,7 +173,7 @@ export function BentoGallery({
           />
         </button>
 
-        {mountBentoSecondary
+        {multiPhoto
           ? displayUrls.slice(1, 5).map((img, idx) => (
               <button
                 key={`${img}-${idx}`}

@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.279 | **Last Updated**: 2026-09-22 | **Tip of tree:** Stage **202.50** renter Profile nav (prefetch poison → login).
+> **Version**: 13.2.280 | **Last Updated**: 2026-10-05 | **Tip of tree:** Stage **202.51** desktop PDP bento secondary tiles stay mounted.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.51 — Desktop PDP bento: secondary photos flash then vanish
+- Bug: Stage 202.49 gated desktop bento tiles on `shouldMountPdpBentoSecondary(networkQuality)` — Network Information `constrained` (3g / save-data / VPN) unmounted the right-hand grid after first paint.
+- Fix: desktop secondary always mounts when `images.length > 1`; network quality still drives `sizes` / LCP priority only.
 
 ### Stage 202.50 — Profile tab opens login while header shows logged-in
 - Bug (Samsung / PWA): dock prefetch of `/renter/profile` while cookie missing caches middleware `/auth/login` in App Router; after login UI shows wallet but Profile soft-nav still hits poisoned login.
