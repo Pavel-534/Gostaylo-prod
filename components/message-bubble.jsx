@@ -180,13 +180,13 @@ export function MessageBubble({
       const href = toRelativeSiteUrl(raw)
       if (href.startsWith('/')) {
         nodes.push(
-          <Link key={`l-${k++}`} href={href} className="underline break-all font-medium" prefetch={false}>
+          <Link key={`l-${k++}`} href={href} className="underline [overflow-wrap:anywhere] font-medium" prefetch={false}>
             {raw}
           </Link>
         )
       } else {
         nodes.push(
-          <a key={`a-${k++}`} href={raw} target="_blank" rel="noopener noreferrer" className="underline break-all">
+          <a key={`a-${k++}`} href={raw} target="_blank" rel="noopener noreferrer" className="underline [overflow-wrap:anywhere]">
             {raw}
           </a>
         )
@@ -219,7 +219,7 @@ export function MessageBubble({
         href={fileUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-sm underline break-all"
+        className="inline-flex items-center gap-2 text-sm underline [overflow-wrap:anywhere]"
       >
         <Paperclip className="h-4 w-4 shrink-0" />
         {fileName}

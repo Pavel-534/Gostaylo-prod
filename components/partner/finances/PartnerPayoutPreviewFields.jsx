@@ -34,7 +34,7 @@ export function PartnerPayoutPreviewFields({
     <div className={isDialog ? 'rounded-md border border-brand/20 bg-brand/10 p-3 space-y-2' : 'space-y-2'}>
       <div className="flex justify-between gap-3 min-w-0">
         <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathBaseAvailable')}</span>
-        <span className="font-medium tabular-nums text-right break-all min-w-0">
+        <span className="font-medium tabular-nums text-right [overflow-wrap:anywhere] min-w-0">
           {loading ? '…' : <PartnerHostLedgerAmount thb={availableThb} />}
         </span>
       </div>
@@ -49,7 +49,7 @@ export function PartnerPayoutPreviewFields({
 
       <div className="flex justify-between gap-3 min-w-0">
         <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathFee')}</span>
-        <span className="font-medium tabular-nums text-right break-all min-w-0 text-amber-800">
+        <span className="font-medium tabular-nums text-right [overflow-wrap:anywhere] min-w-0 text-amber-800">
           {loading ? '…' : (
             <>
               −<PartnerHostLedgerAmount thb={preview?.feeAmountThb ?? 0} />
@@ -64,7 +64,7 @@ export function PartnerPayoutPreviewFields({
             {t('partnerFinances_payoutMathFinal')}
           </span>
           <span
-            className={`tabular-nums text-right break-all min-w-0 font-semibold ${
+            className={`tabular-nums text-right [overflow-wrap:anywhere] min-w-0 font-semibold ${
               isDialog ? 'text-brand-hover' : 'text-brand-hover'
             }`}
           >

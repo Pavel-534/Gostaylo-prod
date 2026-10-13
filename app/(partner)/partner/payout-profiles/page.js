@@ -484,7 +484,7 @@ export default function PartnerPayoutProfilesPage() {
                       </div>
                       <div className='min-w-0'>
                         <p className='font-semibold text-slate-900'>{method.name || t('payoutProfiles_methodDefaultName')}</p>
-                        <p className='text-sm text-slate-600 break-all'>{maskField(method.channel, profile.data || {}, t)}</p>
+                        <p className='text-sm text-slate-600 [overflow-wrap:anywhere]'>{maskField(method.channel, profile.data || {}, t)}</p>
                         <div className='flex flex-wrap items-center gap-2 mt-2'>
                           {profile.is_default ? (
                             <Badge className='bg-emerald-50 text-emerald-800 border-emerald-200'>{t('payoutProfiles_badgeDefault')}</Badge>

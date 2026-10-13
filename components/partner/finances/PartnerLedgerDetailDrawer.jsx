@@ -111,7 +111,7 @@ export function PartnerLedgerDetailDrawer({
             {row.bookingId ? (
               <div className="flex justify-between gap-3">
                 <dt className="text-slate-500">{t('partnerFinances_ledgerColBooking')}</dt>
-                <dd className="font-mono text-xs text-slate-800 break-all">{row.bookingId}</dd>
+                <dd className="font-mono text-xs text-slate-800 [overflow-wrap:anywhere]">{row.bookingId}</dd>
               </div>
             ) : null}
           </dl>

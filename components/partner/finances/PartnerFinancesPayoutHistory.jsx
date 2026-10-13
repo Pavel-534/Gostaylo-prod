@@ -85,19 +85,19 @@ export function PartnerFinancesPayoutHistory({
                     <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm">
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-                        <span className="tabular-nums text-right break-all">
+                        <span className="tabular-nums text-right [overflow-wrap:anywhere]">
                           <PartnerHostLedgerAmount thb={p.grossAmount} />
                         </span>
                       </div>
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
-                        <span className="tabular-nums text-amber-800 text-right break-all">
+                        <span className="tabular-nums text-amber-800 text-right [overflow-wrap:anywhere]">
                           −<PartnerHostLedgerAmount thb={p.payoutFeeAmount} />
                         </span>
                       </div>
                       <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0 items-start">
                         <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
-                        <span className="tabular-nums text-emerald-800 text-right break-all">
+                        <span className="tabular-nums text-emerald-800 text-right [overflow-wrap:anywhere]">
                           {finalUsesRail ? (
                             <PartnerHostPayoutAmount
                               preview={{

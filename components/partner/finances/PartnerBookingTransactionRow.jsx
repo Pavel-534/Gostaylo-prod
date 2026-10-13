@@ -64,19 +64,19 @@ export function PartnerBookingTransactionRow({
         <div className="grid grid-cols-1 gap-1.5 text-xs pt-1 border-t border-slate-200">
           <div className="flex justify-between gap-2 min-w-0">
             <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-            <span className="tabular-nums text-right break-all">
+            <span className="tabular-nums text-right [overflow-wrap:anywhere]">
               <PartnerHostLedgerAmount thb={row.gross} />
             </span>
           </div>
           <div className="flex justify-between gap-2 min-w-0">
             <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
-            <span className="tabular-nums text-red-700 text-right break-all">
+            <span className="tabular-nums text-red-700 text-right [overflow-wrap:anywhere]">
               −<PartnerHostLedgerAmount thb={row.fee} />
             </span>
           </div>
           <div className="flex justify-between gap-2 font-semibold min-w-0">
             <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
-            <span className="tabular-nums text-emerald-800 text-right break-all">
+            <span className="tabular-nums text-emerald-800 text-right [overflow-wrap:anywhere]">
               <PartnerHostLedgerAmount thb={row.net} />
             </span>
           </div>

@@ -49,7 +49,7 @@ export function KycUploader({
           <div className="space-y-2">
             <CheckCircle className="h-8 w-8 text-green-500 mx-auto" aria-hidden />
             <p className="text-sm text-green-600 font-medium">{strings.uploaded}</p>
-            <p className="text-xs text-slate-400 break-all px-2">
+            <p className="text-xs text-slate-400 [overflow-wrap:anywhere] px-2">
               {value.split('/').pop()?.slice(0, 36)}
               {value.length > 40 ? '…' : ''}
             </p>

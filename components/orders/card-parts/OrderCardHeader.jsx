@@ -112,7 +112,7 @@ export function OrderCardHeader({
               </div>
             ) : null}
             {bookingId && orderRefTemplate ? (
-              <p className="pt-0.5 text-xs text-slate-500 break-all">
+              <p className="pt-0.5 text-xs text-slate-500 [overflow-wrap:anywhere]">
                 {orderRefTemplate.replace(/\{\{id\}\}/g, String(bookingId))}
               </p>
             ) : null}

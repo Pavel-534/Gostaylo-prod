@@ -139,13 +139,13 @@ export function PartnerFinancesDocuments({ t, language }) {
                   </div>
                   <div className="flex justify-between gap-2 min-w-0">
                     <span className="text-slate-500 shrink-0">{t('partnerFinances_docsColAmount')}</span>
-                    <span className="font-semibold tabular-nums text-right break-all">
+                    <span className="font-semibold tabular-nums text-right [overflow-wrap:anywhere]">
                       <PartnerHostLedgerAmount thb={row.amountThb ?? 0} />
                     </span>
                   </div>
                   <div className="flex justify-between gap-2 min-w-0 text-xs">
                     <span className="text-slate-500 shrink-0">{t('partnerFinances_docsColNo')}</span>
-                    <span className="font-mono text-right break-all">{row.documentNo}</span>
+                    <span className="font-mono text-right [overflow-wrap:anywhere]">{row.documentNo}</span>
                   </div>
                   <Button
                     type="button"

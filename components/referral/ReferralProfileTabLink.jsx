@@ -157,7 +157,7 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
 
           {displayLinkCaption ? (
             <p
-              className="break-all text-center text-sm font-medium text-slate-700"
+              className="[overflow-wrap:anywhere] text-center text-sm font-medium text-slate-700"
               data-testid="referral-qr-caption"
             >
               {displayLinkCaption}

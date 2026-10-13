@@ -184,7 +184,7 @@ export function PartnerFinancesWithdrawDialog({
               <div className="mt-1 space-y-1 rounded-md bg-slate-50 border border-slate-100 p-3 text-sm text-slate-800">
                 <p className="font-medium text-slate-900">{selectedProfile.method?.name || '—'}</p>
                 {profileLines.map((line) => (
-                  <p key={line} className="text-slate-700 break-all">
+                  <p key={line} className="text-slate-700 [overflow-wrap:anywhere]">
                     {line}
                   </p>
                 ))}

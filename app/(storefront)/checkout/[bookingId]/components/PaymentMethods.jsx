@@ -345,7 +345,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
                         ? getUIText('checkout_txidPollingBody', c.language)
                         : getUIText('checkout_txidSentBody', c.language)}
                     </p>
-                    <p className="text-xs text-green-600 mt-2 font-mono break-all">TXID: {p.txId}</p>
+                    <p className="text-xs text-green-600 mt-2 font-mono [overflow-wrap:anywhere]">TXID: {p.txId}</p>
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">

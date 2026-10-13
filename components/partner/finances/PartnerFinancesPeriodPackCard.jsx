@@ -127,7 +127,7 @@ export function PartnerFinancesPeriodPackCard({
                   className="flex flex-col gap-2 rounded-xl bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <p className="font-mono text-sm break-all">{row.documentNo}</p>
+                    <p className="font-mono text-sm [overflow-wrap:anywhere]">{row.documentNo}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
                         {sourceLabel(row.source)}

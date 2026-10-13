@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { ReferralStoryInviteCard } from '@/components/referral/ReferralStoryInviteCard'
 
 /** Stage 179.4 — mobile share row; desktop keeps horizontal wrap + hover scale. */
 const SHARE_BTN_CLASS =
@@ -89,10 +90,10 @@ export function ReferralMarketingKit({
   storiesTeamHeadline = '',
   storiesTeamAmountLine = '',
   storiesTeamCtaLine = '',
-  storiesTeamDownloadLabel = 'Stories · team',
+  storiesTeamDownloadLabel = 'Сторис · команда',
   postTextsTitle = 'Тексты для постов',
   postTextsSubtitle = '',
-  postTextShortLabel = 'Короткий (Stories)',
+  postTextShortLabel = 'Короткий (сторис)',
   postTextMediumLabel = 'Средний (Telegram)',
   postTextLongLabel = 'Длинный (Post)',
   postCopyLabel = 'Скопировать',
@@ -163,6 +164,7 @@ export function ReferralMarketingKit({
   const [pdfBusy, setPdfBusy] = useState(false)
   const [storiesBusy, setStoriesBusy] = useState(false)
   const [storiesTeamBusy, setStoriesTeamBusy] = useState(false)
+  const [storyShareBusy, setStoryShareBusy] = useState(false)
   const [qrShareBusy, setQrShareBusy] = useState(false)
   const [qrPreviewOpen, setQrPreviewOpen] = useState(false)
   const [storyQrDataUrl, setStoryQrDataUrl] = useState('')
@@ -344,25 +346,60 @@ export function ReferralMarketingKit({
     }
   }
 
+  async function buildStoryInviteFile() {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    const dataUrl = await toPng(storiesCardRef.current, {
+      pixelRatio: 3,
+      cacheBust: true,
+      backgroundColor: '#0F172A',
+    })
+    const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
+    const fileName = `${getSiteBrandSlug()}-story-invite-${safeCode}.png`
+    const blob = await (await fetch(dataUrl)).blob()
+    return { dataUrl, fileName, file: new File([blob], fileName, { type: 'image/png' }) }
+  }
+
+  function saveDataUrl(dataUrl, fileName) {
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = fileName
+    a.click()
+  }
+
   async function handleDownloadStoriesAmbassador() {
     if (!qrLink || !storiesCardRef.current || typeof window === 'undefined') return
     setStoriesBusy(true)
     try {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
-      const dataUrl = await toPng(storiesCardRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
-        backgroundColor: '#f8fafc',
-      })
-      const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
-      const a = document.createElement('a')
-      a.href = dataUrl
-      a.download = `${getSiteBrandSlug()}-stories-ambassador-${safeCode}.png`
-      a.click()
+      const { dataUrl, fileName } = await buildStoryInviteFile()
+      saveDataUrl(dataUrl, fileName)
     } catch (e) {
       console.warn('[ReferralMarketingKit] stories ambassador export:', e?.message || e)
     } finally {
       setStoriesBusy(false)
+    }
+  }
+
+  /** Stage 206 — native share sheet with the PNG → Telegram / Instagram Stories. */
+  async function handleShareStoryInvite() {
+    if (!qrLink || !storiesCardRef.current || typeof window === 'undefined') return
+    setStoryShareBusy(true)
+    let built = null
+    try {
+      built = await buildStoryInviteFile()
+      const payload = { files: [built.file], title: String(brandChip || '').trim() || 'Invite' }
+      if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare(payload)) {
+        await navigator.share(payload)
+        return
+      }
+      saveDataUrl(built.dataUrl, built.fileName)
+      toast.message(getUIText('stage206_storyShareFail', language))
+    } catch (e) {
+      const errName = e && typeof e === 'object' && 'name' in e ? String(e.name) : ''
+      if (errName === 'AbortError') return
+      if (built) saveDataUrl(built.dataUrl, built.fileName)
+      toast.error(getUIText('stage206_storyShareFail', language))
+    } finally {
+      setStoryShareBusy(false)
     }
   }
 
@@ -460,47 +497,27 @@ export function ReferralMarketingKit({
     }
   }
 
-  const badgeChip = String(storiesAmbassadorBadgeLine || '').trim()
+
+  const storyGiftAmount = String(pitchTokens.welcomeAmount || '').trim()
+  const storyCardProps = {
+    brand: brandChip,
+    headline: storyGiftAmount ? getUIText('stage206_storyHeadline', language) : storiesHeadlineResolved,
+    giftAmount: storyGiftAmount,
+    giftSuffix: getUIText(storyGiftAmount ? 'stage206_storyGiftSuffix' : 'stage206_storyGiftSuffixNoAmount', language),
+    categories: getUIText('stage206_storyCategories', language),
+    qrDataUrl: storyQrDataUrl,
+    code: String(code || '').trim(),
+    codeLabel: getUIText('stage206_storyCodeLabel', language),
+    linkCaption,
+    scanHint: getUIText('stage206_storyScanHint', language),
+    displayName: safeDisplayName === 'Ambassador' ? '' : safeDisplayName,
+  }
 
   return (
     <>
-      {/* Off-screen 9:16 — амбассадор */}
-      <div
-        ref={storiesCardRef}
-        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-brand/10 via-white to-brand/15 text-slate-900 shadow-none"
-        aria-hidden
-      >
-        <div className="pointer-events-none flex flex-1 flex-col px-6 pt-10 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-lg font-bold text-white shadow-sm">
-            A
-          </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-brand-hover">{brandChip}</p>
-          <p className="mt-6 px-1 text-[17px] font-semibold leading-snug text-slate-800">{storiesHeadlineResolved}</p>
-          {badgeChip ? (
-            <p className="mt-2 px-2 text-[13px] font-semibold leading-snug text-amber-800">{badgeChip}</p>
-          ) : null}
-          {String(storiesTierStatusLine || '').trim() ? (
-            <p className="mt-3 px-2 text-[13px] font-medium leading-snug text-slate-700">
-              {String(storiesTierStatusLine).trim()}
-            </p>
-          ) : null}
-          <p className="mt-5 truncate px-2 text-xl font-bold text-slate-900">{safeDisplayName}</p>
-          <p className="mt-2 text-sm font-medium text-brand-hover">{badgeLine}</p>
-          <div className="mt-auto flex flex-1 flex-col items-center justify-center pb-10 pt-4">
-            {storyQrDataUrl ? (
-              <img
-                src={storyQrDataUrl}
-                alt=""
-                width={260}
-                height={260}
-                className="h-[260px] w-[260px] rounded-xl border border-slate-200 bg-white p-2 shadow-md"
-              />
-            ) : (
-              <div className="h-[260px] w-[260px] rounded-xl bg-white/80" />
-            )}
-            <p className="mt-6 max-w-[280px] text-center text-[11px] leading-relaxed text-slate-500">{linkCaption}</p>
-          </div>
-        </div>
+      {/* Off-screen 9:16 — приглашение (экспорт 1080×1920) */}
+      <div className="fixed left-[-9999px] top-0 z-0" aria-hidden>
+        <ReferralStoryInviteCard ref={storiesCardRef} {...storyCardProps} />
       </div>
 
       {/* Off-screen 9:16 — доход команды */}
@@ -567,7 +584,7 @@ export function ReferralMarketingKit({
                 )}
               </button>
               {linkCaption ? (
-                <p className="max-w-[220px] break-all text-center text-[11px] font-medium leading-snug text-slate-600">
+                <p className="max-w-[220px] [overflow-wrap:anywhere] text-center text-[11px] font-medium leading-snug text-slate-600">
                   {linkCaption}
                 </p>
               ) : null}
@@ -623,16 +640,45 @@ export function ReferralMarketingKit({
                   {pdfButtonLabel}
                 </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-brand/25 bg-brand/10 hover:bg-brand/10 text-brand"
-                disabled={!qrLink || storiesBusy || !storyQrDataUrl}
-                onClick={() => void handleDownloadStoriesAmbassador()}
+              <div
+                className="flex flex-col items-center gap-3 rounded-2xl border border-brand/20 bg-brand/5 p-3"
+                data-testid="referral-story-invite-block"
               >
-                {storiesBusy ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <Smartphone className="h-4 w-4 mr-2 shrink-0" />}
-                {storiesDownloadLabel}
-              </Button>
+                <div
+                  className="relative h-[320px] w-[180px] overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5"
+                  data-testid="referral-story-invite-preview"
+                >
+                  <ReferralStoryInviteCard
+                    {...storyCardProps}
+                    style={{ transform: 'scale(0.5)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}
+                  />
+                </div>
+                <p className="max-w-[260px] text-center text-[11px] leading-snug text-slate-600">
+                  {getUIText('stage206_storyPreviewHint', language)}
+                </p>
+                <Button
+                  type="button"
+                  variant="brand"
+                  className="min-h-11 w-full"
+                  disabled={!qrLink || storyShareBusy || !storyQrDataUrl}
+                  onClick={() => void handleShareStoryInvite()}
+                  data-testid="referral-story-invite-share"
+                >
+                  {storyShareBusy ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Share2 className="mr-2 h-4 w-4 shrink-0" />}
+                  {getUIText('stage206_storyShare', language)}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 w-full border-brand/25 text-brand"
+                  disabled={!qrLink || storiesBusy || !storyQrDataUrl}
+                  onClick={() => void handleDownloadStoriesAmbassador()}
+                  data-testid="referral-story-invite-save"
+                >
+                  {storiesBusy ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Download className="mr-2 h-4 w-4 shrink-0" />}
+                  {getUIText('stage206_storySave', language)}
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -691,7 +737,7 @@ export function ReferralMarketingKit({
                     {sharePitchTabHostLabel}
                   </button>
                 </div>
-                <p className="min-w-0 break-all rounded-lg border border-slate-100 bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-500">
+                <p className="min-w-0 [overflow-wrap:anywhere] rounded-lg border border-slate-100 bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-500">
                   {defaultPitch}
                 </p>
               </div>
@@ -735,7 +781,7 @@ export function ReferralMarketingKit({
               {readyTexts.map((item) => (
                 <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                   <p className="text-xs font-medium text-slate-600">{item.label}</p>
-                  <p className="mt-1 min-w-0 break-all whitespace-pre-wrap text-sm leading-snug text-slate-900">
+                  <p className="mt-1 min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap text-sm leading-snug text-slate-900">
                     {item.value}
                   </p>
                   <div className="mt-2">
@@ -760,7 +806,7 @@ export function ReferralMarketingKit({
         <DialogContent className="max-w-sm rounded-2xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{openLabel}</DialogTitle>
-            <DialogDescription className="break-all text-slate-600">{linkCaption || qrLink}</DialogDescription>
+            <DialogDescription className="[overflow-wrap:anywhere] text-slate-600">{linkCaption || qrLink}</DialogDescription>
           </DialogHeader>
           <div className="mx-auto rounded-2xl border border-slate-200 bg-white p-4">
             {qrLink ? <QRCodeSVG value={qrLink} size={240} level="M" includeMargin /> : null}
