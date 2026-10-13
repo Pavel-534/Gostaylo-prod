@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner'
 import { HostReferralCard } from '@/components/referral/HostReferralCard'
 import { HostReferralJourney } from '@/components/referral/HostReferralJourney'
+import { ReferralStoryInviteSection } from '@/components/referral/ReferralStoryInviteSection'
 
 const CHANNEL_LABEL_KEYS = {
   telegram: 'stage192_utmChannelTelegram',
@@ -36,7 +37,7 @@ const CHANNEL_LABEL_KEYS = {
   vk: 'stage192_utmChannelVk',
 }
 
-export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonusThb }) {
+export function ReferralProfileTabLink({ data, t, welcomeBonusThb }) {
   const router = useRouter()
   const [utmChannel, setUtmChannel] = useState('telegram')
   const [utmOpen, setUtmOpen] = useState(false)
@@ -307,6 +308,15 @@ export function ReferralProfileTabLink({ data, t, welcomeBonusThb: _welcomeBonus
           </div>
         </CardContent>
       </Card>
+
+      <ReferralStoryInviteSection
+        data={data}
+        t={t}
+        brand={brand}
+        inviteLink={cleanInviteLink}
+        linkCaption={displayLinkCaption}
+        welcomeBonusThb={welcomeBonusThb}
+      />
 
       <HostReferralJourney data={data} t={t} />
 

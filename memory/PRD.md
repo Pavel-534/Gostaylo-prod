@@ -1353,3 +1353,10 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Перенос слов: break-all → [overflow-wrap:anywhere] во всех пользовательских компонентах (кроме админки) — слова переносятся целиком, длинные ссылки по-прежнему не вылезают.
 - Новая карточка-приглашение 9:16 (1080×1920): components/referral/ReferralStoryInviteCard.jsx, превью в ReferralMarketingKit + кнопки «Поделиться в сторис» (Web Share с файлом) и «Сохранить картинку». Ключи stage206_* (ru/en/zh/th).
 - Бэклог: офлайн-экран, упрощённая шапка, тёмная тема, баннер установки PWA.
+
+## Июнь 2026 — Фоны карточки + счётчик сторис (Stage 207)
+- Найдено: ReferralMarketingKit нигде не подключён → карточка Stage 206 не была видна. Теперь новый блок ReferralStoryInviteSection встроен во вкладку «Пригласить» (ReferralProfileTabLink).
+- Фоны: пляж / город / море (inline SVG-сцены в ReferralStoryInviteCard, prop theme), выбор чипами, живое превью, «Поделиться в сторис» / «Сохранить картинку».
+- Трекинг: QR карточки ведёт на /s/{code}?bg=… (app/(storefront)/s/[code]/route.js) → recordClick(utm_campaign=story_card, utm_source=story_{bg}) + cookie → редирект на /u/{id}?welcome=1.
+- Счётчик: GET /api/v2/referral/story-stats → { visits, signups, byTheme }. В UI: переходы, регистрации, мотивационная фраза, лучший фон.
+- Ключи stage207_* (ru/en/zh/th).
