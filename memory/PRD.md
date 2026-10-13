@@ -1341,3 +1341,9 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Удалить `HeaderSwitcher` wrapper (root layout напрямую использует `<AppHeader />`).
 - Предложение: добавить stylelint в CI с правилом `no-unknown-nested-selector` + brace matcher.
 
+
+## UX/UI аудит мобильной PWA (июнь 2026, без изменений кода)
+- Изучены manifest, layout.js, globals.css, mobile-bottom-nav, скриншоты iPhone (pwa-zip, pwa-screenshots).
+- P0: перенос слов по буквам (break-all), смесь RU/EN, наложение sticky-блока в рефералке, запрет zoom, нет офлайн-режима.
+- P1: перегруженная шапка, разные стили кнопок, цвет splash, Web Share, цифровая клавиатура.
+- P2: тёмная тема, View Transitions, вибро-отклик, баннер установки, skeleton-экраны.
