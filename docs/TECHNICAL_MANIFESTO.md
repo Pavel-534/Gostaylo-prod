@@ -1,6 +1,6 @@
 # Technical Manifesto (code-truth)
 
-> **Version**: 13.2.281 | **Last Updated**: 2026-10-05 | **Tip of tree:** Stage **202.52** catalog map popup soft keep-in-view.
+> **Version**: 13.2.282 | **Last Updated**: 2026-10-17 | **Tip of tree:** Stage **202.53** PDP lightbox idle warmup + hosted unoptimized.
 
 **Brand:** display name — **`getSiteDisplayName()`** (`NEXT_PUBLIC_SITE_NAME` / `SITE_DISPLAY_NAME`; prod **Airento**). i18n — **`{brand}`** (ADR §7a).
 
@@ -26,6 +26,10 @@
 ## Свежие дельты (держать коротким — последние волны)
 
 > Полные Stage-тексты: [`HISTORY.md`](./HISTORY.md) + [archive stage log](./archive/reports/TECHNICAL_MANIFESTO_STAGE_LOG.md).
+
+### Stage 202.53 — PDP lightbox black screen 3–5s
+- Bug: `GalleryModal` ran hosted `/_storage` mains through `/_next/image` (Bento already `unoptimized`) → cold Image Optimization + no browser cache → black overlay until decode.
+- Fix: hosted/remote `unoptimized` parity with Bento; soft blur/fade until `onLoad`; idle warmup of `getPdpLightboxImageUrls` on PDP mount (`lib/media/pdp-lightbox-warmup.js`, capped on constrained NetInfo); neighbour warm while lightbox open.
 
 ### Stage 202.52 — Catalog map popup clipped at map edges
 - Bug: price-pin popup (`CatalogMapSelectedPopup`) used `autoPan={false}`; pin near top/edge left the card cut by map chrome (desktop split + mobile sheet).

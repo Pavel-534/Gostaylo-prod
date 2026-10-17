@@ -9,11 +9,12 @@
  * @see components/listing/pdp/ListingBookingProvider.jsx
  */
 
-import { useState, useMemo, Suspense } from 'react'
+import { useState, useMemo, useEffect, Suspense } from 'react'
 import {
   getPdpLightboxImageUrls,
   resolvePdpHeroBlurDataURL,
 } from '@/lib/media/image-delivery'
+import { warmupPdpLightboxUrls } from '@/lib/media/pdp-lightbox-warmup'
 import { mapPublicImageUrls } from '@/lib/public-image-url'
 import { useListingViewData } from '@/hooks/useListingViewData'
 import { useListingChat } from '@/hooks/useListingChat'
@@ -195,6 +196,12 @@ function ListingPdpContent({ listingId, lang }) {
   )
   const galleryBlurDataURL = useMemo(() => resolvePdpHeroBlurDataURL(listing), [listing])
   const handleGalleryImageClick = useListingPdpGalleryClickHandler(setGalleryIndex, setGalleryOpen)
+
+  // Stage 202.53 — soft-warm lightbox mains after PDP paint so open is near-instant.
+  useEffect(() => {
+    if (!listing || !galleryImageUrls?.length) return
+    warmupPdpLightboxUrls(galleryImageUrls)
+  }, [listing, galleryImageUrls])
 
   const amenities = listing?.metadata?.amenities || []
 

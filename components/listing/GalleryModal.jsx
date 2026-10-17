@@ -3,21 +3,30 @@
  * Lightbox URLs + sizes from `lib/media/image-delivery.js` (Stage 171.21).
  * Stage 201.70 — intrinsic image sizing + forced Dialog height (fixes empty dark overlay
  * when shared DialogContent `sm:!h-auto` collapsed next/image `fill`).
+ * Stage 202.53 — hosted photos unoptimized (parity with BentoGallery); soft fade-in;
+ * neighbour warmup while open.
  */
 
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { isHostedListingImageUrl } from '@/lib/listing-image-host-utils'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { resolvePdpImageSizes } from '@/lib/media/image-delivery'
+import { warmupPdpLightboxNeighbors } from '@/lib/media/pdp-lightbox-warmup'
 import { useNetworkQuality } from '@/hooks/use-network-quality'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
+
+function lightboxImageUnoptimized(src) {
+  // Same Hobby guard as BentoGallery — avoid /_next/image cold re-encode (3–5s black flash).
+  return isRemoteHttpImageSrc(src) || isHostedListingImageUrl(src)
+}
 
 export function GalleryModal({
   open,
@@ -37,6 +46,16 @@ export function GalleryModal({
   const networkQuality = useNetworkQuality()
   const lightboxSizes = resolvePdpImageSizes('lightbox', networkQuality)
   const currentSrc = images[currentIndex]
+  const [imageReady, setImageReady] = useState(false)
+
+  useEffect(() => {
+    setImageReady(false)
+  }, [currentSrc, open])
+
+  useEffect(() => {
+    if (!open || !Array.isArray(images) || images.length === 0) return
+    warmupPdpLightboxNeighbors(images, currentIndex)
+  }, [open, images, currentIndex])
 
   const handlePrev = () => {
     onIndexChange((currentIndex - 1 + images.length) % images.length)
@@ -112,21 +131,35 @@ export function GalleryModal({
             </Button>
           </DialogClose>
 
-          <div className="flex max-h-full w-full flex-1 items-center justify-center px-2 py-14 sm:px-4">
+          <div className="relative flex max-h-full w-full flex-1 items-center justify-center px-2 py-14 sm:px-4">
             {currentSrc ? (
-              <Image
-                key={currentSrc}
-                src={currentSrc}
-                alt={`${listingTitle} ${currentIndex + 1}`}
-                width={1600}
-                height={1200}
-                className="h-auto max-h-[min(85dvh,900px)] w-auto max-w-[min(96vw,1152px)] object-contain"
-                sizes={lightboxSizes}
-                placeholder="blur"
-                blurDataURL={blurDataURL}
-                unoptimized={isRemoteHttpImageSrc(currentSrc)}
-                priority
-              />
+              <>
+                {!imageReady ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    aria-hidden
+                  >
+                    <div className="h-[min(60dvh,520px)] w-[min(88vw,720px)] max-w-full animate-pulse rounded-2xl bg-muted/40" />
+                  </div>
+                ) : null}
+                <Image
+                  key={currentSrc}
+                  src={currentSrc}
+                  alt={`${listingTitle} ${currentIndex + 1}`}
+                  width={1600}
+                  height={1200}
+                  className={cn(
+                    'h-auto max-h-[min(85dvh,900px)] w-auto max-w-[min(96vw,1152px)] object-contain transition-opacity duration-300',
+                    imageReady ? 'opacity-100' : 'opacity-0',
+                  )}
+                  sizes={lightboxSizes}
+                  placeholder="blur"
+                  blurDataURL={blurDataURL}
+                  unoptimized={lightboxImageUnoptimized(currentSrc)}
+                  priority
+                  onLoad={() => setImageReady(true)}
+                />
+              </>
             ) : null}
           </div>
 
